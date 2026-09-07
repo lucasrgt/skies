@@ -644,8 +644,20 @@
       },
       "node": {
         "scopes": [
-          "node-sdk/packages/foundation/**/*.ts",
-          "node-sdk/packages/foundation/**/*.mjs",
+          "node-sdk/packages/foundation/bin/skies-node-foundation.mjs",
+          "node-sdk/packages/foundation/src/assets.ts",
+          "node-sdk/packages/foundation/src/attempt.ts",
+          "node-sdk/packages/foundation/src/cli.ts",
+          "node-sdk/packages/foundation/src/config.ts",
+          "node-sdk/packages/foundation/src/csm.ts",
+          "node-sdk/packages/foundation/src/gate.ts",
+          "node-sdk/packages/foundation/src/index.ts",
+          "node-sdk/packages/foundation/src/inventory.ts",
+          "node-sdk/packages/foundation/src/runner.ts",
+          "node-sdk/packages/foundation/src/safe-fs.ts",
+          "node-sdk/packages/foundation/src/suppression.ts",
+          "node-sdk/packages/foundation/src/types.ts",
+          "node-sdk/packages/foundation/src/workflow.ts",
           "node-sdk/packages/testing/src/reporter.ts"
         ],
         "proofs": [
