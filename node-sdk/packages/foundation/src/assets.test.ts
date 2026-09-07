@@ -42,7 +42,7 @@ describe("transactional foundation stack", () => {
     const lock = join(root, ".skies/csm/lock.json");
     await writeFile(lock, '{"schemaVersion":1,"managedBy":"@skiesjs/foundation","version":"old"}\n');
     await installFoundationAssets({ root, operation: "sync" });
-    expect(await readFile(lock, "utf8")).toContain('"version": "0.1.0"');
+    expect(await readFile(lock, "utf8")).toContain('"version": "0.1.2"');
     await writeFile(skill, "unmanaged instructions\n");
     await expect(installFoundationAssets({ root, operation: "sync" })).rejects.toThrow("unmanaged");
   });
