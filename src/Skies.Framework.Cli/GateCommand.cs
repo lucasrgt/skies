@@ -44,6 +44,11 @@ internal static class GateCommand
                 + "Fetch the comparison revision and retry the same scoped check, or request --full explicitly.");
             return 2;
         }
+        return GateAttempt.Run(root, options, () => Execute(root, options, changes), Console.Error);
+    }
+
+    private static int Execute(string root, GateOptions options, GitChangeSet changes)
+    {
         var effectiveFull = options.Mode == GateMode.Full;
 
         var manifests = GateScan.DiscoverManifests(root);
@@ -203,6 +208,7 @@ internal static class GateCommand
               skies gate [--affected] [--base <rev>] [--fast] [dotnet arguments...]
               skies gate --staged [--fast] [dotnet arguments...]
               skies gate --full [dotnet arguments...]
+              Add --retry-review <json-file> after a failed or interrupted expensive attempt.
 
             modes:
               --affected   select proofs from Git changes; this is the default

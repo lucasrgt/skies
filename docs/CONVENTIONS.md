@@ -570,6 +570,17 @@ infrastructure changes, the selector widens to full. Gate-control files (`.confi
 workflows) are different: the doctor validates their contract, but changing the fiscal does not execute unrelated
 application proofs. Application annotations and arbitrary test filters never participate.
 
+Authoritative and full `check`/`gate` commands allow one automatic attempt per checkout. A failed or interrupted
+attempt blocks the next broad run, even after edits or a scope change. An exclusive lease also prevents overlapping
+broad runs. Staged and fast checks remain available for diagnosis. Stop and check whether you are in a loop before
+retrying: inspect the first failure, correct its cause and verify the correction with a focused test. Then supply
+`--retry-review <json-file>` with `PreviousAttemptId`, `Diagnosis`, `Correction`, and `FocusedVerification` strings.
+The previous attempt ID is in the receipt printed by the command. A review authorizes one further attempt and cannot
+be replayed after another failure; it records the operator's evidence rather than independently certifying it.
+No proof is waived. Successful completion permits subsequent work. Attempt state lives in Git metadata under
+`skies-verification`; do not delete it to bypass a failed run. This guard controls these CLI commands, not model
+tokens or arbitrary commands invoked outside Skies.
+
 The C# dependency graph resolves top-level types and qualified references: nested `Input`/`Output` names and
 namespace segments never join unrelated slices. A module specification selects that module; a transitive proof
 selects its own test class without recursively selecting every other proof of every subject it mentions.
