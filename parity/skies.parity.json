@@ -935,6 +935,14 @@
       "expires": "2026-08-21"
     },
     {
+      "id": "dotnet-csm-011-binary-pin",
+      "capability": "proof.gates-foundations",
+      "side": "node",
+      "reason": "CsmCommand.cs only updates the .NET CLI's external CSM binary version and verified archive checksums to 0.1.1, which pins NYA 1.1.7. Node's packages/foundation/src/workflow.ts and csm.ts implement the foundation workflow directly and do not download this binary. No proof selection, failure policy, or shared workflow contract changes in this patch; review this distinction before the next foundation behavior change.",
+      "owner": "lucasrgt",
+      "expires": "2026-09-21"
+    },
+    {
       "id": "dotnet-openapi-414-contract",
       "capability": "http.contract-openapi",
       "side": "node",
