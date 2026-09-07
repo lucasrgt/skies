@@ -8,7 +8,7 @@ public class FoundationToolTests
     [Fact]
     public void The_framework_pins_one_csm_release_instead_of_four_independent_tools()
     {
-        Assert.Equal("0.1.0", CsmCommand.Version);
+        Assert.Equal("0.1.1", CsmCommand.Version);
         Assert.Equal("csm", CsmCommand.Tool.Id);
         Assert.Equal("Codebase Semantic Memory", CsmCommand.Tool.DisplayName);
     }
