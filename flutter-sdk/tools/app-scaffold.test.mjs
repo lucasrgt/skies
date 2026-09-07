@@ -10,7 +10,7 @@ test("renders the conventional Flutter package scripts and empty closed flow inv
   assert.equal(packageJson.scripts.test, "flutter test --exclude-tags=avp");
   assert.equal(packageJson.scripts["test:avp"], "flutter test --tags=avp");
   assert.equal(packageJson.scripts["test:e2e"], "flutter test integration_test");
-  assert.equal(packageJson.devDependencies["skies-flutter"], "4.1.23");
+  assert.equal(packageJson.devDependencies["skies-flutter"], "4.1.24");
   assert.equal(files["e2e/flows.json"], "[]\n");
 });
 

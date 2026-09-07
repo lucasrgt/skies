@@ -12,7 +12,7 @@ import { FRONTEND_PACKAGE_VERSIONS } from "./package-versions.mjs";
 
 /** Flutter versions mirrored here so the published release guard remains self-contained. */
 export const FLUTTER_RELEASE_VERSIONS = Object.freeze([
-  Object.freeze({ name: "skies-flutter", version: "4.1.23" }),
+  Object.freeze({ name: "skies-flutter", version: "4.1.24" }),
   Object.freeze({ name: "skies_flutter", version: "4.1.22" }),
 ]);
 

@@ -68,15 +68,17 @@ export function auditProject(root, { strict = false, contractFile, backendRoot, 
         if (entry.isFile() && entry.name.endsWith(".json")) contracts.add(join(directory, entry.name));
       }
     }
-    for (const flow of flows) {
-      if (typeof flow.backendContract === "string") contracts.add(resolve(project, flow.backendContract));
-    }
   }
   const operations = [...contracts].flatMap((path) =>
     existsSync(path) ? readOperationIds(JSON.parse(readFileSync(path, "utf8"))) : []);
   const findings = diagnose(project, { strict, operationIds: [...new Set(operations)] });
   if (!includeE2e) return findings;
-  const featureE2e = checkFeatureE2e(findViewModels(project), flows, operations);
+  const referenceContracts = new Set(flows
+    .filter((flow) => typeof flow.backendContract === "string")
+    .map((flow) => resolve(project, flow.backendContract)));
+  const referenceOperations = [...referenceContracts].flatMap((path) =>
+    existsSync(path) ? readOperationIds(JSON.parse(readFileSync(path, "utf8"))) : []);
+  const featureE2e = checkFeatureE2e(findViewModels(project), flows, [...new Set([...operations, ...referenceOperations])]);
   for (const gap of featureE2e.gaps) findings.push({ rule: "SKYFL035", file: flowsPath, message: gap, severity: "error" });
   const e2e = checkE2eProject(project);
   for (const gap of e2e.gaps) findings.push({ rule: "SKYFL-E2E", file: join(project, "integration_test"), message: gap, severity: "error" });

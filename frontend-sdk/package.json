@@ -1,6 +1,6 @@
 {
   "name": "@skiesjs/frontend-sdk",
-  "version": "4.1.16",
+  "version": "4.1.17",
   "type": "module",
   "description": "Canonical Skies frontend doctor and scaffolding tools.",
   "license": "MIT",

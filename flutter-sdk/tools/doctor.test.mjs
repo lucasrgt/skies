@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -145,6 +145,21 @@ test("the unified strict doctor closes rules, endpoint, AVP, and real-backend E2
 
     assert.deepEqual(auditProject(root, { strict: true, contractFile: join(root, "contract", "api.json") }), []);
     assert.deepEqual(auditProject(root, { strict: true }), []);
+    const reference = join(root, "backend-api.json");
+    writeFileSync(reference, JSON.stringify({ paths: {
+      ...contract.paths,
+      "/admin": { get: { operationId: "ListAdminUsers" } },
+      "/session": { get: { operationId: "GetSession" } },
+    } }));
+    for (const flow of flows) flow.backendContract = "backend-api.json";
+    writeFileSync(join(root, "e2e", "flows.json"), JSON.stringify(flows));
+    assert.deepEqual(auditProject(root, { strict: true }), []);
+    const modelPath = join(root, "lib", "features", "wallets", "wallets_view_model.dart");
+    const model = readFileSync(modelPath, "utf8");
+    writeFileSync(modelPath, `${model}\nvoid sessionWire(api) => api.getSession();\n`);
+    assert.ok(auditProject(root, { strict: true }).some((finding) =>
+      finding.rule === "SKYFL035" && finding.message.includes("GetSession")));
+    writeFileSync(modelPath, model);
     const firstBackend = join(root, "backend-one");
     const secondBackend = join(root, "backend-two");
     mkdirSync(firstBackend);

@@ -116,6 +116,9 @@ refresh replay after a non-auth 401, unwraps `Response<T>`, and maps the canonic
 `SkiesApiException<ErrorBody>`. Transport failures retain their original Dio cause.
 
 Every app-facing OpenAPI `operationId` must be consumed from a ViewModel or sanctioned session/guard/client seam.
+Endpoint ownership comes from the application's `contract/*.json` files or an explicit `--contract`.
+An E2E flow's `backendContract` may reference a broader backend schema: it validates observed operations and
+consumed feature coverage without assigning unrelated endpoints to that application.
 `skies-flutter-endpoint-coverage` is warning-tier while building and blocking under `--strict`. Contract freshness
 is blocking after the first generated stamp.
 
