@@ -194,6 +194,18 @@ provides Semantics, live error regions, labels, disabled/loading behavior, and 4
 The canonical unfiltered runner is `flutter test integration_test`. Backend write slices referenced by Flutter
 flows still require co-located .NET happy and sad `[Journey]` proofs through `skies-flutter-journey-parity`.
 
+The gate batches selected integration files with synchronous `void main()` entry points into one temporary Dart
+entry point, so Flutter compiles the selected suite once. Each file registers inside its own ordinary `group`,
+preserving group hooks and distinguishing duplicate test names. The entry point only imports and calls existing
+proofs, is removed on success or failure, and propagates Flutter's exit code. A single selected file or asynchronous
+registration retains Flutter's per-file runner. Batched files share the test process; suites must reset application
+state in their existing setup/teardown hooks, as they do between tests within a file.
+
+An unmapped shared library widens verification to the library and its transitive package consumers, using
+`pubspec.yaml` or `package.json` dependencies. It does not automatically select unrelated platforms or apps.
+Unreadable package identities or dependency syntax keep conservative widening. Root runtime configuration and an
+explicit full release audit still select all relevant proofs. The staged boundary continues to defer device execution.
+
 When a manifest-declared frontend package also has `pubspec.yaml`, the repository `skies gate` selects Flutter
 automatically: affected `_test.dart` proofs run through `flutter test`, `*.assay_test.dart` forms the AVP partition,
 surface flows run through `integration_test`, strict `SKYFL` replaces the React ESLint leg, and backend roots from

@@ -585,7 +585,10 @@
           "src/Skies.Framework.Cli/SuppressionGate.cs",
           "src/Skies.Framework.Cli/WtwCommand.cs",
           "src/Skies.Framework.Cli/GeneratedClientImpact.cs",
-          "src/Skies.Framework.Cli/Tools/*.mjs"
+          "src/Skies.Framework.Cli/Tools/*.mjs",
+          "src/Skies.Framework.Cli/FrontendGate.cs",
+          "src/Skies.Framework.Cli/FrontendConsumers.cs",
+          "src/Skies.Framework.Cli/FlutterIntegrationSuite.cs"
         ],
         "proofs": [
           {
@@ -639,6 +642,14 @@
           {
             "kind": "test",
             "path": "frontend-sdk/tests/cli-node-selection.test.ts"
+          },
+          {
+            "kind": "test",
+            "path": "tests/Skies.Framework.Cli.Tests/FlutterIntegrationSuiteTests.cs"
+          },
+          {
+            "kind": "test",
+            "path": "tests/Skies.Framework.Cli.Tests/FrontendConsumersTests.cs"
           }
         ]
       },
@@ -893,7 +904,6 @@
       "dotnet": {
         "scopes": [
           "src/Skies.Framework.Cli/FrameworkSync.cs",
-          "src/Skies.Framework.Cli/FrontendGate.cs",
           "src/Skies.Framework.Cli/FrontendScriptContract.cs",
           "src/Skies.Framework.Cli/FrontendWarningGate.cs",
           "src/Skies.Framework.Cli/Program.cs",

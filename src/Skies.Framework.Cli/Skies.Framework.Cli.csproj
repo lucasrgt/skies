@@ -16,7 +16,7 @@
     <!-- Package metadata (the CLI doesn't import Skies.Framework.Library.props — that turns CS1591 into an error, and a
          tool isn't a documented library surface). 1.0 removes proof modes and topology fallbacks: one manifest,
          one complete fail-closed obligation with Git-derived incremental execution. -->
-    <Version>4.1.14</Version>
+    <Version>4.1.15</Version>
     <Authors>Lucas Tinoco</Authors>
     <Description>The Skies CLI — scaffolds the convention bundle: new feature slices, entities, CRUD, and the auth flows. Install with `dotnet tool install -g skies-framework-cli`; run as `skies`. The companion to the Skies framework packages.</Description>
     <PackageTags>skies;cli;dotnet-tool;scaffolding;conventions;vertical-slice</PackageTags>

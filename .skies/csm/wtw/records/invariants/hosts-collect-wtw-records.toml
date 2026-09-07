@@ -3,7 +3,7 @@ id = "hosts-collect-wtw-records"
 kind = "invariant"
 status = "active"
 title = "Hosts collect WTW records"
-statement = "Only the host invokes WTW collection after authoritative accepted plans, ADRs, explicit decisions, or completed work; agents never add records manually."
+statement = "Only the host invokes WTW collection after authoritative accepted plans, ADRs, explicit decisions, or completed work; agents never add WTW records manually. This invariant governs WTW decisions and invariants, not NYA scars recorded through nya remember."
 violation = "An agent manually adds a WTW record, or collection is invoked without an authoritative durable decision or falsifiable invariant source."
 scopes = [
     "**/.wtw/**",
