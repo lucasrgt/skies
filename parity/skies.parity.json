@@ -1022,9 +1022,9 @@
       "id": "node-delivery-tooling-windows-shell",
       "capability": "delivery.packages-release",
       "side": "dotnet",
-      "reason": "Node package-smoke delivery tooling gained Windows .cmd shell handling for the CI matrix; the .NET delivery tooling (NuGet pack/publish) already runs on Windows without changes.",
+      "reason": "The Node-only tarball smoke inventory now includes the shipped attempt module and starts native executables without cmd.exe while retaining shell execution for .cmd/.bat. npm run package-smoke passes on Windows, including installed CLI and fresh application checks. NuGet pack/publish neither uses this JavaScript runner nor validates npm tarball modules; no shared delivery contract changes. Revisit at the next package delivery change.",
       "owner": "lucasrgt",
-      "expires": "2026-08-21"
+      "expires": "2026-09-14"
     },
     {
       "id": "node-doctor-bin-entry",
