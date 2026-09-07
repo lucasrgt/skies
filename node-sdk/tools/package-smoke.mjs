@@ -69,7 +69,7 @@ const packageDefinitions = [
   },
   { directory: "packages/framework", name: "@skiesjs/framework", files: ["README.md", "package.json"] },
   { directory: "packages/foundation", name: "@skiesjs/foundation", files: compiledFiles([
-    "assets", "cli", "config", "csm", "gate", "index", "inventory", "runner", "safe-fs", "suppression", "types", "workflow",
+    "assets", "attempt", "cli", "config", "csm", "gate", "index", "inventory", "runner", "safe-fs", "suppression", "types", "workflow",
   ], ["bin/skies-node-foundation.mjs"]) },
   { directory: "packages/cli", name: "@skiesjs/cli", files: compiledFiles([
     "file-plan", "generate-application", "generators-auth-augment", "generators-domain", "generators-hub",
@@ -112,7 +112,7 @@ async function run(file, args, cwd, expectedExitCode = 0) {
       env: childEnvironment,
       maxBuffer: 10 * 1024 * 1024,
       // Windows resolves npm only as a .cmd script, which requires a shell.
-      shell: process.platform === "win32",
+      shell: process.platform === "win32" && /\.(cmd|bat)$/i.test(file),
     });
     assert.equal(
       expectedExitCode,
