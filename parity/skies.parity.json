@@ -614,7 +614,7 @@
           },
           {
             "kind": "test",
-            "path": "tests/Skies.Framework.Cli.Tests/GitChangesTests.cs"
+            "path": "tests/Skies.Framework.Cli.Tests/Git*.cs"
           },
           {
             "kind": "test",
