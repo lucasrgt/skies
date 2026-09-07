@@ -154,3 +154,12 @@ skies-node-foundation foundation workflow check --task "Release audit" --full
 - `2`: invalid invocation, manifest/configuration, unsafe filesystem state, or incomplete inspection
 
 Use `skies-node-foundation --help` for the complete command summary.
+
+Authoritative and full CLI checks allow one automatic attempt. After failure or interruption, stop and check
+whether you are in a loop. Diagnose the first failure and verify a focused correction before retrying with
+`--retry-review <json-file>`. Include `PreviousAttemptId`, `Diagnosis`, `Correction`, and `FocusedVerification`
+strings. The ID is in `.skies/verification-attempt/attempt.json`. Each review permits only one retry and does
+not waive any proof or independently certify the supplied evidence. Fast and staged checks remain available.
+An exclusive lock blocks simultaneous broad commands. After a killed process, verify that the PID in
+`active.lock` has stopped before removing that lock; keep the attempt receipt and provide a retry review.
+The guard covers CLI checks, not arbitrary external commands or model token usage.

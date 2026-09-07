@@ -2,7 +2,7 @@ import { FoundationError } from "./types.js";
 import { normalizeRelativePath } from "./config.js";
 import { applyTextPlan, readSafeText, type TextAction, type TextChange } from "./safe-fs.js";
 
-export const FOUNDATION_VERSION = "0.1.0";
+export const FOUNDATION_VERSION = "0.1.2";
 /** Shared CSM configuration, mirroring the .NET side: [storage] root = ".skies/csm". */
 export const CSM_CONFIG = "csm.toml";
 /** Pre-CSM contract legacy JSON config; read for migration but never written. */
@@ -71,7 +71,7 @@ The primary coding agent owns the complete foundation lifecycle. Never create or
 5. Before commit, stage the exact intended paths and run \`skies-node-foundation check --task "<completed work>" --staged\`. Staged checks are always bounded: mapped proofs run, while exhaustive fallbacks and browser/device execution wait for authoritative CI.
 6. Before push, run \`skies-node-foundation check --task "<review>" --base <target-revision> --fast\`. The pre-push hook repeats this bounded committed-diff review.
 7. Never replace the automation-owned depth gates: pull-request CI runs affected without --fast, and release automation runs --full. Do not report an external delivery complete until its required status is green. Bare \`skies-node-foundation check --task ...\` is intentionally invalid so an ambiguous scope cannot start a surprise exhaustive run.
-8. Rerun the same check after every fix. Exit code 1 means findings remain. Exit code 2 or greater means validation was incomplete. Neither is a pass.
+8. Allow one automatic authoritative/full attempt. After failure or interruption, stop and check whether you are in a loop. Diagnose the first failure, correct its cause and run focused verification before one retry with \`--retry-review <json-file>\` containing PreviousAttemptId, Diagnosis, Correction and FocusedVerification. Never launch overlapping broad checks. Exit 1 means findings and exit 2 or greater means incomplete validation. Neither is a pass; focused checks do not replace the required gate.
 
 Tests, linters, review, and individual foundation commands do not replace \`skies-node-foundation check\`.
 ${INSTRUCTIONS_END}`;

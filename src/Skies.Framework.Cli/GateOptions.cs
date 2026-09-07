@@ -24,6 +24,7 @@ internal sealed record GateOptions(
     string? BaseRevision,
     IReadOnlyList<string> ToolArguments)
 {
+    internal string? RetryReview { get; init; }
     /// <summary>Parse gate options without allowing a caller-authored test filter to shrink the proof set.</summary>
     public static bool TryParse(string[] arguments, out GateOptions options, out string? error)
     {
@@ -32,10 +33,22 @@ internal sealed record GateOptions(
         var fast = false;
         string? baseRevision = null;
         var forwarded = new List<string>();
+        string? retryReview = null;
 
         for (var index = 0; index < arguments.Length; index++)
         {
             var argument = arguments[index];
+            if (argument == "--retry-review")
+            {
+                if (++index >= arguments.Length || arguments[index].StartsWith("--", StringComparison.Ordinal))
+                {
+                    options = Default;
+                    error = "--retry-review requires a JSON file";
+                    return false;
+                }
+                retryReview = arguments[index];
+                continue;
+            }
             if (argument is "--affected" or "--staged" or "--full")
             {
                 if (modeSeen)
@@ -98,7 +111,7 @@ internal sealed record GateOptions(
             return false;
         }
 
-        options = new GateOptions(mode, fast, baseRevision, forwarded);
+        options = new GateOptions(mode, fast, baseRevision, forwarded) { RetryReview = retryReview };
         error = null;
         return true;
     }

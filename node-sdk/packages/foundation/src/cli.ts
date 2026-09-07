@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { withAttempt } from "./attempt.js";
 import { FOUNDATION_VERSION, checkFoundationAssets, installFoundationAssets } from "./assets.js";
 import { readCsmRecords, recordsHuman, resolveDeferment, writeCsmRecord, type CsmFamily, type RecordInput, type WtwKind } from "./csm.js";
 import { loadConfig } from "./config.js";
@@ -37,6 +38,7 @@ Gate options:
   --merge-base <ref>    Override git.base for affected discovery; incompatible with --base.
   --report <path>        JSON receipt path; --no-report disables receipt files.
   --markdown <path>      Markdown report path.
+  --retry-review <file>  Diagnose a failed or interrupted expensive attempt before one retry.
 
 Exit codes: 0 success; 1 gate, proof, or foundation finding; 2 invalid invocation/configuration.
 `;
@@ -138,6 +140,7 @@ async function criteriaCommand(args: readonly string[], io: CliIo): Promise<numb
 }
 
 interface GateCli {
+  retryReview?: string;
   root: string; config?: string; mode: GateMode; modeSeen: boolean; changed: string[];
   changedSeen: boolean; mergeBase?: string; baseRevision?: string; fast: boolean;
   report?: string | false; markdown?: string | false; json: boolean;
@@ -155,6 +158,7 @@ function parseGate(args: readonly string[], requireMode: boolean): GateCli {
       result.modeSeen = true; result.mode = "affected"; result.baseRevision = cursor.value(argument);
     } else if (argument === "--fast") result.fast = true;
     else if (argument === "--root") result.root = cursor.value(argument);
+    else if (argument === "--retry-review") result.retryReview = cursor.value(argument);
     else if (argument === "--config") result.config = cursor.value(argument);
     else if (argument === "--changed") { result.changed.push(cursor.value(argument)); result.changedSeen = true; }
     else if (argument === "--merge-base") result.mergeBase = cursor.value(argument);
@@ -185,7 +189,7 @@ function parseGate(args: readonly string[], requireMode: boolean): GateCli {
 
 async function gateCommand(args: readonly string[], io: CliIo): Promise<number> {
   const options = parseGate(args, false);
-  const run = await runGate({
+  const run = await guarded(options, () => runGate({
     root: options.root, mode: options.mode,
     ...(options.config === undefined ? {} : { configPath: options.config }),
     ...(options.changedSeen ? { changedPaths: options.changed } : {}),
@@ -195,8 +199,9 @@ async function gateCommand(args: readonly string[], io: CliIo): Promise<number> 
     ...(options.report === undefined ? {} : { reportPath: options.report }),
     ...(options.markdown === undefined ? {} : { markdownPath: options.markdown }),
     forwardOutput: !options.json,
-  });
+  }));
   if (options.json) writeJson(io, run.receipt); else io.stdout.write(run.human);
+  if (run.exitCode !== 0) io.stderr.write("STOP — check whether you are in a loop. Diagnose and verify a focused correction before retrying.\n");
   return run.exitCode;
 }
 
@@ -339,7 +344,7 @@ async function checkCommand(args: readonly string[], io: CliIo): Promise<number>
   const task = args[taskIndex + 1]!;
   const gateArgs = args.filter((_, index) => index !== taskIndex && index !== taskIndex + 1);
   const options = parseGate(gateArgs, true);
-  const result = await runFoundationCheck({
+  const result = await guarded(options, () => runFoundationCheck({
     root: options.root, task, mode: options.mode,
     ...(options.config === undefined ? {} : { configPath: options.config }),
     ...(options.changedSeen ? { changedPaths: options.changed } : {}),
@@ -349,9 +354,14 @@ async function checkCommand(args: readonly string[], io: CliIo): Promise<number>
     ...(options.report === undefined ? {} : { reportPath: options.report }),
     ...(options.markdown === undefined ? {} : { markdownPath: options.markdown }),
     forwardOutput: !options.json,
-  });
+  }));
   if (options.json) writeJson(io, result); else io.stdout.write(result.human);
   return result.exitCode;
+}
+
+function guarded<T extends { exitCode: number }>(options: GateCli, action: () => Promise<T>): Promise<T> {
+  return options.fast || options.mode === "staged" ? action()
+    : withAttempt(resolve(options.root, ".skies", "verification-attempt"), options.retryReview, action);
 }
 
 function routeFoundation(args: readonly string[], io: CliIo): Promise<number> {

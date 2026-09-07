@@ -1,6 +1,6 @@
 {
   "name": "@skiesjs/foundation",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Fail-closed proof gates and local CSM foundations for Skies Node.js applications.",
   "type": "module",
   "license": "MIT",

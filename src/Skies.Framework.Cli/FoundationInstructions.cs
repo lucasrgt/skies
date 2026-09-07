@@ -41,8 +41,11 @@ internal static class FoundationInstructions
         7. Run the repository's explicit `--full` release command at its release boundary, locally or in release
            automation. Bare `skies check --task ...` is intentionally invalid so an ambiguous scope cannot start a
            surprise exhaustive run. Do not report delivery complete until its selected checked boundary is green.
-        8. Rerun the same check after every fix. Exit code 1 means findings remain. Exit code 2 or greater
-           means validation was incomplete. Neither is a pass.
+        8. Allow one automatic authoritative/full attempt. After a failure or interruption, stop and check
+           whether you are in a loop. Diagnose the first failure, correct its cause, and run focused verification.
+           Before one retry, provide `--retry-review <json-file>` with PreviousAttemptId, Diagnosis, Correction,
+           and FocusedVerification. Never launch overlapping broad checks. Exit 1 means findings; exit 2 or
+           greater means incomplete validation. Neither is a pass. Focused checks do not replace the required gate.
 
         Tests, linters, review, and individual foundation commands do not replace `skies check`.
         <!-- skies:foundations:end -->

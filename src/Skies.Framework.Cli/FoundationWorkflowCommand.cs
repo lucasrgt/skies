@@ -20,8 +20,14 @@ internal static class FoundationWorkflowCommand
     }
 
     /// <summary>Run deterministic proof and semantic foundation gates before work is accepted.</summary>
-    internal static int Check(string[] arguments) =>
-        Check(arguments, RunStep, Console.Out, Console.Error);
+    internal static int Check(string[] arguments)
+    {
+        if (HelpRequested(arguments) || !TryParse(arguments, true, out var request, out _))
+            return Check(arguments, RunStep, Console.Out, Console.Error);
+        GateOptions.TryParse([.. CheckPlan(request!)[0].Arguments], out var options, out _);
+        return GateAttempt.Run(Directory.GetCurrentDirectory(), options,
+            () => Check(arguments, RunStep, Console.Out, Console.Error), Console.Error);
+    }
 
     internal static int Context(
         string[] arguments,
@@ -89,6 +95,8 @@ internal static class FoundationWorkflowCommand
             gate.Add("--affected");
         if (request.Fast || request.Staged)
             gate.Add("--fast");
+        if (request.RetryReview is not null)
+            gate.AddRange(["--retry-review", request.RetryReview]);
         if (request.Base is not null)
         {
             gate.Add("--base");
@@ -129,7 +137,10 @@ internal static class FoundationWorkflowCommand
         bool Fast,
         bool Full,
         bool Staged,
-        bool Affected);
+        bool Affected)
+    {
+        internal string? RetryReview { get; init; }
+    }
 
     internal static bool TryParse(
         IReadOnlyList<string> arguments,
@@ -146,11 +157,12 @@ internal static class FoundationWorkflowCommand
         var full = false;
         var staged = false;
         var affected = false;
+        string? retryReview = null;
 
         for (var index = 0; index < arguments.Count; index++)
         {
             var argument = arguments[index];
-            if (argument is "--task" or "--path" or "--event" or "--base" or "--limit")
+            if (argument is "--task" or "--path" or "--event" or "--base" or "--limit" || allowGateMode && argument == "--retry-review")
             {
                 if (++index >= arguments.Count || arguments[index].StartsWith("--", StringComparison.Ordinal))
                     return Invalid(out request, out error, $"{argument} requires a value");
@@ -158,6 +170,7 @@ internal static class FoundationWorkflowCommand
                 switch (argument)
                 {
                     case "--task": task = value; break;
+                    case "--retry-review": retryReview = value; break;
                     case "--path": paths.Add(value); break;
                     case "--event": events.Add(value); break;
                     case "--base": baseRevision = value; break;
@@ -199,7 +212,7 @@ internal static class FoundationWorkflowCommand
         if (full && fast)
             return Invalid(out request, out error, "--full cannot be combined with --fast");
 
-        request = new Request(task, paths, events, baseRevision, limit, fast, full, staged, affected);
+        request = new Request(task, paths, events, baseRevision, limit, fast, full, staged, affected) { RetryReview = retryReview };
         error = null;
         return true;
     }
@@ -227,7 +240,7 @@ internal static class FoundationWorkflowCommand
         output.WriteLine();
         output.WriteLine(code == 0
             ? $"skies {command}: PASS, {success}."
-            : $"skies {command}: BLOCKED, resolve every finding and rerun the same command.");
+            : $"skies {command}: BLOCKED. Stop and check whether you are in a loop. Diagnose the failure and validate a focused correction before repeating verification.");
         return code;
     }
 
@@ -442,6 +455,7 @@ internal static class FoundationWorkflowCommand
               skies check --task <working-tree> --affected [--fast]
               skies check --task <review> --base <revision> [--fast]
               skies check --task <release> --full
+              Add --retry-review <json-file> after a failed or interrupted expensive attempt.
 
             Runs the AVP gate plus WTW, RTW, NYA, and NWC checks as one fail-closed
             receipt. Staged checks are always bounded and defer exhaustive/browser fallbacks
