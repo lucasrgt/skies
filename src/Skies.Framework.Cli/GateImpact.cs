@@ -157,12 +157,12 @@ internal static partial class GateImpact
                 SelectPackageChange(root, impact, packageRelative, change, packageFeatures[impact], reasons);
         }
 
-        if (impacts.Any(impact => impact.Package.Role != FrontendPackageRole.Surface
-                                  && impact.ExhaustiveFallback))
+        var widenedLibraries = impacts.Where(impact => impact.Package.Role != FrontendPackageRole.Surface
+                                  && impact.ExhaustiveFallback).ToList();
+        if (widenedLibraries.Count > 0)
         {
-            foreach (var impact in impacts)
+            foreach (var impact in FrontendConsumers.Expand(impacts, widenedLibraries, reasons))
                 impact.ExhaustiveFallback = true;
-            reasons.Add("frontend: an unmapped shared core/library change can reach every surface; selecting all packages");
         }
 
         var backendSubjects = backend.RuntimeSlices

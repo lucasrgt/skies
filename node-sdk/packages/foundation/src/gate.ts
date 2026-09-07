@@ -49,6 +49,20 @@ function dependencyClosure(config: FoundationConfig, seed: Set<string>, reasons:
   return seed;
 }
 
+function consumerClosure(config: FoundationConfig, seed: Set<string>, reasons: string[]): Set<string> {
+  const queue = [...seed];
+  while (queue.length > 0) {
+    const changed = queue.shift()!;
+    for (const consumer of config.proofs) {
+      if (!consumer.dependsOn.includes(changed) || seed.has(consumer.id)) continue;
+      seed.add(consumer.id);
+      queue.push(consumer.id);
+      reasons.push(`proof '${consumer.id}' consumes changed proof '${changed}'`);
+    }
+  }
+  return seed;
+}
+
 export function selectProofs(
   config: FoundationConfig,
   mode: GateMode,
@@ -85,7 +99,9 @@ export function selectProofs(
       reasons.push(`'${path}' has no mapping; fail-closed widening selects every proof`);
     }
   }
-  return { selected: dependencyClosure(config, selected, reasons), paths, reasons };
+  // Only changed roots propagate to consumers. Dependencies added to execute a
+  // selected proof must not turn its unrelated siblings into new impact roots.
+  return { selected: dependencyClosure(config, consumerClosure(config, selected, reasons), reasons), paths, reasons };
 }
 
 function laneReceipt(

@@ -39,6 +39,21 @@ async function workspace(value: unknown = topology): Promise<string> {
 }
 
 describe("affected/staged/full selection", () => {
+  it("selects transitive consumers of changed proofs without unrelated lanes", () => {
+    const selection = selectProofs(config(), "affected", ["src/unit/a.ts"]);
+    expect([...selection.selected]).toEqual(["p-unit", "p-integration"]);
+    expect(selection.selected.has("p-journey")).toBe(false);
+    expect(selection.reasons.join(" ")).toContain("consumes changed proof");
+  });
+
+  it("does not propagate a supporting dependency back into unrelated consumers", () => {
+    const sibling = parseConfig(JSON.stringify({ ...topology, proofs: [...topology.proofs,
+      { id: "p-sibling", kind: "unit", lane: "unit", criteria: ["c.unit"],
+        sourceScopes: ["src/sibling/**"], dependsOn: ["p-unit"] },
+    ] }), "/repo/skies.node.json", "/repo");
+    expect([...selectProofs(sibling, "affected", ["src/shared/a.ts"]).selected])
+      .toEqual(["p-integration", "p-unit"]);
+  });
   it("selects direct scopes and their declared dependencies", () => {
     const selection = selectProofs(config(), "affected", ["src/shared/adapter.ts"]);
     expect([...selection.selected]).toEqual(["p-integration", "p-unit"]);
@@ -72,8 +87,8 @@ describe("affected/staged/full selection", () => {
   });
 
   it("matches globstar at zero or multiple directory levels", () => {
-    expect([...selectProofs(config(), "affected", ["src/unit/a.ts"]).selected]).toEqual(["p-unit"]);
-    expect([...selectProofs(config(), "affected", ["src/unit/deep/a.ts"]).selected]).toEqual(["p-unit"]);
+    expect([...selectProofs(config(), "affected", ["src/unit/a.ts"]).selected]).toEqual(["p-unit", "p-integration"]);
+    expect([...selectProofs(config(), "affected", ["src/unit/deep/a.ts"]).selected]).toEqual(["p-unit", "p-integration"]);
   });
 
   it("preserves direct proofs and dependencies when their path is also force-full in fast mode", () => {
@@ -136,14 +151,14 @@ describe("gate execution and receipts", () => {
         stagedPaths: async () => [], baseDiffPaths: async () => [],
       },
     });
-    expect(normal.receipt.selectedProofs).toEqual(["p-unit"]);
+    expect(normal.receipt.selectedProofs).toEqual(["p-unit", "p-integration"]);
     const widened = await runGate({ root, mode: "affected", reportPath: false }, {
       runner, git: { changedPaths: async () => { throw new Error("no ancestry"); }, stagedPaths: async () => [], baseDiffPaths: async () => [] },
     });
     expect(widened.receipt.selectedProofs).toHaveLength(0);
     expect(widened.receipt.selectionReasons[0]).toContain("no proof run started");
     expect(widened.exitCode).not.toBe(0);
-    expect(calls).toEqual(["unit.js"]);
+    expect(calls).toEqual(["unit.js", "integration.js"]);
   });
 
   it("uses staged index discovery and records the bounded fast receipt", async () => {
@@ -152,7 +167,7 @@ describe("gate execution and receipts", () => {
       runner: async () => result(),
       git: { changedPaths: async () => [], stagedPaths: async () => ["src/unit/a.ts"], baseDiffPaths: async () => [] },
     });
-    expect(run.receipt.selectedProofs).toEqual(["p-unit"]);
+    expect(run.receipt.selectedProofs).toEqual(["p-unit", "p-integration"]);
     expect(run.receipt.fast).toBe(true);
     expect(run.exitCode).toBe(0);
   });

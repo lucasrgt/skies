@@ -1,0 +1,19 @@
+schema = 1
+id = "NYA-01M1YPWVC00NBNFNBW5TG77C5D"
+title = "Unmapped shared library changes widened unrelated platforms"
+lesson = "An unmapped library must widen only itself and transitive consumers declared in package.json or pubspec.yaml. Preserve conservative fallback for unreadable identities or dependencies. Gate planning tests must include an unrelated platform; Node proof consumers propagate from changed roots before supporting dependency closure so unrelated sibling consumers do not become impact roots."
+scope = [
+    "src/Skies.Framework.Cli/GateImpact*.cs",
+    "src/Skies.Framework.Cli/FrontendConsumers.cs",
+    "node-sdk/packages/foundation/src/gate.ts",
+]
+tags = []
+created_at = "2026-09-07T19:53:04Z"
+
+[[occurrences]]
+occurred_at = "2026-09-07T19:53:03Z"
+source = "manual:verified-frontend-consumer-regressions"
+reported_by = "user:lucas"
+corrected_by = "agent:codex"
+recorded_by = "agent:codex"
+commit = "d6ec1b8"

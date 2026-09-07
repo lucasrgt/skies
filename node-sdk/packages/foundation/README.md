@@ -2,6 +2,10 @@
 
 Fail-closed proof inventory, criteria matrix, affected gates, and repository-local CSM foundations for plain Node.js applications. The package is strict NodeNext ESM and has no runtime dependencies. Its executable is `skies-node-foundation`.
 
+Affected selection follows declared `dependsOn` consumers transitively from changed proof roots, then includes the
+dependencies needed to execute those proofs. Supporting dependencies do not become new change roots: two independent
+consumers of the same supporting proof do not automatically select one another. Each selected lane executes once.
+
 ## Closed proof manifest
 
 Put `skies.node.json` at the workspace root. Unknown keys, references, proof kinds, duplicate IDs/citations, unsafe paths, invalid timeouts, and dependency cycles are configuration errors.

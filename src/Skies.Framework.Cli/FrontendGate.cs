@@ -223,7 +223,7 @@ internal static class FrontendGate
                 return 1;
             var specs = flows.Select(flow => flow.Spec).Where(spec => spec.Length > 0)
                 .Distinct(StringComparer.OrdinalIgnoreCase).Order().ToArray();
-            return specs.Length == 0 ? 0 : Tooling.Run("flutter", ["test", .. specs], client);
+            return FlutterIntegrationSuite.Run(client, specs);
         }
         var code = 0;
         // A release gate must never attach to an arbitrary dev server that merely answers the same health URL.
