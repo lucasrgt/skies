@@ -3,7 +3,7 @@
   "isRoot": true,
   "tools": {
     "skies-framework-cli": {
-      "version": "4.1.12",
+      "version": "4.1.16",
       "commands": [
         "skies"
       ],

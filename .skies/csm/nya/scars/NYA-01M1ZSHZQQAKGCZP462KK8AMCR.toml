@@ -1,0 +1,19 @@
+schema = 1
+id = "NYA-01M1ZSHZQQAKGCZP462KK8AMCR"
+title = "The framework bootstrap CLI silently downgraded its own foundation tool lock"
+lesson = "The local dotnet tool manifest stayed at CLI 4.1.12 after the source CLI shipped 4.1.15/4.1.16. Running the required skies context command loaded the old tool and rewrote NYA 1.1.7 to 1.1.6. Keep the repository bootstrap tool on an available published version with the required foundation protocol. Updating the local manifest to 4.1.16 makes context pass without changing the current foundation lock."
+scope = [
+    ".config/dotnet-tools.json",
+    "src/Skies.Framework.Cli/Skies.Framework.Cli.csproj",
+]
+tags = [
+    "bootstrap",
+    "tool-version",
+]
+created_at = "2026-09-08T05:58:48Z"
+
+[[occurrences]]
+occurred_at = "2026-09-08T05:58:48Z"
+corrected_by = "git:gate@example.test"
+recorded_by = "git:gate@example.test"
+commit = "62dc38f"
