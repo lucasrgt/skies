@@ -30,6 +30,30 @@ public sealed class GateSelectionRegressionTests : IDisposable
     }
 
     [Fact]
+    public void A_transitive_proof_selects_every_proof_of_its_subject_without_widening_other_subjects()
+    {
+        Write("src/App/Money.cs", "namespace Shared; internal class Money {}");
+        Write("src/App/Modules/Reports/Mixed.Tests.cs", "namespace Reports; class MixedTests { Shared.Money value; }");
+        Write("src/App/Modules/Reports/Export.cs", "namespace Reports; class Export {}");
+        Write("src/App/Modules/Reports/Export.Tests.cs", "namespace Reports; class ExportTests {}");
+        var plan = GateImpact.Build(_root, ["src/App/Money.cs"],
+            [new("Reports", "Export", "src/App/Modules/Reports/Export.cs"),
+             new("Account", "Login", "src/App/Modules/Account/Login.cs")],
+            [new("Reports", "Export", "header", "src/App/Modules/Reports/Mixed.Tests.cs", "MixedTests", "Header"),
+             new("Reports", "Export", "totals", "src/App/Modules/Reports/Export.Tests.cs", "ExportTests", "Totals"),
+             new("Account", "Login", "valid", "src/App/Modules/Account/Login.Tests.cs", "LoginTests", "Valid")],
+            [new("Export", "src/App/Modules/Reports/ExportJourney.Tests.cs", "ExportJourneyTests", "Downloads")], [], []);
+
+        Assert.False(plan.Backend.Full);
+        Assert.Equal(["Reports/Export"], plan.Backend.AffectedSlices);
+        Assert.Contains("MixedTests", plan.Backend.Filters);
+        Assert.Contains("ExportTests", plan.Backend.Filters);
+        Assert.Contains("ExportJourneyTests", plan.Backend.Filters);
+        Assert.DoesNotContain("LoginTests", plan.Backend.Filters);
+        Assert.Empty(plan.Backend.RuntimeSlices);
+    }
+
+    [Fact]
     public void Feature_copy_selects_descendant_feature_proofs_and_global_copy_validation()
     {
         Write("clients/web/src/features/events/events.i18n.ts", "export default { title: 'Events' };");

@@ -96,6 +96,9 @@ internal static partial class GateImpact
             {
                 filters.Add(proof.ClassName);
                 affected.Add(proof.Module + "/" + proof.Subject);
+                // Selecting one proof selects its subject's whole matrix obligation, including other proof files.
+                foreach (var slice in slices.Where(slice => slice.Module == proof.Module && slice.Name == proof.Subject))
+                    SelectSlice(slice, filters, affected, proofs, journeys);
                 matched = true;
             }
 

@@ -1,0 +1,13 @@
+schema = 1
+id = "NYA-01M1ZQD6XZG2Q3ZBBN4SGV5DC7"
+title = "A transitive AVP selected a whole subject but omitted its other proof files"
+lesson = "When CSharpImpactGraph reaches an AVP file, marking Module/Subject affected obligates every criterion of that subject. Add all subject AVP and journey classes through SelectSlice, as direct proof changes already do. Otherwise the runner can pass every selected test while the matrix reports NOT-RUN for unselected sibling proofs. The regression reproduces that gap and verifies complete subject filters without unrelated subjects or runtime flow contagion."
+scope = ["src/Skies.Framework.Cli/GateImpact*"]
+tags = ["proof-selection"]
+created_at = "2026-09-08T05:21:14Z"
+
+[[occurrences]]
+occurred_at = "2026-09-08T05:21:14Z"
+corrected_by = "git:gate@example.test"
+recorded_by = "git:gate@example.test"
+commit = "2e18f0e"
