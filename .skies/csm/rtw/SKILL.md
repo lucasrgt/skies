@@ -10,7 +10,7 @@ description: Find, follow, record, and verify repository-specific implementation
 3. Preserve the invariants and structure described by relevant ways. Adapt names and domain details to the current task. Never copy a reference mechanically.
 4. Run `dotnet tool run skies rtw add` only after a reusable pattern exists in tracked repository code. Provide a precise intent, actionable guidance, reusable scopes and tags, and at least one reference.
 5. Before committing an uncommitted final diff, the primary agent stages the intended paths and runs `dotnet tool run skies check --task "<completed task>" --staged`.
-6. For committed review, use the repository's checked authority: CI-authority pre-push uses `--base <target-revision> --fast`, while local-authority pre-push omits `--fast` and owns the affected verdict. Both expose an explicit `--full` release command.
+6. For committed review or pre-push feedback, the primary agent runs `dotnet tool run skies check --base <target-revision> --fast --task "<review context>"`. Pull-request CI runs the authoritative affected check without `--fast`; release automation runs `--full`.
 7. Rerun the applicable check after every change to the reviewed diff. Exit code 1 requires alignment and another check. Exit code 2 means the audit did not complete and must never be reported as a pass.
 
 Do not turn preferences, experiments, one-off code, or hypothetical designs into

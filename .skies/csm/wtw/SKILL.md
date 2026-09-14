@@ -8,9 +8,8 @@ description: Preserve and retrieve repository decisions and invariants with CSM-
 The primary agent retrieves WTW together with every other foundation by running
 `dotnet tool run skies context --task "<goal>"` before implementation. Before
 commit it stages the intended paths and runs
-`dotnet tool run skies check --task "<completed task>" --staged`; the repository
-chooses one checked local-or-CI affected authority and exposes an explicit
-`--full` release command. Do not assign
+`dotnet tool run skies check --task "<completed task>" --staged`; PR CI owns the
+authoritative affected gate and release automation owns `--full`. Do not assign
 a separate permanent agent to WTW.
 
 Use `dotnet tool run skies wtw explain` only when deeper decision inspection is

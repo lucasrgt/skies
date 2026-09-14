@@ -20,9 +20,9 @@ description: Collect, wake, resolve, and enforce evidence-backed conditional def
    fallbacks, vague "later" language, already completed work, and invented
    paths or events.
 6. Before commit, the primary agent stages the intended paths and runs
-   `dotnet tool run skies check --task "<completed task>" --staged`. The repository
-   chooses one checked local-or-CI affected authority and exposes an explicit
-   `--full` release command. Use `dotnet tool run skies nwc wake` or
+   `dotnet tool run skies check --task "<completed task>" --staged`. Pull-request
+   CI owns authoritative affected verification and release automation owns
+   `--full`. Use `dotnet tool run skies nwc wake` or
    `dotnet tool run skies nwc check` only for focused event delivery,
    investigation, or maintenance. Exit code 1 requires resolving every due
    deferment; exit code 2 is not a pass.
