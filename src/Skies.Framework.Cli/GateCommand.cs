@@ -147,9 +147,17 @@ internal static class GateCommand
             code = Math.Max(code, 1);
         if (skippedTests > 0)
             code = Math.Max(code, 1);
+        // A leg that could not run is not a leg that failed. Both block, but only one of them means a proof was
+        // disproven, and conflating them costs more time than the outage itself: the reader goes hunting for a
+        // failing test that never executed, finds nothing, and reaches for --no-verify — past the gate's purpose.
+        var incomplete = GateReport.Incomplete(legs);
+        if (incomplete)
+            code = Math.Max(code, 2);
         Console.WriteLine(code == 0
             ? "gate: GREEN — form, proofs and the matrix all hold."
-            : "gate: RED — a leg failed or the matrix has findings (see above).");
+            : incomplete
+                ? "gate: INCOMPLETE — a selected leg could not run; nothing was proven or disproven (see above)."
+                : "gate: RED — a leg failed or the matrix has findings (see above).");
 
         var deferred = DeferredCoverage(options, effectiveFull, impact, frontend);
         if (deferred.Count > 0)

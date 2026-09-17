@@ -1,0 +1,23 @@
+schema = 1
+id = "NYA-01M2RF2B7PY0QGM4SQHWG6P6H2"
+title = "An oversized Assay selection killed the verifier before it ran and was reported as a failed proof"
+lesson = "The frontend AVP leg must hand the verifier its file selection through a file, never a shell command line. A package with a few hundred co-located *.assay.test.* files expands past the Windows 8191-character argument limit and cmd.exe kills the run before one verification executes; run the helper under node, which bypasses the shell, and collapse a selection covering the package's whole Assay surface to the verifier's own discovery. An invocation that never ran must exit 2 (incomplete verification), never 1 (findings): conflating 'did not run' with 'failed' sends the reader hunting a failure nobody observed and ends in --no-verify, past the boundary the gate exists to hold."
+scope = [
+    "src/Skies.Framework.Cli/FrontendGate.cs",
+    "src/Skies.Framework.Cli/Tools/*.mjs",
+    "src/Skies.Framework.Cli/Gate*.cs",
+]
+tags = [
+    "proof-selection",
+    "windows",
+    "avp",
+]
+created_at = "2026-09-17T19:56:30Z"
+
+[[occurrences]]
+occurred_at = "2026-09-17T19:56:30Z"
+source = "pauta-web-monorepo pushcheck.log: 'skies gate - frontend AVP (pauta-web)...' followed by 'The command line is too long.' and avp=1, verdict RED with 138 assay files"
+reported_by = "human:augusto"
+corrected_by = "agent:claude-opus-5"
+recorded_by = "agent:claude-opus-5"
+commit = "1717969"

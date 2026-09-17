@@ -77,6 +77,35 @@ public sealed class FrontendGateTests
         }
     }
 
+    [Fact]
+    public void An_assay_surface_larger_than_the_shell_limit_still_reaches_the_verifier_and_reports_incompletely()
+    {
+        var client = Directory.CreateTempSubdirectory("skies-assay-leg-").FullName;
+        try
+        {
+            Write(client, "package.json", "{ \"name\": \"client\" }");
+            var selection = Enumerable.Range(0, 200)
+                .Select(index => $"src/features/a-rather-long-feature-directory-{index}/detail/View{index}.assay.test.tsx")
+                .ToArray();
+            foreach (var file in selection)
+                Write(client, file, "export const verification = true;\n");
+            // Expanded onto a command line this selection exceeds the Windows shell's 8191-character limit, which
+            // killed the verifier before it started and was reported as a failed proof.
+            Assert.True(string.Join(' ', selection).Length > 8191);
+
+            var package = new FrontendPackage(client, FrontendPackageRole.Core, FrontendPlatform.React);
+            var code = FrontendGate.RunAssay(package, "client", selection);
+
+            // No verifier is installed here, so the only honest verdict is "could not verify" — exit 2, the
+            // toolchain's incomplete code — never exit 1, which claims a verification ran and failed.
+            Assert.Equal(2, code);
+        }
+        finally
+        {
+            Directory.Delete(client, recursive: true);
+        }
+    }
+
     private static void Write(string workspace, string relativePath, string content)
     {
         var path = Path.Combine(workspace, relativePath);

@@ -645,6 +645,10 @@
           },
           {
             "kind": "test",
+            "path": "frontend-sdk/tests/cli-assay-selection.test.ts"
+          },
+          {
+            "kind": "test",
             "path": "tests/Skies.Framework.Cli.Tests/FlutterIntegrationSuiteTests.cs"
           },
           {
@@ -947,6 +951,14 @@
       "reason": "The .NET CLI frontend runner now launches its packaged Node helper directly on Windows for native Playwright case selection. The Node CLI already runs natively and has no cmd.exe adapter to correct.",
       "owner": "lucasrgt",
       "expires": "2026-09-14"
+    },
+    {
+      "id": "cli-version-bump-4117-assay-invocation",
+      "capability": "packaging.public-graphs",
+      "side": "node",
+      "reason": "The CLI moves to 4.1.17 so the corrected frontend Assay invocation ships as an immutable package. The fix lives in the .NET CLI's frontend gate legs, which the Node package graph does not implement or depend on; Node package content and dependencies are unchanged. Review at the next coordinated package release.",
+      "owner": "lucasrgt",
+      "expires": "2026-12-16"
     },
     {
       "id": "cli-version-bump-412",

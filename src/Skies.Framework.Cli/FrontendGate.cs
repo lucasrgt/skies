@@ -24,6 +24,15 @@ internal sealed record FrontendGateLeg(
     public bool Green => Tests is null or 0 && Avp is null or 0 && RenderedDesign is null or 0 && FeatureE2e == 0
         && (Role != FrontendPackageRole.Surface || E2eShape == 0)
         && E2e is null or 0;
+
+    /// <summary>
+    /// Whether a selected leg could not run at all. The frontend tools follow the CLI-wide convention — exit 1 is
+    /// findings, exit 2 or greater is incomplete validation — and a runner that never started disproves nothing:
+    /// reading "a proof failed" when the environment refused the invocation is what sends a change hunting for a
+    /// failure that does not exist, then reaching for <c>--no-verify</c>.
+    /// </summary>
+    public bool Incomplete => Tests >= 2 || Avp >= 2 || RenderedDesign >= 2 || FeatureE2e >= 2
+        || E2eShape >= 2 || E2e >= 2;
 }
 
 /// <summary>Runs every frontend proof suite. Missing scripts/tools fail naturally; nothing is optional.</summary>
@@ -139,7 +148,8 @@ internal static class FrontendGate
             return 0;
         }
 
-        Console.WriteLine($"skies gate — frontend AVP ({name})...");
+        Console.WriteLine($"skies gate — frontend AVP ({name}, "
+            + (paths is null ? "full Assay surface" : $"{paths.Count} affected file(s)") + ")...");
         if (package.Platform == FrontendPlatform.Flutter)
         {
             var testRoot = Path.Combine(client, "test");
@@ -157,12 +167,22 @@ internal static class FrontendGate
             return Tooling.Run("flutter", ["test", .. assays], client);
         }
         // Invoke Assay directly: a package script is allowed to compose work, but must not be able to replace
-        // the acceptance verifier with a placeholder that exits zero.
-        var arguments = new List<string> { "--no-install", "assay", "verify" };
-        if (paths is not null)
-            arguments.AddRange(paths);
-        arguments.AddRange(["--", "--maxWorkers=2"]);
-        return Tooling.Run("npx", [.. arguments], client);
+        // the acceptance verifier with a placeholder that exits zero. The selection travels in a file and the
+        // helper runs under `node`, which bypasses the Windows shell — a package whose Assay surface outgrows
+        // cmd.exe's argument limit would otherwise fail to *start* the verifier and be reported as a failed proof.
+        var selection = paths is null ? null : Path.GetTempFileName();
+        try
+        {
+            if (selection is not null)
+                File.WriteAllText(selection, System.Text.Json.JsonSerializer.Serialize(paths));
+            var helper = Path.Combine(AppContext.BaseDirectory, "Tools", "assay-affected.mjs");
+            return Tooling.Run("node", [helper, selection ?? "--full"], client);
+        }
+        finally
+        {
+            if (selection is not null)
+                File.Delete(selection);
+        }
     }
 
     /// <summary>Decide whether the universal ViewModel-to-Assay obligation applies to this package.</summary>

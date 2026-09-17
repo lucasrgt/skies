@@ -101,6 +101,36 @@ public class GateReportTests
         Assert.Contains("| ui | library · full |", markdown);
     }
 
+    [Fact]
+    public void A_leg_that_could_not_run_is_reported_as_incomplete_verification_not_as_a_failed_proof()
+    {
+        var clean = CleanMatrix();
+        var blocked = new GateLegs(0, 0,
+            [new FrontendGateLeg("web", FrontendPackageRole.Surface, Tests: 0, Avp: 2, FeatureE2e: 0, E2eShape: 0, E2e: 0)]);
+        var failed = new GateLegs(0, 0,
+            [new FrontendGateLeg("web", FrontendPackageRole.Surface, Tests: 0, Avp: 1, FeatureE2e: 0, E2eShape: 0, E2e: 0)]);
+
+        Assert.Equal("GREEN", GateReport.Verdict(clean, new GateLegs(0, 0)));
+        Assert.Equal("RED", GateReport.Verdict(clean, failed));
+        Assert.Equal("INCOMPLETE", GateReport.Verdict(clean, blocked));
+        Assert.False(GateReport.Green(clean, blocked));          // incomplete still blocks; it just is not a finding
+        Assert.False(GateReport.Incomplete(failed));
+
+        var console = new StringWriter();
+        GateReport.WriteConsole(clean, blocked, console);
+        Assert.Contains("verdict: INCOMPLETE", console.ToString());
+        Assert.Contains("**Gate verdict: INCOMPLETE**", GateReport.Markdown(clean, blocked, DateTimeOffset.UnixEpoch));
+        Assert.Contains("\"verdict\": \"incomplete\"", GateReport.Json(clean, blocked, DateTimeOffset.UnixEpoch));
+    }
+
+    // A matrix whose single declared criterion is proven, so a verdict under test reflects the legs alone.
+    private static GateMatrix CleanMatrix() => GateMatrix.Build(
+        [new ManifestFile("Wallets.spec.toml",
+            SpecManifest.Parse("module = \"Wallets\"\n[slices.Withdraw]\ncriteria = [\"idempotency-key-honored\"]"), null)],
+        [new AvpProof("Wallets", "Withdraw", "idempotency-key-honored", "W.cs", "WithdrawAvpProof", "Honors_the_key")],
+        [new SliceSite("Wallets", "Withdraw", "W.cs")],
+        [new TestVerdict("Sample.WithdrawAvpProof", "Honors_the_key", "Passed")]);
+
     // A one-module matrix carrying one declared criterion and one stray (undeclared) proof, so both the row
     // table and the findings section have content to assert on.
     private static GateMatrix SampleMatrix(bool passing) => GateMatrix.Build(

@@ -564,6 +564,16 @@ Execution modes are closed and framework-owned:
   repositories use `--fast`; local-authority repositories omit it and own the authoritative affected verdict;
 - `skies gate --full` — exhaustive audit, mandatory before release and optionally configured for main/manual/nightly.
 
+A leg that could not run is reported apart from a leg that failed. The verdict is three-valued — `GREEN`,
+`RED` (exit 1, a finding), `INCOMPLETE` (exit 2, nothing was proven or disproven) — in the console, in
+`VERIFICATION.md` and in `VERIFICATION.json` alike, and every frontend tool follows the same convention. An absent
+runner, an unusable environment, or a verifier that never started therefore never reads as a disproven proof:
+mistaking "did not run" for "failed" sends the reader hunting a failure nobody observed, and the exit ends in
+`--no-verify` — past the boundary the gate exists to hold. The frontend Assay leg also hands the verifier its
+selection through a file instead of a command line, and a selection covering the package's whole Assay surface
+collapses to the verifier's own discovery: naming a few hundred co-located verifications outgrows the Windows
+shell's 8191-character argument limit and kills the run before a single verification executes.
+
 Missing Git ancestry makes a scoped gate incomplete (exit 2); restore the comparison before retrying, or request
 an explicit full audit at the release boundary. If production impact cannot be mapped or runtime-wide build/test
 infrastructure changes, the selector widens to full. Gate-control files (`.config/dotnet-tools.json`, `lefthook.yml`, and checked
