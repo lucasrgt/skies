@@ -1081,6 +1081,14 @@
       "expires": "2026-08-21"
     },
     {
+      "id": "node-pilot-vitest-4111-advisory",
+      "capability": "pilot.nontrivial",
+      "side": "dotnet",
+      "reason": "The Node pilot's exact vitest pin moves to 4.1.11 so npm can resolve the GHSA-82fw-gwwq-j7x9 fix that the CI audit leg rejects. It is a devDependency advisory patch with no pilot behavior, journey, or contract change; the .NET sample pins no npm tooling and has nothing to mirror. Review at the next coordinated pilot change.",
+      "owner": "lucasrgt",
+      "expires": "2026-12-16"
+    },
+    {
       "id": "release-412-framework-bump",
       "capability": "delivery.packages-release",
       "side": "node",
