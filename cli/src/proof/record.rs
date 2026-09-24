@@ -10,7 +10,6 @@ use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
 
-use super::avp;
 use super::base::Base;
 use super::evidence::{self, Files};
 use super::git::Repo;
@@ -20,6 +19,7 @@ use super::red::{self, Revision};
 use super::report::FmId;
 use super::runner::seconds;
 use super::spec::{self, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
+use super::{avp, impact};
 use crate::manifest::Project;
 
 pub fn record(key: &str, red_rev: Option<&str>, red_patch: Option<&Path>) -> Result<u8> {
@@ -27,10 +27,17 @@ pub fn record(key: &str, red_rev: Option<&str>, red_patch: Option<&Path>) -> Res
     let root = project.root.as_path();
     let spec = spec::find(root, key)?;
     let doc = SpecDoc::load(&spec)?;
+    if let Some(why) = doc.empty(&spec) {
+        eprintln!("{why}");
+        return Ok(1);
+    }
     let runner_name = doc.runner(&spec)?;
     let runner = project.runner(runner_name)?;
     let repo = Repo::open(root)?;
     evidence::ensure_ignored(root)?;
+    if !doc.touches.is_empty() {
+        impact::warn_unmatched_touches(&spec, &doc, &impact::project_files(root))?;
+    }
 
     let patch = choose_patch(&spec, red_rev, red_patch)?;
     let head = repo.head()?;
@@ -47,7 +54,7 @@ pub fn record(key: &str, red_rev: Option<&str>, red_patch: Option<&Path>) -> Res
         bail!(
             "the red revision is HEAD ({}; {}), where the feature already exists, so red would prove nothing. Either\n  \
              - commit the feature on a branch and record from there (red defaults to the merge-base with the branch \
-             features fork from: `default_branch` in Skies.toml, else the upstream, else origin/HEAD),\n  \
+             features fork from: `default_branch` in Skies.toml, else origin/HEAD),\n  \
              - pass --red <rev> for a revision without the feature, or\n  \
              - pass --red-patch <file> with a patch that removes the feature (kept as {}/{RED_PATCH_FILE})",
             short(&head),

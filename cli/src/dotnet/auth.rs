@@ -35,6 +35,8 @@ pub fn generate(root: &Path, tenancy: bool, cookies: bool) -> Result<u8> {
             let path = destination(&project, &blueprint::render_path(&logical, &app_name, &app_lower));
             (path, blueprint::render(body, &app_name, &app_lower, flags))
         })
+        // A file wholly inside a flag region (the `Org` entity) exists only in that variant.
+        .filter(|(_, body)| !body.trim().is_empty())
         .collect();
     let conflicts: Vec<_> = files
         .iter()
@@ -61,7 +63,7 @@ pub fn generate(root: &Path, tenancy: bool, cookies: bool) -> Result<u8> {
 
     wire_program(&project)?;
     scaffold::wire_into_registry(&project, "Account")?;
-    wire_api_project(&project.csproj)?;
+    wire_api_project(&project.csproj, flags)?;
     wire_test_project(&project.test_dir())?;
     wire_global_usings(&project)?;
     let spec = specs::emit(&project, "auth", flags)?;
@@ -81,7 +83,8 @@ fn destination(project: &ApiProject, rendered: &str) -> PathBuf {
     }
 }
 
-/// Registers the platform before the module registry consumes its configuration.
+/// Registers the platform before the module registry consumes its configuration, and runs its pipeline (the rate
+/// limiter the Account module's credential throttle needs) once the app is built.
 fn wire_program(project: &ApiProject) -> Result<()> {
     let program = project.root.join("Program.cs");
     if !program.exists() {
@@ -91,6 +94,7 @@ fn wire_program(project: &ApiProject) -> Result<()> {
         return Ok(());
     }
     let mut source = text::read(&program)?;
+    source = wire_use_platform(&program, source)?;
     if source.contains(".AddPlatform(") {
         return Ok(());
     }
@@ -115,15 +119,41 @@ fn wire_program(project: &ApiProject) -> Result<()> {
     Ok(())
 }
 
+/// `app.UsePlatform()` right after the app is built, where the routed endpoint (and so its throttle policy) is
+/// already known. Returns the updated source; an unfamiliar Program.cs gets the line to add instead.
+fn wire_use_platform(program: &Path, source: String) -> Result<String> {
+    const LINE: &str = "app.UsePlatform();";
+    if source.contains(LINE) {
+        return Ok(source);
+    }
+    let anchor = "var app = builder.Build();";
+    if !source.contains(anchor) {
+        println!("note: call app.UsePlatform() after builder.Build() so the credential throttle applies.");
+        return Ok(source);
+    }
+    let nl = text::newline_of(&source);
+    let updated = text::replace_first(
+        &source,
+        anchor,
+        &format!("{anchor}{nl}{nl}{LINE}  // the platform's middleware: the rate limiter the modules' throttles need"),
+    );
+    std::fs::write(program, &updated)?;
+    Ok(updated)
+}
+
 /// The data packages the Account module needs, plus `Skies.Framework.Auth`, which carries the auth mechanism (and
-/// JwtBearer and argon2id transitively) so the app names no JWT or crypto package itself.
-fn wire_api_project(csproj: &Path) -> Result<()> {
+/// JwtBearer and argon2id transitively) so the app names no JWT or crypto package itself, and, for a multi-tenant
+/// app, `Skies.Framework.EntityFrameworkCore`, which carries the tenant filter and stamping.
+fn wire_api_project(csproj: &Path, flags: Flags) -> Result<()> {
     let current = text::read(csproj)?;
-    let packages = [
+    let mut packages = vec![
         ("Microsoft.EntityFrameworkCore", "10.0.8"),
         ("Microsoft.EntityFrameworkCore.InMemory", "10.0.8"),
         ("Skies.Framework.Auth", FRAMEWORK_VERSION),
     ];
+    if flags.tenancy {
+        packages.push(("Skies.Framework.EntityFrameworkCore", FRAMEWORK_VERSION));
+    }
     let missing = missing_package_lines(&current, &packages);
     if missing.is_empty() {
         return Ok(());
@@ -196,7 +226,9 @@ pub(super) fn file_name(path: &Path) -> String {
 
 fn summary(flags: Flags, spec: &Path) -> String {
     format!(
-        "auth generated — {}, {}. Its failure modes and E2E are in {}; run them with `dotnet test`.\nConfigure Platform.cs with persistent storage and real providers before deploying.",
+        "auth generated — {}, {}. Its failure modes and E2E are in {}; run them with `dotnet test`.\nBefore deploying: \
+         persistent storage, a Jwt:Secret, and real providers in Platform.cs, forwarded headers behind a proxy, and an \
+         Admin for app-wide data (docs/AUTH.md).",
         if flags.tenancy { "multi-tenant" } else { "single-tenant" },
         if flags.cookies {
             "web-cookie + body delivery"

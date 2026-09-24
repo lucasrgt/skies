@@ -193,9 +193,10 @@ pub fn entity(root: &Path, module: &str, name: &str) -> Result<u8> {
     text::write(&path, body)?;
     println!("created {}", path.display());
 
+    let value = format!("{}.id_required", module.to_lowercase());
     let code = ErrorCode {
         name: "IdRequired",
-        value: "id.required",
+        value: &value,
         summary: "The id is required (entity invariant).",
     };
     error_codes::ensure(&module_dir, &project.namespace, module, &code)?;

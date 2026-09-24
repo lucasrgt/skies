@@ -8,8 +8,9 @@
 //!   `g entity` scaffolds (recognized by its exact text). An `Open` the author already wrote is kept as-is and
 //!   the Create slice calls it with that same positional convention; a mismatch is a compile error on one line.
 //! - `Update(<fields>[, DateTime now])` — added when the entity has no `Update`; kept when it has one.
-//! - `RowVersion` — the concurrency token (SKY0026) for the tracked update and delete, added when the entity
-//!   declares none.
+//! - `Version` — the concurrency token the Update and Delete slices check, added when the entity declares none.
+//!   It is application-managed (`[ConcurrencyCheck] Guid`, renewed by `Open` and every `Update`) rather than a
+//!   database `rowversion`, so the same optimistic check holds on every provider, the in-memory one included.
 //!
 //! Every generated member returns through the entity's private `EnsureValid`, so the invariants the author adds
 //! there hold for CRUD writes too. The edits are anchored on the private constructor and the invariant funnel,
@@ -35,9 +36,11 @@ pub(super) struct Shape<'a> {
 pub(super) struct Added {
     pub open: bool,
     pub update: bool,
-    pub row_version: bool,
+    pub version: bool,
     /// The author's own `Open` was kept; the Create slice calls it positionally.
     pub kept_open: bool,
+    /// The author's own `Update` was kept; it must renew `Version` for the concurrency check to see its changes.
+    pub kept_update: bool,
 }
 
 /// The C# keywords a field name can collide with once camel-cased (`Event` → `event`).
@@ -48,8 +51,9 @@ const KEYWORDS: &str = "\
      return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint \
      ulong unchecked unsafe ushort using virtual void volatile while";
 
-static CONCURRENCY: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\bRowVersion\b|\[(?:[A-Za-z.]*\.)?(?:Timestamp|ConcurrencyCheck)\b").unwrap());
+/// The `Version` property the slices check, whatever its declaration.
+static VERSION: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"public\s+(?<type>[A-Za-z0-9_.?]+)\s+Version\s*\{").unwrap());
 
 /// `Name` becomes the parameter `name`; a C# keyword (`Event` → `event`) is escaped as `@event`.
 pub(super) fn parameter(name: &str) -> String {
@@ -106,6 +110,7 @@ impl Shape<'_> {
         if self.has_updated_at {
             inits.push("UpdatedAt = now".to_string());
         }
+        inits.push("Version = Guid.NewGuid()".to_string());
         let doc = format!(
             "    /// <summary>Open a new {e} with its identity and fields. Creation returns through\n    \
              /// <see cref=\"EnsureValid\"/>, so {} that breaks an invariant is refused before it\n    \
@@ -136,10 +141,14 @@ impl Shape<'_> {
         let applied = changes
             .iter()
             .map(|(name, _)| format!("        {name} = proposed.{name};\n"))
+            .chain(std::iter::once("        Version = Guid.NewGuid();\n".to_string()))
             .collect::<String>();
         let signature = format!("    public Result<{e}> Update({})\n    {{\n", params.join(", "));
         [
-            format!("    /// <summary>Validate proposed values before changing this {e}.</summary>\n"),
+            format!(
+                "    /// <summary>Change this {e} when the proposed values pass <see cref=\"EnsureValid\"/>; a refused\n    \
+                 /// change leaves it as it was. An accepted one issues a new <see cref=\"Version\"/>.</summary>\n"
+            ),
             signature,
             format!("        var proposed = ({e})MemberwiseClone();\n"),
             proposed,
@@ -161,12 +170,12 @@ impl Shape<'_> {
     }
 }
 
-const ROW_VERSION: &str = concat!(
-    "    /// <summary>The optimistic-concurrency token: a concurrent update or delete of the same\n",
-    "    /// row fails loudly with DbUpdateConcurrencyException instead of silently erasing the other\n",
-    "    /// write.</summary>\n",
-    "    [System.ComponentModel.DataAnnotations.Timestamp]\n",
-    "    public byte[]? RowVersion { get; private set; }\n",
+const VERSION_MEMBER: &str = concat!(
+    "    /// <summary>The optimistic-concurrency token: renewed by every accepted change, and compared on save\n",
+    "    /// against the version the writer read, so a write based on a stale read fails instead of erasing\n",
+    "    /// the change it never saw.</summary>\n",
+    "    [System.ComponentModel.DataAnnotations.ConcurrencyCheck]\n",
+    "    public Guid Version { get; private set; }\n",
 );
 
 /// Adds the members the CRUD slices call. Fails (with the reason) when the entity lacks the scaffold anchors: the private parameterless constructor and the private `EnsureValid` funnel.
@@ -184,9 +193,18 @@ pub(super) fn complete(source: &str, shape: &Shape) -> Result<(String, Added), S
     }
 
     let mut added = Added::default();
-    if !CONCURRENCY.is_match(&text) {
-        text = insert_above(&text, &ctor, ROW_VERSION);
-        added.row_version = true;
+    match VERSION.captures(&text).map(|c| c["type"].to_string()) {
+        Some(ty) if ty != "Guid" => {
+            return Err(format!(
+                "{}.Version is a {ty}; the crud slices compare a Guid concurrency token named Version",
+                shape.entity
+            ));
+        }
+        Some(_) => {}
+        None => {
+            text = insert_above(&text, &ctor, VERSION_MEMBER);
+            added.version = true;
+        }
     }
 
     let skeleton = shape.skeleton_open();
@@ -202,7 +220,9 @@ pub(super) fn complete(source: &str, shape: &Shape) -> Result<(String, Added), S
     }
 
     let any_update = Regex::new(r"(?:Result<[A-Za-z0-9_]+>|void)\s+Update\s*\(").unwrap();
-    if !any_update.is_match(&text) {
+    if any_update.is_match(&text) {
+        added.kept_update = true;
+    } else {
         text = insert_above(&text, &funnel, &shape.update_member());
         added.update = true;
     }
@@ -270,20 +290,26 @@ mod tests {
             Added {
                 open: true,
                 update: true,
-                row_version: true,
-                kept_open: false
+                version: true,
+                ..Added::default()
             }
         );
         assert!(text.contains(
             "public static Result<Product> Open(Guid id, string name, DateTime now) =>\n        \
-             new Product { Id = id, Name = name, UpdatedAt = now }.EnsureValid();"
+             new Product { Id = id, Name = name, UpdatedAt = now, Version = Guid.NewGuid() }.EnsureValid();"
         ));
         assert!(!text.contains("Open(Guid id) =>"));
         assert!(text.contains("var proposed = (Product)MemberwiseClone();"));
         assert!(text.contains("proposed.Name = name;"));
         assert!(text.contains("var validation = proposed.EnsureValid();"));
         assert!(text.contains("if (validation.IsFailure) return validation.Error;\n        Name = proposed.Name;"));
-        assert!(text.contains("public byte[]? RowVersion { get; private set; }\n\n    // Parameterless and private"));
+        assert!(
+            text.contains("UpdatedAt = proposed.UpdatedAt;\n        Version = Guid.NewGuid();\n        return this;")
+        );
+        assert!(text.contains(
+            "[System.ComponentModel.DataAnnotations.ConcurrencyCheck]\n    public Guid Version { get; private set; }\n\n    \
+             // Parameterless and private"
+        ));
         assert!(!text.contains("{ get; set; }"));
     }
 
@@ -298,6 +324,7 @@ mod tests {
             added,
             Added {
                 kept_open: true,
+                kept_update: true,
                 ..Added::default()
             }
         );
@@ -315,6 +342,20 @@ mod tests {
         let fields = name();
         let data_bag = "public class Product { public string Name { get; set; } }";
         assert!(complete(data_bag, &shape(&fields)).is_err());
+    }
+
+    #[test]
+    fn a_version_of_another_type_is_refused() {
+        let fields = name();
+        let odd = SKELETON.replace(
+            "    public Guid Id { get; private set; }\n",
+            "    public Guid Id { get; private set; }\n    public int Version { get; private set; }\n",
+        );
+        assert!(
+            complete(&odd, &shape(&fields))
+                .unwrap_err()
+                .contains("Version is a int")
+        );
     }
 
     #[test]

@@ -2,19 +2,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Api.Modules.__MODULE__;
 
-/// <summary>Replace __A_ENTITY__'s fields by id__WITHIN__.
-/// The change goes through <see cref="__ENTITY__.Update"/>, which returns through the entity's invariants; a
-/// refused change is never saved, and the row version makes a concurrent write fail loudly instead of being
-/// lost.__FOREIGN__</summary>
+/// <summary>Replace __A_ENTITY__'s fields by id__WITHIN__, as of the version the client read.
+/// The change goes through <see cref="__ENTITY__.Update"/>, which returns through the entity's invariants, so a
+/// refused change is never saved. The save only succeeds while the row is still at <c>Version</c>: a change made in
+/// between answers a conflict instead of being silently overwritten.__FOREIGN__</summary>
 [Slice]
 public static class Update__ENTITY__
 {
-    public record Input(Guid Id, __INPUT_FIELDS__);
+    public record Input(Guid Id, __INPUT_FIELDS__, Guid Version);
 
     /// <summary>The request body. The id travels in the route, so a body can never name another row.</summary>
-    public record Changes(__INPUT_FIELDS__);
+    public record Changes(__INPUT_FIELDS__, Guid Version);
 
-    public record Output(Guid Id);
+    public record Output(Guid Id, Guid Version);
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, __CLOCK_PARAM__CancellationToken ct)
     {
@@ -22,16 +22,25 @@ public static class Update__ENTITY__
         if (item is null)
             return Error.NotFound(__MODULE__ErrorCodes.__ENTITY__NotFound, "__ENTITY_LOWER__ not found");
 
+        // The version the client read is what the save compares against the stored row.
+        db.Entry(item).Property(e => e.Version).OriginalValue = input.Version;
         var updated = item.Update(__UPDATE_ARGS__);
         if (updated.IsFailure)
             return updated.Error;
 
-        await db.SaveChangesAsync(ct);
-        return new Output(item.Id);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Error.Conflict(__MODULE__ErrorCodes.__ENTITY__Changed, "__ENTITY_LOWER__ changed since it was read");
+        }
+        return new Output(item.Id, item.Version);
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPut("/__ENTITY_LOWER__/{id:guid}",
+        app.MapPut("/__ROUTE__/{id:guid}",
                 async (Guid id, Changes changes, AppDb db, __CLOCK_PARAM__CancellationToken ct) =>
                     (await Handle(new Input(id, __CHANGES_ARGS__), db, __CLOCK_ARG__ct)).ToHttp())
             .WithName(nameof(Update__ENTITY__))__POSTURE__

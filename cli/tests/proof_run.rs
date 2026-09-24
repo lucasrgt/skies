@@ -61,6 +61,41 @@ fn run_judges_each_failure_mode_and_commits_nothing() {
 }
 
 #[test]
+fn run_writes_nothing_outside_evidence_raw() {
+    // A case keeps a trace locally: $SKIES_EVIDENCE/raw/ is the spec's evidence/raw/, for run as for record.
+    let repo =
+        Repo::with_runner(|runner| format!("{runner}mkdir -p \"$3/raw\" && echo trace > \"$3/raw/trace.txt\"\n"));
+    repo.write(
+        &format!("{SPEC}/spec.md"),
+        &support::spec_with(&["FM-1 toggling does nothing"]),
+    );
+    repo.write(&format!("{SPEC}/e2e/cases.txt"), "FM-1: always toggles\n");
+    repo.git(&["add", "."]);
+    repo.git(&["commit", "--quiet", "-m", "a spec written by hand"]);
+
+    let run = repo.skies(&["proof", "run", "1"]);
+    assert!(run.status.success(), "{}", text(&run));
+    assert!(
+        text(&run).contains(".specs/.gitignore does not ignore evidence/raw/; `skies proof record` adds"),
+        "{}",
+        text(&run)
+    );
+    let written: Vec<String> = porcelain(&repo).lines().map(|line| line[3..].to_string()).collect();
+    assert!(!written.is_empty());
+    assert!(
+        written
+            .iter()
+            .all(|path| path.starts_with(&format!("{SPEC}/evidence/raw/"))),
+        "{written:?}"
+    );
+    assert_eq!(repo.read(&format!("{SPEC}/evidence/raw/trace.txt")), "trace\n");
+    assert!(
+        !repo.path(&format!("{SPEC}/evidence/final.txt")).exists(),
+        "committed evidence is record's"
+    );
+}
+
+#[test]
 fn run_shows_what_a_failing_case_reported() {
     let repo = Repo::with_runner(|runner| {
         runner.replace(

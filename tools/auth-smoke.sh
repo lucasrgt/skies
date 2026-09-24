@@ -14,7 +14,8 @@
 #            anonymous module group.
 #   Single — g auth --skip-tenancy --skip-cookies.
 #   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, and an app-wide entity with its own crud,
-#            with no edit to the generated code after crud.
+#            with no edit to the generated code after crud. Its spec drives the crud over HTTP: another org's row is
+#            a not-found, a stale version is a conflict, and only an app admin writes the app-wide entity.
 # The owner's part is done by hand, as an author would: each generated module's ctx gets real boundaries and design
 # notes (the doctor refuses the skeleton), and each crud entity gets its domain state before crud reads it.
 #
@@ -26,6 +27,8 @@
 #            (errors and warnings alike, for every app).
 #   SPECS  — build and run the tests project (analyzers off), which compiles .specs/*/e2e; every case must pass
 #            and the count of passed tests must equal the number of FM cases in the specs.
+#   PROOFS — `skies proof run` on every spec with the app's own runner: each passes, and the engine counts exactly the
+#            `- FM-<n>` lines its spec.md lists (a spec whose modes do not parse fails instead of passing on zero).
 #
 # Headless and Docker-free: the in-memory provider backs the tests. Needs cargo and the .NET 10 SDK on PATH (e.g.
 # `mise exec rust@latest dotnet@10 -- tools/auth-smoke.sh`). Set SKIES to reuse a prebuilt binary, and
@@ -176,6 +179,28 @@ specs() {
   echo "ok: [$app] $passed/$expected spec cases passed ($(ls -d "$WORK/$app"/.specs/*/ | xargs -n1 basename | tr '\n' ' '))"
 }
 
+# proofs <App> — run every spec through the engine (`skies proof run`, the app's own runner): each must pass, and
+# the engine must see every `- FM-<n>` line of its spec.md, so a spec whose failure modes do not parse (zero FMs, or
+# fewer than written) fails here instead of passing vacuously.
+proofs() {
+  local app="$1" spec name modes out
+  echo "==> [$app] PROOFS: skies proof run on every spec"
+  for spec in "$WORK/$app"/.specs/*/spec.md; do
+    name="$(basename "$(dirname "$spec")")"
+    modes="$(awk '/^## /{s=(tolower($0) ~ /^## failure modes/)} s && /^[[:space:]]*[-*][[:space:]]+FM-[0-9]+([: ]|$)/{n++} END{print n+0}' "$spec")"
+    if [ "$modes" -eq 0 ]; then
+      echo "FAIL: [$app] $name/spec.md lists no \`- FM-<n>\` line"; exit 1
+    fi
+    if ! out="$(cd "$WORK/$app" && "$SKIES" proof run "$name" 2>&1)" \
+      || ! echo "$out" | grep -q "^$modes/$modes FMs pass$"; then
+      echo "$out" | tail -40
+      echo "FAIL: [$app] skies proof run $name must pass all $modes failure modes spec.md lists"
+      exit 1
+    fi
+    echo "ok: [$app] $name: $modes/$modes FMs pass through the engine"
+  done
+}
+
 echo "==> rendering Full: auth + otp + oauth + email + module/slice/entity/vo/hub"
 API="$(new_app Full)"
 g auth; g auth:otp; g auth:oauth; g auth:email
@@ -209,7 +234,7 @@ g auth; g module Catalog; g entity Catalog Product; g entity Catalog Tag
 # `g entity` leaves it) and Product its tenancy. crud then registers each DbSet in AppDb and writes Open/Update/
 # RowVersion into the entity, its view record, the slices, and the module's route group; nothing is edited after it.
 ENTITY="$API/Modules/Catalog/Product.cs"
-sed -i '1i using Crud.Api.Tenancy;\n' "$ENTITY"
+sed -i '1i using Skies.Framework.EntityFrameworkCore;\n' "$ENTITY"
 sed -i 's#^public class Product$#public class Product : ITenantScoped#' "$ENTITY"
 cat > "$WORK/product-fields.cs" <<'EOF'
 
@@ -253,11 +278,18 @@ sed -i '/^public static class CatalogErrorCodes/{n;a\
 }' "$API/Modules/Catalog/CatalogErrorCodes.cs"
 mkdir -p "$WORK/Crud/.specs/9999-crud/e2e"
 cat > "$WORK/Crud/.specs/9999-crud/spec.md" <<'EOF'
+---
+id: "9999"
+runner: api
+---
 # Generated CRUD state transitions
 
 ## Failure modes
-- FM-[rejected-update]: invalid input changes an existing entity.
-- FM-[accepted-update]: valid input fails to update an existing entity.
+- FM-1 invalid input changes an existing entity.
+- FM-2 valid input fails to update an existing entity.
+- FM-3 a signed-in user reads or changes another org's product.
+- FM-4 an update or delete made against a version someone else changed since overwrites their change.
+- FM-5 a signed-in member creates or deletes a tag every org shares.
 EOF
 cat > "$WORK/Crud/.specs/9999-crud/e2e/Mutation.cs" <<'EOF'
 using Crud.Api.Modules.Catalog;
@@ -266,7 +298,7 @@ namespace Specs.S9999;
 
 public class Mutation
 {
-    [Fact(DisplayName = "FM-[rejected-update]: failed validation preserves the original fields and timestamp")]
+    [Fact(DisplayName = "FM-1: failed validation preserves the original fields and timestamp")]
     public void Rejected_update_preserves_state()
     {
         var now = DateTime.UtcNow;
@@ -280,7 +312,7 @@ public class Mutation
         Assert.Equal(now, item.UpdatedAt);
     }
 
-    [Fact(DisplayName = "FM-[accepted-update]: successful validation applies changes to the same entity")]
+    [Fact(DisplayName = "FM-2: successful validation applies changes to the same entity")]
     public void Accepted_update_changes_the_same_instance()
     {
         var now = DateTime.UtcNow;
@@ -297,14 +329,115 @@ public class Mutation
 }
 EOF
 
+cat > "$WORK/Crud/.specs/9999-crud/e2e/CatalogOverHttp.cs" <<'EOF'
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using Crud.Api;
+using Crud.Api.BuildingBlocks;
+using Crud.Api.Modules.Account;
+using Crud.Tests;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Specs.S9999;
+
+public class CatalogOverHttp
+{
+    private sealed record Written(Guid Id, Guid Version);
+
+    private sealed record Tokens(string AccessToken);
+
+    [Fact(DisplayName = "FM-3: another org's product is a not-found to read, list, and update")]
+    public async Task Another_orgs_product_is_not_found()
+    {
+        await using var app = new TestApp();
+        var alice = await SignedIn(app, "alice@example.com");
+        var bob = await SignedIn(app, "bob@example.com");
+
+        var lamp = await Write(await alice.PostAsJsonAsync("/catalog/products", new { name = "Lamp", price = 10m }));
+
+        Assert.Equal(HttpStatusCode.NotFound, (await bob.GetAsync($"/catalog/products/{lamp.Id}")).StatusCode);
+        Assert.DoesNotContain("Lamp", await bob.GetStringAsync("/catalog/products"), StringComparison.Ordinal);
+        var takeover = await bob.PutAsJsonAsync($"/catalog/products/{lamp.Id}", new { name = "Mine", price = 1m, version = lamp.Version });
+        Assert.Equal(HttpStatusCode.NotFound, takeover.StatusCode);
+        Assert.Contains("Lamp", await alice.GetStringAsync("/catalog/products"), StringComparison.Ordinal);
+    }
+
+    [Fact(DisplayName = "FM-4: a write against an outdated version is a conflict and the newer change survives")]
+    public async Task A_stale_version_is_a_conflict()
+    {
+        await using var app = new TestApp();
+        var alice = await SignedIn(app, "alice@example.com");
+        var lamp = await Write(await alice.PostAsJsonAsync("/catalog/products", new { name = "Lamp", price = 10m }));
+        var renamed = await Write(await alice.PutAsJsonAsync($"/catalog/products/{lamp.Id}", new { name = "Desk lamp", price = 12m, version = lamp.Version }));
+
+        var staleUpdate = await alice.PutAsJsonAsync($"/catalog/products/{lamp.Id}", new { name = "Lost", price = 1m, version = lamp.Version });
+        var staleDelete = await alice.DeleteAsync($"/catalog/products/{lamp.Id}?version={lamp.Version}");
+
+        Assert.Equal(HttpStatusCode.Conflict, staleUpdate.StatusCode);
+        Assert.Contains("catalog.product_changed", await staleUpdate.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.Conflict, staleDelete.StatusCode);
+        Assert.Contains("Desk lamp", await alice.GetStringAsync($"/catalog/products/{lamp.Id}"), StringComparison.Ordinal);
+        (await alice.DeleteAsync($"/catalog/products/{lamp.Id}?version={renamed.Version}")).EnsureSuccessStatusCode();
+    }
+
+    [Fact(DisplayName = "FM-5: a member reads tags but cannot write them; an app admin can")]
+    public async Task Only_an_app_admin_writes_app_wide_tags()
+    {
+        await using var app = new TestApp();
+        var member = await SignedIn(app, "member@example.com");
+        var admin = await SignedIn(app, "admin@example.com", asAdmin: true);
+
+        var denied = await member.PostAsJsonAsync("/catalog/tags", new { label = "sale" });
+        var sale = await Write(await admin.PostAsJsonAsync("/catalog/tags", new { label = "sale" }));
+        var deniedDelete = await member.DeleteAsync($"/catalog/tags/{sale.Id}?version={sale.Version}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, deniedDelete.StatusCode);
+        Assert.Contains("sale", await member.GetStringAsync("/catalog/tags"), StringComparison.Ordinal);
+    }
+
+    private static async Task<Written> Write(HttpResponseMessage response)
+    {
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<Written>(AppJson.Options))!;
+    }
+
+    // The operator's part of making an admin: the role is assigned out of band, never through the API.
+    private static async Task<HttpClient> SignedIn(TestApp app, string email, bool asAdmin = false)
+    {
+        var client = app.CreateClient();
+        (await client.PostAsJsonAsync("/account/register", new { email, password = "password1" })).EnsureSuccessStatusCode();
+        if (asAdmin)
+        {
+            await using var scope = app.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+            var address = Email.FromStored(email);
+            var user = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.Email == address);
+            db.Entry(user).Property(u => u.Role).CurrentValue = Role.Admin;
+            await db.SaveChangesAsync();
+        }
+        var login = await client.PostAsJsonAsync("/account/login", new { email, password = "password1" });
+        login.EnsureSuccessStatusCode();
+        var tokens = (await login.Content.ReadFromJsonAsync<Tokens>(AppJson.Options))!;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
+        return client;
+    }
+}
+EOF
+
 package Full
 doctor Full
 specs Full
+proofs Full
 package Single
 doctor Single
 specs Single
+proofs Single
 package Crud
 doctor Crud
 specs Crud
+proofs Crud
 
 echo "==> auth-smoke OK"

@@ -25,11 +25,14 @@ public class EmailTokens
     {
         public string? LastToken { get; private set; }
 
+        public string? LastTo { get; private set; }
+
         public int Sent { get; private set; }
 
         public Task SendAsync(EmailMessage message, CancellationToken ct = default)
         {
             LastToken = message.Body[(message.Body.LastIndexOf(' ') + 1)..];
+            LastTo = message.To;
             Sent++;
             return Task.CompletedTask;
         }
@@ -153,6 +156,24 @@ public class EmailTokens
         Assert.Equal(HttpStatusCode.Unauthorized, wrong.StatusCode);
         Assert.False(await IsEmailVerified(factory));
         (await client.PostAsJsonAsync("/account/verify-email", new { token = mail.LastToken })).EnsureSuccessStatusCode();
+    }
+
+    [Fact(DisplayName = "FM-[register-notice]: registering a taken email answers like a new one and mails its owner instead")]
+    public async Task A_taken_email_is_told_by_mail_not_by_the_response()
+    {
+        var mail = new CapturingEmailSender();
+        await using var app = new TestApp();
+        using var factory = WithMail(app, mail);
+        var client = factory.CreateClient();
+        await Register(client);
+        var sent = mail.Sent;
+
+        var duplicate = await client.PostAsJsonAsync("/account/register", new { email = Email, password = "another-pw1" });
+
+        duplicate.EnsureSuccessStatusCode();
+        Assert.Equal(sent + 1, mail.Sent);
+        Assert.Equal(Email, mail.LastTo);
+        await Login(client, Password);
     }
 
     private static WebApplicationFactory<Program> WithMail(TestApp app, IEmailSender mail) =>

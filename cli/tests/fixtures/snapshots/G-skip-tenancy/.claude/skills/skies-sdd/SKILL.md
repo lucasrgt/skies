@@ -45,8 +45,10 @@ on; yours must contradict none of them. Their cases run in CI (and with `skies p
 Run `skies spec new <slug> [--runner <name>]` and fill `spec.md`:
 
 - **What it does**, in two to five lines, in product terms.
-- **Failure modes**: one line per way the feature can be wrong, observable from outside. Each line starts with
-  `- FM-n`. Write what would go wrong, not how you will test it.
+- **Failure modes**: one line per way the feature can be wrong, observable from outside, written exactly
+  `- FM-1 <what goes wrong>`, `- FM-2 …` (a dash, upper-case `FM`, a hyphen, the number). `FM 3`, `fm_3`, or
+  `FM-[name]` are errors, and a spec without a single `- FM-<n>` line is refused. Replace the template's placeholder
+  line. Write what would go wrong, not how you will test it.
 - **Out of scope**: what this spec deliberately does not cover.
 
 Walk this checklist and keep only what applies:
@@ -76,7 +78,8 @@ id: `- FM-5 A retry with the same key credits twice [avp: idempotency-key-honore
 only when an archetype fits.
 
 A spec for a screen or shared file outside `Modules/` can claim it with `touches:` in the frontmatter, so
-`skies proof impact` finds the spec from that path:
+`skies proof impact` finds the spec from that path (that is all `touches` does; a glob matching no file is warned
+about):
 
 ```yaml
 ---
@@ -88,7 +91,7 @@ touches: [frontend/web/src/deposit/**]
 
 **Stop and show the failure modes to the human.** They are the point of review; the rest follows from them.
 
-## 3. Write the E2E and watch it fail
+## 3. Write the E2E
 
 In `e2e/`, write black-box tests that drive the feature from outside: HTTP against the booted app
 (`SkiesWebTest<Program>`), Playwright against the web UI, `integration_test` (or Maestro) on Flutter.
@@ -96,8 +99,9 @@ In `e2e/`, write black-box tests that drive the feature from outside: HTTP again
 Every test lives in a spec; the doctors flag a test anywhere else (`SKY0029`, `SKYFE036`, `SKYFL036`). Flutter
 cases import `package:<app>/...` and the spec's runner copies them into the package's `test/.skies_spec/`.
 
-- One or more cases per failure mode; each case title starts with its id: `[Fact(DisplayName = "FM-2: …")]`,
-  `test("FM-2: …")`, `testWidgets('FM-2: …')`.
+- One or more cases per failure mode; each case title starts with its id and a colon or space:
+  `[Fact(DisplayName = "FM-2: …")]`, `test("FM-2: …")` (inside a `describe` too), `testWidgets('FM-2: …')` (outside
+  a `group`). A title that starts like an id but is not one (`FM 2`, `fm-2`) is refused.
 - .NET spec tests live in namespace `Specs.S<id>` so the runner filter selects exactly this spec.
 - Assert the observable outcome and, for rejections, that state did not change.
 - Assert the error **code**, not only the status. A route that does not exist also answers 404, so a not-found
@@ -112,9 +116,14 @@ cases import `package:<app>/...` and the spec's runner copies them into the pack
   application (a create's `id`, a deposit's resulting `balance`), never one that echoes the input; seed enough
   state for two applications.
 
-Run them now with `skies proof run <id>`: each failure mode's pass or fail, with what the failing cases reported,
-and nothing committed. Every mode must fail, for the right reason (missing endpoint, wrong status, missing effect):
-a mode that passes now does not discriminate.
+You cannot always watch them fail yet, and that is fine. A new feature's E2E usually reference code that does not
+exist (a slice's `Input`, a new route, a component): in .NET and TypeScript they do not compile until you scaffold
+it. That compile failure, located in the spec's own `e2e/` files, is the expected red of a new feature, and
+`record` counts it as `did-not-build` for every mode. Run `skies proof run <id>` as soon as the cases compile (for
+example right after scaffolding the shapes in step 4, before writing the behavior): it prints each mode's pass or
+fail with what the failing cases reported, and writes only local files under `evidence/raw/`. Before the behavior
+exists every mode should fail for the right reason (wrong status, missing effect, error code absent). A mode that
+passes already does not discriminate: fix its case.
 
 ## 4. Implement
 
@@ -141,11 +150,17 @@ skies proof record <id>
 
 It runs the E2E against the merge-base (every FM must fail) and against the working tree (every FM must pass),
 then writes `receipt.json`: per FM, red and green, the cases that proved it, and what red's first failing case
-said. What the tests saved to `$SKIES_EVIDENCE` is committed under `evidence/` (256 KB each at most); full reports
-stay in the gitignored `evidence/raw/`. If the E2E cannot even build on the merge-base (it uses code the feature
-adds), every FM counts as failing (`did-not-build`) and the receipt's `red.output` says why. If a failure mode
-already passes on the merge-base, either the test does not discriminate (fix the test) or the behavior already
-existed (add a `## Non-discriminating` section to `spec.md` explaining why).
+said. That is what a receipt proves: these cases fail on a revision without your change and pass with it, so they
+test the change and not something that was already true; CI keeps them passing from then on. What the tests saved
+to `$SKIES_EVIDENCE` is committed under `evidence/` (256 KB each at most); what they saved to
+`$SKIES_EVIDENCE/raw/` and the full reports stay in the gitignored `evidence/raw/`.
+
+If the E2E cannot build on the merge-base because of their own files (they use code the feature adds), every FM
+counts as failing (`did-not-build`) and the receipt's `red.output` quotes the compiler. If red fails for any other
+reason (a restore that needs something the checkout lacks, a missing tool, a broken runner command, an error
+outside the spec), `record` exits 2 with red's output and writes no receipt: fix the cause (often a runner `setup`)
+and record again. If a failure mode already passes on the merge-base, either the test does not discriminate (fix
+the test) or the behavior already existed (add a `## Non-discriminating` section to `spec.md` explaining why).
 
 The merge-base is taken with the default branch. If red resolves to the wrong revision (the app branches from
 `develop`, not `main`), set `[workspace] default_branch = "develop"` in `Skies.toml` once, or pass `--red <rev>`.

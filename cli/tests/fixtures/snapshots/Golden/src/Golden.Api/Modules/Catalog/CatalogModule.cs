@@ -11,7 +11,7 @@ public static class CatalogModule
     public static void Map(IEndpointRouteBuilder app)
     {
         var catalog = app.MapGroup("/catalog").RequireAuthorization();
-        ListProduct.Map(catalog);
+        ListProducts.Map(catalog);
         LookupProduct.Map(catalog);
         CreateProduct.Map(catalog);
         UpdateProduct.Map(catalog);

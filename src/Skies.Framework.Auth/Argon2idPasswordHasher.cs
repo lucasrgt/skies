@@ -21,6 +21,9 @@ public sealed class Argon2idPasswordHasher : IPasswordHasher
     public PasswordHash Hash(string password)
     {
         ArgumentException.ThrowIfNullOrEmpty(password);
+        if (password.Length > IPasswordHasher.MaxPasswordLength)
+            throw new ArgumentException(
+                $"A password is at most {IPasswordHasher.MaxPasswordLength} characters.", nameof(password));
         var salt = RandomNumberGenerator.GetBytes(SaltBytes);
         var hash = Derive(password, salt);
         return PasswordHash.FromStored($"{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}");
@@ -29,12 +32,14 @@ public sealed class Argon2idPasswordHasher : IPasswordHasher
     /// <inheritdoc />
     public bool Verify(string password, PasswordHash? stored)
     {
-        // An empty password never has a hash (Hash refuses it), so it takes the dummy branch like a missing hash.
-        if (!string.IsNullOrEmpty(password) && stored is { } hash && TryDecode(hash.Value, out var salt, out var expected))
+        // An empty or over-long password never has a hash (Hash refuses both), so it takes the dummy branch like a
+        // missing hash, and the dummy derivation runs on a fixed input: an over-long password is never derived at all.
+        var usable = !string.IsNullOrEmpty(password) && password.Length <= IPasswordHasher.MaxPasswordLength;
+        if (usable && stored is { } hash && TryDecode(hash.Value, out var salt, out var expected))
             return CryptographicOperations.FixedTimeEquals(Derive(password, salt), expected);
 
         // The same derivation against a dummy, result discarded: a missing or unusable hash is not observable by timing.
-        CryptographicOperations.FixedTimeEquals(Derive(string.IsNullOrEmpty(password) ? "-" : password, DummySalt), DummyHash);
+        CryptographicOperations.FixedTimeEquals(Derive(usable ? password : "-", DummySalt), DummyHash);
         return false;
     }
 

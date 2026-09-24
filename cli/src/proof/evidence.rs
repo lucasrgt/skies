@@ -1,8 +1,9 @@
 //! A spec's evidence/: what is committed and what stays local.
 //!
-//! Committed evidence is small and meaningful: Assay verdicts and the artifacts a test chose to save under
-//! `$SKIES_EVIDENCE` (a screenshot, an HTTP log). The runner's full reports and output are regenerable and large, so
-//! they go to `evidence/raw/`, which `.specs/.gitignore` keeps out of git through a rule the engine writes itself. A
+//! One committed home and one local one, mirrored by what a case sees: `$SKIES_EVIDENCE/<file>` becomes
+//! `evidence/<file>` (committed, written by `record` from green), and `$SKIES_EVIDENCE/raw/<file>` becomes
+//! `evidence/raw/<file>` (local, written by `run` and `record` next to the runner's full reports and output).
+//! `.specs/.gitignore` keeps raw/ out of git through a rule `spec new` and `record` write. A
 //! committed file over [`MAX_COMMITTED_BYTES`] is refused. A file whose content did not meaningfully change (an
 //! Assay verdict differing only in its timings) keeps its committed bytes, so re-recording an unchanged spec leaves
 //! git clean.
@@ -25,18 +26,25 @@ pub const MAX_COMMITTED_BYTES: u64 = 256 * 1024;
 /// The `.specs/.gitignore` rule that keeps every spec's evidence/raw/ out of git.
 pub const IGNORE_RULE: &str = "/*/evidence/raw/";
 
-/// Makes sure `.specs/.gitignore` keeps evidence/raw/ out of git, adding the rule when it is missing.
+/// Whether `.specs/.gitignore` already keeps evidence/raw/ out of git.
+pub fn is_ignored(root: &Path) -> bool {
+    std::fs::read_to_string(root.join(SPECS_DIR).join(".gitignore"))
+        .is_ok_and(|text| text.lines().any(|line| line.trim() == IGNORE_RULE))
+}
+
+/// Makes sure `.specs/.gitignore` keeps evidence/raw/ out of git, adding the rule when it is missing. Only the
+/// commands that create committed files call it (`spec new`, `proof record`); `proof run` never writes outside raw/.
 pub fn ensure_ignored(root: &Path) -> Result<()> {
+    if is_ignored(root) {
+        return Ok(());
+    }
     let dir = root.join(SPECS_DIR);
     let path = dir.join(".gitignore");
     let mut text = std::fs::read_to_string(&path).unwrap_or_default();
-    if text.lines().any(|line| line.trim() == IGNORE_RULE) {
-        return Ok(());
-    }
     if !text.is_empty() && !text.ends_with('\n') {
         text.push('\n');
     }
-    text.push_str("# Written by `skies proof`: full reports and logs are regenerable and stay local.\n");
+    text.push_str("# Written by `skies`: full reports and logs are regenerable and stay local.\n");
     text.push_str(IGNORE_RULE);
     text.push('\n');
     std::fs::create_dir_all(&dir)?;

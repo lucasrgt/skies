@@ -10,7 +10,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Description>Part of Skies — the EF Core satellite: ToPageAsync, the one-liner that turns an ordered query into the framework's canonical Page&lt;T&gt; (clamped, counted and paged over the same queryable).</Description>
+    <Description>Part of Skies — the EF Core satellite: ToPageAsync, the one-liner that turns an ordered query into the framework's canonical Page&lt;T&gt; (clamped, counted and paged over the same queryable), and the tenancy mechanics: ITenantScoped rows filtered to the current org on read and stamped with it on every save.</Description>
   </PropertyGroup>
 
   <ItemGroup>

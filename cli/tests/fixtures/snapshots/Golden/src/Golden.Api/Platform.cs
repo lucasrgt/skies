@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Golden.Api;
 
-/// <summary>Owns the database and external providers. Replace the local providers when deploying this app.</summary>
+/// <summary>Owns the database, external providers, and the request pipeline's cross-cutting middleware. Replace the
+/// local providers when deploying this app.</summary>
 public static class Platform
 {
     public static IServiceCollection AddPlatform(this IServiceCollection services, IConfiguration configuration,
@@ -22,5 +23,13 @@ public static class Platform
         services.AddSingleton<IExternalIdentityVerifier, FakeExternalIdentity>();
         services.AddSingleton<IEmailSender, ConsoleEmailSender>();
         return services;
+    }
+
+    public static WebApplication UsePlatform(this WebApplication app)
+    {
+        // Runs the throttles route groups require, such as the Account module's credential endpoints. Behind a proxy,
+        // call UseForwardedHeaders first so each client keeps its own address.
+        app.UseRateLimiter();
+        return app;
     }
 }

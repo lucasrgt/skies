@@ -11,7 +11,7 @@ public class __NAME__
     public static Result<__NAME__> Open(Guid id) =>
         new __NAME__ { Id = id }.EnsureValid();
 
-    // Check state without side effects; updates validate a copy before applying changes.
+    // The one invariant check every factory and change returns through; keep it free of side effects.
     private Result<__NAME__> EnsureValid()
     {
         var validation = new Validation()

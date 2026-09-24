@@ -1,0 +1,36 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>The throttle on the endpoints that take a credential or send a message: sign-in, registration, refresh,
+/// logout, and the verification and reset flows added later. Each client address gets a fixed window per endpoint, so
+/// guessing passwords or codes and flooding inboxes cost time. The defaults allow 10 requests a minute; configure
+/// <c>Account:RateLimit:PermitLimit</c> and <c>Account:RateLimit:WindowSeconds</c> to change them. A throttled request
+/// answers 429 with the <c>platform.rate_limited</c> error body and a <c>Retry-After</c> header.</summary>
+/// <remarks>The address is the connection's. Behind a proxy or load balancer, configure the forwarded headers before
+/// deploying, or every client shares the proxy's one budget.</remarks>
+public sealed record CredentialRateLimit(int PermitLimit = 10, int WindowSeconds = 60)
+{
+    /// <summary>The rate-limiter policy the Account module's credential group requires.</summary>
+    public const string Policy = "account-credentials";
+
+    public static IServiceCollection AddTo(IServiceCollection services, IConfiguration configuration)
+    {
+        var limit = configuration.GetSection("Account:RateLimit").Get<CredentialRateLimit>() ?? new CredentialRateLimit();
+        services.AddSingleton(limit);
+        return services.AddRateLimiter(options =>
+        {
+            options.RejectAsSkiesError();
+            // Keyed by the endpoint, not the raw path, so re-casing a URL cannot open a fresh window.
+            options.AddPolicy(Policy, http => RateLimitPartition.GetFixedWindowLimiter(
+                $"{http.Connection.RemoteIpAddress}|{http.GetEndpoint()?.DisplayName}",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = limit.PermitLimit,
+                    Window = TimeSpan.FromSeconds(limit.WindowSeconds),
+                    QueueLimit = 0,
+                }));
+        });
+    }
+}

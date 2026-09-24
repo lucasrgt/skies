@@ -59,16 +59,13 @@ fn red_names_its_revision_and_how_it_was_chosen() {
         text(&configured)
     );
 
-    // Without the setting, an upstream that is another branch says where the feature forked.
-    repo.write("Skies.toml", &manifest.replace("default_branch = \"develop\"\n", ""));
-    repo.git(&["branch", "--quiet", "--set-upstream-to=develop"]);
-    let upstream = repo.skies(&["proof", "record", "1"]);
+    // An upstream is never consulted: only `default_branch` says where features fork from.
+    repo.git(&["branch", "--quiet", "--set-upstream-to=main"]);
+    let ignored = repo.skies(&["proof", "record", "1"]);
     assert!(
-        text(&upstream).contains(&format!(
-            "  red    {develop} (merge-base with develop, this branch's upstream;"
-        )),
+        text(&ignored).contains(&format!("  red    {develop} (merge-base with develop, default_branch")),
         "{}",
-        text(&upstream)
+        text(&ignored)
     );
 
     let explicit = repo.skies(&["proof", "record", "1", "--red", "main"]);
@@ -82,7 +79,7 @@ fn red_names_its_revision_and_how_it_was_chosen() {
     let impact = repo.skies(&["proof", "impact"]);
     assert!(
         text(&impact).starts_with(&format!(
-            "changes since {develop} (merge-base with develop, this branch's upstream; 1 commit before HEAD)\n"
+            "changes since {develop} (merge-base with develop, default_branch in Skies.toml; 1 commit before HEAD)\n"
         )),
         "{}",
         text(&impact)
@@ -151,7 +148,10 @@ fn cases_that_never_ran_on_red_did_not_build_whatever_the_runner() {
     let recorded = repo.skies(&["proof", "record", "1"]);
     assert!(recorded.status.success(), "{}", text(&recorded));
     assert!(
-        text(&recorded).contains("red did not build: no case names a failure mode and the report has a failed"),
+        text(&recorded).contains(
+            "red did not build because of the spec's own e2e (.specs/0001-toggle/e2e/toggle.test.tsx: Failed to \
+             resolve import ./Toggle)"
+        ),
         "{}",
         text(&recorded)
     );
@@ -176,6 +176,31 @@ fn cases_that_never_ran_on_red_did_not_build_whatever_the_runner() {
 }
 
 #[test]
+fn a_file_level_failure_outside_the_spec_is_not_did_not_build() {
+    // The same shape of report, but the file that failed to load is a shared setup file, not the spec's own.
+    let repo = Repo::with_runner(|runner| {
+        runner.replace(
+            "state=$(head -n 1 src/feature.txt)",
+            &format!(
+                "state=$(head -n 1 src/feature.txt)\n{}",
+                LOAD_FAILURE.replace(".specs/0001-toggle/e2e/toggle.test.tsx", "web.setup.ts")
+            ),
+        )
+    });
+    new_spec(&repo, "FM-1: toggles\nFM-2: toggles twice\n");
+    repo.implement();
+
+    let refused = repo.skies(&["proof", "record", "1"]);
+    assert_eq!(refused.status.code(), Some(2), "{}", text(&refused));
+    assert!(
+        text(&refused).contains("case \"web.setup.ts\" failed and is not one of the spec's e2e files"),
+        "{}",
+        text(&refused)
+    );
+    assert!(!repo.path(&format!("{SPEC}/receipt.json")).exists());
+}
+
+#[test]
 fn a_runner_build_runs_once_per_checkout_and_failing_on_red_did_not_build() {
     let repo = Repo::new();
     repo.write(
@@ -188,7 +213,8 @@ fn a_runner_build_runs_once_per_checkout_and_failing_on_red_did_not_build() {
     repo.write(
         "build.sh",
         &format!(
-            "echo built >> {}\n[ \"$(head -n 1 src/feature.txt)\" = on ] || {{ echo 'error CS0246'; exit 1; }}\n",
+            "echo built >> {}\n[ \"$(head -n 1 src/feature.txt)\" = on ] || \
+             {{ echo '.specs/0001-toggle/e2e/ToggleSpec.cs(3,5): error CS0246: Toggle'; exit 1; }}\n",
             counter.display()
         ),
     );
@@ -205,7 +231,8 @@ fn a_runner_build_runs_once_per_checkout_and_failing_on_red_did_not_build() {
     let recorded = repo.skies(&["proof", "record", "1", "--red", "HEAD~1"]);
     assert!(recorded.status.success(), "{}", text(&recorded));
     assert!(
-        text(&recorded).contains("red did not build: the runner wrote no report"),
+        text(&recorded)
+            .contains("red did not build because of the spec's own e2e (.specs/0001-toggle/e2e/ToggleSpec.cs"),
         "{}",
         text(&recorded)
     );

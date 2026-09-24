@@ -11,7 +11,7 @@ public class Invoice
     public static Result<Invoice> Open(Guid id) =>
         new Invoice { Id = id }.EnsureValid();
 
-    // Check state without side effects; updates validate a copy before applying changes.
+    // The one invariant check every factory and change returns through; keep it free of side effects.
     private Result<Invoice> EnsureValid()
     {
         var validation = new Validation()

@@ -22,7 +22,7 @@ frontend = "clients/hostpoint-os"
 
 [runners.api]
 build = "dotnet build tests/Hostpoint.Tests"
-command = "dotnet test tests/Hostpoint.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger trx;LogFilePath={report}"
+command = "dotnet test tests/Hostpoint.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger 'trx;LogFileName={report}'"
 
 [runners.web]
 setup = "docker compose up -d db"
@@ -33,8 +33,8 @@ Three sections exist, and unknown keys fail to parse:
 
 - `[workspace]` names the repository. Optional `default_branch` names the branch features fork from; `skies proof
   record` takes red as the merge-base of HEAD with it (after `--red` and a spec's `red.patch`), and `skies proof
-  impact` diffs from there. Without it, the current branch's upstream (when it is another branch) and then
-  `origin/HEAD` are used. Set it when work happens on a long-lived branch other than the remote's default.
+  impact` diffs from there. Without it, `origin/HEAD` (else `main`, else `master`) is used. Set it when work happens
+  on a long-lived branch other than the remote's default.
   Required `root` lists everything allowed at the repository root (see [The root allowlist](#the-root-allowlist)).
 - `[products.*]` lists each product's `backend` (a .NET application root), optional `tests` (the .NET project that
   compiles the spec E2E; `skies doctor` builds it instead of the backend, so `SKY0029` sees stray tests), and
@@ -43,11 +43,18 @@ Three sections exist, and unknown keys fail to parse:
 - `[runners.*]` are the commands that run one spec's E2E. Placeholders: `{id}` (the spec id), `{spec}` (its folder
   name), `{dir}` (its `e2e/` folder), `{report}` (where the JUnit or TRX report goes), and `{evidence}` (where a case
   saves artifacts to commit; also `SKIES_EVIDENCE`, with the spec folder name in `SKIES_SPEC`). Environment a tool
-  needs goes in the command itself (`NAME={report} npx …`). Keys, and unknown ones fail to parse:
+  needs goes in the command itself (`NAME={report} npx …`). Every command runs through `sh -c` (`cmd /C` on
+  Windows), so shell syntax applies: quote an argument that holds a `;`, as the TRX logger's
+  `'trx;LogFileName={report}'` does, or the shell ends the command there and no report is written. Keys, and unknown
+  ones fail to parse:
   - `command` (required) runs from the checkout's project root; its exit code decides nothing, the report does.
-  - `setup` runs first in each checkout, red's fresh worktree included (start a database, install packages).
-  - `build` runs once per checkout after `setup`, so `command` can skip compiling (`dotnet test --no-build`); a
-    failing build on red counts as `did-not-build`.
+  - `setup` runs first in each checkout (start a database, install packages). Red's checkout is a fresh git worktree
+    inside the repository (`.skies-red/` at its top, excluded locally), so configuration found by walking up from
+    the project (`NuGet.config`, `.npmrc`, `global.json`, tool manifests) applies to it as to the working tree, but
+    ignored folders such as `node_modules/` are not there.
+  - `build` runs once per checkout after `setup`, so `command` can skip compiling (`dotnet test --no-build`). A build
+    that fails on red counts as `did-not-build` only when its errors sit in the spec's own `e2e/`; any other failure
+    stops `skies proof record` without a receipt.
 
 ## The root allowlist
 

@@ -13,7 +13,7 @@
 //!
 //! [runners.api]
 //! build = "dotnet build tests/Hostpoint.Tests"
-//! command = "dotnet test tests/Hostpoint.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger trx;LogFileName={report}"
+//! command = "dotnet test tests/Hostpoint.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger 'trx;LogFileName={report}'"
 //!
 //! [runners.web]
 //! command = "npx vitest run {dir} --reporter=junit --outputFile={report}"
@@ -42,7 +42,7 @@ pub struct Manifest {
 pub struct Workspace {
     pub name: String,
     /// The branch features fork from. `proof record` takes red as the merge-base of HEAD with it, and `proof impact`
-    /// diffs from there, ahead of the current branch's upstream and `origin/HEAD`. Set it when work happens on a
+    /// diffs from there, ahead of `origin/HEAD`, `main`, and `master`. Set it when work happens on a
     /// long-lived branch other than the remote's default (a `develop`, a major-version branch).
     pub default_branch: Option<String>,
     /// Everything allowed at the repository root: globs matched against one root entry's name, a trailing `/` for a
@@ -90,8 +90,9 @@ impl Paths {
 /// Placeholders: `{id}` (the spec id, e.g. `0012`), `{dir}` (the spec's e2e folder, relative to the root),
 /// `{spec}` (the spec folder name), `{report}` (the absolute report path the engine reads back), and `{evidence}`
 /// (an absolute folder for artifacts that end up in the spec's evidence/, also `$SKIES_EVIDENCE`). The command runs
-/// through the platform shell with the checkout's project root as its working directory; its exit code is not
-/// interpreted, only the report is.
+/// through the platform shell (`sh -c`) with the checkout's project root as its working directory, so shell syntax
+/// applies: quote an argument holding `;` (`--logger 'trx;LogFileName={report}'`), or the shell ends the command
+/// there. Its exit code is not interpreted, only the report is.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Runner {
@@ -100,7 +101,7 @@ pub struct Runner {
     /// red checkout.
     pub setup: Option<String>,
     /// Compiles the tests once per checkout (after `setup`), so `command` can skip building (`dotnet test
-    /// --no-build`). A failing build means the tests did not build: on red every failure mode counts as failing.
+    /// --no-build`). A build failing on red counts as `did-not-build` only when its errors sit in the spec's e2e.
     pub build: Option<String>,
 }
 

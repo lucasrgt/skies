@@ -72,13 +72,76 @@ fn rejects_duplicate_failure_modes() {
 }
 
 #[test]
-fn the_template_parses_back() {
+fn the_template_parses_back_with_one_placeholder_mode() {
     let doc = parse(&template("0004", "cancel-reservation", "api")).unwrap();
     assert_eq!(doc.id.as_deref(), Some("0004"));
     assert_eq!(doc.runner.as_deref(), Some("api"));
     assert!(doc.touches.is_empty());
     assert_eq!(doc.failure_modes, [FmId(1)]);
+    assert!(doc.modes[&FmId(1)].text.starts_with("<replace with what goes wrong"));
     assert!(template("0004", "cancel-reservation", "api").contains("# Cancel reservation"));
+}
+
+#[test]
+fn look_alike_failure_modes_are_errors_not_silence() {
+    for line in [
+        "- FM 3 spaced",
+        "- fm_3 underscored",
+        "- FM-[rejected-update]: named",
+        "FM-3 no bullet",
+    ] {
+        let error = parse(&format!("## Failure modes\n\n- FM-1 fine\n{line}\n")).unwrap_err();
+        assert!(
+            format!("{error:#}").contains("is not a failure-mode line"),
+            "{line}: {error:#}"
+        );
+    }
+    let justified = parse("## Failure modes\n- FM-1 a\n## Non-discriminating\n- FM 1 spaced\n").unwrap_err();
+    assert!(format!("{justified:#}").contains("- FM-<n>"));
+    let prose = parse("# X\n\nFM 3 outside the section is prose.\n## Failure modes\n- FM-1 a\n").unwrap();
+    assert_eq!(prose.failure_modes, [FmId(1)]);
+}
+
+#[test]
+fn a_spec_without_failure_modes_says_how_to_write_one() {
+    let spec = SpecDir {
+        name: "0001-x".into(),
+        id: "0001".into(),
+        path: PathBuf::from("/nowhere"),
+    };
+    let message = parse("## Failure modes\n\nNone yet.\n").unwrap().empty(&spec).unwrap();
+    assert!(message.contains("lists no failure mode"), "{message}");
+    assert!(message.contains("`- FM-1 <what goes wrong>`"), "{message}");
+    assert!(parse("## Failure modes\n- FM-1 a\n").unwrap().empty(&spec).is_none());
+}
+
+/// Every spec.md this repository ships (the sample's, the generator snapshots') follows the grammar and lists modes.
+#[test]
+fn every_shipped_spec_follows_the_grammar() {
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let mut found = 0;
+    for entry in walkdir::WalkDir::new(&repo).into_iter().filter_entry(|entry| {
+        !matches!(
+            entry.file_name().to_str(),
+            Some("node_modules" | "target" | ".git" | "worktrees")
+        )
+    }) {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        let in_specs = path.parent().and_then(Path::parent).and_then(Path::file_name) == Some(".specs".as_ref());
+        if entry.file_name() != SPEC_FILE || !in_specs {
+            continue;
+        }
+        let text = std::fs::read_to_string(path).unwrap();
+        let doc = parse(&text).unwrap_or_else(|error| panic!("{}: {error:#}", path.display()));
+        assert!(
+            !doc.failure_modes.is_empty(),
+            "{} lists no failure mode",
+            path.display()
+        );
+        found += 1;
+    }
+    assert!(found >= 10, "found only {found} specs");
 }
 
 #[test]
