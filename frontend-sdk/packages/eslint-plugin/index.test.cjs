@@ -47,10 +47,15 @@ assert.deepEqual(
 );
 assert.equal(plugin.configs.recommended, plugin.configs["flat/recommended"]);
 assert.deepEqual(
-  Object.keys(plugin.configs.recommended.rules).sort(),
+  Object.keys(plugin.configs.recommended.rules)
+    .filter((id) => id.startsWith("skies/"))
+    .sort(),
   RULE_IDS.map((id) => `skies/${id}`).sort(),
   "recommended enables every rule",
 );
+for (const id of RULE_IDS) {
+  assert.equal(plugin.configs.recommended.rules[`skies/${id}`], "warn", `skies/${id} stays at warn in recommended`);
+}
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -452,6 +457,8 @@ ruleTester.run("tests-live-in-specs", plugin.rules["tests-live-in-specs"], {
 
 // The routing, session, and security rules live in their own file.
 require("./routing.test.cjs");
+// The accessibility floor recommended carries (jsx-a11y at error).
+require("./a11y.test.cjs");
 
 // eslint-disable-next-line no-console
 console.log("@skiesjs/eslint-plugin: all SKYFE rule tests passed");

@@ -1,6 +1,9 @@
 "use strict";
 
 const { version } = require("./package.json");
+// The accessibility floor ships inside recommended, resolved from this package (a dependency, not a peer), so an app
+// that extends Skies' recommended gets jsx-a11y without wiring it.
+const jsxA11y = require("eslint-plugin-jsx-a11y");
 
 // @skiesjs/eslint-plugin — the SKYFE architecture rules. The front-side parallel of the backend's Roslyn analyzers
 // (Skies.Framework.Doctor): the View renders, the ViewModel is the only data door, no mock leaks into production,
@@ -41,10 +44,28 @@ const plugin = {
   configs: {},
 };
 
+// The accessibility floor: jsx-a11y's recommended set at error, on by default in the same spirit as the CA* security
+// floor the .NET doctor ships. An app relaxes one rule explicitly in its own config ("jsx-a11y/<rule>": "off").
+// aria-role checks DOM elements only: a component prop named `role` (a typography or layout role) is not ARIA.
+const a11yRules = Object.fromEntries(
+  Object.entries(jsxA11y.flatConfigs.recommended.rules).map(([rule, setting]) => [rule, promote(setting)]),
+);
+a11yRules["jsx-a11y/aria-role"] = ["error", { ignoreNonDOM: true }];
+
+/** Raises a "warn" setting to "error", keeping "off" and the rule's options. */
+function promote(setting) {
+  const [severity, ...options] = Array.isArray(setting) ? setting : [setting];
+  const raised = severity === "warn" || severity === 1 ? "error" : severity;
+  return options.length > 0 ? [raised, ...options] : raised;
+}
+
 const recommended = {
   name: "skies/recommended",
-  plugins: { skies: plugin },
-  rules: Object.fromEntries(Object.keys(rules).map((rule) => [`skies/${rule}`, "warn"])),
+  plugins: { skies: plugin, "jsx-a11y": jsxA11y },
+  rules: {
+    ...Object.fromEntries(Object.keys(rules).map((rule) => [`skies/${rule}`, "warn"])),
+    ...a11yRules,
+  },
 };
 
 plugin.configs.recommended = recommended;

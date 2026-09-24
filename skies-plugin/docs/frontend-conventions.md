@@ -54,7 +54,10 @@ spine (VM + tab shell) + pure `panels/<X>Panel.view.tsx` binding the shared `con
 
 ## Styling and a11y
 
-Styling, components, and tokens are the app's choice. A11y: jsx-a11y beside the SKYFE plugin.
+Styling, components, and tokens are the app's choice. Accessibility is a floor, on by default:
+`skies.configs.recommended` carries jsx-a11y's recommended set at error (the plugin depends on
+`eslint-plugin-jsx-a11y`; the app installs nothing more). `aria-role` checks DOM elements only. Fix the markup;
+relax a single rule only for a real case, in a later config object (`"jsx-a11y/<rule>": "off"`, scoped by `files`).
 
 ## Specs
 

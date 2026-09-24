@@ -47,12 +47,20 @@ SKYFE015–019 recognize TanStack Router and React Router idioms; they police a 
 import skies from "@skiesjs/eslint-plugin";
 
 export default [
-  skies.configs.recommended, // every rule at "warn"
+  skies.configs.recommended, // every SKYFE rule at "warn" + the jsx-a11y floor at "error"
   { files: ["src/**/*.{ts,tsx}"], rules: { "skies/view-purity": "error", "skies/data-door": "error" } },
 ];
 ```
 
+## Accessibility floor
+
+`recommended` also carries [`eslint-plugin-jsx-a11y`](https://www.npmjs.com/package/eslint-plugin-jsx-a11y)'s
+recommended set at error, on by default. It is a dependency of this package, so there is nothing else to install
+or register (registering `jsx-a11y` again in the same config is a conflict). `jsx-a11y/aria-role` runs with
+`ignoreNonDOM: true`. Relax one rule explicitly in a later config object:
+`{ files: [...], rules: { "jsx-a11y/no-autofocus": "off" } }`.
+
 ## Tests
 
 `npm test` runs `index.test.cjs`: RuleTester cases that pin each rule on both edges (fires on the violation, passes
-on the allowed shapes).
+on the allowed shapes), plus `a11y.test.cjs`, which pins the accessibility floor in `recommended`.

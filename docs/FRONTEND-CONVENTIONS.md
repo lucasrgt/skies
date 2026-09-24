@@ -593,6 +593,10 @@ router runtime.
 The gaps in the numbering are rules Skies 5 removed. The latest is `SKYFE009`, which kept ViewModels free of React
 Native imports so web and native could share them; it went with the React Native track.
 
+Beside the SKYFE rules, `recommended` carries the **accessibility floor**: jsx-a11y's recommended set at error
+(see [Accessibility](#accessibility--the-a11y-floor-on-by-default)). Those are third-party `jsx-a11y/*` ids, not
+SKYFE codes.
+
 The two directions are asymmetric, and that sets the severity: **front→back** (the UI calls an
 endpoint that doesn't exist) is never valid → a hard **error**, free from `tsc` (the hook isn't
 generated, so it can't compile). **back→front** (the endpoint exists, nothing wired it yet) is a
@@ -671,14 +675,34 @@ a framework mechanism; this is Hostpoint's.)
 `api-errors` catalog, typed against the generated `ErrorBody.code` union so a missing code is a type error, and
 `SKYFE011` keeps every locale in step. Composed: code → copy → in every language. This is the front end of the same full-stack discipline `SKY0018`/`SKY0019` enforce on the back.
 
-## Accessibility — jsx-a11y beside the SKYFE plugin
+## Accessibility — the a11y floor, on by default
 
-a11y is part of the harness, but it is not architecture, so it is not a SKYFE rule: the DOM speaks `alt`,
-`aria-*`, and `href`, and [`eslint-plugin-jsx-a11y`](https://www.npmjs.com/package/eslint-plugin-jsx-a11y) (its
-recommended set) polices them, wired in the ESLint config *alongside* the SKYFE plugin, never reinvented inside
-it. The same posture as the curated community kit (`sonarjs`, `no-secrets`, `@tanstack/query`). A new app can
-start it at warn and promote per rule once the revealed backlog is cleared; the sample runs it at error. Flutter's
-accessibility checks are in [FLUTTER-CONVENTIONS.md](FLUTTER-CONVENTIONS.md).
+Accessibility is a floor, not an opt-in, in the same spirit as the CA* security floor the .NET doctor ships
+([CONVENTIONS.md](CONVENTIONS.md)): on by default, relaxed by the app explicitly, one rule at a time. It is not
+architecture, so it is not a SKYFE rule and Skies does not reinvent it: the DOM speaks `alt`, `aria-*`, `role`,
+and `href`, and [`eslint-plugin-jsx-a11y`](https://www.npmjs.com/package/eslint-plugin-jsx-a11y) polices them.
+
+- **Where it comes from.** `skies.configs.recommended` (and `flat/recommended`) carries jsx-a11y's recommended set
+  at **error**, beside the SKYFE rules. `eslint-plugin-jsx-a11y` is a dependency of `@skiesjs/eslint-plugin`,
+  resolved from the plugin, so an app that extends Skies' recommended gets accessibility without installing or
+  wiring anything. Do not register `jsx-a11y` a second time in the same config: ESLint rejects a plugin name
+  bound to two different objects.
+- **`aria-role` checks the DOM only** (`ignoreNonDOM: true`): a component prop named `role` (a typography or
+  layout role on a design-system `<Text>`) is the component's business, not ARIA.
+- **Relaxing one rule.** Add a later config object that turns it down, scoped as narrowly as the reason:
+
+  ```js
+  export default [
+    skies.configs.recommended,
+    { files: ["src/features/map/**/*.tsx"], rules: { "jsx-a11y/no-static-element-interactions": "off" } },
+  ];
+  ```
+
+  Relax a rule where a real case makes it wrong, never to clear a backlog; the sample runs the whole floor.
+- **Static only.** The floor reads JSX. It never demands a test, an audit, or a manifest (the third law).
+
+Flutter has its own static floor in the native doctor (`SKYFL037`–`040`); see
+[FLUTTER-CONVENTIONS.md](FLUTTER-CONVENTIONS.md#accessibility--the-a11y-floor).
 
 ## Scope — and non-goals
 

@@ -1,7 +1,7 @@
 {
   "name": "@skiesjs/eslint-plugin",
   "version": "5.0.0",
-  "description": "Skies Framework SKYFE architecture rules for React web apps: MVVM seams, one data door, routing/session/form discipline.",
+  "description": "Skies Framework SKYFE architecture rules for React web apps: MVVM seams, one data door, routing/session/form discipline, and the jsx-a11y accessibility floor.",
   "license": "MIT",
   "author": "Lucas Tinoco",
   "repository": {
@@ -26,6 +26,9 @@
     "rules/",
     "README.md"
   ],
+  "dependencies": {
+    "eslint-plugin-jsx-a11y": "^6.10.2"
+  },
   "peerDependencies": {
     "eslint": ">=9"
   },

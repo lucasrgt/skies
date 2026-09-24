@@ -15,18 +15,20 @@ import vitest from "@vitest/eslint-plugin";
 //   - @tanstack/eslint-plugin-query — react-query correctness (exhaustive deps, stable keys, no rest-destructure);
 //     the SKYFE rules cover architecture, this covers RQ usage — complementary, not overlapping.
 //   - eslint-plugin-no-secrets — entropy-based hardcoded-secret detection (the .env discipline, enforced in code).
-// The SKYFE plugin is CommonJS; load it via createRequire.
+// The SKYFE plugin is CommonJS; load it via createRequire. Its recommended config carries the accessibility floor
+// (jsx-a11y's recommended set at error), so the sample gets a11y the way an app does: by extending it.
 const require = createRequire(import.meta.url);
 const skies = require("./packages/eslint-plugin/index.cjs");
-// Accessibility — the DOM speaks alt / aria / href, and jsx-a11y polices it.
-const jsxA11y = require("eslint-plugin-jsx-a11y");
+const SAMPLE = ["examples/sample-app/frontend/web/**/*.{ts,tsx}", "examples/sample-app/.specs/*/e2e/**/*.{ts,tsx}"];
 
 export default [
   { ignores: ["**/node_modules/**", "packages/eslint-plugin/**"] },
   // react-query correctness (parser comes from the sample block below, which these merge onto).
   ...tanstackQuery.configs["flat/recommended"],
+  // Skies' recommended: every SKYFE rule plus the jsx-a11y floor. The block below promotes the SKYFE rules to error.
+  { ...skies.configs.recommended, files: SAMPLE },
   {
-    files: ["examples/sample-app/frontend/web/**/*.{ts,tsx}", "examples/sample-app/.specs/*/e2e/**/*.{ts,tsx}"],
+    files: SAMPLE,
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2022,
@@ -34,7 +36,7 @@ export default [
       // type-aware lint (projectService) — required by @typescript-eslint/no-floating-promises.
       parserOptions: { ecmaFeatures: { jsx: true }, projectService: true, tsconfigRootDir: fileURLToPath(new URL("..", import.meta.url)) },
     },
-    plugins: { skies, "no-secrets": noSecrets, sonarjs, "@typescript-eslint": tsPlugin },
+    plugins: { "no-secrets": noSecrets, sonarjs, "@typescript-eslint": tsPlugin },
     rules: {
       // promise safety (type-aware) — an unhandled promise is a silent failure; `void p` opts out explicitly.
       "@typescript-eslint/no-floating-promises": "error",
@@ -80,13 +82,6 @@ export default [
       "sonarjs/no-duplicated-branches": "warn",
       "sonarjs/cognitive-complexity": ["warn", 25],
     },
-  },
-  // a11y — web (DOM): jsx-a11y at error tier. aria-role checks DOM elements only (ignoreNonDOM): the ui kit's
-  // `Text role=` is a typography role, not an ARIA role — components map their props internally.
-  {
-    files: ["examples/sample-app/frontend/web/**/*.{ts,tsx}"],
-    plugins: { "jsx-a11y": jsxA11y },
-    rules: { ...jsxA11y.flatConfigs.recommended.rules, "jsx-a11y/aria-role": ["error", { ignoreNonDOM: true }] },
   },
   // test hygiene — no .only/.skip leaking into the suite (the @vitest recommended set). The sample's tests all live in
   // its specs.
