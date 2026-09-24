@@ -16,12 +16,7 @@ public static class Login
 
     public record Output(string AccessToken, string RefreshToken, RegistrationStep Step, Role? Role);
 
-    // A fixed argon2 hash for the no-account branch of the timing-equalizing credential check (see Handle).
-    // Computed once at startup; the plaintext is irrelevant — it exists only to make Verify do real work so a
-    // login for an unknown email costs the same as one with a wrong password.
-    internal static readonly PasswordHash DummyHash = PasswordHash.Create("skies-login-timing-equalizer");
-
-    public static async Task<Result<Output>> Handle(Input input, AppDb db, IAccessTokens tokens, TimeProvider clock, CancellationToken ct)
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, IPasswordHasher hasher, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct)
     {
         var email = Email.From(input.Email);
         if (email.IsFailure)
@@ -32,26 +27,19 @@ public static class Login
             // is then read off the found user and put into the JWT.
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.Email == email.Value, ct);
-        // Constant-time identity check: verify against the found user's hash, or a fixed dummy hash when no
-        // account exists, so a missing email costs the same argon2 work as a wrong password — the absence of
-        // an account is not observable by response timing (user enumeration).
-        var passwordOk = (user?.PasswordHash ?? DummyHash).Verify(input.Password);
-        if (user is null || !passwordOk)
+        // Verify even when no account matched: the hasher then spends the same work on a dummy, so a missing email is
+        // not observable by response timing (user enumeration), and both failures return the same error.
+        if (!hasher.Verify(input.Password, user?.PasswordHash) || user is null)
             return Error.Unauthorized(AccountErrorCodes.InvalidCredentials, "invalid email or password");
 
-        var now = clock.GetUtcNow().UtcDateTime;
-        var family = Guid.NewGuid();   // the session id (sid) the access token carries
-        var (refresh, refreshHash) = SessionToken.Issue();
-        db.UserSessions.Add(UserSession.Start(user.Id, family, refreshHash, now).Value);
-        await db.SaveChangesAsync(ct);
-
-        var access = tokens.Issue(user.Id, user.OrgId, user.Role?.ToString(), family, user.Name);
-        return new Output(access, refresh, user.RegistrationStep, user.Role);
+        var session = await sessions.StartAsync(user.Id, ct);   // a new family: the session id (sid) the token carries
+        var access = tokens.Issue(user.Id, user.OrgId, user.Role?.ToString(), session.FamilyId, user.Name);
+        return new Output(access, session.Token, user.RegistrationStep, user.Role);
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/login", async (Input input, AppDb db, IAccessTokens tokens, TimeProvider clock, CancellationToken ct) =>
-            (await Handle(input, db, tokens, clock, ct)).ToHttp())
+        app.MapPost("/login", async (Input input, AppDb db, IPasswordHasher hasher, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct) =>
+            (await Handle(input, db, hasher, sessions, tokens, ct)).ToHttp())
             .WithName(nameof(Login))
             .AllowAnonymous();   // public: logging in is how you get a token (SKY0022 — the decision, made visible)
 }

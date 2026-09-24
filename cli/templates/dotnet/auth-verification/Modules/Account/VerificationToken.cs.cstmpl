@@ -1,0 +1,93 @@
+namespace MyApp.Api.Modules.Account;
+
+/// <summary>What a <see cref="VerificationToken"/> proves. A secret only ever verifies for the purpose it was issued for,
+/// so a password-reset link can never confirm an email, nor the reverse.</summary>
+public static class VerificationPurpose
+{
+    /// <summary>A 6-digit SMS code proving the caller holds a phone.</summary>
+    public const string Phone = "phone";
+
+    /// <summary>An emailed link confirming the account's email address.</summary>
+    public const string EmailVerification = "email-verification";
+
+    /// <summary>An emailed link allowing one password reset.</summary>
+    public const string PasswordReset = "password-reset";
+}
+
+/// <summary>A single-use verification secret (a phone code or an emailed link): the row the framework's
+/// <c>VerificationTokens</c> keeps through <see cref="VerificationTokenStore"/>. <b>Not</b> <c>ITenantScoped</c>: like
+/// <see cref="UserSession"/>, it is a global auth artifact looked up by its hash or its user, never part of an org's
+/// dataset. Only the secret's hash is stored; issuing, expiry, single use, and the attempt cap are the framework's.</summary>
+[Entity]
+public class VerificationToken
+{
+    /// <summary>The token's identity, assigned when it is issued.</summary>
+    public Guid Id { get; private set; }
+
+    /// <summary>The user the secret was issued to.</summary>
+    public Guid UserId { get; private set; }
+
+    /// <summary>What the secret proves (a <see cref="VerificationPurpose"/>).</summary>
+    public string Purpose { get; private set; } = "";
+
+    /// <summary>What is being verified when it is not the account itself: the phone a code was sent to.</summary>
+    public string? Target { get; private set; }
+
+    /// <summary>The stored form of the secret: a lookup hash for a link, a slow hash for a code.</summary>
+    public string SecretHash { get; private set; } = "";
+
+    /// <summary>When the secret was issued.</summary>
+    public DateTime CreatedAt { get; private set; }
+
+    /// <summary>When the secret stops verifying.</summary>
+    public DateTime ExpiresAt { get; private set; }
+
+    /// <summary>When the secret was used or locked. Null while it can still verify.</summary>
+    public DateTime? ConsumedAt { get; private set; }
+
+    /// <summary>Wrong guesses so far (codes only): the brute-force counter.</summary>
+    public int Attempts { get; private set; }
+
+    /// <summary>The optimistic-concurrency token (SKY0026): two concurrent checks of the same secret fail loudly instead
+    /// of both racing the attempt counter or both consuming it.</summary>
+    [System.ComponentModel.DataAnnotations.Timestamp]
+    public byte[]? RowVersion { get; private set; }
+
+    // Parameterless and private: the constructor EF Core materialises a row through. A token is issued via Issue, so
+    // there is no public way to construct a blank one.
+    private VerificationToken() { }
+
+    /// <summary>Record a freshly issued secret. Creation funnels through <see cref="EnsureValid"/>.</summary>
+    public static Result<VerificationToken> Issue(Guid userId, string purpose, string? target, string secretHash, DateTime now, DateTime expiresAt) =>
+        new VerificationToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Purpose = purpose,
+            Target = target,
+            SecretHash = secretHash,
+            CreatedAt = now,
+            ExpiresAt = expiresAt,
+        }.EnsureValid();
+
+    /// <summary>Count a wrong guess. Cannot fail — a void mutation.</summary>
+    public void RecordFailedAttempt() => Attempts++;
+
+    /// <summary>Consume the secret at <paramref name="now"/> (used, or locked by the attempt cap); it never verifies
+    /// again. Cannot fail — a void mutation.</summary>
+    public void Consume(DateTime now) => ConsumedAt = now;
+
+    // The single invariant funnel: every create path returns through here, so a broken token can never be observed or
+    // persisted.
+    private Result<VerificationToken> EnsureValid()
+    {
+        var validation = new Validation()
+            .Require(Id, "id", AccountErrorCodes.InvalidState)
+            .Require(UserId, "userId", AccountErrorCodes.InvalidState)
+            .NotBlank(Purpose, "purpose", AccountErrorCodes.InvalidState)
+            .NotBlank(SecretHash, "secretHash", AccountErrorCodes.InvalidState);
+        if (validation.Failed)
+            return validation.ToError();
+        return this;
+    }
+}

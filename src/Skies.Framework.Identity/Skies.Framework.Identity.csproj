@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- OIDC discovery, JWKS, and JWT validation: Microsoft's IdentityModel, the same stack JwtBearer runs on. -->
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Skies.Framework.Abstractions\Skies.Framework.Abstractions.csproj" />
     <ProjectReference Include="..\..\analyzers\Skies.Framework.SelfHarness\Skies.Framework.SelfHarness.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />

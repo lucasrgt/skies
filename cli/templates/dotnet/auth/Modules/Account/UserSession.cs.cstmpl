@@ -1,10 +1,10 @@
 namespace MyApp.Api.Modules.Account;
 
-/// <summary>A refresh-token slot in a rotating family — a domain entity that owns its lifecycle, not a data
-/// bag. <b>Not</b> tenant-scoped: it is a global auth artifact keyed by an unguessable token hash, never part
-/// of an org's dataset — so it is looked up directly, with no tenant filter to bypass (the tell that it should
-/// not be scoped). Only the hash is stored. A slot is opened through <see cref="Start"/> and retired through
-/// <see cref="MarkUsed"/>; presenting a used slot again is treated as theft and burns the family.</summary>
+/// <summary>A refresh-token slot in a rotating family: the row the framework's <c>RefreshSessions</c> keeps through
+/// <see cref="UserSessionStore"/>. <b>Not</b> tenant-scoped: it is a global auth artifact keyed by an unguessable token
+/// hash, never part of an org's dataset, so it is looked up directly with no tenant filter to bypass (the tell that it
+/// should not be scoped). Only the hash is stored. A slot is opened through <see cref="Start"/> and retired through
+/// <see cref="MarkUsed"/>; when a used slot is presented again the framework treats it as theft and burns the family.</summary>
 [Entity]
 public class UserSession
 {
@@ -17,7 +17,7 @@ public class UserSession
     /// <summary>The lineage a rotating token belongs to. Reuse-detection and logout act on the family.</summary>
     public Guid FamilyId { get; private set; }
 
-    /// <summary>The SHA-256 hash of the refresh token — the raw token is never stored.</summary>
+    /// <summary>The lookup hash of the refresh token; the raw token is never stored.</summary>
     public string TokenHash { get; private set; } = "";
 
     /// <summary>When this slot was opened.</summary>
@@ -39,10 +39,9 @@ public class UserSession
     // Start, so there is no public way to construct a blank session.
     private UserSession() { }
 
-    /// <summary>Open a new slot in <paramref name="familyId"/> for <paramref name="userId"/>, carrying the
-    /// presented token's hash and expiring one <see cref="SessionToken.Lifetime"/> from <paramref name="now"/>.
-    /// Creation funnels through <see cref="EnsureValid"/>.</summary>
-    public static Result<UserSession> Start(Guid userId, Guid familyId, string tokenHash, DateTime now) =>
+    /// <summary>Open a new slot in <paramref name="familyId"/> for <paramref name="userId"/>, carrying the token's hash
+    /// and the expiry the framework's session policy chose. Creation funnels through <see cref="EnsureValid"/>.</summary>
+    public static Result<UserSession> Start(Guid userId, Guid familyId, string tokenHash, DateTime now, DateTime expiresAt) =>
         new UserSession
         {
             Id = Guid.NewGuid(),
@@ -50,7 +49,7 @@ public class UserSession
             FamilyId = familyId,
             TokenHash = tokenHash,
             CreatedAt = now,
-            ExpiresAt = now.Add(SessionToken.Lifetime),
+            ExpiresAt = expiresAt,
         }.EnsureValid();
 
     /// <summary>Rotate this slot away: mark it used at <paramref name="now"/>. The hash already exists, so this

@@ -3,9 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Golden.Api.Modules.Account;
 
-/// <summary>Exchange a valid refresh token for a fresh access + refresh pair, rotating the session.
-/// Reuse of an already-rotated token is treated as theft and burns the whole token family. The session
-/// row is not tenant-scoped, so it is looked up directly.</summary>
+/// <summary>Exchange a valid refresh token for a fresh access + refresh pair. The framework's
+/// <see cref="RefreshSessions"/> rotates the session: a spent token presented again is theft and burns the whole family,
+/// and a family past its absolute age is retired. This slice maps each refusal to its error code and mints the new
+/// access token from the user.</summary>
 /// <remarks>Security contract: the sad path <em>is</em> the security feature — replaying a rotated token must
 /// burn the whole family (theft detection). If that fails silently a stolen token lives forever, so
 /// Its spec under `.specs/` proves both the rotation (happy) and the theft-burn (sad) end-to-end.</remarks>
@@ -16,84 +17,33 @@ public static class Refresh
 
     public record Output(string AccessToken, string RefreshToken);
 
-    public static async Task<Result<Output>> Handle(Input input, AppDb db, IAccessTokens tokens, TimeProvider clock, CancellationToken ct)
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct)
     {
-        var hash = SessionToken.Hash(input.RefreshToken);
-        var session = await db.UserSessions.FirstOrDefaultAsync(s => s.TokenHash == hash, ct);
-        if (session is null)
-            return Error.Unauthorized(AccountErrorCodes.InvalidSession, "invalid or expired session");
-
-        var now = clock.GetUtcNow().UtcDateTime;
-
-        // Reuse of a spent token: the legitimate client holds the live replacement, so a second presentation
-        // means the rotated token leaked. Burn the whole family — thief's and victim's alike — immediately,
-        // forcing a fresh login. The auth spec's replay failure mode covers it.
-        if (session.UsedAt is not null)
-        {
-            await RevokeFamily(db, session.FamilyId, ct);
-            return Error.Unauthorized(AccountErrorCodes.SessionRevoked, "session revoked");
-        }
-
-        if (session.ExpiresAt < now)
-            return Error.Unauthorized(AccountErrorCodes.InvalidSession, "invalid or expired session");
-
-        // Absolute family ceiling: even a perfectly-rotated session is retired once its lineage passes the
-        // max age (measured from the family's first token), forcing a fresh login. Sliding expiry lives
-        // inside this window, never beyond it.
-        var familyStart = await db.UserSessions
-            .Where(s => s.FamilyId == session.FamilyId)
-            .MinAsync(s => s.CreatedAt, ct);
-        if (now - familyStart > SessionToken.FamilyMaxAge)
-        {
-            await RevokeFamily(db, session.FamilyId, ct);
-            return Error.Unauthorized(AccountErrorCodes.InvalidSession, "invalid or expired session");
-        }
+        var rotation = await sessions.RotateAsync(input.RefreshToken, ct);
+        if (!rotation.Rotated)
+            return rotation.Outcome switch
+            {
+                RefreshOutcome.Reused => Error.Unauthorized(AccountErrorCodes.SessionRevoked, "session revoked"),
+                // Lost the race to a concurrent refresh of the same live token (tabs sharing a cookie): the winner
+                // already delivered the replacement, so this is the benign retry, not theft.
+                RefreshOutcome.Superseded => Error.Unauthorized(AccountErrorCodes.SessionRetry, "refresh superseded, retry"),
+                _ => Error.Unauthorized(AccountErrorCodes.InvalidSession, "invalid or expired session"),
+            };
 
         var user = await db.Users
             // The access token is expired by now, so the request carries no org; look up across the filter.
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.Id == session.UserId, ct);
+            .FirstOrDefaultAsync(u => u.Id == rotation.UserId, ct);
         if (user is null)
             return Error.Unauthorized(AccountErrorCodes.InvalidSession, "invalid or expired session");
 
-        session.MarkUsed(now);
-        var (refresh, refreshHash) = SessionToken.Issue();
-        db.UserSessions.Add(UserSession.Start(user.Id, session.FamilyId, refreshHash, now).Value);
-        try
-        {
-            await db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            // Lost the optimistic-concurrency race (RowVersion) to a concurrent refresh of the same live
-            // token — a shared cookie across tabs. The winner already rotated, so this is the benign retry,
-            // not theft. Only a relational provider enforces this; the in-memory store never raises it.
-            return Error.Unauthorized(AccountErrorCodes.SessionRetry, "refresh superseded, retry");
-        }
-
-        var access = tokens.Issue(user.Id, user.OrgId, user.Role?.ToString(), session.FamilyId, user.Name);
-        return new Output(access, refresh);
-    }
-
-    internal static async Task RevokeFamily(AppDb db, Guid familyId, CancellationToken ct)
-    {
-        var family = await db.UserSessions.Where(s => s.FamilyId == familyId).ToListAsync(ct);
-        db.UserSessions.RemoveRange(family);
-        await db.SaveChangesAsync(ct);
-    }
-
-    // Revoke every session the user has — used when a credential change (e.g. a password reset) must end
-    // all sessions everywhere at once, the attacker's families included, not just one lineage.
-    internal static async Task RevokeAllForUser(AppDb db, Guid userId, CancellationToken ct)
-    {
-        var all = await db.UserSessions.Where(s => s.UserId == userId).ToListAsync(ct);
-        db.UserSessions.RemoveRange(all);
-        await db.SaveChangesAsync(ct);
+        var access = tokens.Issue(user.Id, user.OrgId, user.Role?.ToString(), rotation.FamilyId, user.Name);
+        return new Output(access, rotation.Token);
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/refresh", async (Input body, AppDb db, IAccessTokens tokens, TimeProvider clock, CancellationToken ct) =>
-            (await Handle(body, db, tokens, clock, ct)).ToHttp())
+        app.MapPost("/refresh", async (Input body, AppDb db, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct) =>
+            (await Handle(body, db, sessions, tokens, ct)).ToHttp())
             .WithName(nameof(Refresh))
             .AllowAnonymous();   // public: the refresh token IS the credential, the access token is expired (SKY0022)
 }

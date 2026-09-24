@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Api.Modules.Account;
 
-/// <summary>Send the caller a fresh email-verification link. Authenticated. Mints a high-entropy token,
-/// stores only its hash (valid 24h), and emails the raw token. The send is best-effort: the token is
-/// already persisted, so a later resend recovers without losing state.</summary>
+/// <summary>Send the caller a fresh email-verification link. Authenticated. The framework's
+/// <see cref="VerificationTokens"/> mints a high-entropy token and stores only its hash; this slice owns its lifetime
+/// (24h) and the message. The send is best-effort: the token is already persisted, so a later resend recovers.</summary>
 [Slice]
 public static class RequestEmailVerification
 {
@@ -14,16 +14,15 @@ public static class RequestEmailVerification
 
     public record Output();
 
-    public static async Task<Result<Output>> Handle(Input input, AppDb db, IEmailSender email, ICurrentUser current, TimeProvider clock, CancellationToken ct)
+    private static readonly TimeSpan Lifetime = TimeSpan.FromHours(24);
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, VerificationTokens verification, IEmailSender email, ICurrentUser current, CancellationToken ct)
     {
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == current.UserId, ct);
         if (user is null)
             return Error.NotFound(AccountErrorCodes.UserNotFound, "user not found");
 
-        var now = clock.GetUtcNow().UtcDateTime;
-        var (raw, hash) = SessionToken.Issue();
-        db.EmailVerificationTokens.Add(EmailVerificationToken.Issue(user.Id, hash, now).Value);
-        await db.SaveChangesAsync(ct);
+        var raw = await verification.IssueLinkAsync(user.Id, VerificationPurpose.EmailVerification, Lifetime, ct);
 
         await email.SendAsync(new EmailMessage(
             user.Email.Value,
@@ -33,8 +32,8 @@ public static class RequestEmailVerification
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/verify-email/request", async (Input input, AppDb db, IEmailSender email, ICurrentUser current, TimeProvider clock, CancellationToken ct) =>
-            (await Handle(input, db, email, current, clock, ct)).ToHttp())
+        app.MapPost("/verify-email/request", async (Input input, AppDb db, VerificationTokens verification, IEmailSender email, ICurrentUser current, CancellationToken ct) =>
+            (await Handle(input, db, verification, email, current, ct)).ToHttp())
             .WithName(nameof(RequestEmailVerification))
             .RequireAuthorization();
 }

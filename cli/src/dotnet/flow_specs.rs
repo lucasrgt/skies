@@ -27,8 +27,12 @@ pub struct FlowSpec {
     pub folder: &'static str,
     pub package_id: &'static str,
     pub provider_namespace: &'static str,
-    /// The dev provider registration, added to `AccountSetup.AddAccount` (never `Program.cs`, SKY0017).
-    pub di_line: &'static str,
+    /// Shared template folders under `templates/dotnet` the flow also emits (skipped when already present), so two
+    /// flows needing the same entity and store write it once.
+    pub shared_folders: &'static [&'static str],
+    /// The registrations added to `AccountSetup.AddAccount` (never `Program.cs`, SKY0017): the dev provider and, when
+    /// the flow needs one, the framework service over the app's store.
+    pub di_lines: &'static [&'static str],
     pub user_fields: &'static [&'static str],
     pub user_methods: &'static [UserMethod],
     /// (entity type, DbSet declaration)
@@ -50,12 +54,31 @@ impl Flow {
     }
 }
 
+/// The framework's verification service over the app's store, shared by the phone and email flows.
+const VERIFICATION_DI: &str = "builder.Services.AddVerificationTokens<VerificationTokenStore>();";
+
+/// The one table behind every verification secret (phone codes and email links), shared by the phone and email flows.
+const VERIFICATION_DB_SETS: &[(&str, &str)] = &[(
+    "VerificationToken",
+    "    public DbSet<VerificationToken> VerificationTokens => Set<VerificationToken>();",
+)];
+
+/// Link tokens are found by hash; codes by their user and purpose.
+const VERIFICATION_INDEXES: &[&str] = &[
+    "        model.Entity<VerificationToken>().HasIndex(t => t.SecretHash);",
+    "        model.Entity<VerificationToken>().HasIndex(t => new { t.UserId, t.Purpose });",
+];
+
 static OTP: FlowSpec = FlowSpec {
     token: "otp",
     folder: "auth-otp",
     package_id: "Skies.Framework.Sms",
     provider_namespace: "Skies.Framework.Sms",
-    di_line: "builder.Services.AddSingleton<ISmsSender, ConsoleSmsSender>();",
+    shared_folders: &["auth-verification"],
+    di_lines: &[
+        "builder.Services.AddSingleton<ISmsSender, ConsoleSmsSender>();",
+        VERIFICATION_DI,
+    ],
     user_fields: &[
         "    /// <summary>The verified phone number, set once VerifyPhone succeeds.</summary>\n    public string? Phone { get; private set; }",
         "    /// <summary>Whether the phone number has been verified.</summary>\n    public bool IsPhoneVerified { get; private set; }",
@@ -67,8 +90,8 @@ static OTP: FlowSpec = FlowSpec {
                public void CompletePhoneVerification(string phone)\n    {\n        Phone = phone;\n        \
                IsPhoneVerified = true;\n        RegistrationStep = RegistrationStep.Complete;\n    }",
     }],
-    db_sets: &[("PhoneOtp", "    public DbSet<PhoneOtp> PhoneOtps => Set<PhoneOtp>();")],
-    indexes: &["        model.Entity<PhoneOtp>().HasIndex(o => o.UserId);"],
+    db_sets: VERIFICATION_DB_SETS,
+    indexes: VERIFICATION_INDEXES,
     map_lines: &[
         "        ResendPhoneCode.Map(account);",
         "        VerifyPhone.Map(account);",
@@ -94,18 +117,19 @@ static OAUTH: FlowSpec = FlowSpec {
     folder: "auth-oauth",
     package_id: "Skies.Framework.Identity",
     provider_namespace: "Skies.Framework.Identity",
-    di_line: "builder.Services.AddSingleton<IExternalIdentity, FakeExternalIdentity>();",
+    shared_folders: &[],
+    di_lines: &["builder.Services.AddSingleton<IExternalIdentityVerifier, FakeExternalIdentity>();"],
     user_fields: &[
         "    /// <summary>Whether the account's email has been verified.</summary>\n    public bool IsEmailVerified { get; private set; }",
     ],
     user_methods: &[UserMethod {
         token: "RegisterViaGoogle(",
         code: "    /// <summary>Register an account from a Google identity: Google has already verified the email,\n    \
-               /// so the user is email-verified from the start, has no password (a random one is stored —\n    \
-               /// Google is the credential), and lands at PhonePending. Funnels through EnsureValid.</summary>\n    \
+               /// so the user is email-verified from the start, has no usable password (Google is the\n    \
+               /// credential), and lands at PhonePending. Funnels through EnsureValid.</summary>\n    \
                public static Result<User> RegisterViaGoogle(Email email, DateTime now) =>\n        new User\n        \
                {\n            Id = Guid.NewGuid(),\n            Email = email,\n            Name = email.Value,\n            \
-               PasswordHash = PasswordHash.Create(Guid.NewGuid().ToString()),\n            IsEmailVerified = true,\n            \
+               PasswordHash = PasswordHash.None,\n            IsEmailVerified = true,\n            \
                RegistrationStep = RegistrationStep.PhonePending,\n            CreatedAt = now,\n        }.EnsureValid();",
     }],
     db_sets: &[],
@@ -134,7 +158,11 @@ static EMAIL: FlowSpec = FlowSpec {
     folder: "auth-email",
     package_id: "Skies.Framework.Mail",
     provider_namespace: "Skies.Framework.Mail",
-    di_line: "builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();",
+    shared_folders: &["auth-verification"],
+    di_lines: &[
+        "builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();",
+        VERIFICATION_DI,
+    ],
     user_fields: &[
         "    /// <summary>Whether the account's email has been verified.</summary>\n    public bool IsEmailVerified { get; private set; }",
     ],
@@ -143,20 +171,8 @@ static EMAIL: FlowSpec = FlowSpec {
         code: "    /// <summary>Flag the account's email verified. Cannot fail — a void mutation.</summary>\n    \
                public void MarkEmailVerified() => IsEmailVerified = true;",
     }],
-    db_sets: &[
-        (
-            "EmailVerificationToken",
-            "    public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();",
-        ),
-        (
-            "PasswordResetToken",
-            "    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();",
-        ),
-    ],
-    indexes: &[
-        "        model.Entity<EmailVerificationToken>().HasIndex(t => t.TokenHash);",
-        "        model.Entity<PasswordResetToken>().HasIndex(t => t.TokenHash);",
-    ],
+    db_sets: VERIFICATION_DB_SETS,
+    indexes: VERIFICATION_INDEXES,
     map_lines: &[
         "        RequestEmailVerification.Map(account);",
         "        VerifyEmail.Map(account);",

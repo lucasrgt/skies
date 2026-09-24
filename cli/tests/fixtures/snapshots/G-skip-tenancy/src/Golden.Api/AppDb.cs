@@ -1,5 +1,6 @@
 using Golden.Api.Modules.Account;
 using Microsoft.EntityFrameworkCore;
+using Skies.Framework.Auth;
 
 namespace Golden.Api;
 

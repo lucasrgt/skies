@@ -5,6 +5,7 @@ using Golden.Api.Modules.Account;
 using Golden.Tests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Skies.Framework.Auth;
 
 namespace Specs.S0001;
 
@@ -72,7 +73,7 @@ public class TokenRefresh
             var db = scope.ServiceProvider.GetRequiredService<AppDb>();
             var slot = await db.UserSessions.SingleAsync();
             db.Entry(slot).Property(s => s.CreatedAt).CurrentValue =
-                DateTime.UtcNow - SessionToken.FamilyMaxAge - TimeSpan.FromDays(1);
+                DateTime.UtcNow - RefreshSessionOptions.Default.FamilyMaxAge - TimeSpan.FromDays(1);
             await db.SaveChangesAsync();
         }
 
