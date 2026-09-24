@@ -1,0 +1,20 @@
+diff --git a/backend/Sample.Api/BuildingBlocks/Money.cs b/backend/Sample.Api/BuildingBlocks/Money.cs
+index e29cf51..f9e3283 100644
+--- a/backend/Sample.Api/BuildingBlocks/Money.cs
++++ b/backend/Sample.Api/BuildingBlocks/Money.cs
+@@ -23,11 +23,13 @@ public readonly record struct Money
+ 
+     /// <summary>Build a <see cref="Money"/>, rejecting negative amounts as a domain error.</summary>
+     public static Result<Money> From(decimal amount) =>
+-        amount >= 0
++        // Red: the invariant is inverted, so only a negative amount counts as money.
++        amount < 0
+             ? Result<Money>.Ok(new Money(amount))
+             : Error.Validation(MoneyErrorCodes.Negative, "money cannot be negative");
+ 
+-    public Money Add(Money other) => new(Amount + other.Amount);
++    // Red: the sum drops its second operand.
++    public Money Add(Money other) => new(Amount);
+ 
+     /// <summary>
+     /// Debit <paramref name="other"/>, rejecting an overdraw: the difference would be negative, which

@@ -6,6 +6,7 @@ name = "Sample"
 
 [products.app]
 backend = "backend/Sample.Api"
+tests = "backend/Sample.Tests"   # `skies doctor` builds it, so the SKY rules (SKY0029 included) see the spec cases
 
 # Every .specs/<id>/e2e/ folder is compiled into Sample.Tests (see its csproj); the filter runs one spec's namespace
 # and the TRX logger writes the report `skies proof` reads back.

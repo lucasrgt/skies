@@ -25,12 +25,14 @@
     <ProjectReference Include="..\Sample.Api\Sample.Api.csproj" />
     <ProjectReference Include="..\..\..\..\src\Skies.Framework.Testing\Skies.Framework.Testing.csproj" />
     <ProjectReference Include="..\..\..\..\src\Skies.Framework.Testing.InMemory\Skies.Framework.Testing.InMemory.csproj" />
+    <!-- The doctor runs here too: every test lives in a spec, and SKY0029 flags one compiled from anywhere else.
+         Remove this line and the tests still build and run (Law 2). -->
+    <ProjectReference Include="..\..\..\..\analyzers\Skies.Framework.Doctor\Skies.Framework.Doctor.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Co-located tests: the files live next to the code in src/, compiled here. -->
-    <Compile Include="..\Sample.Api\**\*.Tests.cs" />
-    <!-- Spec E2E: each .specs/<id>/e2e/ folder is compiled here and run by `skies proof`. -->
+    <!-- Every test lives in a spec: each .specs/<id>/e2e/ folder is compiled here and run by `skies proof`, and
+         nothing else is. An isolated system (Money) gets its own spec, not a co-located *.Tests.cs. -->
     <Compile Include="..\..\.specs\*\e2e\**\*.cs" />
   </ItemGroup>
 
