@@ -17,6 +17,8 @@ const rules = {
   "view-purity": require("./rules/view-purity.cjs"), // SKYFE001
   "data-door": require("./rules/data-door.cjs"), // SKYFE002
   "no-mock": require("./rules/no-mock.cjs"), // SKYFE003
+  "viewmodel-render-agnostic": require("./rules/viewmodel-render-agnostic.cjs"), // SKYFE004
+  "mandatory-state": require("./rules/mandatory-state.cjs"), // SKYFE007
   "state-completeness": require("./rules/state-completeness.cjs"), // SKYFE010
   "i18n-completeness": require("./rules/i18n-completeness.cjs"), // SKYFE011
   "mutation-error-handled": require("./rules/mutation-error-handled.cjs"), // SKYFE013
@@ -29,6 +31,7 @@ const rules = {
   "no-hardcoded-base-url": require("./rules/no-hardcoded-base-url.cjs"), // SKYFE020
   "no-raw-html": require("./rules/no-raw-html.cjs"), // SKYFE021
   "no-open-redirect": require("./rules/no-open-redirect.cjs"), // SKYFE022
+  "no-placeholder": require("./rules/no-placeholder.cjs"), // SKYFE023
   "query-client-defaults": require("./rules/query-client-defaults.cjs"), // SKYFE027
   "no-manual-refetch-ritual": require("./rules/no-manual-refetch-ritual.cjs"), // SKYFE028
   "refresh-one-door": require("./rules/refresh-one-door.cjs"), // SKYFE029
@@ -62,10 +65,16 @@ function promote(setting) {
   return options.length > 0 ? [raised, ...options] : raised;
 }
 
-// Architecture rules are errors: each guards a shape whose drift ships a bug (a mocked screen, an open redirect, a
-// silent failure). The polish rules stay warnings: a redundant refetch (SKYFE028) is harmless, and a single-screen
-// form with every error visible inline is a legitimate reason to skip submitOrReveal (SKYFE031/032).
-const WARN_TIER = new Set(["no-manual-refetch-ritual", "submit-handles-invalid", "controller-field-state"]);
+// Architecture and security rules are errors: each guards a shape whose drift ships a bug (a mocked screen, an open
+// redirect, a silent failure). Taste and review signals stay warnings: an unfinished-work marker (SKYFE023) is for
+// review, a redundant refetch (SKYFE028) is harmless, and a single-screen form with every error visible inline is a
+// legitimate reason to skip submitOrReveal (SKYFE031/032). The Flutter twins carry the same tiers.
+const WARN_TIER = new Set([
+  "no-placeholder",
+  "no-manual-refetch-ritual",
+  "submit-handles-invalid",
+  "controller-field-state",
+]);
 
 const recommended = {
   name: "skies/recommended",

@@ -44,7 +44,10 @@ fn every_kept_rule_fires_on_its_violation() {
         ("SKYFL004", &[(MODEL, "Widget build(BuildContext context) => value;")]),
         (
             "SKYFL007",
-            &[(MODEL, "final class XViewModel extends ChangeNotifier {}")],
+            &[(
+                MODEL,
+                "final class XViewModel extends ChangeNotifier { Future<void> load() async {} }",
+            )],
         ),
         ("SKYFL010", &[(VIEW, "class XView {}"), (MODEL, STATEFUL_MODEL)]),
         (
@@ -113,7 +116,7 @@ fn every_kept_rule_fires_on_its_violation() {
         ),
         (
             "SKYFL028",
-            &[("lib/helper.dart", "final onSuccess = () { refetch(); };")],
+            &[(MODEL, "AsyncState<int> state; final onSuccess = () { refetch(); };")],
         ),
         (
             "SKYFL029",
@@ -164,7 +167,7 @@ fn a_real_view_reports_architecture_and_state_gaps_by_their_ids() {
         ),
         (
             "lib/features/wallets/wallets_view_model.dart",
-            "final class WalletsViewModel {}",
+            "final class WalletsViewModel { Future<void> load() async {} }",
         ),
     ]);
     for expected in ["SKYFL001", "SKYFL007", "SKYFL014"] {
@@ -256,12 +259,12 @@ fn guarded_validation_and_route_params_pass() {
 
 #[test]
 fn warnings_are_warnings_and_findings_carry_lines() {
-    let dir = project(&[("lib/helper.dart", "void a() {}\nfinal onSuccess = () { refetch(); };")]);
+    let dir = project(&[(MODEL, "AsyncState<int> state;\nfinal onSuccess = () { refetch(); };")]);
     let findings = diagnose(dir.path()).unwrap();
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].severity, Severity::Warning);
     assert_eq!(findings[0].line, Some(2));
-    assert!(findings[0].file.ends_with(Path::new("lib/helper.dart")));
+    assert!(findings[0].file.ends_with(Path::new(MODEL)));
 }
 
 #[test]

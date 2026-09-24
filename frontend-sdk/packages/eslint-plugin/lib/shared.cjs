@@ -54,6 +54,18 @@ const isNavSeam = (f) => /(^|\/)lib\/(nav|useGoBack)(\.|\/)/.test(f.replace(/\\/
 // The "am I signed in?" boolean a guard must NOT branch a redirect on: it collapses the tri-state (loading vs
 // anonymous) into one bit, so the redirect fires before the session settles. Branch on a SessionState instead.
 const AUTH_BOOL = /^(is)?(authenticated|authed|loggedin|signedin)$/i;
+// The words of an identifier or storage key (camelCase, snake_case, kebab, dotted), lowercased: `accessToken` →
+// [access, token], `auth_token` → [auth, token], `authorName` → [author, name]. The session rules match whole words so
+// "author" never reads as "auth"; the Flutter twins split the same way.
+const words = (text) =>
+  String(text)
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((w) => w.toLowerCase());
+// A key that names a session credential by one of its words (SKYFE016 / SKYFL016).
+const SESSION_WORDS = new Set(["token", "tokens", "jwt", "session", "auth"]);
+const isSessionKey = (key) => words(key).some((w) => SESSION_WORDS.has(w));
 // A route param whose ABSENCE yields a ghost screen — an id the View needs. Optional filter/search params don't
 // qualify; only id-shaped names render an empty detail when missing.
 const ID_PARAM = /(^id$)|Id$/;
@@ -103,10 +115,22 @@ function isRedirectElement(arg) {
   return name.type === "JSXIdentifier" && name.name === "Navigate";
 }
 
-/** Whether a statement (or block) returns a declarative redirect element. */
+/** Whether an expression is a router's redirect call: TanStack's `redirect({ to })`, React Router's `redirect("/x")`. */
+function isRedirectCall(arg) {
+  return !!arg && arg.type === "CallExpression" && arg.callee.type === "Identifier" && arg.callee.name === "redirect";
+}
+
+/**
+ * Whether a statement (or block) redirects: returns `<Navigate …/>`, or returns/throws a `redirect(…)` (a TanStack
+ * `beforeLoad`, a React Router loader).
+ */
 function returnsRedirect(stmt) {
   const body = stmt.type === "BlockStatement" ? stmt.body : [stmt];
-  return body.some((s) => s.type === "ReturnStatement" && isRedirectElement(s.argument));
+  return body.some(
+    (s) =>
+      (s.type === "ReturnStatement" && (isRedirectElement(s.argument) || isRedirectCall(s.argument))) ||
+      (s.type === "ThrowStatement" && isRedirectCall(s.argument)),
+  );
 }
 
 /** Walk every node under `root` (skipping `parent` back-edges), calling `fn`; `fn` returning true stops the walk. */
@@ -236,6 +260,8 @@ module.exports = {
   isNavSeam,
   AUTH_BOOL,
   ID_PARAM,
+  words,
+  isSessionKey,
   inEffect,
   enclosingFunction,
   authBoolName,

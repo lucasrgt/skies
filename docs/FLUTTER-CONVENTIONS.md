@@ -183,42 +183,54 @@ for what no static rule can see (contrast, tap-target size).
 
 ## Flutter doctor rule catalog
 
-Numbers up to `SKYFL036` keep the `SKYFE` slot of the same concern; gaps are removed rules. The latest,
-`SKYFL009`, flagged a device plugin imported by a ViewModel; like its React twin it is gone, and injecting platform
-capabilities as constructor ports stays a convention the review holds, not a rule. `SKYFL037`–`040` are Flutter-only
-(the web's floor is jsx-a11y). `SKYFL028`, `031`, `032`, `039`, and `040` are warnings; every other finding is an error.
+A number up to `SKYFL036` is the `SKYFE` rule of the same number: the same intent and tier, in Flutter's spelling
+([one catalog, two ecosystems](FRONTEND-CONVENTIONS.md#the-harness--rule-catalog-skyfe)); gaps are removed rules. The
+latest, `SKYFL009`, flagged a device plugin imported by a ViewModel; like its React twin it is gone, and injecting
+platform capabilities as constructor ports stays a convention the review holds, not a rule. `SKYFL037`–`040` are
+Flutter-only (the web's floor is jsx-a11y). The rule list and each rule's tier live in one place, `RULES` in
+`cli/src/flutter/rules/mod.rs`, pinned to this table by `cli/src/doctor/catalog_tests.rs`.
+
+**Tiers.** An architecture or security rule is an error; a taste or a heuristic that cannot see everything is a
+warning, reported without failing the run: `SKYFL023`, `028`, `031`, `032`, `039`, and `040`. Every other finding is
+an error.
+
+**Suppression.** `// skies-ignore: SKYFL029 <reason>` on the finding's line or the line above silences that one rule
+there; `// skies-ignore-file: SKYFL001 <reason>` covers a file-wide finding (one with no line). One rule per
+directive, and the reason is required: without it nothing is suppressed and the finding says why. `skies doctor`
+lists each suppression under its leg with its reason. The same principle holds on .NET and the web
+([Suppression](CONVENTIONS.md#suppression)).
 
 | Rule | Flutter enforcement |
 |---|---|
 | `SKYFL001` | View purity: no Dio/client behavior in a View. |
 | `SKYFL002` | Generated operations execute only in ViewModels or sanctioned infrastructure doors. |
 | `SKYFL003` | No mock/fixture framework in production Dart. |
-| `SKYFL004` | ViewModel contains no Widget, `BuildContext`, Material, Cupertino, or navigation API. |
-| `SKYFL007` | A server-backed ViewModel exposes closed `AsyncState`. |
+| `SKYFL004` | A ViewModel is render-agnostic: no Widget, `BuildContext`, Material, Cupertino, or `Navigator` (the Flutter spelling of no JSX/`react-dom`). |
+| `SKYFL007` | A server-backed ViewModel (it calls the generated client or loads anything: a `Future`/`Stream` member) exposes its states as the closed `AsyncState`; a purely local one (a wizard's step state) has no load to fail. |
 | `SKYFL010` | A View renders async state through `ResourceBuilder`. |
 | `SKYFL011` | Every ARB locale family has identical keys. |
 | `SKYFL013` | Every mutation has global or explicit visible failure handling. |
 | `SKYFL014` | User-facing View copy comes from localizations. |
 | `SKYFL015` | State-driven redirect is declarative, not a post-frame/listener navigation. |
-| `SKYFL016` | Access/refresh tokens are written only through the session/client seam. |
-| `SKYFL017` | Guards branch on tri-state session, never `isAuthenticated`. |
+| `SKYFL016` | Outside the session seams (`lib/session.dart`, `lib/skies_client.dart`, `lib/guard(s).dart`), no call to a token setter (`setAccessToken`, `setToken`, `setSession`) and no `write(key:)`/`setString(key, …)` of a session key: a key one of whose words is `token`, `jwt`, `session`, or `auth` (`accessToken`, `auth_token`; not `authorName`). |
+| `SKYFL017` | A redirect is never decided on a raw auth boolean (`isAuthenticated`, `isLoggedIn`, `isSignedIn`…): not in a GoRouter `redirect:` callback, nor in an `if` condition of a route or guard file. Branch on `SessionState`. |
 | `SKYFL018` | Required route ids pass through `requiredParam`. |
 | `SKYFL019` | Back uses `safeBack`, never an unconditional pop. A `canPop`-guarded file, a pop returning a result, and a pop closing what the file opened (a `show*` overlay, a `Navigator.push`ed page) are not a Back. |
 | `SKYFL020` | Dio base URL is injected/configured, never a hardcoded host. |
 | `SKYFL021` | Raw HTML/WebView rendering exists only in audited `lib/html`. |
 | `SKYFL022` | URL-derived navigation targets pass through an allowlist. |
-| `SKYFL023` | Production Dart contains no unfinished placeholder. |
-| `SKYFL027` | Write features have one configured `MutationBoundary`. |
-| `SKYFL028` | Success handlers do not repeat an invalidation-only ritual. |
-| `SKYFL029` | Refresh rotation is consumed only by session/client doors. |
+| `SKYFL023` | Warning. Production Dart contains no unfinished placeholder: an uppercase `TODO`/`FIXME`/`HACK`/`XXX` or "wire later" comment, or an `UnimplementedError`. |
+| `SKYFL027` | Writes run through the app's one mutation surface with the write-side defaults wired: a package whose ViewModels write constructs a `MutationBoundary` (its `invalidateQueries` and `feedback` are required, so constructing one configures it). |
+| `SKYFL028` | Warning. In a ViewModel, an `onSuccess` callback whose whole body is refetch calls (`reload`, `refetch`, `invalidate`…) repeats the boundary's invalidation; a handler doing more is never flagged. |
+| `SKYFL029` | Outside the session seams, no session rotation: `refreshSession`/`bootstrapSession`, a `refreshToken`/`refreshAccessToken` call, a `refresh()` on the generated client or on a session/auth receiver (`session.refresh()`, `authClient.refresh()`), or a POST to a refresh route. Riverpod's `ref.refresh(provider)` and a list controller's `refresh()` are not rotations. |
 | `SKYFL030` | Navigation targets do not escape typed routes through dynamic/Object casts. |
-| `SKYFL031` | Form submit carries an explicit invalid path. |
-| `SKYFL032` | App form fields surface validator/error state. |
+| `SKYFL031` | Warning. Form submit carries an explicit invalid path. |
+| `SKYFL032` | Warning. A validated field shows its error where the control is: the app's field primitive under `lib/ui/` passes a `validator`, `forceErrorText`, or decoration `errorText` to its `TextFormField` (a `TextFormField` renders its own validator's error, so the primitive is where one is lost). |
 | `SKYFL036` | Tests live in a spec: a top-level `test(`, `testWidgets(`, or `group(` in a file importing `package:test`, `package:flutter_test`, or `package:integration_test` is flagged outside `.specs/` (once per file). |
 | `SKYFL037` | An `IconButton` (or `.filled`/`.filledTonal`/`.outlined`) carries a `tooltip:` (its label), unless a `Semantics(label:)`/`Tooltip` names it from inside or around. |
 | `SKYFL038` | An `Image`/`Image.asset\|network\|file\|memory` has a `semanticLabel:` (a `SvgPicture.*` a `semanticsLabel:`) or `excludeFromSemantics: true`, unless labelled or excluded around it; checked where it renders as written, not when handed to a custom widget's slot. |
-| `SKYFL039` | A `GestureDetector`/`InkWell` with `onTap:` whose child tree is only icons, images, and layout boxes carries a label (`Semantics(label:)`, `Tooltip`, or a labelled icon); a child it cannot see is not flagged. |
-| `SKYFL040` | A `TextField`/`TextFormField` has a decoration with `labelText`, `label`, or `hintText`; a decoration built elsewhere is not flagged. |
+| `SKYFL039` | Warning. A `GestureDetector`/`InkWell` with `onTap:` whose child tree is only icons, images, and layout boxes carries a label (`Semantics(label:)`, `Tooltip`, or a labelled icon); a child it cannot see is not flagged. |
+| `SKYFL040` | Warning. A `TextField`/`TextFormField` has a decoration with `labelText`, `label`, or `hintText`; a decoration built elsewhere is not flagged. |
 
 `skies doctor` runs these natively over every Flutter package in `Skies.toml` (`lib/`, `test/`, `integration_test/`,
 skipping hidden folders); `skies doctor --package .` runs one package, which is what a package's `lint` script calls.

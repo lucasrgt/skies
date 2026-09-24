@@ -14,6 +14,8 @@
 //! Exit codes: 0 when no leg has an error-level finding, 1 when one does, 2 when a leg could not run at all
 //! (a missing tool, a package without a manifest). Warnings are reported but never fail the run.
 
+#[cfg(test)]
+mod catalog_tests;
 mod legs;
 mod report;
 pub mod workspace;
@@ -53,6 +55,14 @@ impl Finding {
     }
 }
 
+/// A finding an explicit, reasoned escape hatch silenced (`// skies-ignore: SKYFL029 <reason>` in Flutter code).
+/// It is printed with its reason, never dropped, so every suppression stays visible in the report.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Suppressed {
+    pub finding: Finding,
+    pub reason: String,
+}
+
 /// What a leg is asked to check.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Target {
@@ -82,6 +92,8 @@ pub struct Leg {
     pub name: String,
     pub status: Status,
     pub findings: Vec<Finding>,
+    /// Findings silenced by a reasoned directive; reported, never counted as errors.
+    pub suppressed: Vec<Suppressed>,
     pub duration: Duration,
 }
 
@@ -249,6 +261,7 @@ mod tests {
             name: "x".into(),
             status,
             findings,
+            suppressed: Vec::new(),
             duration: Duration::ZERO,
         }
     }

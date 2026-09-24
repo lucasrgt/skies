@@ -9,8 +9,8 @@
 //! `packages/<x>_api/` client) and tests are out of scope.
 
 use super::facts::{Call, Facts};
-use super::{Source, code, generated};
-use crate::doctor::{Finding, Severity};
+use super::{Source, finding, generated};
+use crate::doctor::Finding;
 
 /// Named arguments that give a widget (or something inside it) an accessible name.
 const LABELS: [&str; 4] = ["semanticLabel", "semanticsLabel", "tooltip", "semanticsTooltip"];
@@ -102,21 +102,14 @@ pub fn file(source: &Source) -> Vec<Finding> {
     }
     let facts = &source.facts;
     let mut findings = Vec::new();
-    let mut add = |rule: &str, severity: Severity, call: &Call, message: &str| {
-        findings.push(Finding::new(
-            code(rule),
-            severity,
-            source.path.clone(),
-            Some(call.line),
-            message.to_string(),
-        ));
+    let mut add = |rule: &str, call: &Call, message: &str| {
+        findings.push(finding(rule, source.path.clone(), Some(call.line), message.to_string()));
     };
 
     for call in facts.calls.iter().filter(|c| is_icon_button(c)) {
         if call.named("tooltip").is_none() && !labelled_inside(facts, call) && !labelled_around(facts, call) {
             add(
                 "icon-button-label",
-                Severity::Error,
                 call,
                 "IconButton has no tooltip: a screen reader announces an unlabeled button (tooltip is its label)",
             );
@@ -133,7 +126,6 @@ pub fn file(source: &Source) -> Vec<Finding> {
         {
             add(
                 "image-semantics",
-                Severity::Error,
                 call,
                 &format!("image has no {label} and is not excluded from semantics (excludeFromSemantics: true)"),
             );
@@ -143,7 +135,6 @@ pub fn file(source: &Source) -> Vec<Finding> {
         if silent_child(facts, call) && !labelled_around(facts, call) {
             add(
                 "tap-target-label",
-                Severity::Warning,
                 call,
                 "tap target shows only icons or images and carries no label: wrap it in Semantics(label:) or a \
                  Tooltip, or give the icon a semanticLabel",
@@ -154,7 +145,6 @@ pub fn file(source: &Source) -> Vec<Finding> {
         if unlabelled_decoration(facts, call) && !labelled_around(facts, call) {
             add(
                 "text-field-label",
-                Severity::Warning,
                 call,
                 "text field has no labelText, label, or hintText in its decoration: a screen reader announces an \
                  unnamed edit box",

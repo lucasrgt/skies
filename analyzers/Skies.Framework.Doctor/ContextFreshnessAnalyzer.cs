@@ -22,10 +22,16 @@ namespace Skies.Framework.Doctor;
 ///
 /// Freshness is deliberately <b>not</b> mtime. Because the ctx does not duplicate the code (see the
 /// schema in CONVENTIONS), adding a field must not force a ctx edit — only a *dangling* reference is
-/// stale. A citation is a single PascalCase identifier inside backticks (<c>`Refresh`</c>); prose,
-/// lowercase tokens (claim names, paths), and qualified or punctuated spans are ignored. The expensive
-/// walk of referenced assemblies runs only when a suspect appears — an identifier absent from this
-/// source — so a fresh ctx costs nothing.
+/// stale. A code citation is a backtick span that is exactly one identifier written the way C# names a type or a
+/// member: it starts with an uppercase letter and holds a lowercase one (<c>`Refresh`</c>, <c>`WalletErrorCodes`</c>,
+/// <c>`ToPageAsync`</c>). Everything else in backticks is prose to the rule: an acronym or a constant-looking span
+/// with no lowercase letter (<c>`POST`</c>, <c>`JWT`</c>, <c>`UTC`</c>, <c>`SKY0005`</c>), a lowercase token (a
+/// claim, a header, a path), a literal written with its quotes (<c>`"Bearer"`</c>), and a qualified or punctuated
+/// span (<c>`a.b`</c>, <c>`f(x)`</c>, <c>`X-Client`</c>). A single capitalized word stays a citation on purpose: the
+/// ctx files of two real apps cite slices, entities, and enum members that way (<c>`Deposit`</c>,
+/// <c>`Pending`</c>), and a renamed one is exactly the rot the rule exists for. The expensive walk of referenced
+/// assemblies runs only when a suspect appears — an identifier absent from this source — so a fresh ctx costs
+/// nothing.
 ///
 /// A ctx also cites the specs that prove its invariants, as <c>`0002-withdraw`</c> or
 /// <c>`0002-withdraw#FM-n`</c> (see <see cref="SpecCitations"/>): the spec must exist and, when a failure mode is
@@ -58,13 +64,16 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description: "A module .ctx.md cites the spec that proves an invariant as `<id>-<slug>` or "
-                   + "`<id>-<slug>#FM-n`. The spec folder must exist under .specs/ and, when a failure mode is "
-                   + "cited, its spec.md must list it. A dangling spec citation is documentation rot.",
+                   + "`<id>-<slug>#FM-<n>`. The spec folder must exist under .specs/ and, when a failure mode is "
+                   + "cited, its spec.md must declare it on a `- FM-<n> …` line. A dangling spec citation is "
+                   + "documentation rot, and a look-alike (`#fm-2`, `#FM2`, a `* FM-2` line) is reported, not skipped.",
         customTags: WellKnownDiagnosticTags.CompilationEnd);
 
-    // A citation: a single PascalCase identifier whose entire backtick span is that identifier. Prose,
-    // lowercase (claim/header names), and punctuated spans (`a.b`, `f(x)`, `X-Client`) never match.
-    private static readonly Regex CitationPattern = new(@"`([A-Z][A-Za-z0-9_]*)`", RegexOptions.Compiled);
+    // A citation: a single identifier whose entire backtick span is that identifier, starting uppercase and holding a
+    // lowercase letter. Acronyms and constants (`POST`, `JWT`, `SKY0005`), lowercase tokens (claim/header names), and
+    // punctuated spans (`a.b`, `f(x)`, `X-Client`, `"Bearer"`) never match.
+    private static readonly Regex CitationPattern = new(
+        @"`((?=[A-Z][A-Za-z0-9_]*[a-z])[A-Z][A-Za-z0-9_]*)`", RegexOptions.Compiled);
 
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule, SpecRule);
@@ -117,7 +126,7 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
     // A spec citation that names a missing spec folder, or a failure mode its spec.md does not list, is stale.
     private static void ReportSpecCitations(CompilationAnalysisContext context, IEnumerable<(AdditionalText File, SourceText Text)> ctxs)
     {
-        Dictionary<string, HashSet<int>>? specs = null;
+        Dictionary<string, SpecCitations.Spec>? specs = null;
         foreach (var (file, text) in ctxs)
             foreach (var citation in SpecCitations.In(text))
             {

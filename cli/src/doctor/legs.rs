@@ -12,11 +12,12 @@ use std::time::Instant;
 
 use regex::Regex;
 
-use super::{Finding, Leg, Severity, Status, Target};
+use super::{Finding, Leg, Severity, Status, Suppressed, Target};
 
 pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
     let started = Instant::now();
     let relative = |path: &Path| path.strip_prefix(root).unwrap_or(path).display().to_string();
+    let mut suppressed = Vec::new();
     let (name, (status, findings)) = match target {
         Target::Workspace(path, declared) => (
             "workspace".to_string(),
@@ -25,7 +26,7 @@ pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
         Target::Dotnet(path) => (format!("dotnet {}", relative(path)), dotnet(path, build_args)),
         Target::Eslint(path) => (format!("eslint {}", relative(path)), eslint(path)),
         Target::Typecheck(path) => (format!("tsc {}", relative(path)), typecheck(path)),
-        Target::Flutter(path) => (format!("flutter {}", relative(path)), flutter(path)),
+        Target::Flutter(path) => (format!("flutter {}", relative(path)), flutter(path, &mut suppressed)),
         Target::Unknown(path) => (
             format!("frontend {}", relative(path)),
             (
@@ -38,6 +39,7 @@ pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
         name,
         status,
         findings,
+        suppressed,
         duration: started.elapsed(),
     }
 }
@@ -169,9 +171,13 @@ fn npx() -> &'static str {
     if cfg!(windows) { "npx.cmd" } else { "npx" }
 }
 
-fn flutter(path: &Path) -> Outcome {
-    match crate::flutter::rules::diagnose(path) {
-        Ok(findings) => (Status::Ran, findings),
+/// The native SKYFL rules. Their suppressions travel beside the findings so the report can show each one.
+fn flutter(path: &Path, suppressed: &mut Vec<Suppressed>) -> Outcome {
+    match crate::flutter::rules::analyze(path) {
+        Ok(diagnosis) => {
+            *suppressed = diagnosis.suppressed;
+            (Status::Ran, diagnosis.findings)
+        }
         Err(error) => (Status::Failed(format!("{error:#}")), Vec::new()),
     }
 }
@@ -215,8 +221,16 @@ static MSBUILD: LazyLock<Regex> = LazyLock::new(|| {
     .expect("static pattern")
 });
 
-/// Extracts every SKY diagnostic plus every error (a compile error hides analyzer results, so it must show).
-/// MSBuild repeats diagnostics per target framework and in summaries; duplicates collapse.
+/// Whether a diagnostic belongs to the CA* security floor `buildTransitive/skies.globalconfig` raises to error:
+/// CA2016 (a dropped CancellationToken), CA2100 (ADO SQL injection), the CA23xx deserializers, and the CA53xx
+/// crypto/TLS/certificate rules. The floor is reported at any severity, so an app that lowers one of them in its
+/// own globalconfig still sees each hit instead of the doctor dropping it with the build's other warnings.
+fn security_floor(code: &str) -> bool {
+    code == "CA2016" || code == "CA2100" || code.starts_with("CA23") || code.starts_with("CA53")
+}
+
+/// Extracts every SKY diagnostic, every security-floor diagnostic, and every error (a compile error hides analyzer
+/// results, so it must show). MSBuild repeats diagnostics per target framework and in summaries; duplicates collapse.
 pub fn parse_msbuild(output: &str) -> Vec<Finding> {
     let mut seen = BTreeSet::new();
     let mut findings = Vec::new();
@@ -227,7 +241,7 @@ pub fn parse_msbuild(output: &str) -> Vec<Finding> {
         } else {
             Severity::Warning
         };
-        if !code.starts_with("SKY") && severity == Severity::Warning {
+        if !code.starts_with("SKY") && !security_floor(code) && severity == Severity::Warning {
             continue;
         }
         let finding = Finding::new(
@@ -306,6 +320,42 @@ Build succeeded.";
         assert_eq!(findings[0].line, Some(12));
         assert_eq!(findings[0].message, "Wallet has no concurrency token");
         assert_eq!(findings[3].line, None);
+    }
+
+    #[test]
+    fn the_security_floor_is_reported_at_any_severity() {
+        let output = "\
+/src/Api/Db.cs(8,9): warning CA2100: Review SQL queries for security vulnerabilities [/src/Api/Api.csproj]
+/src/Api/Db.cs(9,9): warning CA5351: Do Not Use Broken Cryptographic Algorithms [/src/Api/Api.csproj]
+/src/Api/Db.cs(10,9): warning CA1822: Mark members as static [/src/Api/Api.csproj]
+/src/Api/Db.cs(11,9): error CA2016: Forward the 'CancellationToken' parameter [/src/Api/Api.csproj]";
+
+        let findings = parse_msbuild(output);
+        let codes: Vec<&str> = findings.iter().map(|f| f.code.as_str()).collect();
+        assert_eq!(codes, ["CA2100", "CA5351", "CA2016"]);
+    }
+
+    #[test]
+    fn every_rule_the_globalconfig_names_is_on_the_floor_at_error() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../analyzers/Skies.Framework.Doctor/buildTransitive/skies.globalconfig");
+        let config = std::fs::read_to_string(path).unwrap();
+        let rules: Vec<(&str, &str)> = config
+            .lines()
+            .filter_map(|line| line.strip_prefix("dotnet_diagnostic."))
+            .filter_map(|rule| rule.split_once(".severity = "))
+            .collect();
+        assert!(rules.iter().any(|(code, _)| *code == "CA2100"));
+        for (code, severity) in rules {
+            assert_eq!(
+                severity, "error",
+                "{code} is documented as the security floor, at error"
+            );
+            assert!(
+                security_floor(code),
+                "{code} is on the floor but the doctor would drop it as a warning"
+            );
+        }
     }
 
     #[test]

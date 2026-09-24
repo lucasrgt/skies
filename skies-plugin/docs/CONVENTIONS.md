@@ -387,7 +387,13 @@ CI cannot produce, so that is all the receipt records.
 
 The doctor enforces **architecture only**; no rule demands that a test, a tag, or a manifest exists. Every rule
 comes from drift observed in a real application. It catches structural drift, not logic errors: correctness is the
-spec's E2E and review. Never suppress a rule: a firing rule means the shape is wrong.
+spec's E2E and review. A firing rule means the shape is wrong: fix the code (see [Suppression](#suppression) for the
+one narrow exception).
+
+**Tiers.** An **error** guards architecture or security: a shape whose drift ships a bug, an open door, or an
+unprovable module. A **warning** is a taste, or a heuristic that cannot see everything (fluent-only EF
+configuration, a single-screen form); it is reported and never fails the run. The same split holds for the web and
+Flutter catalogs, and a twin rule carries the same tier in both.
 
 Write code for the reader, not for the doctor. A comment that cites a rule id ("to satisfy SKY0018") or explains why
 a line exists only to pass a check is noise; if the shape is right, the code needs no apology, and if a rule keeps
@@ -397,9 +403,9 @@ forcing awkward code, that is a finding to report against the rule.
 |------|----------|-----|
 | `SKY0001` | Slice conformance: static class; nested `Input` and `Output`; `Handle → Task<Result<T>>`; `Map`; ordered Input → Output → Handle → Map | one readable shape per feature |
 | `SKY0002` | Endpoint stays thin: a route handler is an expression-bodied lambda or method group, never a statement block | business logic hides in routes |
-| `SKY0004` | Every module has a `<Module>.ctx.md` whose `## Boundaries` and `## Design notes` are written: empty, comment-only, or scaffold-hint sections do not count | the why gets forgotten |
-| `SKY0005` | `.ctx.md` is fresh: every backticked identifier it cites resolves in source or a reference, and every cited spec (`` `0002-withdraw#FM-2` ``) exists with that failure mode (not mtime) | ctx drifts from code and evidence |
-| `SKY0006` | No `IRepository` / unit-of-work abstraction in a slice | clean-architecture bloat |
+| `SKY0004` | Every module has a `<Module>.ctx.md` whose `## Boundaries` and `## Design notes` are written: empty, comment-only, or scaffold-hint sections do not count. A section finding is reported in the ctx (at the heading, or its first line); a missing ctx on the module's `[Module]` class (else its first slice by path) | the why gets forgotten |
+| `SKY0005` | `.ctx.md` is fresh (not mtime). A **code citation** is a backtick span that is one identifier starting uppercase and holding a lowercase letter (`` `Deposit` ``, `` `WalletErrorCodes` ``); it must resolve in source or a reference. Acronyms and constants (`` `POST` ``, `` `JWT` ``), lowercase tokens, quoted literals (`` `"Bearer"` ``), and punctuated spans are prose. A **spec citation** is `` `<id>-<slug>` `` or `` `<id>-<slug>#FM-<n>` ``: the spec must exist and declare that mode on a `- FM-<n> …` line under `## Failure modes`. A look-alike (`#fm-2`, `#FM2`, a zero-padded number, a mode only on a `* FM-2` / `- FM-2:` line) is reported with the grammar | ctx drifts from code and evidence |
+| `SKY0006` | No repository / unit-of-work layer over the `DbContext`: a `*Repository` / `*UnitOfWork` type that holds a `DbContext` or `DbSet<T>` (field, property, constructor parameter), and the source interfaces it implements under those names. A type that only carries the name (a vendor client `GitHubRepository`) is not flagged | clean-architecture bloat |
 | `SKY0007` | Warning. File ≤ 500 lines (EF `Migrations/` exempt: tool-emitted, append-only); a readability taste, not a boundary | locality for readers and agents |
 | `SKY0009` | Write-ownership: a write (Add/Update/Remove/…) on another module's entity is flagged, on a `DbSet` or through `DbContext.Add(entity)`; cross-module reads, joins, and calls are free. `.Tests.cs` exempt | keeps a module carvable later |
 | `SKY0012` | A `[Slice]`'s `Map` calls `.WithName("<SliceName>")` (or `nameof`): the OpenAPI `operationId` the typed client names its hook after (`use<SliceName>`). A missing `Map` is SKY0001's | backend ↔ frontend stay 1:1 |
@@ -421,10 +427,29 @@ forcing awkward code, that is a finding to report against the rule.
 | `SKY0029` | A method with a test attribute (xUnit `[Fact]`/`[Theory]`, NUnit `[Test]`/`[TestCase]`/`[TestCaseSource]`/`[Theory]`, MSTest `[TestMethod]`/`[DataTestMethod]`, and derived ones such as `[SkippableFact]`) in a file with no `.specs` path segment is flagged; unresolved frameworks fall back to the written name (`Fact`, `*Fact`, `*Theory`, …). It asks where a test lives, never that one exists. It fires in the tests project, which references the doctor | tests written as coverage prove nothing |
 
 **Security floor.** Beside the SKY rules the doctor raises a curated CA* set to error
-(`buildTransitive/skies.globalconfig`): dropped `CancellationToken` (CA2016), insecure deserialization (CA23xx),
-broken crypto, disabled certificate validation, deprecated TLS (CA53xx). Opt out per project with
+(`buildTransitive/skies.globalconfig`): dropped `CancellationToken` (CA2016), SQL built from non-constant strings on
+the ADO surface (CA2100, the layer beneath `SKY0024`), insecure deserialization (CA23xx), broken crypto, disabled
+certificate validation, deprecated TLS, zip-slip (CA53xx). `skies doctor` reports every floor rule at whatever
+severity it arrives, so an app that lowers one in its own config still sees each hit. Opt out per project with
 `<SkiesSecurityAnalysis>false</SkiesSecurityAnalysis>`, or override one rule from your own `.globalconfig` at a
 `global_level` above 50. The framework libraries hold the same floor via `build/Skies.Framework.Library.props`.
+
+### Suppression
+
+The escape hatch is narrow, explicit, and visible in every ecosystem: one rule, at one place, with the reason
+written beside it. It is for a reviewed exception (a constant-by-construction query, a platform view with no
+ViewModel), never for making the doctor quiet; a rule that keeps needing it is a finding to report against the rule.
+
+| Ecosystem | Spelling | Scope |
+|---|---|---|
+| .NET (`SKY*`, CA*) | `#pragma warning disable SKY0024 // <reason>` … `#pragma warning restore SKY0024`, or `[SuppressMessage("Skies.Framework.Convention", "SKY0024", Justification = "<reason>")]` | the lines between, or the member |
+| React (`SKYFE*`, jsx-a11y) | `// eslint-disable-next-line skies/<rule> -- <reason>` | the next line |
+| Flutter (`SKYFL*`) | `// skies-ignore: SKYFL029 <reason>` on the finding's line or the line above; `// skies-ignore-file: SKYFL001 <reason>` for a file-wide finding (no line) | that line, or that rule in that file |
+
+The Flutter hatch takes one rule per directive and requires the reason: a directive without one suppresses nothing,
+and the finding says so. `skies doctor` lists every Flutter suppression under its leg with the reason
+(`lib/legacy.dart:7  SKYFL029 (suppressed)  <reason>`) and counts it in the table (`0 +1 suppressed`), so a hatch is
+never silent. The package-wide `SKYFL027` and the ARB parity `SKYFL011` have no line to carry a directive: fix them.
 
 **Workspace.** `skies doctor` also checks the repository root against `Skies.toml` `[workspace] root`, natively and
 without spawning a process (`--package` skips it). Entries are globs on one root entry's name; a trailing `/` is a

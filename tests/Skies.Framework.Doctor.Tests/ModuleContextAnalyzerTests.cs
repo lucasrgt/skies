@@ -26,7 +26,7 @@ public class ModuleContextAnalyzerTests
     public Task Ctx_missing_boundaries_is_flagged()
     {
         var test = Make("Account.ctx.md", DesignOnlyCtx);
-        test.TestState.ExpectedDiagnostics.Add(Absent("Boundaries"));
+        test.TestState.ExpectedDiagnostics.Add(Absent(DesignOnlyCtx, "Boundaries"));
         return test.RunAsync();
     }
 
@@ -34,14 +34,42 @@ public class ModuleContextAnalyzerTests
     public Task Ctx_with_an_empty_design_notes_is_flagged()
     {
         var test = Make("Account.ctx.md", EmptyDesignCtx);
-        test.TestState.ExpectedDiagnostics.Add(Empty("Design notes"));
+        test.TestState.ExpectedDiagnostics.Add(Empty(EmptyDesignCtx, "Design notes"));
+        return test.RunAsync();
+    }
+
+    // The audit's misplaced finding: a missing ctx was reported on whichever slice the analyzer met first (an
+    // unrelated `DeleteProduct.cs:10`). It belongs on the module's [Module] class, where the ctx sits beside.
+    [Fact]
+    public Task A_missing_ctx_is_reported_on_the_module_class_not_a_slice()
+    {
+        var test = Make("README.md", "not a ctx file");
+        test.TestState.Sources.Add(("DeleteProduct.cs", """
+            namespace Demo.Modules.Account;
+
+            [Slice]
+            class DeleteProduct { }
+            """));
+        test.TestState.Sources.Add(("AccountModule.cs", """
+            namespace Demo.Modules.Account;
+
+            [Module]
+            static class AccountModule { }
+
+            sealed class ModuleAttribute : System.Attribute { }
+            """));
+        test.TestState.ExpectedDiagnostics.Add(
+            new DiagnosticResult(ModuleContextAnalyzer.DiagnosticId, DiagnosticSeverity.Error)
+                .WithSpan("AccountModule.cs", 4, 14, 4, 27)
+                .WithArguments("Account",
+                    "has no Account.ctx.md beside it; add one with a '## Boundaries' and a '## Design notes' section"));
         return test.RunAsync();
     }
 
     [Fact]
     public Task Sections_holding_only_html_comments_are_empty()
     {
-        var test = Make("Account.ctx.md", """
+        const string ctx = """
             # account
 
             ## Boundaries
@@ -53,16 +81,17 @@ public class ModuleContextAnalyzerTests
 
             ## Design notes
             <!-- A rule. -->
-            """);
-        test.TestState.ExpectedDiagnostics.Add(Empty("Boundaries"));
-        test.TestState.ExpectedDiagnostics.Add(Empty("Design notes"));
+            """;
+        var test = Make("Account.ctx.md", ctx);
+        test.TestState.ExpectedDiagnostics.Add(Empty(ctx, "Boundaries"));
+        test.TestState.ExpectedDiagnostics.Add(Empty(ctx, "Design notes"));
         return test.RunAsync();
     }
 
     [Fact]
     public Task An_uncommented_scaffold_hint_does_not_count_as_written()
     {
-        var test = Make("Account.ctx.md", """
+        const string ctx = """
             # account
 
             ## Boundaries
@@ -73,8 +102,9 @@ public class ModuleContextAnalyzerTests
 
             ### Sessions rotate
             A refresh burns the family on reuse, so a stolen token dies with its first replay.
-            """);
-        test.TestState.ExpectedDiagnostics.Add(Empty("Boundaries"));
+            """;
+        var test = Make("Account.ctx.md", ctx);
+        test.TestState.ExpectedDiagnostics.Add(Empty(ctx, "Boundaries"));
         return test.RunAsync();
     }
 
@@ -98,9 +128,10 @@ public class ModuleContextAnalyzerTests
     {
         var template = File.ReadAllText(Path.Combine(RepositoryRoot(), "cli", "templates", "dotnet", "scaffold",
             "Module.ctx.md.cstmpl"));
-        var test = Make("Account.ctx.md", template.Replace("__NAME_LOWER__", "account").Replace("__NAME__", "Account"));
-        test.TestState.ExpectedDiagnostics.Add(Empty("Boundaries"));
-        test.TestState.ExpectedDiagnostics.Add(Empty("Design notes"));
+        var ctx = template.Replace("__NAME_LOWER__", "account").Replace("__NAME__", "Account");
+        var test = Make("Account.ctx.md", ctx);
+        test.TestState.ExpectedDiagnostics.Add(Empty(ctx, "Boundaries"));
+        test.TestState.ExpectedDiagnostics.Add(Empty(ctx, "Design notes"));
         return test.RunAsync();
     }
 
@@ -123,17 +154,22 @@ public class ModuleContextAnalyzerTests
         return dir?.FullName ?? throw new InvalidOperationException("the repository root is not above the tests");
     }
 
-    private static DiagnosticResult Absent(string section) =>
-        Finding($"needs a '## {section}' section in Account.ctx.md: write the module's {section.ToLowerInvariant()}");
+    // A section finding sits in the ctx: on the section's heading when it is there, else on the first line.
+    private static DiagnosticResult Absent(string ctx, string section) =>
+        InCtx(ctx, 0, $"needs a '## {section}' section in Account.ctx.md: write the module's "
+                      + section.ToLowerInvariant());
 
-    private static DiagnosticResult Empty(string section) =>
-        Finding($"has an empty '## {section}' section in Account.ctx.md (HTML comments and the scaffold's "
-                   + $"hints do not count): write the module's {section.ToLowerInvariant()}");
+    private static DiagnosticResult Empty(string ctx, string section) =>
+        InCtx(ctx, Array.FindIndex(Lines(ctx), line => line.TrimStart().StartsWith("## " + section, StringComparison.Ordinal)),
+            $"has an empty '## {section}' section in Account.ctx.md (HTML comments and the scaffold's "
+            + $"hints do not count): write the module's {section.ToLowerInvariant()}");
 
-    private static DiagnosticResult Finding(string message) =>
+    private static DiagnosticResult InCtx(string ctx, int line, string message) =>
         new DiagnosticResult(ModuleContextAnalyzer.DiagnosticId, DiagnosticSeverity.Error)
-            .WithSpan("Login.cs", 4, 7, 4, 12)
+            .WithSpan("Account.ctx.md", line + 1, 1, line + 1, Lines(ctx)[line].Length + 1)
             .WithArguments("Account", message);
+
+    private static string[] Lines(string text) => text.Replace("\r\n", "\n").Split('\n');
 
     private const string Slice = """
         namespace Demo.Modules.Account;

@@ -66,6 +66,9 @@ impl Walker<'_> {
             }
             "identifier" | "type_identifier" | "identifier_dollar_escaped" => {
                 let id = self.located(node, self.text(node));
+                if self.in_condition > 0 {
+                    self.facts.condition_identifiers.push(id.clone());
+                }
                 self.facts.identifiers.push(id);
             }
             "type_arguments" => {
@@ -409,6 +412,7 @@ impl Walker<'_> {
                 name,
                 identifiers: identifiers_in(value, self.src),
                 line: node.start_position().row + 1,
+                span: (value.start_byte(), value.end_byte()),
             };
             self.facts.bindings.push(binding);
         }
