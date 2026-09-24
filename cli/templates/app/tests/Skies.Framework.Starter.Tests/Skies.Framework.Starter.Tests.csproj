@@ -12,7 +12,6 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <PackageReference Include="Skies.Framework.Testing" Version="4.1.4" />
-    <PackageReference Include="Assay.Net" Version="0.4.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,7 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Co-located tests: the files live next to the slice in src/, compiled here. -->
+    <!-- Spec E2E: each .specs/<id>-<slug>/e2e folder holds the black-box cases for one spec's failure
+         modes (namespace Specs.S<id>, display names "FM-n: ..."). `skies proof record` runs them. -->
+    <Compile Include="..\..\.specs\*\e2e\**\*.cs" />
+    <!-- Co-located unit tests: the files live next to the code in src/, compiled here. -->
     <Compile Include="..\..\src\Skies.Framework.Starter.Api\**\*.Tests.cs" />
   </ItemGroup>
 

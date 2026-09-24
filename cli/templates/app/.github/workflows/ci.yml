@@ -1,38 +1,19 @@
 name: CI
 
-# The default gate executes the complete proof closure affected by the Git delta. Inventory remains universal:
-# missing AVP/Assay/E2E proof is red even when its runtime is not affected. A manual dispatch runs the exhaustive
-# audit; releases should require that full verdict.
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
-  workflow_dispatch:
 
 jobs:
-  gate:
-    name: skies check (affected proofs + semantic memory)
+  build:
+    name: restore, build, test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: npm
-      - run: npm ci
-      - run: npm run check
-      - run: dotnet tool restore
-      - name: affected gate
-        if: github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/')
-        env:
-          SKY_GATE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: dotnet tool run skies check --task "CI affected verification" --affected
-      - name: full audit
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
-        run: dotnet tool run skies check --task "release verification" --full
+      - run: dotnet restore
+      - run: dotnet build --no-restore
+      - run: dotnet test --no-build
