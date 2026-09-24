@@ -24,8 +24,9 @@ module.exports = {
   create(context) {
     const f = context.filename.replace(/\\/g, "/");
     if ((!isView(f) && !isRoute(f)) || isNavSeam(f)) return {};
-    // An inline `canGoBack`-guarded back() is the safe shape — exempt files that already do it.
-    if (/canGoBack/.test((context.sourceCode ?? context.getSourceCode()).getText())) return {};
+    // An inline `canGoBack`-guarded back() is the safe shape — exempt files that already do it, including TanStack
+    // Router's `useCanGoBack()` hook and `router.history.canGoBack()`.
+    if (/canGoBack/i.test((context.sourceCode ?? context.getSourceCode()).getText())) return {};
     // Identifiers bound from `useNavigate()` — so React Router's `navigate(-1)` is recognized.
     const navigators = new Set();
     return {

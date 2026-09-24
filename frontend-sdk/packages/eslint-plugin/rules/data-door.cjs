@@ -1,8 +1,11 @@
 "use strict";
 
-const { GENERATED_OPERATIONS, isViewModel, isGenerated, isInfraDataDoor, forbidImport } = require("../lib/shared.cjs");
+const { GENERATED_OPERATIONS, isViewModel, isGenerated, isInfraDataDoor, isTest, forbidImport } = require("../lib/shared.cjs");
 
-// SKYFE002 — the ViewModel is the only data door: only *.viewModel.ts may import the generated client.
+// SKYFE002 — the ViewModel is the only data door: only *.viewModel.ts may import the generated client. A test is not a
+// door the shipped app walks through: a case that drives a generated hook to prove the client's transport (auth,
+// refresh, error mapping) is exercising the door, not bypassing it, so tests and spec cases import it freely.
+const IN_SPEC = /(^|\/)\.specs\//;
 module.exports = {
   meta: {
     type: "problem",
@@ -16,7 +19,7 @@ module.exports = {
   },
   create(context) {
     const f = context.filename.replace(/\\/g, "/");
-    if (isViewModel(f) || isGenerated(f) || isInfraDataDoor(f)) return {};
+    if (isViewModel(f) || isGenerated(f) || isInfraDataDoor(f) || isTest(f) || IN_SPEC.test(f)) return {};
     const isTypeOnlyExport = (node) =>
       node.exportKind === "type" ||
       (node.specifiers?.length > 0 && node.specifiers.every((s) => s.exportKind === "type"));

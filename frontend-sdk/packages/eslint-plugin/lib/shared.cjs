@@ -41,9 +41,14 @@ function forbidImport(context, pattern, messageId) {
 // The routing rules police a SHAPE (declarative redirect, guarded back, param presence), not a router runtime —
 // so they recognize each router's idiom but depend on neither. "Ship the standard, not the adapter."
 
-// A route file — the navigation layer (TanStack Start and React Router's framework mode keep it under `app/`). The
-// only layer that may redirect or read route params.
-const isRoute = (f) => /(^|\/)app\//.test(f.replace(/\\/g, "/"));
+// A route file — the navigation layer, the only layer that may redirect or read route params. Three layouts name it:
+// `app/` (TanStack Start, React Router's framework mode), TanStack Router's file-based `src/routes/**`, and React
+// Router's `routes/` module convention. A segment must be exactly `app` or `routes` (`_app/` is a layout route
+// inside `routes/`, still a route by its parent). The generated route tree (`routeTree.gen.ts`) and tests are not.
+const isRoute = (f) => {
+  const p = f.replace(/\\/g, "/");
+  return /(^|\/)(app|routes)\//.test(p) && !/\.gen\.[jt]sx?$/.test(p) && !isTest(p);
+};
 // The nav seam — the single guarded back handler (safeBack / useGoBack). The one place a bare back() is allowed.
 const isNavSeam = (f) => /(^|\/)lib\/(nav|useGoBack)(\.|\/)/.test(f.replace(/\\/g, "/"));
 // The "am I signed in?" boolean a guard must NOT branch a redirect on: it collapses the tri-state (loading vs
@@ -179,11 +184,36 @@ function testGuardsAny(test, names) {
   return false;
 }
 
-/** Whether `fn`'s body contains `if (<guards X>) return <Navigate …/>` for any name X in `names`. */
+/** Whether a statement (or block) throws: TanStack's `throw notFound()` / `throw redirect(…)`, or an error boundary. */
+function throwsOut(stmt) {
+  const body = stmt.type === "BlockStatement" ? stmt.body : [stmt];
+  return body.some((s) => s.type === "ThrowStatement");
+}
+
+// An assertion call that throws on a falsy first argument: `invariant(id, "…")` (tiny-invariant), `assert(id)`.
+const ASSERTION = /^(invariant|assert)$/;
+
+/**
+ * Whether `fn`'s body guards the absence of any name in `names`: `if (<guards X>) return <Navigate …/>`, the same test
+ * followed by a `throw` (TanStack's `throw notFound()`, an error boundary), or an `invariant(X)` / `assert(X)` call.
+ * Each keeps a param-less hit off the ghost screen; a `return null` does not (it is the blank ghost itself).
+ */
 function hasPresenceGuard(fn, names) {
   let found = false;
   walk(fn.body, (node) => {
-    if (node.type === "IfStatement" && testGuardsAny(node.test, names) && returnsRedirect(node.consequent))
+    if (
+      node.type === "IfStatement" &&
+      testGuardsAny(node.test, names) &&
+      (returnsRedirect(node.consequent) || throwsOut(node.consequent))
+    )
+      return (found = true);
+    if (
+      node.type === "CallExpression" &&
+      node.callee.type === "Identifier" &&
+      ASSERTION.test(node.callee.name) &&
+      node.arguments[0]?.type === "Identifier" &&
+      names.has(node.arguments[0].name)
+    )
       return (found = true);
     return false;
   });

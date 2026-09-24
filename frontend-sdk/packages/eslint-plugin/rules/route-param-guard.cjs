@@ -4,7 +4,8 @@ const { isRoute, ID_PARAM, enclosingFunction, aliasesOf, hasPresenceGuard } = re
 
 // SKYFE018 — a route that reads a REQUIRED id param must guard its absence with a declarative redirect. Hitting the
 // route param-less (a bookmark, a stale/mis-wired link) otherwise renders a "ghost" screen bound to an empty id —
-// the pilot's empty "Propriedade" thread. The fix is `if (!id) return <Navigate to={…} />` before the View. Scoped to
+// the pilot's empty "Propriedade" thread. The fix is `if (!id) return <Navigate to={…} />` before the View; a throw
+// on the same test (`throw notFound()`, an error boundary) or an `invariant(id)` also keeps the ghost off. Scoped to
 // the loose `useParams()` reads, where a param is typed `string | undefined`: React Router's bare `useParams()` and
 // TanStack Router's `useParams({ strict: false })`. A strict TanStack read (`useParams({ from })`,
 // `Route.useParams()`) is guaranteed by the matched route and is not checked. Only id-shaped names count (optional
@@ -42,9 +43,12 @@ module.exports = {
     };
     return {
       VariableDeclarator(node) {
-        if (!node.init || node.init.type !== "CallExpression") return;
-        if (node.init.callee.type !== "Identifier" || node.init.callee.name !== "useParams") return;
-        if (!isLoose(node.init) || node.id.type !== "ObjectPattern") return;
+        // `useParams({ strict: false }) as { id?: string }` is the same loose read behind a cast.
+        let init = node.init;
+        while (init && (init.type === "TSAsExpression" || init.type === "TSSatisfiesExpression")) init = init.expression;
+        if (!init || init.type !== "CallExpression") return;
+        if (init.callee.type !== "Identifier" || init.callee.name !== "useParams") return;
+        if (!isLoose(init) || node.id.type !== "ObjectPattern") return;
         const fn = enclosingFunction(node);
         if (!fn) return;
         for (const prop of node.id.properties) {

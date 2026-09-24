@@ -459,6 +459,8 @@ ruleTester.run("tests-live-in-specs", plugin.rules["tests-live-in-specs"], {
 require("./routing.test.cjs");
 // The accessibility floor recommended carries (jsx-a11y at error).
 require("./a11y.test.cjs");
+// False positives found calibrating on real apps, and the TanStack/React Router route layouts.
+require("./calibration.test.cjs");
 
 // eslint-disable-next-line no-console
 console.log("@skiesjs/eslint-plugin: all SKYFE rule tests passed");

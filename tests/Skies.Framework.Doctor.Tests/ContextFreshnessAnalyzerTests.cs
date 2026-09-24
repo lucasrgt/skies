@@ -111,6 +111,24 @@ public class ContextFreshnessAnalyzerTests
     }
 
     [Fact]
+    public Task Backticked_numbers_are_not_spec_citations()
+    {
+        // Calibration on a real ctx.md: an ISO week, a date, and a range are numbers in prose, not spec folders, so
+        // they are never checked against the specs, even when no spec.md is fed at all.
+        var test = Make(CtxCiting("Weeks are `YYYY-WW` (e.g. `2026-31`), dated `2024-01-15`, ranged `1-5`; `2xx` is success."));
+        return test.RunAsync();
+    }
+
+    [Fact]
+    public Task A_slug_that_starts_with_digits_is_still_a_spec_citation()
+    {
+        var test = Make(CtxCiting("Sign-in asks for a code (`0009-2fa-login`)."));
+        test.TestState.ExpectedDiagnostics.Add(SpecDiagnostic(9, 27, 9, 41, "0009-2fa-login",
+            "but no spec.md reached the doctor; feed .specs/*/spec.md to it as AdditionalFiles"));
+        return test.RunAsync();
+    }
+
+    [Fact]
     public Task A_dangling_code_citation_beside_a_valid_spec_citation_is_still_flagged()
     {
         var test = Make(CtxCiting("`AttachCtx` is proven by `0002-withdraw#FM-1`."));

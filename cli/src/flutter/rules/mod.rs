@@ -9,8 +9,11 @@
 mod a11y;
 #[cfg(test)]
 mod a11y_tests;
+#[cfg(test)]
+mod calibration_tests;
 mod checks;
 mod facts;
+mod navigation;
 mod syntax;
 #[cfg(test)]
 mod tests;
@@ -73,9 +76,15 @@ pub fn code(name: &str) -> &'static str {
 pub struct Role {
     /// Under `lib/`, as opposed to `test/`.
     pub lib: bool,
+    /// Test code: anything under `test/` or `integration_test/` (a harness, a support file, a fake) or a
+    /// `*_test.dart`. The architecture rules police the shipped app; only SKYFL036 reads test code.
     pub test: bool,
     pub view: bool,
     pub model: bool,
+    /// A `part of` a View or a ViewModel: the same library, so the same rules (a View part holds copy, a ViewModel
+    /// part may call the generated client).
+    pub view_part: bool,
+    pub model_part: bool,
     /// Under `lib/ui/`: the app's design-system primitives.
     pub ui: bool,
     /// `lib/session.dart`, `lib/skies_client.dart`, `lib/guard(s).dart`: the seams allowed to touch tokens.
@@ -92,7 +101,9 @@ impl Role {
         let in_lib = |rest: &str| relative.strip_prefix("lib/").is_some_and(|r| r == rest);
         Role {
             lib: relative.starts_with("lib/"),
-            test: name.ends_with("_test.dart"),
+            test: name.ends_with("_test.dart")
+                || relative.starts_with("test/")
+                || relative.starts_with("integration_test/"),
             view: name.ends_with("_view.dart"),
             model: name.ends_with("_view_model.dart"),
             ui: relative.starts_with("lib/ui/") || relative.contains("/lib/ui/"),
@@ -101,8 +112,32 @@ impl Role {
                 .any(|f| in_lib(f)),
             html_door: relative.starts_with("lib/html/") || relative == "lib/html.dart",
             routing: name.contains("route") || name.contains("guard"),
+            ..Role::default()
         }
     }
+
+    /// The role of a file that declares `part of '<library>'`: its own, plus the library's View/ViewModel kind.
+    fn with_part_of(mut self, library: Option<&str>) -> Role {
+        let name = library
+            .map(|uri| uri.rsplit('/').next().unwrap_or(uri))
+            .unwrap_or_default();
+        self.model_part = name.ends_with("_view_model.dart");
+        self.view_part = name.ends_with("_view.dart");
+        self
+    }
+}
+
+/// Generated sources the app does not write by hand: build_runner output, the l10n classes, and a generated API
+/// client package (`packages/<name>_api/`). No rule polices them.
+pub fn generated(path: &str) -> bool {
+    path.ends_with(".g.dart")
+        || path.ends_with(".freezed.dart")
+        || path.contains("/lib/l10n/")
+        || path
+            .split('/')
+            .collect::<Vec<_>>()
+            .windows(2)
+            .any(|pair| pair[0] == "packages" && pair[1].ends_with("_api"))
 }
 
 /// One parsed file, kept for the checks that look across files.
@@ -119,6 +154,10 @@ pub fn diagnose(project: &Path) -> Result<Vec<Finding>> {
     if !lib.is_dir() {
         bail!("Flutter lib directory not found: {}", lib.display());
     }
+    // A generated client is the generator's output, not app code: its `*_view.dart` models are DTOs, not Views.
+    if project.join(crate::flutter::client::MARKER).is_file() {
+        return Ok(Vec::new());
+    }
     let mut paths = files_with_extension(&lib, "dart");
     paths.extend(files_with_extension(&project.join("test"), "dart"));
     paths.extend(files_with_extension(&project.join("integration_test"), "dart"));
@@ -132,9 +171,10 @@ pub fn diagnose(project: &Path) -> Result<Vec<Finding>> {
                 .unwrap_or(&path)
                 .to_string_lossy()
                 .replace('\\', "/");
+            let facts = Facts::parse(&text);
             Some(Source {
-                role: Role::of(&relative),
-                facts: Facts::parse(&text),
+                role: Role::of(&relative).with_part_of(facts.part_of.as_deref()),
+                facts,
                 path,
             })
         })

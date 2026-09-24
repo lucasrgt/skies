@@ -9,7 +9,7 @@
 //! `packages/<x>_api/` client) and tests are out of scope.
 
 use super::facts::{Call, Facts};
-use super::{Source, code};
+use super::{Source, code, generated};
 use crate::doctor::{Finding, Severity};
 
 /// Named arguments that give a widget (or something inside it) an accessible name.
@@ -162,18 +162,6 @@ pub fn file(source: &Source) -> Vec<Finding> {
         }
     }
     findings
-}
-
-/// Generated sources the app does not write by hand.
-fn generated(path: &str) -> bool {
-    path.ends_with(".g.dart")
-        || path.ends_with(".freezed.dart")
-        || path.contains("/lib/l10n/")
-        || path
-            .split('/')
-            .collect::<Vec<_>>()
-            .windows(2)
-            .any(|pair| pair[0] == "packages" && pair[1].ends_with("_api"))
 }
 
 /// Whether `call` builds `widget` (or one of its `named` constructors). The grammar reads an arrow body such as

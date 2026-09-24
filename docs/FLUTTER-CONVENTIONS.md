@@ -207,7 +207,7 @@ floor is jsx-a11y). `SKYFL028`, `031`, `032`, `039`, and `040` are warnings; eve
 | `SKYFL016` | Access/refresh tokens are written only through the session/client seam. |
 | `SKYFL017` | Guards branch on tri-state session, never `isAuthenticated`. |
 | `SKYFL018` | Required route ids pass through `requiredParam`. |
-| `SKYFL019` | Back uses `safeBack`, never an unconditional pop. |
+| `SKYFL019` | Back uses `safeBack`, never an unconditional pop. A `canPop`-guarded file, a pop returning a result, and a pop closing what the file opened (a `show*` overlay, a `Navigator.push`ed page) are not a Back. |
 | `SKYFL020` | Dio base URL is injected/configured, never a hardcoded host. |
 | `SKYFL021` | Raw HTML/WebView rendering exists only in audited `lib/html`. |
 | `SKYFL022` | URL-derived navigation targets pass through an allowlist. |
@@ -226,6 +226,9 @@ floor is jsx-a11y). `SKYFL028`, `031`, `032`, `039`, and `040` are warnings; eve
 
 `skies doctor` runs these natively over every Flutter package in `Skies.toml` (`lib/`, `test/`, `integration_test/`,
 skipping hidden folders); `skies doctor --package .` runs one package, which is what a package's `lint` script calls.
+Test code (all of `test/` and `integration_test/`, harnesses and fakes included) meets only `SKYFL036`; generated code
+and a generated client package (its `.skies-generated-client` marker) meet none. A `part of` file takes its library's
+role, so a ViewModel's part may call the client and a View's part holds no copy.
 
 ## Generate versus scaffold
 

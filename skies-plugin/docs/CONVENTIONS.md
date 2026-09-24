@@ -228,7 +228,8 @@ spec behind it is a hypothesis; write the spec or drop the claim.
 so is one citing a spec folder that does not exist or a failure mode its `spec.md` does not list. The doctor reads
 the specs as AdditionalFiles (`<AdditionalFiles Include="..\..\.specs\*\spec.md" />` in the API project, beside
 `**\*.ctx.md`); with none fed, every spec citation is flagged. A code citation is a single PascalCase identifier; a
-spec citation starts with digits, so the two never overlap. Not mtime: since the ctx does not duplicate code, adding
+spec citation starts with digits and its slug holds a letter, so the two never overlap and a backticked number
+(`` `2026-31` ``, `` `2024-01-15` ``) is prose, not a citation. Not mtime: since the ctx does not duplicate code, adding
 a field must not force a ctx edit. For the same reason a ctx is not hashed into a receipt footprint unless a spec
 lists it in `touches`.
 

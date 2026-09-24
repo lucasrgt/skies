@@ -57,6 +57,14 @@ assert.deepEqual(lint(`export const A = () => <img src="/logo.png" alt="Skies" /
 assert.deepEqual(lint(`export const A = ({ f }: { f: () => void }) => <button onClick={f}>go</button>;`), []);
 // ignoreNonDOM: a component prop named `role` is the component's business, not ARIA.
 assert.deepEqual(lint(`export const A = () => <Text role="caption">x</Text>;`), []);
+// Calibration: a card-style option keeps its label text three levels down; a truly text-less label still fires.
+assert.deepEqual(
+  lint(`export const A = ({ o }: { o: { v: string } }) => <label><input type="radio" /><span><strong>{o.v}</strong></span></label>;`),
+  [],
+);
+assert.deepEqual(lint(`export const A = () => <label><input type="radio" /></label>;`), [
+  ["jsx-a11y/label-has-associated-control", 2],
+]);
 
 // An app relaxes one rule explicitly, after recommended.
 const relaxed = [...config, { files: ["**/*.tsx"], rules: { "jsx-a11y/alt-text": "off" } }];
