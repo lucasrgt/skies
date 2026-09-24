@@ -4,7 +4,8 @@
 //! the user, and its output and stack traces are full of absolute paths into the checkout, the red worktree under
 //! the temp directory, and the home directory. Those become `{root}`, `{tmp}`, and `~`; host and run names become
 //! `{machine}` and `{run}`; and a TRX's per-run GUIDs are renumbered in order of appearance, so two recordings of
-//! the same run differ only where the run did. Results, test names, durations, and messages are left as written.
+//! the same run differ only where the run did. A TRX's data-collector attachments (coverage) are dropped, since
+//! the files they link to stay out of evidence. Results, test names, durations, and messages are left as written.
 //! The placeholders use braces, not angle brackets, so a rewritten report stays well-formed XML.
 
 use std::path::{Path, PathBuf};
@@ -79,6 +80,7 @@ impl Scrub {
             Format::Trx => {
                 let text = RUN_NAME.replace_all(&text, "${1}{run}${2}");
                 let text = DEPLOYMENT.replace_all(&text, "${1}=\"{run}\"");
+                let text = COLLECTORS.replace_all(&text, "");
                 renumber_run_ids(&text)
             }
         }
@@ -125,6 +127,12 @@ static RUN_NAME: LazyLock<Regex> =
 /// TRX's deployment folder is `user_host_date`.
 static DEPLOYMENT: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"\b(runDeploymentRoot)="[^"]*""#).expect("valid regex"));
+
+/// A data collector's attachments (coverlet's coverage, a blame dump): links into the results directory, which never
+/// enters evidence, under the host's name. The coverage is read into the footprint instead.
+static COLLECTORS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?s)[ \t]*<CollectorDataEntries>.*?</CollectorDataEntries>\r?\n?").expect("valid regex")
+});
 
 /// The GUIDs a TRX mints per run: the run, its settings, each execution and its results folder. Test ids and test
 /// list ids are stable across runs and stay as they are.
@@ -217,7 +225,13 @@ mod tests {
     <TestEntry testId="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1" executionId="105fe853-5d8b-42a4-b600-b482b99eee5f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <ResultSummary outcome="Failed"><Output><StdOut>Content root path: /tmp/skies-red-oDF7Uh/checkout/app/Api
-cache at /home/ann/.nuget/packages and /var/tmp/x and /home/anna/y</StdOut></Output></ResultSummary>
+cache at /home/ann/.nuget/packages and /var/tmp/x and /home/anna/y</StdOut></Output>
+    <CollectorDataEntries>
+      <Collector agentName="box-7" uri="datacollector://microsoft/CoverletCodeCoverage/1.0" collectorDisplayName="XPlat code coverage">
+        <UriAttachments><UriAttachment><A href="box-7/coverage.cobertura.xml"></A></UriAttachment></UriAttachments>
+      </Collector>
+    </CollectorDataEntries>
+  </ResultSummary>
 </TestRun>
 "#;
 
@@ -243,6 +257,10 @@ cache at /home/ann/.nuget/packages and /var/tmp/x and /home/anna/y</StdOut></Out
         assert!(scrubbed.contains(r#"storage="{root}/app/tests/bin/debug/tests.dll""#));
         assert!(scrubbed.contains("Content root path: {root}/app/Api"));
         assert!(scrubbed.contains("cache at ~/.nuget/packages and /var/tmp/x and /home/anna/y"));
+        assert!(
+            !scrubbed.contains("CollectorDataEntries") && !scrubbed.contains("coverage.cobertura"),
+            "collector attachments point outside evidence"
+        );
 
         // What the run proved is untouched.
         for kept in [
