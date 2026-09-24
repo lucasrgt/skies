@@ -27,6 +27,11 @@ fn removed(path: &str) -> bool {
 /// only workspace, products, and a commented runner.
 const REWRITTEN: &[&str] = &[".github/workflows/ci.yml", "Skies.toml"];
 
+/// Not compared: 4.x `g crud` matched the scaffold's commented `//   var catalog = app.MapGroup(...)` line as the
+/// module's route group and mapped the slices onto an undeclared `catalog`. 5.0 matches code lines only and declares
+/// the group itself (fail-closed) when the module has none.
+const CRUD_MODULE: &str = "src/Golden.Api/Modules/Catalog/CatalogModule.cs";
+
 /// Applies the intentional template edits to a golden file, so the rest of the file is still compared exactly.
 fn normalize_golden(path: &str, golden: String) -> String {
     let edits: &[(&str, &str)] = match path {
@@ -145,7 +150,7 @@ fn assert_parity(tree: &str, generated: &Path, expected_specs: &[&str]) {
             mismatches.push(format!("missing: {path}"));
             continue;
         };
-        if REWRITTEN.contains(&path.as_str()) {
+        if REWRITTEN.contains(&path.as_str()) || path == CRUD_MODULE {
             continue;
         }
         let expected = normalize_golden(path, String::from_utf8(golden_bytes.clone()).unwrap());

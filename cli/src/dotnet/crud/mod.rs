@@ -4,11 +4,13 @@
 //! slices the author owns, the boilerplate the doctor would otherwise make them write six times. The entity's
 //! writable scalar properties (`{ get; set; }`) are read by regex and spliced into the Create/Update inputs.
 //! Value objects, enums, and other complex types cannot be built generically, so they are listed in one closing
-//! note for the owner to finish. An existing slice is skipped, never clobbered, and the module's `Map` wiring is
-//! best-effort: a missing anchor prints the exact line to add.
+//! note for the owner to finish. An existing slice is skipped, never clobbered, and the slices are mapped under
+//! the module's route group (see [`module`]).
 //!
 //! No tests are emitted: what these slices must guarantee (tenant isolation, not-found on a foreign id) belongs in
 //! a spec the author writes, with E2E cases that fail before the change.
+
+mod module;
 
 use std::path::Path;
 use std::sync::LazyLock;
@@ -46,9 +48,6 @@ static PROPERTY: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"public\s+(?<type>[A-Za-z0-9_<>,\.\? ]+?)\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\{\s*get;\s*set;\s*\}")
         .expect("property regex")
 });
-
-static GROUP: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"var\s+(?<g>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*app\.MapGroup").expect("group regex"));
 
 struct Field {
     name: String,
@@ -134,7 +133,7 @@ pub fn generate(root: &Path, module: &str, entity: &str) -> Result<u8> {
     };
     error_codes::ensure(&module_dir, &project.namespace, module, &code)?;
 
-    wire_module(&module_file, &crud)?;
+    module::wire(&module_file, module, &crud.slices())?;
     summarize(&crud, &emitted);
     Ok(0)
 }
@@ -317,37 +316,6 @@ fn detect_db_set(root: &Path, entity: &str) -> Result<String> {
          Add `public DbSet<{entity}> {fallback} => Set<{entity}>();` to AppDb.cs."
     );
     Ok(fallback)
-}
-
-/// Adds the missing `<Slice>.Map(<group>);` lines before the module's closing braces, using the group variable
-/// the module declares (`var catalog = app.MapGroup(...)`), or `app` when there is none.
-fn wire_module(module_file: &Path, crud: &Crud) -> Result<()> {
-    let source = text::read(module_file)?;
-    let nl = text::newline_of(&source);
-    let group = GROUP
-        .captures(&source)
-        .map_or("app".to_string(), |c| c["g"].to_string());
-    let missing: Vec<String> = crud
-        .slices()
-        .iter()
-        .map(|slice| format!("        {slice}.Map({group});"))
-        .filter(|line| !source.contains(line.trim()))
-        .collect();
-    if missing.is_empty() {
-        return Ok(());
-    }
-
-    let anchor = format!("{nl}    }}{nl}}}");
-    if source.contains(&anchor) {
-        let block = format!("{nl}{}{anchor}", missing.join(nl));
-        std::fs::write(module_file, text::replace_first(&source, &anchor, &block))?;
-        println!("wired {} slice map(s) into {}Module.cs", missing.len(), crud.module);
-    } else {
-        for line in &missing {
-            println!("note: add `{}` to {}Module.Map", line.trim(), crud.module);
-        }
-    }
-    Ok(())
 }
 
 fn summarize(crud: &Crud, emitted: &[String]) {
