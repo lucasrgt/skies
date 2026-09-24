@@ -25,10 +25,15 @@ skies g entity <Module> <Name>     # an encapsulated [Entity]
 skies g crud <Module> <Entity>     # list/lookup/create/update/delete slices over it, DbSet registered
 skies g vo <Name>                  # a value object in BuildingBlocks/
 skies g auth                       # the Account module (auth:otp, auth:oauth, auth:email add flows)
+skies g web-app Web --path clients/web   # a React web package, declared in Skies.toml and CI
+skies g client --package clients/web     # its typed client, from the contract `dotnet build` writes
+skies g feature <Name> --kind list|form --package clients/web   # a screen bound to that contract
 ```
 
 After `g module`, write the module's `## Boundaries` and `## Design notes` in its ctx.md: the build fails until
-they hold your own words. A scaffolded slice answers "not implemented" until you write it.
+they hold your own words. A scaffolded slice is mapped and in the contract from the start (so a client and a screen
+can bind to it), but it answers its `<Slice>NotImplemented` business error until you write it: a spec's E2E against it
+starts red, which is where a spec starts.
 
 ## Where things live
 

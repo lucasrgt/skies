@@ -8,7 +8,8 @@ public static class Platform
     public static IServiceCollection AddPlatform(this IServiceCollection services, IConfiguration configuration,
         IHostEnvironment environment)
     {
-        if (!environment.IsDevelopment())
+        // `dotnet build` boots the app only to write the OpenAPI contract, and never opens the database.
+        if (!environment.IsDevelopment() && !SkiesExtensions.IsGeneratingOpenApiDocument)
             throw new InvalidOperationException(
                 "Configure a persistent AppDb provider in Platform.AddPlatform before running outside Development.");
 
