@@ -5,6 +5,9 @@
 //! `Skies.toml` declares, runs one leg per package in parallel, and prints one table. It is run on purpose; no
 //! hook calls it, and it polices nothing but architecture.
 //!
+//! `--package <dir>` runs only the leg for that one directory, so a package's own `lint` script can call the doctor
+//! without a `Skies.toml` lookup and without linting its siblings.
+//!
 //! Exit codes: 0 when no leg has an error-level finding, 1 when one does, 2 when a leg could not run at all
 //! (a missing tool, a package without a manifest). Warnings are reported but never fail the run.
 
@@ -80,7 +83,10 @@ impl Leg {
     }
 }
 
-pub fn run(build_args: &[String]) -> Result<u8> {
+pub fn run(build_args: &[String], package: Option<&Path>) -> Result<u8> {
+    if let Some(package) = package {
+        return run_package(package, build_args);
+    }
     let project = Project::from_cwd()?;
     let targets = targets(&project);
     if targets.is_empty() {
@@ -96,6 +102,60 @@ pub fn run(build_args: &[String]) -> Result<u8> {
     let legs = run_legs(&project.root, &targets, build_args);
     print!("{}", report::render(&project.root, &legs, started.elapsed()));
     Ok(exit_code(&legs))
+}
+
+/// Runs the one leg `package` calls for. Findings print relative to the workspace root when there is one, so they
+/// read the same as in a full run.
+fn run_package(package: &Path, build_args: &[String]) -> Result<u8> {
+    let dir = package
+        .canonicalize()
+        .map_err(|_| anyhow::anyhow!("package directory {} does not exist", package.display()))?;
+    let target = classify_package(&dir);
+    if let Target::Unknown(_) = target {
+        anyhow::bail!(
+            "{} has no pubspec.yaml, package.json, or .NET project to check",
+            dir.display()
+        );
+    }
+    // Outside a workspace, paths print relative to the package's parent so the leg still names the package.
+    let root = Project::discover(&dir).map_or_else(
+        |_| dir.parent().map_or_else(|| dir.clone(), Path::to_path_buf),
+        |project| project.root,
+    );
+    println!("skies doctor: {}", dir.strip_prefix(&root).unwrap_or(&dir).display());
+    let started = Instant::now();
+    let legs = run_legs(&root, &[target], build_args);
+    print!("{}", report::render(&root, &legs, started.elapsed()));
+    Ok(exit_code(&legs))
+}
+
+/// A frontend manifest wins over .NET files, so a Flutter package with a stray `.csproj` fixture stays a Flutter
+/// package; a project or solution file (or a directory holding one) is a backend.
+fn classify_package(path: &Path) -> Target {
+    let is_dotnet = |file: &Path| {
+        file.extension()
+            .is_some_and(|ext| ext == "csproj" || ext == "sln" || ext == "slnx")
+    };
+    if path.is_file() {
+        return if is_dotnet(path) {
+            Target::Dotnet(path.to_path_buf())
+        } else {
+            Target::Unknown(path.to_path_buf())
+        };
+    }
+    match classify(path) {
+        Target::Unknown(dir) => {
+            let holds_project = std::fs::read_dir(&dir)
+                .map(|entries| entries.flatten().any(|entry| is_dotnet(&entry.path())))
+                .unwrap_or(false);
+            if holds_project {
+                Target::Dotnet(dir)
+            } else {
+                Target::Unknown(dir)
+            }
+        }
+        known => known,
+    }
 }
 
 /// One target per declared package, in manifest order (products are sorted by name).
@@ -179,6 +239,34 @@ mod tests {
             ]),
             2
         );
+    }
+
+    #[test]
+    fn a_package_directory_selects_its_own_leg() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        for (dir, file) in [
+            ("web", "package.json"),
+            ("mobile", "pubspec.yaml"),
+            ("api", "Api.csproj"),
+            ("odd", "notes.txt"),
+        ] {
+            std::fs::create_dir_all(root.join(dir)).unwrap();
+            std::fs::write(root.join(dir).join(file), "").unwrap();
+        }
+        std::fs::write(root.join("mobile/Fixture.csproj"), "").unwrap();
+
+        assert_eq!(classify_package(&root.join("web")), Target::Eslint(root.join("web")));
+        assert_eq!(
+            classify_package(&root.join("mobile")),
+            Target::Flutter(root.join("mobile"))
+        );
+        assert_eq!(classify_package(&root.join("api")), Target::Dotnet(root.join("api")));
+        assert_eq!(
+            classify_package(&root.join("api/Api.csproj")),
+            Target::Dotnet(root.join("api/Api.csproj"))
+        );
+        assert_eq!(classify_package(&root.join("odd")), Target::Unknown(root.join("odd")));
     }
 
     #[test]

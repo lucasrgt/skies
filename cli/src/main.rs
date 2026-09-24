@@ -42,6 +42,10 @@ enum Command {
     },
     /// Run the architecture doctors: dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*).
     Doctor {
+        /// Check only this package directory (a Flutter or React package, or a .NET project or its folder), so a
+        /// package's own `lint` script can call the doctor.
+        #[arg(long)]
+        package: Option<PathBuf>,
         /// Extra arguments forwarded to `dotnet build`.
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         build_args: Vec<String>,
@@ -160,7 +164,7 @@ fn main() -> ExitCode {
         Command::New { name } => dotnet::new_app(&name),
         Command::Generate(generate) => generate_command(generate),
         Command::I18n { package } => web::i18n(package.as_deref()),
-        Command::Doctor { build_args } => doctor::run(&build_args),
+        Command::Doctor { package, build_args } => doctor::run(&build_args, package.as_deref()),
         Command::Spec(Spec::New { slug, runner }) => proof::spec_new(&slug, runner.as_deref()),
         Command::Proof(Proof::Record { spec, red, red_patch }) => {
             proof::record(&spec, red.as_deref(), red_patch.as_deref())
