@@ -32,6 +32,8 @@ pub struct FlowSpec {
     pub shared_folders: &'static [&'static str],
     /// Domain registrations added to `AccountModule.AddServices`. External providers belong to Platform.
     pub di_lines: &'static [&'static str],
+    /// Base registrations the flow swaps for its own (old line, new line), so a service keeps one registration.
+    pub di_replacements: &'static [(&'static str, &'static str)],
     /// The local provider registration, added only to the development platform.
     pub provider_line: &'static str,
     pub user_fields: &'static [&'static str],
@@ -77,6 +79,7 @@ static OTP: FlowSpec = FlowSpec {
     provider_namespace: "Skies.Framework.Sms",
     shared_folders: &["auth-verification"],
     di_lines: &[VERIFICATION_DI],
+    di_replacements: &[],
     provider_line: "services.AddSingleton<ISmsSender, ConsoleSmsSender>();",
     user_fields: &[
         "    /// <summary>The verified phone number, set once VerifyPhone succeeds.</summary>\n    public string? Phone { get; private set; }",
@@ -92,8 +95,8 @@ static OTP: FlowSpec = FlowSpec {
     db_sets: VERIFICATION_DB_SETS,
     indexes: VERIFICATION_INDEXES,
     map_lines: &[
-        "        ResendPhoneCode.Map(account);",
-        "        VerifyPhone.Map(account);",
+        "        ResendPhoneCode.Map(credentials);",
+        "        VerifyPhone.Map(credentials);",
     ],
     error_codes: &[
         (
@@ -118,31 +121,37 @@ static OAUTH: FlowSpec = FlowSpec {
     provider_namespace: "Skies.Framework.Identity",
     shared_folders: &[],
     di_lines: &[],
+    di_replacements: &[],
     provider_line: "services.AddSingleton<IExternalIdentityVerifier, FakeExternalIdentity>();",
     user_fields: &[
         "    /// <summary>Whether the account's email has been verified.</summary>\n    public bool IsEmailVerified { get; private set; }",
     ],
     user_methods: &[UserMethod {
         token: "RegisterViaGoogle(",
-        code: "    /// <summary>Register an account from a Google identity: Google has already verified the email,\n    \
-               /// so the user is email-verified from the start, has no usable password (Google is the\n    \
-               /// credential), and lands at PhonePending. Funnels through EnsureValid.</summary>\n    \
-               public static Result<User> RegisterViaGoogle(Email email, DateTime now) =>\n        new User\n        \
-               {\n            Id = Guid.NewGuid(),\n            Email = email,\n            Name = email.Value,\n            \
+        code: "    /// <summary>Register an account in <paramref name=\"orgId\"/> from a Google identity: Google has\n    \
+               /// already verified the email, so the user is email-verified from the start, has no usable password\n    \
+               /// (Google is the credential), and lands at PhonePending. Funnels through EnsureValid.</summary>\n    \
+               public static Result<User> RegisterViaGoogle(Guid orgId, Email email, DateTime now) =>\n        new User\n        \
+               {\n            Id = Guid.NewGuid(),\n            OrgId = orgId,\n            Email = email,\n            Name = email.Value,\n            \
                PasswordHash = PasswordHash.None,\n            IsEmailVerified = true,\n            \
                RegistrationStep = RegistrationStep.PhonePending,\n            CreatedAt = now,\n        }.EnsureValid();",
     }],
     db_sets: &[],
     indexes: &[],
     map_lines: &[
-        "        RegisterWithGoogle.Map(account);",
-        "        LoginWithGoogle.Map(account);",
+        "        RegisterWithGoogle.Map(credentials);",
+        "        LoginWithGoogle.Map(credentials);",
     ],
     error_codes: &[
         (
             "InvalidToken",
             "auth.invalid_token",
             "The external identity token is invalid.",
+        ),
+        (
+            "EmailTaken",
+            "account.email_taken",
+            "An account already exists for the external identity's email.",
         ),
         (
             "NoAccount",
@@ -160,6 +169,10 @@ static EMAIL: FlowSpec = FlowSpec {
     provider_namespace: "Skies.Framework.Mail",
     shared_folders: &["auth-verification"],
     di_lines: &[VERIFICATION_DI],
+    di_replacements: &[(
+        "services.AddSingleton<IAccountNotices, NoAccountNotices>();",
+        "services.AddSingleton<IAccountNotices, EmailAccountNotices>();",
+    )],
     provider_line: "services.AddSingleton<IEmailSender, ConsoleEmailSender>();",
     user_fields: &[
         "    /// <summary>Whether the account's email has been verified.</summary>\n    public bool IsEmailVerified { get; private set; }",
@@ -172,10 +185,10 @@ static EMAIL: FlowSpec = FlowSpec {
     db_sets: VERIFICATION_DB_SETS,
     indexes: VERIFICATION_INDEXES,
     map_lines: &[
-        "        RequestEmailVerification.Map(account);",
-        "        VerifyEmail.Map(account);",
-        "        RequestPasswordReset.Map(account);",
-        "        ResetPassword.Map(account);",
+        "        RequestEmailVerification.Map(credentials);",
+        "        VerifyEmail.Map(credentials);",
+        "        RequestPasswordReset.Map(credentials);",
+        "        ResetPassword.Map(credentials);",
     ],
     error_codes: &[
         (

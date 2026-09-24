@@ -1,59 +1,61 @@
+using Microsoft.IdentityModel.JsonWebTokens;
 using Golden.Api;
 using Golden.Api.BuildingBlocks;
 using Golden.Api.Modules.Account;
 using Golden.Api.Tenancy;
+using Golden.Tests;
 using Microsoft.EntityFrameworkCore;
 using Skies.Framework.Auth;
+using Skies.Framework.EntityFrameworkCore;
 
 namespace Specs.S0001;
 
-/// <summary>Tenancy and global identity. Anonymous requests all resolve to the default org, so a second org cannot
-/// be reached over HTTP; these cases drive the slices against two orgs sharing one store instead.</summary>
+/// <summary>Tenancy and global identity: each registration opens its own org, sign-in crosses orgs, reads never do,
+/// and a request without a signed-in caller resolves no org at all.</summary>
 public class TenancyAndGlobalIdentity
 {
     private static readonly Argon2idPasswordHasher Hasher = new();
 
-    [Fact(DisplayName = "FM-4: a taken email is rejected even from a different org")]
-    public async Task Taken_email_is_rejected_from_another_org()
+    [Fact(DisplayName = "FM-5: each registration opens an org of its own, carried in its access token")]
+    public async Task Each_registration_opens_its_own_org()
     {
-        var store = Guid.NewGuid().ToString();
-        await using (var orgA = NewDb(store, Guid.NewGuid()))
-            await Register.Handle(new Register.Input("a@example.com", "password1"), orgA, Hasher, TimeProvider.System, default);
+        await using var app = new TestApp();
+        var client = app.CreateClient();
 
-        await using var orgB = NewDb(store, Guid.NewGuid());
-        var result = await Register.Handle(new Register.Input("a@example.com", "password1"), orgB, Hasher, TimeProvider.System, default);
+        var alice = await AuthApi.SignUp(client, "alice@example.com");
+        var bob = await AuthApi.SignUp(client, "bob@example.com");
 
-        Assert.True(result.IsFailure);
-        Assert.Equal(ErrorKind.Conflict, result.Error.Kind);
+        var (aliceOrg, bobOrg) = (OrgOf(alice.AccessToken), OrgOf(bob.AccessToken));
+        Assert.NotEqual(Guid.Empty, aliceOrg);
+        Assert.NotEqual(Guid.Empty, bobOrg);
+        Assert.NotEqual(aliceOrg, bobOrg);
     }
 
-    [Fact(DisplayName = "FM-8: a user signs in whatever org the request resolves to")]
+    [Fact(DisplayName = "FM-10: a user signs in whatever org the request resolves to")]
     public async Task Sign_in_is_global()
     {
         var store = Guid.NewGuid().ToString();
-        await using (var orgA = NewDb(store, Guid.NewGuid()))
-            await Register.Handle(new Register.Input("a@example.com", "password1"), orgA, Hasher, TimeProvider.System, default);
+        await Seed(store, Guid.NewGuid(), "a@example.com", Hasher.Hash("password1"));
 
-        await using var orgB = NewDb(store, Guid.NewGuid());
+        await using var otherOrg = NewDb(store, new FixedTenant(Guid.NewGuid()));
         var tokens = new AccessTokens("test-secret-for-jwt-signing-please-32+chars", "golden", "golden", TimeProvider.System);
-        var sessions = new RefreshSessions(new UserSessionStore(orgB), RefreshSessionOptions.Default, TimeProvider.System);
-        var result = await Login.Handle(new Login.Input("a@example.com", "password1"), orgB, Hasher, sessions, tokens, default);
+        var sessions = new RefreshSessions(new UserSessionStore(otherOrg), RefreshSessionOptions.Default, TimeProvider.System);
+        var result = await Login.Handle(new Login.Input("a@example.com", "password1"), otherOrg, Hasher, sessions, tokens, default);
 
         Assert.True(result.IsSuccess);
         Assert.NotEmpty(result.Value.AccessToken);
     }
 
-    // Two orgs share a store, but a read as org A never sees org B's rows, and the org is stamped on insert rather
-    // than set by the caller.
-    [Fact(DisplayName = "FM-20: reads never cross the current org and inserts are stamped with it")]
+    // Two orgs share a store, but a read as org A never sees org B's rows.
+    [Fact(DisplayName = "FM-23: reads never cross the current org")]
     public async Task Reads_never_cross_the_current_org()
     {
         var (orgA, orgB) = (Guid.NewGuid(), Guid.NewGuid());
         var store = Guid.NewGuid().ToString();
-        await Seed(store, orgA, "a@org-a.com");
-        await Seed(store, orgB, "b@org-b.com");
+        await Seed(store, orgA, "a@org-a.com", PasswordHash.FromStored("x.y"));
+        await Seed(store, orgB, "b@org-b.com", PasswordHash.FromStored("x.y"));
 
-        await using var db = NewDb(store, orgA);
+        await using var db = NewDb(store, new FixedTenant(orgA));
         var users = await db.Users.ToListAsync();
 
         var user = Assert.Single(users);
@@ -61,13 +63,30 @@ public class TenancyAndGlobalIdentity
         Assert.Equal(orgA, user.OrgId);
     }
 
-    private static async Task Seed(string store, Guid org, string email)
+    // The request tenant as the app resolves it, for a caller with no access token: no org, so no org's rows.
+    [Fact(DisplayName = "FM-24: an anonymous request resolves no org and reads no org's rows")]
+    public async Task An_anonymous_request_has_no_org()
     {
-        await using var db = NewDb(store, org);
-        db.Users.Add(User.Register(Email.FromStored(email), PasswordHash.FromStored("x.y"), DateTime.UtcNow).Value);
+        var store = Guid.NewGuid().ToString();
+        await Seed(store, Guid.NewGuid(), "a@org-a.com", PasswordHash.FromStored("x.y"));
+        var anonymous = new RequestTenant(new ClaimsCurrentUser(null));
+
+        await using var db = NewDb(store, anonymous);
+
+        Assert.Equal(Guid.Empty, anonymous.OrgId);
+        Assert.Empty(await db.Users.ToListAsync());
+    }
+
+    private static async Task Seed(string store, Guid org, string email, PasswordHash hash)
+    {
+        await using var db = NewDb(store, new FixedTenant(org));
+        db.Users.Add(User.Register(org, Email.FromStored(email), hash, DateTime.UtcNow).Value);
         await db.SaveChangesAsync();
     }
 
-    private static AppDb NewDb(string store, Guid org) =>
-        new(new DbContextOptionsBuilder<AppDb>().UseInMemoryDatabase(store).Options, new Tenant { OrgId = org });
+    private static Guid OrgOf(string accessToken) =>
+        Guid.Parse(new JsonWebTokenHandler().ReadJsonWebToken(accessToken).GetClaim("org").Value);
+
+    private static AppDb NewDb(string store, ITenant tenant) =>
+        new(new DbContextOptionsBuilder<AppDb>().UseInMemoryDatabase(store).Options, tenant);
 }

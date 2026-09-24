@@ -21,7 +21,7 @@ public static class LookupProduct
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapGet("/product/{id:guid}", async (Guid id, AppDb db, CancellationToken ct) =>
+        app.MapGet("/products/{id:guid}", async (Guid id, AppDb db, CancellationToken ct) =>
                 (await Handle(new Input(id), db, ct)).ToHttp())
             .WithName(nameof(LookupProduct));
 }

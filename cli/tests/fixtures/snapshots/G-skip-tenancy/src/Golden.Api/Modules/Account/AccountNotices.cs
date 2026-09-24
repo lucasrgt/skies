@@ -1,0 +1,17 @@
+namespace Golden.Api.Modules.Account;
+
+/// <summary>What the Account module tells a user outside of a response. Registration answers a taken email exactly
+/// as it answers a new one, so a stranger cannot use it to learn who has an account; the address's owner hears about
+/// the attempt here instead.</summary>
+public interface IAccountNotices
+{
+    /// <summary>Someone tried to register <paramref name="email"/>, which already has an account.</summary>
+    Task AlreadyRegisteredAsync(Email email, CancellationToken ct);
+}
+
+/// <summary>The notices of an app without an email channel: there is no one to tell, so nothing is sent.
+/// <c>skies g auth:email</c> replaces it with one that mails the owner.</summary>
+public sealed class NoAccountNotices : IAccountNotices
+{
+    public Task AlreadyRegisteredAsync(Email email, CancellationToken ct) => Task.CompletedTask;
+}

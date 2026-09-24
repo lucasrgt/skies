@@ -1,9 +1,9 @@
-//<lz:tenancy>
-using MyApp.Api.Tenancy;
-//</lz:tenancy>
 using MyApp.Api.Modules.Account;
 using Microsoft.EntityFrameworkCore;
 using Skies.Framework.Auth;
+//<lz:tenancy>
+using Skies.Framework.EntityFrameworkCore;
+//</lz:tenancy>
 
 namespace MyApp.Api;
 
@@ -13,16 +13,31 @@ namespace MyApp.Api;
 /// modules share this one DbContext, so a read can join across them in-process (the dashboard case). New
 /// modules add their DbSets + configuration here. Email is unique globally (one-human-one-account).</summary>
 //<lz:tenancy>
-public class AppDb(DbContextOptions<AppDb> options, ITenant tenant) : TenantDbContext(options, tenant)
+/// <remarks>Tenancy: every <see cref="ITenantScoped"/> entity reads only <see cref="CurrentOrgId"/>'s rows, and an
+/// insert without an org is stamped with it on every save, synchronous or not. The org comes from the request (see
+/// <c>Tenancy/RequestTenant</c>); an anonymous request has none.</remarks>
+public class AppDb(DbContextOptions<AppDb> options, ITenant tenant) : DbContext(options), ITenantDbContext
 //</lz:tenancy>
 //<lz:!tenancy>
 public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
 //</lz:!tenancy>
 {
+    //<lz:tenancy>
+    /// <summary>The org this context reads and writes for the current request.</summary>
+    public Guid CurrentOrgId => tenant.OrgId;
+
+    public DbSet<Org> Orgs => Set<Org>();
+
+    //</lz:tenancy>
     public DbSet<User> Users => Set<User>();
 
     public DbSet<UserSession> UserSessions => Set<UserSession>();
 
+    //<lz:tenancy>
+    protected override void OnConfiguring(DbContextOptionsBuilder builder) =>
+        builder.AddInterceptors(TenantStamping.Instance);
+
+    //</lz:tenancy>
     protected override void OnModelCreating(ModelBuilder model)
     {
         base.OnModelCreating(model);
@@ -35,5 +50,10 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
         var session = model.Entity<UserSession>();
         session.HasIndex(s => s.TokenHash);
         session.HasIndex(s => s.FamilyId);
+        //<lz:tenancy>
+
+        // Last, so it covers every entity registered above.
+        model.ApplyTenantFilters(this);
+        //</lz:tenancy>
     }
 }

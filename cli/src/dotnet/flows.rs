@@ -207,7 +207,7 @@ fn augment_app_db(db_file: &Path, spec: &FlowSpec) -> Result<()> {
     Ok(())
 }
 
-/// The routes join the `/account` group before the closing brace of `Map`.
+/// The routes join the throttled `credentials` group of `/account` before the closing brace of `Map`.
 fn augment_account_module(module_file: &Path, spec: &FlowSpec) -> Result<()> {
     let source = text::read(module_file)?;
     let nl = text::newline_of(&source);
@@ -233,7 +233,8 @@ fn augment_account_module(module_file: &Path, spec: &FlowSpec) -> Result<()> {
     Ok(())
 }
 
-/// Domain services join the module after `AddAuthorization()`; shared registrations are added once.
+/// Domain services join the end of `AddServices`, before its `return`; shared registrations are added once, and a
+/// base registration the flow supersedes is swapped in place.
 fn augment_account_services(setup_file: &Path, spec: &FlowSpec) -> Result<()> {
     if !setup_file.exists() {
         for line in spec.di_lines {
@@ -245,7 +246,16 @@ fn augment_account_services(setup_file: &Path, spec: &FlowSpec) -> Result<()> {
     let nl = text::newline_of(&source);
     let mut changed = false;
 
-    let mut after = "        services.AddAuthorization();".to_string();
+    for &(base, replacement) in spec.di_replacements {
+        if source.contains(base) {
+            source = text::replace_first(&source, base, replacement);
+            changed = true;
+        } else if !source.contains(replacement) {
+            println!("note: register `{replacement}` in AddServices in AccountModule.cs, replacing `{base}`");
+        }
+    }
+
+    const ANCHOR: &str = "        return services;";
     let missing: Vec<&str> = spec
         .di_lines
         .iter()
@@ -253,10 +263,8 @@ fn augment_account_services(setup_file: &Path, spec: &FlowSpec) -> Result<()> {
         .filter(|line| !source.contains(line))
         .collect();
     for line in missing {
-        if source.contains(&after) {
-            let inserted = format!("{after}{nl}        {line}");
-            source = text::replace_first(&source, &after, &inserted);
-            after = format!("        {line}");
+        if source.contains(ANCHOR) {
+            source = text::replace_first(&source, ANCHOR, &format!("        {line}{nl}{ANCHOR}"));
             changed = true;
         } else {
             println!("note: add `{line}` to AddServices in AccountModule.cs");

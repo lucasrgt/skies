@@ -199,8 +199,6 @@ pub fn entity(root: &Path, module: &str, name: &str) -> Result<u8> {
     text::write(&path, body)?;
     println!("created {}", path.display());
 
-    // Codes are namespaced by their module, like every other code on the registry, so two modules' "id required"
-    // stay two keys the frontend can translate apart.
     let value = format!("{}.id_required", module.to_lowercase());
     let code = ErrorCode {
         name: "IdRequired",

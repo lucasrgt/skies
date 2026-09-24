@@ -1,9 +1,9 @@
 //! `skies g crud <Module> <Entity>`: the standard slices for one `[Entity]`.
 //!
-//! `List`, `Lookup`, `LookupMy` (only when the entity has a `UserId`), `Create`, `Update`, and `Delete`: plain
-//! slices the author owns, the boilerplate the doctor would otherwise make them write six times, plus the
+//! `List<Entities>`, `Lookup`, `LookupMy` (only when the entity has a `UserId`), `Create`, `Update`, and `Delete`:
+//! plain slices the author owns, the boilerplate the doctor would otherwise make them write six times, plus the
 //! entity's `<Entity>View` record, the one shape List and Lookup answer with, so the entity itself (its tenancy
-//! and concurrency columns) never reaches the wire.
+//! column) never reaches the wire. Routes follow the collection: `/<module>/<entities>`, `/<entities>/{id}`.
 //!
 //! The output compiles and is doctor-clean with the entity `g entity` scaffolds. An `[Entity]` has no public
 //! setter and no public constructor, so the slices never write columns: Create calls the entity's `Open` factory
@@ -13,9 +13,14 @@
 //! with no state to guard. Value objects, enums, and other complex properties cannot be built generically, so
 //! they are listed in one closing note for the owner to finish.
 //!
+//! Update and Delete are optimistic: the view carries the entity's `Version` token, the client sends it back, and a
+//! save against a row that changed in between answers `409` (`<module>.<entity>_changed`) instead of overwriting it.
+//!
 //! The entity's `DbSet` is registered in the app's `AppDb` (see [`super::app_db`]). An `ITenantScoped` entity is
-//! scoped by the DbContext's tenant filter; any other one is app-wide. The slices map under the module's route
-//! group and inherit its authorization decision, exactly as `g slice` does.
+//! scoped by the DbContext's tenant filter, and all six slices map under the module's route group, inheriting its
+//! authorization decision exactly as `g slice` does. Any other entity is app-wide, shared by every org, so a
+//! signed-in user may read it but its writes map under the module's admin group (see [`module::wire_admin`]):
+//! `AppPolicies.AppAdmin` where the auth blueprint defines it, and closed to everyone where it does not.
 //!
 //! An existing slice is skipped, never clobbered. No tests are emitted: what these slices must guarantee (tenant
 //! isolation, not-found on a foreign id) belongs in a spec the author writes, with E2E cases that fail before
@@ -57,7 +62,7 @@ const SCALAR_TYPES: &[&str] = &[
     "Guid?",
 ];
 
-/// Columns the entity, the slice, or the DbContext owns, never the request.
+/// Columns the entity, the slice, or the DbContext owns, never the request's fields.
 const SYSTEM_FIELDS: &[&str] = &[
     "Id",
     "OrgId",
@@ -66,6 +71,7 @@ const SYSTEM_FIELDS: &[&str] = &[
     "UpdatedAt",
     "UserId",
     "RowVersion",
+    "Version",
 ];
 
 /// Columns that are persistence, not contract: never on the entity's view record.
@@ -101,6 +107,8 @@ struct Crud {
     tenant_scoped: bool,
     /// The module's route group decides authorization, so the slices state no posture of their own.
     group_decides: bool,
+    /// The app defines `AppPolicies.AppAdmin` (the auth blueprint), the policy app-wide writes require.
+    app_admin: bool,
     scalars: Vec<Field>,
     complex: Vec<Field>,
     view: Vec<ViewField>,
@@ -161,7 +169,7 @@ pub fn generate(root: &Path, module: &str, entity: &str) -> Result<u8> {
             text::plural(entity)
         }
     };
-    let crud = Crud {
+    let mut crud = Crud {
         app_name: project.app_name().to_string(),
         app_lower: project.app_lower(),
         module: module.to_string(),
@@ -172,6 +180,7 @@ pub fn generate(root: &Path, module: &str, entity: &str) -> Result<u8> {
         has_updated_at: has_date_property(&source, "UpdatedAt"),
         tenant_scoped: is_tenant_scoped(&source, entity),
         group_decides: module::group_decides(&text::read(&module_file)?),
+        app_admin: defines_app_admin(&project.root)?,
         scalars,
         complex,
         view: view_fields(&source),
@@ -191,6 +200,8 @@ pub fn generate(root: &Path, module: &str, entity: &str) -> Result<u8> {
             return Ok(1);
         }
     };
+    // The view reads the completed entity, so it carries the Version token complete may just have added.
+    crud.view = view_fields(&completed);
     if completed != source {
         std::fs::write(&entity_file, completed)?;
         println!("updated {} ({})", entity_file.display(), describe(&added));
@@ -200,39 +211,69 @@ pub fn generate(root: &Path, module: &str, entity: &str) -> Result<u8> {
     if view.exists() {
         println!("skipped {} (already present)", view.display());
     } else {
-        text::write(&view, crud.render(embedded::dotnet("crud/__ENTITY__View.cs.cstmpl")))?;
+        text::write(
+            &view,
+            crud.render(embedded::dotnet("crud/__ENTITY__View.cs.cstmpl"), false),
+        )?;
         println!("created {}", view.display());
     }
 
     let slices_dir = module_dir.join("Slices");
+    let slices = crud.slices();
     let mut emitted = Vec::new();
-    for slice in crud.slices() {
-        let path = slices_dir.join(format!("{slice}.cs"));
+    for slice in &slices {
+        let path = slices_dir.join(format!("{}.cs", slice.name));
         if path.exists() {
             println!("skipped {} (already present)", path.display());
             continue;
         }
-        let verb = slice.strip_suffix(entity).unwrap_or(&slice);
-        let template = embedded::dotnet(&format!("crud/{verb}__ENTITY__.cs.cstmpl"));
-        text::write(&path, crud.render(template))?;
+        text::write(&path, crud.render(embedded::dotnet(slice.template), slice.writes))?;
         println!("created {}", path.display());
-        emitted.push(slice);
+        emitted.push(slice.name.clone());
     }
 
-    let not_found = format!("{entity}NotFound");
-    let value = format!("{}.not_found", text::hyphenate(entity));
-    let summary = format!("No {entity} exists for the given id.");
-    let code = ErrorCode {
-        name: &not_found,
-        value: &value,
-        summary: &summary,
-    };
-    error_codes::ensure(&module_dir, &project.namespace, module, &code)?;
+    let snake = text::hyphenate(entity).replace('-', "_");
+    let prefix = module.to_lowercase();
+    for (name, value, summary) in [
+        (
+            format!("{entity}NotFound"),
+            format!("{prefix}.{snake}_not_found"),
+            format!("No {entity} exists for the given id."),
+        ),
+        (
+            format!("{entity}Changed"),
+            format!("{prefix}.{snake}_changed"),
+            format!("The {entity} changed since the client read it; reload it and apply the change again."),
+        ),
+    ] {
+        let code = ErrorCode {
+            name: &name,
+            value: &value,
+            summary: &summary,
+        };
+        error_codes::ensure(&module_dir, &project.namespace, module, &code)?;
+    }
 
     wire_paging_package(&project.csproj)?;
-    module::wire(&module_file, module, &crud.slices())?;
+    let app_wide_writes = |slice: &&render::Slice| slice.writes && !crud.tenant_scoped;
+    let grouped: Vec<String> = slices
+        .iter()
+        .filter(|s| !app_wide_writes(s))
+        .map(|s| s.name.clone())
+        .collect();
+    let admin: Vec<String> = slices.iter().filter(app_wide_writes).map(|s| s.name.clone()).collect();
+    module::wire(&module_file, module, &grouped)?;
+    if !admin.is_empty() {
+        module::wire_admin(&module_file, module, &admin, crud.app_admin)?;
+    }
     summarize(&crud, &emitted, &added);
     Ok(0)
+}
+
+/// Whether the auth blueprint's `AppPolicies.AppAdmin` exists in the API project, for app-wide writes to require.
+fn defines_app_admin(root: &Path) -> Result<bool> {
+    let policies = root.join("AppPolicies.cs");
+    Ok(policies.is_file() && text::read(&policies)?.contains("const string AppAdmin"))
 }
 
 /// Reads the entity's settable properties, splitting scalars from complex fields and dropping system columns.
@@ -307,8 +348,8 @@ fn describe(added: &entity::Added) -> String {
     if added.update {
         parts.push("Update");
     }
-    if added.row_version {
-        parts.push("RowVersion");
+    if added.version {
+        parts.push("Version");
     }
     format!("added {}", parts.join(", "))
 }
@@ -318,6 +359,20 @@ fn summarize(crud: &Crud, emitted: &[String], added: &entity::Added) {
         println!(
             "note: {0} has no UserId — LookupMy{0} was not generated (the \"me\" lookup needs an owner column).",
             crud.entity
+        );
+    }
+    if added.kept_update {
+        println!(
+            "note: kept {0}.Update as written; it must renew Version (`Version = Guid.NewGuid();`) or Update{0} cannot \
+             tell a stale write from a fresh one.",
+            crud.entity
+        );
+    }
+    if !crud.tenant_scoped && !crud.app_admin {
+        println!(
+            "note: {0} is app-wide and this app has no AppPolicies.AppAdmin (the auth blueprint's), so its writes are \
+             mapped closed to everyone; name the policy that may change {0} in {1}Module.Map.",
+            crud.entity, crud.module
         );
     }
     if added.kept_open {

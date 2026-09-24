@@ -8,6 +8,8 @@ builder.Services.AddModules(builder.Configuration);  // each module's own servic
 
 var app = builder.Build();
 
+app.UsePlatform();  // the platform's middleware: the rate limiter the modules' throttles need
+
 app.UseSkies();    // serve the OpenAPI contract at /openapi/v1.json
 app.MapModules();   // each module's routes (the explicit registry)
 

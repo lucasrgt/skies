@@ -11,7 +11,7 @@ public class __NAME__
     public static Result<__NAME__> Open(Guid id) =>
         new __NAME__ { Id = id }.EnsureValid();
 
-    // Every way this entity comes to be or changes ends here, so its invariants live in one place.
+    // The one invariant check every factory and change returns through; keep it free of side effects.
     private Result<__NAME__> EnsureValid()
     {
         var validation = new Validation()

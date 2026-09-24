@@ -153,13 +153,21 @@ Rich, self-validating types; no repositories, base classes, or internal event bu
   returns `Result<T>` (`Wallet.Withdraw` refusing an overdraw).
 - **Generated CRUD keeps the split.** `skies g crud <Module> <Entity>` never writes a column from a slice: it adds
   `Open(Guid id, <fields>[, Guid userId][, DateTime now])` and `Update(<fields>[, DateTime now])` to the entity
-  (from its `{ get; private set; }` fields, through `EnsureValid`, plus `RowVersion` when missing), keeping any the
-  author wrote. Create calls `Open`, Update (`PUT /<entity>/{id}`) calls `Update` and saves on success, Delete is a
-  plain `Remove`; List and Lookup answer with an `<Entity>View` of its scalar fields (never `OrgId`, `TenantId`,
-  `RowVersion`), never the entity. It registers the `DbSet` in `AppDb`, is tenant-scoped only for an `ITenantScoped`
-  entity, and maps under the module's group, inheriting its authorization. The generated update validates a shallow
-  copy before applying scalar fields to the original, so a refused update leaves the entity as it was; keep
-  `EnsureValid` free of side effects, including changes to referenced objects. Rename `Update` to the domain's verb.
+  (from its `{ get; private set; }` fields, through `EnsureValid`), keeping any the author wrote, plus a
+  `[ConcurrencyCheck] Guid Version` token when missing, which `Open` and every accepted `Update` renew. The slices
+  follow the collection: `ListProducts` (`GET /<module>/products`), `LookupProduct` and `LookupMyProduct`
+  (`/products/{id}`, `/products/mine`), `CreateProduct`, `UpdateProduct` (`PUT /products/{id}`), `DeleteProduct`
+  (`DELETE /products/{id}?version=`). List and Lookup answer with a `ProductView` of its scalar fields and `Version`
+  (never `OrgId`, `TenantId`, `RowVersion`), never the entity. Update and Delete are optimistic: they save only while
+  the row is still at the `Version` the client read, and a stale one answers `409` `<module>.product_changed`
+  (errors carry the module prefix: `catalog.product_not_found`). crud registers the `DbSet` in `AppDb`. An
+  `ITenantScoped` entity is the caller's org's, so all six slices map under the module's group and inherit its
+  authorization. Any other entity is app-wide, shared by everyone: its reads map under the module's group, its
+  writes under a `<group>Admin` group of the same prefix that requires `AppPolicies.AppAdmin` (the auth blueprint's
+  `Admin` role; see [AUTH.md](AUTH.md)), or, in an app without that policy, one no one satisfies until the owner names
+  who may write. The generated update validates a shallow copy before applying scalar fields to the original, so a
+  refused update leaves the entity as it was; keep `EnsureValid` free of side effects, including changes to
+  referenced objects. Rename `Update` to the domain's verb, and keep renewing `Version` in it.
 - **The markers are pure** (like `[Slice]`): no base class, no EF semantics; without the doctor they are inert.
 - **The mark is not optional where the type is persisted or owned** (`SKY0021`): a `DbSet<T>` type must be
   `[Entity]`, and a complex member of an `[Entity]` must be `[ValueObject]`. Without it, leaving the mark off skips

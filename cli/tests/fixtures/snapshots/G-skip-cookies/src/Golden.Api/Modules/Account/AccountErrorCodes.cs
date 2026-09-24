@@ -25,11 +25,11 @@ public static class AccountErrorCodes
     /// <summary>No session exists for the given id.</summary>
     public const string SessionNotFound = "account.session_not_found";
 
-    /// <summary>An account already exists for this email.</summary>
-    public const string EmailTaken = "account.email_taken";
-
     /// <summary>The password is shorter than the minimum length.</summary>
     public const string PasswordTooShort = "password.too_short";
+
+    /// <summary>The password is longer than the maximum length the hasher accepts.</summary>
+    public const string PasswordTooLong = "password.too_long";
 
     /// <summary>An entity's invariant funnel (EnsureValid) rejected the state — a present id, a non-blank
     /// name, and so on. Construction and mutation both return through that funnel, so a broken instance can

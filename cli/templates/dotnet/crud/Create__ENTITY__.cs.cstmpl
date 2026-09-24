@@ -8,7 +8,7 @@ public static class Create__ENTITY__
 {
     public record Input(__INPUT_FIELDS__);
 
-    public record Output(Guid Id);
+    public record Output(Guid Id, Guid Version);
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, __CREATE_PARAMS__CancellationToken ct)
     {
@@ -18,11 +18,11 @@ public static class Create__ENTITY__
 
         db.__PLURAL__.Add(opened.Value);
         await db.SaveChangesAsync(ct);
-        return new Output(opened.Value.Id);
+        return new Output(opened.Value.Id, opened.Value.Version);
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/__ENTITY_LOWER__", async (Input input, AppDb db, __CREATE_PARAMS__CancellationToken ct) =>
+        app.MapPost("/__ROUTE__", async (Input input, AppDb db, __CREATE_PARAMS__CancellationToken ct) =>
                 (await Handle(input, db, __CREATE_ARGS__ct)).ToHttp())
             .WithName(nameof(Create__ENTITY__))__POSTURE__
 }

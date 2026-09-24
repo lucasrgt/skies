@@ -35,21 +35,45 @@ public class Credentials
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [Fact(DisplayName = "FM-3: a duplicate email is rejected and the first account still signs in")]
-    public async Task Duplicate_email_is_rejected_and_the_first_account_survives()
+    // Registration must not tell a stranger who has an account: a taken email answers exactly as a new one, and the
+    // attempt neither creates a second account nor touches the first one's password.
+    [Fact(DisplayName = "FM-3: a taken email answers like a new one, creates nothing, and the first account survives")]
+    public async Task Duplicate_email_is_indistinguishable_and_harmless()
     {
         await using var app = new TestApp();
         var client = app.CreateClient();
         await AuthApi.Register(client, Email);
 
+        var fresh = await client.PostAsJsonAsync("/account/register", new { email = "other@example.com", password = "another-pw1" });
         var duplicate = await client.PostAsJsonAsync("/account/register", new { email = Email, password = "another-pw1" });
 
-        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
-        Assert.Contains(AccountErrorCodes.EmailTaken, await duplicate.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(fresh.StatusCode, duplicate.StatusCode);
+        Assert.Equal(await fresh.Content.ReadAsStringAsync(), await duplicate.Content.ReadAsStringAsync());
         await AuthApi.Login(client, Email);
+        var hijack = await client.PostAsJsonAsync("/account/login", new { email = Email, password = "another-pw1" });
+        Assert.Equal(HttpStatusCode.Unauthorized, hijack.StatusCode);
     }
 
-    [Fact(DisplayName = "FM-4: valid credentials yield a token pair whose access token reads the caller's profile")]
+    [Fact(DisplayName = "FM-4: a password past 128 characters is refused at registration and fails sign-in")]
+    public async Task Password_length_is_bounded()
+    {
+        await using var app = new TestApp();
+        var client = app.CreateClient();
+        var longest = new string('p', 128);
+
+        await AuthApi.Register(client, Email, longest);
+        var tooLong = await client.PostAsJsonAsync("/account/register", new { email = "long@example.com", password = longest + "p" });
+        var tooShort = await client.PostAsJsonAsync("/account/register", new { email = "short@example.com", password = "short" });
+        var hugeLogin = await client.PostAsJsonAsync("/account/login", new { email = Email, password = new string('p', 100_000) });
+
+        Assert.Equal(HttpStatusCode.BadRequest, tooLong.StatusCode);
+        Assert.Contains(AccountErrorCodes.PasswordTooLong, await tooLong.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.BadRequest, tooShort.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, hugeLogin.StatusCode);
+        await AuthApi.Login(client, Email, longest);
+    }
+
+    [Fact(DisplayName = "FM-5: valid credentials yield a token pair whose access token reads the caller's profile")]
     public async Task Valid_credentials_yield_a_usable_token_pair()
     {
         await using var app = new TestApp();
@@ -64,7 +88,7 @@ public class Credentials
         Assert.Equal(RegistrationStep.EmailPending, profile.Step);
     }
 
-    [Fact(DisplayName = "FM-5: a wrong password is denied and issues no token")]
+    [Fact(DisplayName = "FM-6: a wrong password is denied and issues no token")]
     public async Task Wrong_password_is_denied_and_issues_no_token()
     {
         await using var app = new TestApp();
@@ -80,7 +104,7 @@ public class Credentials
     // A missing account and a wrong password must be the same response, so login cannot be used to find out who has
     // an account. Timing is equalized in Handle by verifying against a dummy hash; a wall-clock assertion would be
     // flaky, so the structural pin is response equality.
-    [Fact(DisplayName = "FM-6: an unknown email and a wrong password get the same response")]
+    [Fact(DisplayName = "FM-7: an unknown email and a wrong password get the same response")]
     public async Task Unknown_email_and_wrong_password_are_indistinguishable()
     {
         await using var app = new TestApp();
@@ -95,7 +119,7 @@ public class Credentials
         Assert.Equal(await wrongPassword.Content.ReadAsStringAsync(), await unknownEmail.Content.ReadAsStringAsync());
     }
 
-    [Fact(DisplayName = "FM-7: the profile endpoint requires an access token")]
+    [Fact(DisplayName = "FM-9: the profile endpoint requires an access token")]
     public async Task Profile_requires_a_token()
     {
         await using var app = new TestApp();

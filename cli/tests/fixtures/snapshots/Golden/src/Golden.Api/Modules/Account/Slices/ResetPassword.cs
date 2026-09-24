@@ -19,7 +19,8 @@ public static class ResetPassword
     public static async Task<Result<Output>> Handle(Input input, AppDb db, VerificationTokens verification, IPasswordHasher hasher, RefreshSessions sessions, CancellationToken ct)
     {
         var validation = new Validation()
-            .Check(input.NewPassword.Length >= 8, "new_password", AccountErrorCodes.PasswordTooShort, "must be at least 8 characters");
+            .Check(input.NewPassword.Length >= 8, "new_password", AccountErrorCodes.PasswordTooShort, "must be at least 8 characters")
+            .Check(input.NewPassword.Length <= IPasswordHasher.MaxPasswordLength, "new_password", AccountErrorCodes.PasswordTooLong, "must be at most 128 characters");
         if (validation.Failed)
             return validation.ToError();
 

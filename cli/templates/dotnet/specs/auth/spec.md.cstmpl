@@ -10,7 +10,12 @@ the module, and add a failure mode here before changing behavior.
 
 ## Behavior
 
-- `POST /account/register` creates an account for a globally unique, normalized email and an argon2id password.
+- `POST /account/register` creates an account for a globally unique, normalized email and an argon2id password of
+  8 to 128 characters, and answers a taken email exactly as it answers a new one (nothing is created; the owner is
+  told through `IAccountNotices`).
+//<lz:tenancy>
+- Every registration opens an org of its own; the account is its first member.
+//</lz:tenancy>
 - `POST /account/login` exchanges email + password for a short-lived access token (JWT) and a refresh token.
 - `POST /account/refresh` rotates the refresh token; each login starts a family, and rotation stays in it.
 - `POST /account/logout` revokes the family of the presented refresh token.
@@ -18,27 +23,33 @@ the module, and add a failure mode here before changing behavior.
 - `GET /account/sessions`, `POST /account/sessions/revoke`, and `POST /account/sessions/revoke-others` list and
   revoke the caller's live session families.
 //<lz:tenancy>
-- Users are tenant-scoped rows, but identity is global: email uniqueness and sign-in cross the org filter.
+- Users are tenant-scoped rows, but identity is global: email uniqueness and sign-in cross the org filter. A
+  signed-in request acts in its token's org; an anonymous one resolves no org at all.
 //</lz:tenancy>
 //<lz:cookies>
 - A web client (`X-Client: web`) gets the refresh token in an httpOnly cookie instead of the body.
 //</lz:cookies>
+- Register, login, refresh, and logout are throttled per client address and endpoint (`CredentialRateLimit`).
+- The app-admin policy (writes to app-wide data) needs the `Admin` role, which registration never grants.
 
 ## Failure modes
 
 - FM-[register] Registration does not produce a usable account: the email is stored un-normalized or the password does not verify
 - FM-[invalid-email] A malformed email is accepted at registration
-- FM-[duplicate] A taken email registers a second account, or the attempt damages the first one
+- FM-[duplicate] A taken email registers a second account, damages the first one, or answers differently from a new registration
+- FM-[password-length] A password outside 8 to 128 characters is accepted at registration, or an over-long one is hashed at login
 //<lz:tenancy>
-- FM-[duplicate-other-org] A taken email registers again when the request resolves to another org
+- FM-[register-org] A new account does not get an org of its own: two registrations share an org, or an account has none
 //</lz:tenancy>
 - FM-[login] Valid credentials do not yield a token pair whose access token reads the caller's own profile
 - FM-[wrong-password] A wrong password signs in or leaks a token
 - FM-[enumeration] Login reveals whether an email is registered: an unknown email and a wrong password answer differently
+- FM-[login-throttle] One client can try passwords without limit: login is not throttled after the permitted attempts
 //<lz:tenancy>
 - FM-[global-login] A user cannot sign in when the request resolves to an org other than their own
 //</lz:tenancy>
 - FM-[profile-anonymous] The profile endpoint answers without an access token
+- FM-[self-admin] A self-registered account satisfies the app-admin policy, and so may change app-wide data
 - FM-[refresh-rotate] Refresh does not rotate: it returns the same refresh token or no usable access token
 - FM-[refresh-replay] Replaying a rotated refresh token is accepted, or leaves the rest of its family alive
 - FM-[refresh-unknown] An unknown refresh token is exchanged for tokens
@@ -50,7 +61,8 @@ the module, and add a failure mode here before changing behavior.
 - FM-[revoke-foreign] A user can revoke another user's session, or learn that it exists
 - FM-[revoke-others] Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
 //<lz:tenancy>
-- FM-[tenant-isolation] A read scoped to one org sees another org's rows, or an insert is not stamped with the current org
+- FM-[tenant-isolation] A read scoped to one org sees another org's rows
+- FM-[anonymous-tenant] An anonymous request resolves to an org (a hidden default) and reads its rows
 //</lz:tenancy>
 //<lz:cookies>
 - FM-[cookie-login] A web login returns the refresh token in the body, or without an httpOnly cookie
@@ -61,6 +73,7 @@ the module, and add a failure mode here before changing behavior.
 
 ## Out of scope
 
-- Password strength beyond the minimum length, rate limiting, and account lockout.
+- Password strength beyond the length bounds, and lockout per account (the throttle is per client address).
+- The throttle's window rolling over (the cases run well inside one window).
 - Concurrent refreshes of one token racing on a relational database (the in-memory store cannot raise the
   concurrency conflict `auth.session_retry` reports).

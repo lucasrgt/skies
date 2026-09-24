@@ -124,12 +124,15 @@ fn crud_output_is_doctor_shaped(api: &Path) {
         "an [Entity] has no public setter (SKY0014)"
     );
     assert!(product.contains(
-        "    public static Result<Product> Open(Guid id, string name) =>\n        new Product { Id = id, Name = name }.EnsureValid();\n"
+        "    public static Result<Product> Open(Guid id, string name) =>\n        \
+         new Product { Id = id, Name = name, Version = Guid.NewGuid() }.EnsureValid();\n"
     ));
     assert!(product.contains("proposed.Name = name;"));
-    assert!(product.contains("if (validation.IsFailure) return validation.Error;\n        Name = proposed.Name;"));
     assert!(product.contains(
-        "[System.ComponentModel.DataAnnotations.Timestamp]\n    public byte[]? RowVersion { get; private set; }"
+        "if (validation.IsFailure) return validation.Error;\n        Name = proposed.Name;\n        Version = Guid.NewGuid();"
+    ));
+    assert!(product.contains(
+        "[System.ComponentModel.DataAnnotations.ConcurrencyCheck]\n    public Guid Version { get; private set; }"
     ));
 
     let create = read("Modules/Catalog/Slices/CreateProduct.cs");
@@ -137,26 +140,38 @@ fn crud_output_is_doctor_shaped(api: &Path) {
     assert!(!create.contains("new Product"));
     let update = read("Modules/Catalog/Slices/UpdateProduct.cs");
     assert!(update.contains("var updated = item.Update(input.Name);\n        if (updated.IsFailure)"));
-    let list = read("Modules/Catalog/Slices/ListProduct.cs");
+    assert!(update.contains("OriginalValue = input.Version;"));
+    let list = read("Modules/Catalog/Slices/ListProducts.cs");
     assert!(list.contains(
         "db.Products.OrderBy(e => e.Id)\n            .ToPageAsync(input.Page, input.PageSize, MaxPageSize, ct);"
     ));
-    for slice in ["List", "Lookup", "Create", "Update", "Delete"] {
-        let source = read(&format!("Modules/Catalog/Slices/{slice}Product.cs"));
+    for slice in [
+        "ListProducts",
+        "LookupProduct",
+        "CreateProduct",
+        "UpdateProduct",
+        "DeleteProduct",
+    ] {
+        let source = read(&format!("Modules/Catalog/Slices/{slice}.cs"));
         assert!(
-            source.contains(&format!(".WithName(nameof({slice}Product));\n")),
-            "{slice}Product inherits the group's posture instead of restating it"
+            source.contains(&format!(".WithName(nameof({slice}));\n")),
+            "{slice} inherits the group's posture instead of restating it"
         );
         assert!(!source.contains("Page<Product>") && !source.contains("Output(Product "));
     }
-    assert!(read("Modules/Catalog/Slices/UpdateProduct.cs").contains("app.MapPut(\"/product/{id:guid}\","));
-    assert!(read("Modules/Catalog/ProductView.cs").contains("public record ProductView(Guid Id, string Name)"));
+    assert!(read("Modules/Catalog/Slices/UpdateProduct.cs").contains("app.MapPut(\"/products/{id:guid}\","));
+    assert!(
+        read("Modules/Catalog/ProductView.cs")
+            .contains("public record ProductView(Guid Id, string Name, Guid Version)")
+    );
     assert!(read("AppDb.cs").contains("    public DbSet<Product> Products => Set<Product>();\n"));
 
+    // A tenant-scoped entity's writes stay with its reads, under the module group: the org scopes them.
     let module = read("Modules/Catalog/CatalogModule.cs");
     assert!(module.contains(
-        "        var catalog = app.MapGroup(\"/catalog\").RequireAuthorization();\n        ListProduct.Map(catalog);\n"
+        "        var catalog = app.MapGroup(\"/catalog\").RequireAuthorization();\n        ListProducts.Map(catalog);\n"
     ));
+    assert!(module.contains("        DeleteProduct.Map(catalog);\n"));
 }
 
 #[test]
@@ -282,12 +297,22 @@ fn crud_serves_an_app_wide_entity() {
 
     let read = |path: &str| std::fs::read_to_string(api.join(path)).unwrap();
     assert!(read("AppDb.cs").contains("public DbSet<Category> Categories => Set<Category>();"));
-    let list = read("Modules/Catalog/Slices/ListCategory.cs");
+    let list = read("Modules/Catalog/Slices/ListCategories.cs");
     assert!(list.contains("public record Output(Page<CategoryView> Categories);"));
+    assert!(list.contains("app.MapGet(\"/categories\","));
     assert!(
         !list.contains("org"),
         "an app-wide entity is not described as tenant-scoped"
     );
+    // Every signed-in user reads it; only the auth blueprint's app admin changes it.
+    let module = read("Modules/Catalog/CatalogModule.cs");
+    assert!(module.contains("        ListCategories.Map(catalog);\n        LookupCategory.Map(catalog);\n"));
+    assert!(module.contains(concat!(
+        "        var catalogAdmin = app.MapGroup(\"/catalog\").RequireAuthorization(AppPolicies.AppAdmin);\n",
+        "        CreateCategory.Map(catalogAdmin);\n",
+        "        UpdateCategory.Map(catalogAdmin);\n",
+        "        DeleteCategory.Map(catalogAdmin);\n",
+    )));
     cites_no_rule(&work.path().join("Golden"));
 }
 

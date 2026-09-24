@@ -10,45 +10,56 @@ the module, and add a failure mode here before changing behavior.
 
 ## Behavior
 
-- `POST /account/register` creates an account for a globally unique, normalized email and an argon2id password.
+- `POST /account/register` creates an account for a globally unique, normalized email and an argon2id password of
+  8 to 128 characters, and answers a taken email exactly as it answers a new one (nothing is created; the owner is
+  told through `IAccountNotices`).
+- Every registration opens an org of its own; the account is its first member.
 - `POST /account/login` exchanges email + password for a short-lived access token (JWT) and a refresh token.
 - `POST /account/refresh` rotates the refresh token; each login starts a family, and rotation stays in it.
 - `POST /account/logout` revokes the family of the presented refresh token.
 - `GET /account/me` returns the caller's own profile.
 - `GET /account/sessions`, `POST /account/sessions/revoke`, and `POST /account/sessions/revoke-others` list and
   revoke the caller's live session families.
-- Users are tenant-scoped rows, but identity is global: email uniqueness and sign-in cross the org filter.
+- Users are tenant-scoped rows, but identity is global: email uniqueness and sign-in cross the org filter. A
+  signed-in request acts in its token's org; an anonymous one resolves no org at all.
 - A web client (`X-Client: web`) gets the refresh token in an httpOnly cookie instead of the body.
+- Register, login, refresh, and logout are throttled per client address and endpoint (`CredentialRateLimit`).
+- The app-admin policy (writes to app-wide data) needs the `Admin` role, which registration never grants.
 
 ## Failure modes
 
 - FM-1 Registration does not produce a usable account: the email is stored un-normalized or the password does not verify
 - FM-2 A malformed email is accepted at registration
-- FM-3 A taken email registers a second account, or the attempt damages the first one
-- FM-4 A taken email registers again when the request resolves to another org
-- FM-5 Valid credentials do not yield a token pair whose access token reads the caller's own profile
-- FM-6 A wrong password signs in or leaks a token
-- FM-7 Login reveals whether an email is registered: an unknown email and a wrong password answer differently
-- FM-8 A user cannot sign in when the request resolves to an org other than their own
-- FM-9 The profile endpoint answers without an access token
-- FM-10 Refresh does not rotate: it returns the same refresh token or no usable access token
-- FM-11 Replaying a rotated refresh token is accepted, or leaves the rest of its family alive
-- FM-12 An unknown refresh token is exchanged for tokens
-- FM-13 A session family older than the absolute maximum age still refreshes
-- FM-14 After logout the session's refresh token still refreshes
-- FM-15 Logout with an unknown token fails, revealing which tokens are valid
-- FM-16 The session list shows expired or rotated slots, misses a live session, or does not flag the current one
-- FM-17 Revoking one of my sessions leaves it alive or ends my other sessions
-- FM-18 A user can revoke another user's session, or learn that it exists
-- FM-19 Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
-- FM-20 A read scoped to one org sees another org's rows, or an insert is not stamped with the current org
-- FM-21 A web login returns the refresh token in the body, or without an httpOnly cookie
-- FM-22 A web refresh ignores the refresh cookie or does not reissue it
+- FM-3 A taken email registers a second account, damages the first one, or answers differently from a new registration
+- FM-4 A password outside 8 to 128 characters is accepted at registration, or an over-long one is hashed at login
+- FM-5 A new account does not get an org of its own: two registrations share an org, or an account has none
+- FM-6 Valid credentials do not yield a token pair whose access token reads the caller's own profile
+- FM-7 A wrong password signs in or leaks a token
+- FM-8 Login reveals whether an email is registered: an unknown email and a wrong password answer differently
+- FM-9 One client can try passwords without limit: login is not throttled after the permitted attempts
+- FM-10 A user cannot sign in when the request resolves to an org other than their own
+- FM-11 The profile endpoint answers without an access token
+- FM-12 A self-registered account satisfies the app-admin policy, and so may change app-wide data
+- FM-13 Refresh does not rotate: it returns the same refresh token or no usable access token
+- FM-14 Replaying a rotated refresh token is accepted, or leaves the rest of its family alive
+- FM-15 An unknown refresh token is exchanged for tokens
+- FM-16 A session family older than the absolute maximum age still refreshes
+- FM-17 After logout the session's refresh token still refreshes
+- FM-18 Logout with an unknown token fails, revealing which tokens are valid
+- FM-19 The session list shows expired or rotated slots, misses a live session, or does not flag the current one
+- FM-20 Revoking one of my sessions leaves it alive or ends my other sessions
+- FM-21 A user can revoke another user's session, or learn that it exists
+- FM-22 Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
+- FM-23 A read scoped to one org sees another org's rows
+- FM-24 An anonymous request resolves to an org (a hidden default) and reads its rows
+- FM-25 A web login returns the refresh token in the body, or without an httpOnly cookie
+- FM-26 A web refresh ignores the refresh cookie or does not reissue it
 
-- FM-23 The development database and providers can start outside Development
+- FM-27 The development database and providers can start outside Development
 
 ## Out of scope
 
-- Password strength beyond the minimum length, rate limiting, and account lockout.
+- Password strength beyond the length bounds, and lockout per account (the throttle is per client address).
+- The throttle's window rolling over (the cases run well inside one window).
 - Concurrent refreshes of one token racing on a relational database (the in-memory store cannot raise the
   concurrency conflict `auth.session_retry` reports).

@@ -20,7 +20,7 @@ public static class Lookup__ENTITY__
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapGet("/__ENTITY_LOWER__/{id:guid}", async (Guid id, AppDb db, CancellationToken ct) =>
+        app.MapGet("/__ROUTE__/{id:guid}", async (Guid id, AppDb db, CancellationToken ct) =>
                 (await Handle(new Input(id), db, ct)).ToHttp())
             .WithName(nameof(Lookup__ENTITY__))__POSTURE__
 }

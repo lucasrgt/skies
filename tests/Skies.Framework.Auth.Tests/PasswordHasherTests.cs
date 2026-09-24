@@ -28,6 +28,20 @@ public class PasswordHasherTests
         Assert.Throws<ArgumentException>(() => hasher.Hash(""));
     }
 
+    // The limit is what keeps one request from buying an unbounded slow-hash computation: the longest allowed
+    // password round-trips, one character more is never derived, on either side.
+    [Fact]
+    public void A_password_past_the_maximum_length_is_refused_on_hash_and_fails_on_verify()
+    {
+        var longest = new string('p', IPasswordHasher.MaxPasswordLength);
+        var hash = hasher.Hash(longest);
+
+        Assert.True(hasher.Verify(longest, hash));
+        Assert.Throws<ArgumentException>(() => hasher.Hash(longest + "p"));
+        Assert.False(hasher.Verify(longest + "p", hash));
+        Assert.False(hasher.Verify(new string('p', 1_000_000), null));
+    }
+
     [Fact]
     public void Each_hash_is_salted_so_equal_passwords_store_differently()
     {

@@ -10,7 +10,9 @@ the module, and add a failure mode here before changing behavior.
 
 ## Behavior
 
-- `POST /account/register` creates an account for a globally unique, normalized email and an argon2id password.
+- `POST /account/register` creates an account for a globally unique, normalized email and an argon2id password of
+  8 to 128 characters, and answers a taken email exactly as it answers a new one (nothing is created; the owner is
+  told through `IAccountNotices`).
 - `POST /account/login` exchanges email + password for a short-lived access token (JWT) and a refresh token.
 - `POST /account/refresh` rotates the refresh token; each login starts a family, and rotation stays in it.
 - `POST /account/logout` revokes the family of the presented refresh token.
@@ -18,33 +20,39 @@ the module, and add a failure mode here before changing behavior.
 - `GET /account/sessions`, `POST /account/sessions/revoke`, and `POST /account/sessions/revoke-others` list and
   revoke the caller's live session families.
 - A web client (`X-Client: web`) gets the refresh token in an httpOnly cookie instead of the body.
+- Register, login, refresh, and logout are throttled per client address and endpoint (`CredentialRateLimit`).
+- The app-admin policy (writes to app-wide data) needs the `Admin` role, which registration never grants.
 
 ## Failure modes
 
 - FM-1 Registration does not produce a usable account: the email is stored un-normalized or the password does not verify
 - FM-2 A malformed email is accepted at registration
-- FM-3 A taken email registers a second account, or the attempt damages the first one
-- FM-4 Valid credentials do not yield a token pair whose access token reads the caller's own profile
-- FM-5 A wrong password signs in or leaks a token
-- FM-6 Login reveals whether an email is registered: an unknown email and a wrong password answer differently
-- FM-7 The profile endpoint answers without an access token
-- FM-8 Refresh does not rotate: it returns the same refresh token or no usable access token
-- FM-9 Replaying a rotated refresh token is accepted, or leaves the rest of its family alive
-- FM-10 An unknown refresh token is exchanged for tokens
-- FM-11 A session family older than the absolute maximum age still refreshes
-- FM-12 After logout the session's refresh token still refreshes
-- FM-13 Logout with an unknown token fails, revealing which tokens are valid
-- FM-14 The session list shows expired or rotated slots, misses a live session, or does not flag the current one
-- FM-15 Revoking one of my sessions leaves it alive or ends my other sessions
-- FM-16 A user can revoke another user's session, or learn that it exists
-- FM-17 Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
-- FM-18 A web login returns the refresh token in the body, or without an httpOnly cookie
-- FM-19 A web refresh ignores the refresh cookie or does not reissue it
+- FM-3 A taken email registers a second account, damages the first one, or answers differently from a new registration
+- FM-4 A password outside 8 to 128 characters is accepted at registration, or an over-long one is hashed at login
+- FM-5 Valid credentials do not yield a token pair whose access token reads the caller's own profile
+- FM-6 A wrong password signs in or leaks a token
+- FM-7 Login reveals whether an email is registered: an unknown email and a wrong password answer differently
+- FM-8 One client can try passwords without limit: login is not throttled after the permitted attempts
+- FM-9 The profile endpoint answers without an access token
+- FM-10 A self-registered account satisfies the app-admin policy, and so may change app-wide data
+- FM-11 Refresh does not rotate: it returns the same refresh token or no usable access token
+- FM-12 Replaying a rotated refresh token is accepted, or leaves the rest of its family alive
+- FM-13 An unknown refresh token is exchanged for tokens
+- FM-14 A session family older than the absolute maximum age still refreshes
+- FM-15 After logout the session's refresh token still refreshes
+- FM-16 Logout with an unknown token fails, revealing which tokens are valid
+- FM-17 The session list shows expired or rotated slots, misses a live session, or does not flag the current one
+- FM-18 Revoking one of my sessions leaves it alive or ends my other sessions
+- FM-19 A user can revoke another user's session, or learn that it exists
+- FM-20 Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
+- FM-21 A web login returns the refresh token in the body, or without an httpOnly cookie
+- FM-22 A web refresh ignores the refresh cookie or does not reissue it
 
-- FM-20 The development database and providers can start outside Development
+- FM-23 The development database and providers can start outside Development
 
 ## Out of scope
 
-- Password strength beyond the minimum length, rate limiting, and account lockout.
+- Password strength beyond the length bounds, and lockout per account (the throttle is per client address).
+- The throttle's window rolling over (the cases run well inside one window).
 - Concurrent refreshes of one token racing on a relational database (the in-memory store cannot raise the
   concurrency conflict `auth.session_retry` reports).
