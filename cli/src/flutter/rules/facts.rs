@@ -113,6 +113,8 @@ pub struct Facts {
     pub index_reads: Vec<IndexRead>,
     pub bindings: Vec<Binding>,
     pub has_else: bool,
+    /// The library a `part of '...'` file belongs to, as written: a part is its library's code, not a file of its own.
+    pub part_of: Option<String>,
 }
 
 impl Facts {

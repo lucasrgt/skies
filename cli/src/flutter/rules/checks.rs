@@ -8,7 +8,8 @@ use std::sync::LazyLock;
 use regex::Regex;
 
 use super::facts::{Call, Facts};
-use super::{Source, code};
+use super::navigation::navigation_rules;
+use super::{Source, code, generated};
 use crate::doctor::{Finding, Severity};
 
 const PLATFORM_PACKAGES: [&str; 12] = [
@@ -28,22 +29,21 @@ const PLATFORM_PACKAGES: [&str; 12] = [
 const MUTATIONS: [&str; 8] = [
     "submit", "save", "create", "update", "delete", "remove", "deposit", "withdraw",
 ];
-const NAVIGATION: [&str; 4] = ["go", "push", "pushReplacement", "replace"];
 
 /// Finds the line of the first import whose URI satisfies a predicate.
 type ImportLine<'a> = dyn Fn(&dyn Fn(&str) -> bool) -> Option<usize> + 'a;
 
-struct Report<'a> {
-    source: &'a Source,
-    findings: Vec<Finding>,
+pub(super) struct Report<'a> {
+    pub(super) source: &'a Source,
+    pub(super) findings: Vec<Finding>,
 }
 
 impl Report<'_> {
-    fn add(&mut self, rule: &str, line: Option<usize>, message: &str) {
+    pub(super) fn add(&mut self, rule: &str, line: Option<usize>, message: &str) {
         self.push(rule, Severity::Error, line, message);
     }
 
-    fn warn(&mut self, rule: &str, line: Option<usize>, message: &str) {
+    pub(super) fn warn(&mut self, rule: &str, line: Option<usize>, message: &str) {
         self.push(rule, Severity::Warning, line, message);
     }
 
@@ -66,6 +66,14 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
     };
     let (facts, role) = (&source.facts, source.role);
     let import = |pred: &dyn Fn(&str) -> bool| facts.imports.iter().find(|i| pred(&i.value)).map(|i| i.line);
+    if generated(&source.path.to_string_lossy().replace('\\', "/")) {
+        return Vec::new();
+    }
+    // Test code (a harness seeding the backend, a test-only route) is not the shipped app: only SKYFL036 reads it.
+    if role.test {
+        tests_live_in_specs(&mut report, facts, &import);
+        return report.findings;
+    }
 
     if !role.test {
         let mock = ["__mocks__", "fixtures", "mockito", "mocktail", "msw"];
@@ -73,7 +81,7 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
             report.add("no-mock", Some(line), "production code imports a mock or fixture");
         }
     }
-    if role.view {
+    if role.view || role.view_part {
         let transport = import(&|uri| uri.starts_with("package:dio/")).or_else(|| {
             facts
                 .first_identifier(&["Dio", "SkiesClient", "executeSkiesRequest"])
@@ -83,8 +91,8 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
             report.add("view-purity", Some(line), "View reaches transport or client behavior");
         }
         let model = sibling(&source.path, "_view.dart", "_view_model.dart");
-        let paired = sources.get(model.as_path());
-        if paired.is_none() && role.lib {
+        let paired = sources.get(model.as_path()).filter(|_| role.view);
+        if paired.is_none() && role.view && role.lib {
             report.add("view-purity", None, "ViewModel is not co-located");
         }
         if paired.is_some_and(|m| m.facts.generics.contains("AsyncState"))
@@ -98,7 +106,7 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
         }
         hardcoded_copy(&mut report, facts);
     }
-    if !role.model && !role.session_door {
+    if !role.model && !role.model_part && !role.session_door {
         let operation = facts
             .calls
             .iter()
@@ -313,81 +321,6 @@ pub fn mutation(facts: &Facts) -> Option<usize> {
         .iter()
         .find(|s| s.returns == "Future" && MUTATIONS.contains(&s.name.as_str()))
         .map(|s| s.line)
-}
-
-fn navigation_rules(report: &mut Report, facts: &Facts) {
-    let imperative = facts.calls.iter().find(|call| {
-        ["pushReplacement", "go", "replace"].contains(&call.name.as_str())
-            && call
-                .enclosing
-                .iter()
-                .any(|outer| outer == "addPostFrameCallback" || outer == "addListener")
-    });
-    if let Some(call) = imperative {
-        report.add(
-            "declarative-redirect",
-            Some(call.line),
-            "state-driven redirect runs imperatively after render",
-        );
-    }
-    let unguarded = facts.index_reads.iter().find(|read| {
-        let key = read.index.trim_end_matches(['\'', '"']);
-        (read.object.ends_with("pathParameters") || read.object.ends_with("queryParameters"))
-            && (key.ends_with("id") || key.ends_with("Id"))
-    });
-    if let Some(read) = unguarded
-        && facts.calls_named(&["requiredParam"]).next().is_none()
-    {
-        report.add(
-            "route-param-guard",
-            Some(read.line),
-            "required route id is read without requiredParam",
-        );
-    }
-    let bare_back = facts.calls_named(&["pop"]).find(|call| {
-        call.receiver
-            .as_deref()
-            .is_some_and(|r| r == "Navigator" || r == "context" || r.starts_with("Navigator.of("))
-    });
-    if let Some(call) = bare_back {
-        report.add(
-            "safe-back",
-            Some(call.line),
-            "bare back navigation has no deep-link fallback",
-        );
-    }
-    let open = facts.calls_named(&NAVIGATION).find(|call| {
-        call.positional()
-            .next()
-            .and_then(|arg| arg.identifier.as_deref())
-            .is_some_and(|id| ["returnTo", "next", "redirect"].contains(&id))
-    });
-    if let Some(call) = open {
-        report.add(
-            "no-open-redirect",
-            Some(call.line),
-            "navigation consumes a URL-derived target without an allowlist",
-        );
-    }
-    let escaped = facts.calls.iter().find(|call| {
-        let receiver = call.receiver.as_deref().unwrap_or_default();
-        let navigates = (receiver == "context" && ["go", "push", "replace"].contains(&call.name.as_str()))
-            || receiver == "Navigator"
-            || receiver.starts_with("Navigator.");
-        navigates
-            && call.args.iter().any(|arg| {
-                arg.cast
-                    .as_deref()
-                    .is_some_and(|t| ["dynamic", "Object", "string", "String"].contains(&t))
-            })
-    });
-    if let Some(call) = escaped {
-        report.add(
-            "typed-navigation",
-            Some(call.line),
-            "navigation target escapes its typed route through a cast",
-        );
-    }
 }
 
 fn session_rules(report: &mut Report, facts: &Facts, session_door: bool) {

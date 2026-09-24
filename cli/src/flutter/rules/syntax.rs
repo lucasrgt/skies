@@ -53,6 +53,10 @@ impl Walker<'_> {
                 self.facts.comments.push(comment);
                 return;
             }
+            "part_of_directive" => {
+                self.facts.part_of = find(node, "string_literal").and_then(|s| string_content(s, self.src));
+                return;
+            }
             "import_or_export" => {
                 if let Some(uri) = find(node, "string_literal").and_then(|s| string_content(s, self.src)) {
                     let import = self.located(node, uri);
@@ -197,7 +201,7 @@ impl Walker<'_> {
                     .child_by_field_name("property")
                     .map(|p| self.text(p))
                     .unwrap_or_default();
-                let receiver = function.child_by_field_name("object").map(|o| self.text(o));
+                let receiver = function.child_by_field_name("object").map(|o| self.receiver(o));
                 (name, receiver, false)
             }
             "instantiation_expression" => {
@@ -213,6 +217,34 @@ impl Walker<'_> {
                 .map(|expression| self.callee(expression))
                 .unwrap_or_default(),
             _ => (String::new(), None, false),
+        }
+    }
+
+    /// A method call's receiver text. The grammar reads an arrow body such as `() => Navigator.of(context).pop()` as
+    /// `.pop` on the receiver `() => Navigator.of(context)`: the arrow sits at the left end of the receiver chain, so
+    /// the receiver is the text from the arrow's body expression on (`Navigator.of(context)`).
+    fn receiver(&self, object: Node) -> String {
+        let mut node = object;
+        loop {
+            let next = match node.kind() {
+                "member_expression" => node.child_by_field_name("object"),
+                "call_expression" => node.child_by_field_name("function"),
+                "function_expression" => {
+                    let body = node.child_by_field_name("body");
+                    let expression = body.and_then(|b| b.named_child(b.named_child_count().saturating_sub(1) as u32));
+                    return match expression {
+                        Some(start) => {
+                            String::from_utf8_lossy(&self.src[start.start_byte()..object.end_byte()]).into_owned()
+                        }
+                        None => self.text(object),
+                    };
+                }
+                _ => None,
+            };
+            match next {
+                Some(inner) => node = inner,
+                None => return self.text(object),
+            }
         }
     }
 

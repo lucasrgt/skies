@@ -41,7 +41,8 @@ pub struct ClientOptions {
 
 /// The npm package that downloads and runs the generator jar pinned in `openapitools.json`.
 const GENERATOR_CLI: &str = "@openapitools/openapi-generator-cli@2.41.0";
-const MARKER: &str = ".skies-generated-client";
+/// The file that marks a generated client package; the doctor skips such a package whole.
+pub(crate) const MARKER: &str = ".skies-generated-client";
 
 /// The generator arguments: dart-dio with built_value, no docs or tests (the app owns its tests).
 pub fn generator_arguments(input: &str, output: &str, name: &str, version: &str) -> Result<Vec<String>> {
