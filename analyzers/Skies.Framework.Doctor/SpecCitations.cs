@@ -22,9 +22,11 @@ namespace Skies.Framework.Doctor;
 /// </summary>
 internal static class SpecCitations
 {
-    // `<digits>-<kebab slug>`, optionally `#FM-<n>`: the whole backtick span, nothing else inside it.
+    // `<digits>-<kebab slug>`, optionally `#FM-<n>`: the whole backtick span, nothing else inside it. The slug holds at
+    // least one letter: an all-digit span (`2026-31`, an ISO week; `2024-01-15`, a date; `1-5`, a range) is a number
+    // in prose, not a spec folder, and calibrating on a real app's ctx.md found exactly that.
     private static readonly Regex CitationPattern = new(
-        @"`(?<spec>[0-9]+-[a-z0-9]+(?:-[a-z0-9]+)*)(?:#FM-(?<fm>[0-9]+))?`", RegexOptions.Compiled);
+        @"`(?<spec>[0-9]+-(?=[a-z0-9-]*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*)(?:#FM-(?<fm>[0-9]+))?`", RegexOptions.Compiled);
 
     // A failure-mode bullet: `- FM-n text` or `* FM-n: text`; the id must lead the bullet.
     private static readonly Regex FailureModeLine = new(@"^\s*[-*]\s+FM-(?<n>[0-9]+)(?::|\s|$)", RegexOptions.Compiled);
