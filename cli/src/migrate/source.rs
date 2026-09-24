@@ -64,6 +64,8 @@ pub fn migrate_file(root: &Path, path: &Path, plan: &mut Plan) -> Result<()> {
         (_, "props" | "targets") => Some(super::versions::nuget),
         (_, "cs") => Some(csharp),
         (_, "csproj") => Some(project),
+        // Assay proofs keep their `@avp` tags: they are the Assay tool's syntax, which the app may keep using.
+        _ if name.contains(".assay.test.") || name.ends_with(".assay_test.dart") => Some(assay_proof),
         (_, "ts" | "tsx" | "js" | "mjs" | "cjs" | "mts" | "cts" | "dart") => Some(doc_tags),
         ("AGENTS.md" | "CLAUDE.md" | "GEMINI.md", _) => Some(agent_instructions),
         ("lefthook.yml" | "lefthook.yaml", _) => Some(lefthook),

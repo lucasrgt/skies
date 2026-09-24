@@ -314,6 +314,33 @@ mod tests {
     }
 
     #[test]
+    fn assay_proofs_keep_their_tags_and_only_lose_removed_imports() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "Skies.toml", "[workspace]\nname = \"demo\"\n");
+        write(root, "clients/web/package.json", "{}\n");
+        write(
+            root,
+            "clients/web/src/pay/Pay.assay.test.tsx",
+            "import { productVerification } from \"@skiesjs/frontend-sdk/product-verification\";\n/** @avp pays-once */\n",
+        );
+        write(root, "clients/app/pubspec.yaml", "name: app\n");
+        write(
+            root,
+            "clients/app/test/pay.assay_test.dart",
+            "void main() {\n  // @avp pays-once\n}\n",
+        );
+
+        apply(&plan(root).unwrap()).unwrap();
+
+        let web = fs::read_to_string(root.join("clients/web/src/pay/Pay.assay.test.tsx")).unwrap();
+        assert!(web.contains("/** @avp pays-once */"), "{web}");
+        assert!(!web.contains("@skiesjs/frontend-sdk"), "{web}");
+        let dart = fs::read_to_string(root.join("clients/app/test/pay.assay_test.dart")).unwrap();
+        assert!(dart.contains("// @avp pays-once"));
+    }
+
+    #[test]
     fn a_migrated_repository_needs_no_second_pass() {
         let dir = tempfile::tempdir().unwrap();
         write(
