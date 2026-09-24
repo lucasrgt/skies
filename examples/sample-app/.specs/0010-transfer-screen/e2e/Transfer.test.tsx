@@ -12,10 +12,13 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-// The View is imported per case, not at the top: on the red revision the module does not exist yet, and a top-level
-// import would fail the file before any case is named, so the receipt could not tell which failure modes failed.
+// The View is imported per case, from a path Vite does not resolve ahead of time: on the red revision the module does
+// not exist yet, and a static import would fail the whole file before any case is named, so the receipt could not
+// tell which failure modes failed. Each case now fails on its own, for the missing screen.
+const VIEW = "../../../frontend/web/src/transfer/Transfer.view";
+
 async function renderScreen() {
-  const { TransferView } = await import("../../../frontend/web/src/transfer/Transfer.view");
+  const { TransferView } = (await import(/* @vite-ignore */ VIEW)) as typeof import("../../../frontend/web/src/transfer/Transfer.view");
   render(<TransferView />, { wrapper });
 }
 
