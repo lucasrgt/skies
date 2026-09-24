@@ -69,7 +69,10 @@ impl Paths {
 /// A shell command that runs one spec's E2E and writes a JUnit or TRX report.
 ///
 /// Placeholders: `{id}` (the spec id, e.g. `0012`), `{dir}` (the spec's e2e folder, relative to the root),
-/// `{spec}` (the spec folder name), and `{report}` (the report path the engine reads back).
+/// `{spec}` (the spec folder name), `{report}` (the absolute report path the engine reads back), and `{evidence}`
+/// (an absolute folder for screenshots and logs that end up in the spec's evidence/). The command runs through the
+/// platform shell with the checkout's project root as its working directory; its exit code is not interpreted,
+/// only the report is.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Runner {
