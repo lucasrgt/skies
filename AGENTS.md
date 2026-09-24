@@ -25,9 +25,9 @@ cli/                               The `skies` binary (Rust): scaffolders, docto
 src/Skies.Framework.*/             .NET runtime packages: Abstractions, AspNetCore, Auth, EF Core, ports, Testing.
 analyzers/Skies.Framework.Doctor/  SHIPPED SKY#### Roslyn rules (architecture only) + the CA* security floor.
 analyzers/Skies.Framework.SelfHarness/  FRAMEWORK-DEV ONLY SKYSELF#### rules on our own .NET code. Never shipped.
-frontend-sdk/packages/             @skiesjs/react (spine) and @skiesjs/eslint-plugin (SKYFE### rules).
-flutter-sdk/packages/skies_flutter/  The Flutter spine.
-examples/sample-app/               The reference app: Wallets backend, MVVM frontend, and .specs/ with receipts.
+frontend-sdk/packages/             @skiesjs/react (spine) and @skiesjs/eslint-plugin (SKYFE### rules): React for the web.
+flutter-sdk/packages/skies_flutter/  The Flutter spine: Flutter for mobile, and for the web too.
+examples/sample-app/               The reference app: Wallets backend, React web package, and .specs/ with receipts.
 docs/                              Conventions (backend, frontend, Flutter), monorepo, migration, decisions.
 skies-plugin/                      The agent plugin shipped to applications: the skies-sdd skill and context.
 .specs/                            This repository's own specs (the Skies 5 plan lives in 0008).

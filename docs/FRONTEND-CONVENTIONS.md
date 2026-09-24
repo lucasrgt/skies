@@ -2,8 +2,12 @@
 
 The frontend harness is the **same soul as the doctor, a different body**. Same mentality —
 convention over configuration, semantic density, enforcement that an LLM cannot drift past —
-but the body is plain, idiomatic **React Native / TypeScript** (the app is **mobile**), not C#,
-and the harness is a separate, optional, TS-world tool, not the Roslyn doctor.
+but the body is plain, idiomatic **React / TypeScript for the web**, not C#, and the harness is a
+separate, optional, TS-world tool, not the Roslyn doctor.
+
+Mobile is Flutter. A Skies product ships its phone apps (and, when it wants one codebase for every
+surface, its web app too) in Flutter, with the same guarantees spelled in Dart: see
+[FLUTTER-CONVENTIONS.md](FLUTTER-CONVENTIONS.md). This file is the React web body.
 
 It exists to kill one class of failure the backend already designed out: **the AI says "it's
 done" and ships a screen rendering mocked data.** That failure is documented in our own history
@@ -18,7 +22,7 @@ Ground every frontend convention here, never memory. The backend constitution is
 
 ## The two laws — restated for the frontend
 
-1. **Stranger-maintainable.** The output is always plain, idiomatic React Native that an RN dev
+1. **Stranger-maintainable.** The output is always plain, idiomatic React that a React dev
    who has never heard of Skies can read and maintain. This is why MVVM lives here as a
    *naming discipline over custom hooks*, never as a framework (no classes, no observables, no
    two-way binding — that is Angular/WPF idiom imported into React, and it fails this law).
@@ -33,41 +37,27 @@ compiler) and aerocoding (died generating artifacts for features that did not ex
 
 ---
 
-## The stack — opinionated, mobile (the "envenenada")
+## The stack — opinionated, web
 
-The body is **React Native**, because Hostpoint is a mobile app. The choices are pre-made so the AI decides
-less (Rails-in-RN):
+The choices are pre-made so the AI decides less:
 
-- **Expo** — the opinionated RN distribution (the managed toolchain, OTA, native modules without ejecting).
-  Blazor/MAUI were weighed and rejected as too immature for this surface.
-- **expo-router** — file-based navigation under `app/`, convention over configuration. It is the **only**
-  router; screens are routes, a route renders exactly one View.
-- **TanStack Query** — all server state (RN-native; cache, mutation, status). It is the Model.
+- **React + TypeScript strict** — `tsc` is part of the doctor; it is what makes "wired" decidable.
+- **A router with typed routes** — TanStack Router (its generated route tree) or React Router (its generated
+  route types). Route files live under an `app/` tree; screens are routes, a route renders exactly one View. The
+  routing rules recognize both routers' idioms and depend on neither.
+- **TanStack Query** — all server state (cache, mutation, status). It is the Model.
 - **orval** (target `react-query`) — generates the typed slice-hooks from the .NET API's OpenAPI
-  (`/openapi/v1.json`). RN-agnostic output; the same wire works on device.
+  (`/openapi/v1.json`).
 - **zod** + **react-hook-form** — input schemas + form state.
-- **TypeScript strict** — `tsc` is part of the doctor; it is what makes "wired" decidable.
-- **Vitest** (jsdom) — the test runner for the **platform-agnostic core**: ViewModels (render-agnostic hooks,
-  exercised with `@testing-library/react`'s `renderHook` — no RN runtime), the generated client, types, schemas.
-  *Not* jest-expo: rendering RN components is out of scope (the View is thin by convention), and Vitest is
-  faster, one runner, and the same cases cover a future web client. Its cases live in specs, never beside the
-  code (see [Specs](#specs--every-test-lives-in-one)).
+- **Vitest** (jsdom) — the runner for a screen's ViewModel and View: a ViewModel is a hook, exercised with
+  `@testing-library/react`'s `renderHook`; a View renders against the app's own component kit in jsdom. Its cases
+  live in specs, never beside the code (see [Specs](#specs--every-test-lives-in-one)). Playwright drives the
+  browser when a failure mode needs the real page.
 
-expo-router (the route tree) and the feature triple compose: a route file under `app/` is a thin shell that
-renders one feature's `*.view.tsx`; the feature folder holds the view and its model (its cases live in a spec). Navigation is the router's
-job; data is the ViewModel's. Two seams, never crossed.
-
-### The shared core — the View is the only platform-specific layer
-
-Everything below the View — the ViewModel (a render-agnostic hook), the generated client, the contract types,
-the schemas — is **pure TypeScript with no platform dependency** (`SKYFE009` enforces it). So the core is
-**shareable web↔mobile**: a future web client (React + react-dom) and this mobile app (RN) consume the *same*
-ViewModels + client + types; only the Views differ. And it is **tested once, in Vitest** (jsdom), since none of
-it touches a native runtime. Platform capabilities (storage, navigation, push, camera) are **injected ports**
-(the frontend's `IFileStorage`), wired by each platform's View/shell — never imported into the ViewModel. This
-is the predecessor's "audience/platform projection" done as plain shared TS + thin per-platform Views, not a
-bespoke compiler. Physically extracting a `core` package is a `move` when the web client lands (YAGNI until
-then); the discipline holds from day one.
+The route tree and the feature triple compose: a route file under `app/` is a thin shell that renders one
+feature's `*.view.tsx`; the feature folder holds the view and its model (its cases live in a spec). Navigation is
+the router's job; data is the ViewModel's. Two seams, never crossed. Browser capabilities a ViewModel needs
+(storage, clipboard, geolocation) enter as injected ports, so the ViewModel stays a plain hook its case can drive.
 
 ---
 
@@ -94,7 +84,7 @@ features/<zone>/<name>/
 - **The ViewModel is a plain custom hook**, never a class: `useDepositModel(params) → { state,
   ...commands }`. Custom hooks *are* React's idiomatic way to extract logic — you get the MVVM
   seam without betraying the grain.
-- **The ViewModel is render-agnostic** — no JSX, no `react-dom`. It is unit-testable without
+- **The ViewModel is render-agnostic** — no JSX, no `react-dom`. It is testable without
   rendering, exactly as a backend `Handle` is HTTP-agnostic and testable without a host.
 - **The View is pure render.** It owns no data access at all; it is a function of the
   ViewModel's return. This makes the View **mock-free by construction** — the harness never has
@@ -135,20 +125,21 @@ rule (the frontend analog of the old `API-HANDLER-UNWIRED-001`: no silent 404).
 ```
 client.gen/              # GENERATED — never edited by hand, committed verbatim
   <slice>.gen.ts         #   one typed TanStack hook per slice (useDeposit, …)
-skies.client.ts         # the orval mutator — unwraps Result<T>, injects auth, maps error→state
+lib/skies-client.ts      # the orval mutator — injects auth, unwraps the body, maps error→state
 lib/query.ts             # the QueryClient factory — the write-side mutation defaults (SKYFE027, below)
 lib/feedback.ts          # the feedback seam — one door for toasts; the shell wires the sink at boot
-orval.config.ts          # the shipped convention config — the "poison" lives here
+orval.config.ts          # the shipped convention config
 ```
 
-- **The generator is stock, wrapped — never bespoke.** The app's `npm run gen:client` runs **orval**
+- **The generator is stock, wrapped — never bespoke.** `skies g client` runs **orval**
   (target `react-query`) under our config. We do not own a compiler; we wire an existing one.
   Building our own OpenAPI→TS→TanStack generator *is* the bespoke-compiler gesture — re-solving parsing
   and emission that orval already maintains, tests, and edge-cases for free.
-- **The opinion lives in config + convention, not in a fork.** The "envenenada" is two things:
-  the `orval.config.ts` we ship and the **mutator** (`skies.client.ts` — the typed Skies
-  client: `Result<T>` unwrap, auth, error mapping). This mirrors the back exactly — we do not
-  fork EF Core; we use it stock and direct, and the opinion is the slice convention + the doctor.
+- **The opinion lives in config + convention, not in a fork.** It is two things: the `orval.config.ts`
+  we ship and the **mutator** (`lib/skies-client.ts` — the typed Skies client: auth, the injectable base
+  URL, the `X-Client: web` header that turns on the cookie session, error mapping). This mirrors the back
+  exactly — we do not fork EF Core; we use it stock and direct, and the opinion is the slice convention +
+  the doctor.
 - **The generated layer is boring on purpose.** All semantic density lives *above* it, in the
   hand-written ViewModel. Never poison the generated hooks.
 - **One backend micro-convention makes the 1:1 clean.** The slice's `Map` names its endpoint —
@@ -157,9 +148,9 @@ orval.config.ts          # the shipped convention config — the "poison" lives 
   in between. (`SKY0012` enforces it: endpoint name = slice name.)
 - **Audience filters the client at the generator, not the rule.** orval is configured to include only
   endpoints tagged for *this* frontend's audience (`app`). Webhooks, internal/server-to-server, and
-  other-audience endpoints carry a different `[Endpoint(...)]` kind (below), are tagged accordingly, and
-  never enter `client.gen/`. The noise is removed in the plumbing (config of a stock tool). This is the old
-  skies's "audience SDK projection", done by tool config instead of a bespoke compiler.
+  browser-asset endpoints carry a different `WithEndpointKind(EndpointKind.X)` kind (below), are tagged
+  accordingly, and never enter `client.gen/`. The noise is removed in the plumbing (config of a stock tool).
+  This is the old skies's "audience SDK projection", done by tool config instead of a bespoke compiler.
 
 ---
 
@@ -210,10 +201,9 @@ const { items, hasMore } = acc.fold(query.data?.reviews);
   (a stable cache identity — a page object rebuilt inline every render re-folds forever) and project
   items for display *after* folding, never before.
 - **Guard the load-more button with `isFetching`** (the pilot's `loadingMore`): the fetch-agnostic hook
-  cannot see in-flight state, and a double-tap would otherwise skip a page.
+  cannot see in-flight state, and a double-click would otherwise skip a page.
 - **Which hook**: the numbered pager when the user *navigates* the set (admin tables, search — `q`
-  belongs here); the accumulated fold when the user *consumes* the set head-first (feeds, reviews,
-  mobile sheets).
+  belongs here); the accumulated fold when the user *consumes* the set head-first (feeds, reviews).
 - `keepPreviousData` is the default posture for both — no blink to a spinner between pages — and it is
   exactly why `useAccumulatedPages` keeps the identity of the last folded page across a `resetKey`
   change: the lingering placeholder page must not fold into the new accumulation.
@@ -228,10 +218,9 @@ compiler keeps us off a hand-rolled form engine: RHF gives uncontrolled inputs +
 subscriptions (no whole-form re-render per keystroke), dirty/touched/validation state, and one
 submit path. Reimplementing that is the gesture the framework forbids.
 
-- **The `useForm` lives in the ViewModel.** It is form *logic*, not rendering, and RHF's core
-  imports no `react-native` — so the ViewModel stays platform-agnostic (`SKYFE009`) and the same
-  form would back a web client. The ViewModel exposes `control` + a `submit`; panels bind their
-  slice with `<Controller>`. The View layer stays the only platform-specific piece.
+- **The `useForm` lives in the ViewModel.** It is form *logic*, not rendering. The ViewModel exposes
+  `control` + a `submit`; panels bind their slice with `<Controller>`, and the form's rules are tested
+  through the ViewModel.
 - **Validation is grounded in the contract.** The field *shape* and closed enums are already
   enforced at compile time by the form type (built from the generated enums) and at runtime by the
   controlled pickers — an invalid enum value cannot be produced. The zod resolver adds only what
@@ -330,25 +319,24 @@ real failure (an empty `onError` stays flagged by `SKYFE013` regardless).
 
 ## Session restore — one rotation path (SKYFE029)
 
-The refresh credential — an httpOnly cookie on web, a secure-stored token on native — is **burned
-by parallel rotation**: the backend's theft detection sees a spent token replayed and revokes the
-whole session family. So session restore is a **one-door** discipline, the SKYFE002/016 shape
+The refresh credential — an httpOnly cookie the browser sends with the refresh request, invisible to page script
+by design — is **burned by parallel rotation**: the backend's theft detection sees a spent token replayed and
+revokes the whole session family. So session restore is a **one-door** discipline, the SKYFE002/016 shape
 applied to rotation:
 
 - **The one door: the session seam's `bootstrapSession`, injected into the client interceptor.** The
   scaffolded mutator (`lib/skies-client.ts`) ships `setTokenRefresher(fn)` and an interceptor that, on a
   401 outside the auth routes, calls the injected refresher once and replays the request. The shell registers
   the seam's `bootstrapSession` as that refresher at boot (`setTokenRefresher(session.bootstrapSession)`), so
-  the rotation logic — **single-flight**, cookie (web: empty post) AND body (native: stored token) alike —
-  lives in exactly one place, the seam, never forked into the transport file. A cold load and a mid-session
-  expiry both restore transparently inside the first attempt: no anonymous flash, no bounce to login, and a
-  genuinely anonymous caller settles to 401 at once (pair it with a no-retry-on-401 read policy in the
-  QueryClient's `defaultOptions`).
-- **The same door at boot (native/body-mode): the gated bootstrap.** The stored refresh token is exchanged
-  once at app start through the very same `bootstrapSession`, with navigation gated on `ready` so nothing else
-  is in flight. One deliberate rotation, then the app proceeds — the interceptor and the boot share the seam's
-  single-flight, so the two never rotate in parallel.
-- **Never both.** A bootstrap probe in the session seam *and* a 401 interceptor in the client both
+  the rotation logic — **single-flight**, an empty post the cookie rides — lives in exactly one place, the seam,
+  never forked into the transport file. A mid-session expiry restores transparently inside the first attempt: no
+  anonymous flash, no bounce to login, and a genuinely anonymous caller settles to 401 at once (pair it with a
+  no-retry-on-401 read policy in the QueryClient's `defaultOptions`).
+- **The same door at boot: the gated bootstrap.** An F5 drops the in-memory bearer while the cookie survives, so
+  the app root runs `useSession(session.bootstrapSession)` and gates the navigator on `ready`: one deliberate
+  rotation before any route fires an authed request. The interceptor and the boot share the seam's single-flight,
+  so the two never rotate in parallel.
+- **Never two doors.** A bootstrap probe in the session seam *and* a hand-rolled refresh in the client both
   fire on a cold load — two parallel rotations, one burned family. A pilot shipped each half in the
   same week from different branches; the merge is where the race was caught. `SKYFE029` closes the
   door mechanically: the refresh hook/operation (and any hand-rolled POST to a refresh route) is
@@ -381,7 +369,7 @@ without the wipe:
 ```ts
 export const session = createSessionSeam({
   setAccessToken,
-  refresh: (token) => refresh({ refreshToken: token }),
+  refresh: () => refresh(), // the refresh cookie rides the request
   onSessionChanged: () => queryClient.resetQueries({ queryKey: getMeQueryKey() }), // rotation — light
   onIdentityChanged: () => queryClient.clear(),                                    // identity — total
 });
@@ -422,13 +410,13 @@ guardSession(session, { allow: "anonymous", redirectTo: "/home" });      // publ
 
 `loading → wait` (the bounce-to-login case `SessionState` exists to make unspellable), allowed → `render`,
 rejected → `redirect`. The app binds it to its router **once**, in a ~10-line component wiring the splash
-+ the router's `<Redirect>`/`<Navigate>`, and writes `<AuthRoute>` / `<GuestRoute>` from the same body —
++ the router's `<Navigate>`, and writes `<AuthRoute>` / `<GuestRoute>` from the same body —
 so the guest-guard stops being something to remember and becomes a flag on a shared primitive.
 
 > **No SKYFE rule for the *absent* guard.** A solid "this public auth route has no guest-guard" rule was
 > evaluated and **not shipped**: the signal is split across files the single-file linter can't correlate.
 > `signIn` is called in the login *ViewModel* (the data door), while the guest-guard lives in the route's
-> *layout* (`app/(auth)/_layout.tsx`) — two files away, and the idiomatic layout-guard placement means a
+> *layout* (a pathless auth layout route) — two files away, and the idiomatic layout-guard placement means a
 > per-file rule flagging the login screen for "not self-wrapping" would false-positive every correctly
 > guarded app. `SKYFE018` works only because its param read and its redirect are co-located in one route
 > file; this isn't. Forcing the heuristic would trade the framework's near-zero-false-positive bar for
@@ -438,7 +426,7 @@ so the guest-guard stops being something to remember and becomes a flag on a sha
 
 ## Session resilience — the four ways an auth session breaks, and the spine's answer
 
-Auth is treacherous on the read path too: a session expires, a network flaps on an F5, a cold start
+Auth is treacherous on the read path too: a session expires, a network flaps on an F5, a cold load
 double-fires, a role gate is forgotten. Four spine primitives, each born from a confirmed pilot failure,
 each enforced by the spine contract:
 
@@ -450,21 +438,21 @@ each enforced by the spine contract:
   timeout below so a permanently-down API cannot pin the splash.
 
 - **A hung bootstrap must not pin the splash forever.** `useSession(bootstrap, { timeoutMs })` arms a
-  fallback: a boot rotation that never settles (a dead socket on cold-start) would otherwise hold the
+  fallback: a boot rotation that never settles (a dead socket on a cold load) would otherwise hold the
   navigator on the splash with no path to login. After `timeoutMs` the gate opens and the guard decides; a
   late success still set its token first. Omitted ⇒ the original wait-forever.
 
-- **A cold start fires one rotation, not two.** `bootstrapSession` is now wrapped in `singleFlight`: React
+- **A cold load fires one rotation, not two.** `bootstrapSession` is wrapped in `singleFlight`: React
   StrictMode double-invokes effects in dev, and the boot can race the client's 401-interceptor — two refresh
   rotations replay the spent token and the backend's theft-detection burns the whole family (the `SKYFE029`
   hazard, at boot). `singleFlight(fn)` collapses concurrent callers into one in-flight execution (the gate
   reopens on settle, resolve *or* reject). The seam's `bootstrapSession` is wrapped with it, and the client's
   401 interceptor shares that one gate by calling `bootstrapSession` through the injected `setTokenRefresher`
   — the single-flight refresh gate is a spine primitive, registered once, not a per-app hand-roll. Coalesced callers
-  share the first call's result, which is exactly right for a rotation (the credential rides the cookie/store,
-  not the argument) — never wrap a per-argument operation with it.
+  share the first call's result, which is exactly right for a rotation (the credential rides the cookie, not an
+  argument) — never wrap a per-argument operation with it.
 
-- **A role gate is the same guard, carrying a predicate.** `guardSession`'s `allow` now also accepts
+- **A role gate is the same guard, carrying a predicate.** `guardSession`'s `allow` also accepts
   `(user) => boolean` — a capability/role gate (`allow: (u) => u.role === "admin"`). Authorization is a fact
   about the user **data**, not a second identity axis (the invariant: *auth = one identity, authz =
   capability*), so a role-guarded route is one flag on the shared primitive, never a bespoke hand-rolled
@@ -476,32 +464,29 @@ each enforced by the spine contract:
 ## Endpoint kinds — the wiring vocabulary
 
 Not every endpoint should have a frontend wiring, and that is not a rare exception (webhooks, internal
-server-to-server, OAuth redirects, other-audience admin panels). So the framework classifies an endpoint's
-**nature** with a closed-vocabulary marker — `[Endpoint(...)]` — pulled from the same `[Slice]` shape that
-drives everything else. This is **classification, not suppression**: it does not say "ignore the rule here",
-it says "this endpoint *is* a webhook", and the harness derives that a webhook has no UI wiring.
+server-to-server, OAuth redirects, browser-loaded assets). So the framework classifies an endpoint's **nature**
+with a closed vocabulary — `WithEndpointKind(EndpointKind.X)` on the slice's `Map` (a builder call from
+`Skies.Framework.AspNetCore`, because a minimal-API handler is a lambda that cannot carry a class attribute to the
+endpoint). This is **classification, not suppression**: it does not say "ignore the rule here", it says "this
+endpoint *is* a webhook", and the harness derives that a webhook has no UI wiring.
 
-- **Opt-out, not opt-in.** The default is `App` — app-facing. The legitimate exception (a webhook) costs one
-  marker. (This
-  is right *because* a Skies app is UI-first/mobile — app-facing is dominant. An API-first product would
-  reconsider.)
-- **One classification, many derivations.** A single endpoint-nature marker on the slice feeds: orval
-  (audience filter → non-app endpoints leave the client) and a future
-  backend doctor rule (a `Webhook` must verify its signature / be idempotent). One declaration, several
-  enforcements; intent flowing back→front.
+- **Opt-out, not opt-in.** The default is `EndpointKind.App` — app-facing — and needs no call. The legitimate
+  exception (a webhook) costs one call. This is right *because* a Skies app is UI-first — app-facing is dominant.
+  An API-first product would reconsider.
+- **One classification, many derivations.** The kind tags the endpoint in OpenAPI (`AddSkiesOpenApi`), and orval's
+  audience filter drops the non-app kinds from the client; a future backend doctor rule can hold a `Webhook` to
+  verifying its signature / being idempotent. One declaration, several enforcements; intent flowing back→front.
 - **Closed enum of natures, zero behavior params** — the guard-rail against the mini-language the constitution
   forbids. The marker says *what it is*; the `Handle` says *what it does*.
-  - `(default)` → `App` — app-facing; must be wired.
-  - `[Endpoint(Asset)]` → a browser-loaded file/image URL carried by another contract; never a data operation.
-  - `[Endpoint(Webhook)]` → third-party callback; never UI.
-  - `[Endpoint(Internal)]` → server-to-server; outside any client.
+  - (no call) → `EndpointKind.App` — app-facing; must be wired.
+  - `WithEndpointKind(EndpointKind.Asset)` → a browser-loaded file/image URL carried by another contract; never a
+    data operation.
+  - `WithEndpointKind(EndpointKind.Webhook)` → third-party callback; never UI.
+  - `WithEndpointKind(EndpointKind.Internal)` → server-to-server; outside any client.
   - Multiple app audiences are separate manifest surfaces whose source roots are checked as one product union.
-  - Forbidden: `[Webhook(Retries = 3, Signature = "hmac")]` — config-as-annotation is the fattening that
-    killed earlier scenarios. Retry/signature/idempotency live in the `Handle`, visibly, never in the mark.
-- **The .NET spelling is a builder call, not a class attribute.** A minimal-API handler is a lambda; a `[Endpoint]`
-  attribute on the slice class can't reach the endpoint metadata. So the marker is `.WithEndpointKind(EndpointKind.Webhook)`
-  on the slice's `Map` (framework extension, `Skies.Framework.AspNetCore`) — it tags the endpoint, and `AddSkiesOpenApi` /
-  the orval audience filter carry the nature into the client. `App` is the default and needs no call (opt-out).
+  - Forbidden: a kind that carries configuration (`Webhook(Retries = 3, Signature = "hmac")`) — config-as-annotation
+    is the fattening that killed earlier scenarios. Retry/signature/idempotency live in the `Handle`, visibly,
+    never in the mark.
 
 ---
 
@@ -511,7 +496,7 @@ When the backend drives a navigation (a pending-task card, a CTA), the contract 
 action** as a closed enum; the client owns **where that goes**. A route string crossing the
 server→client boundary (`ctaTarget: "/host/properties/new"`) is the documented anti-pattern: it is
 runtime data — invisible to OpenAPI, to `tsc`, and to typed routes — and a pilot shipped it to prod
-(two server-minted routes didn't exist in the app → 404 on tap; the backend half of this convention
+(two server-minted routes didn't exist in the app → 404 on click; the backend half of this convention
 lives in [CONVENTIONS.md](CONVENTIONS.md) §"The contract never mints a client route").
 
 The client-side shape is a `Record` over the **generated** enum, so both failure modes die in the
@@ -520,20 +505,20 @@ typecheck:
 ```ts
 import { PendingKind } from "@/client.gen/model"; // the closed enum, generated from the contract
 
-const PENDING_ROUTE: Record<PendingKind, Href> = {
+const PENDING_ROUTE: Record<PendingKind, AppRoute> = { // AppRoute: the router's typed path union
   [PendingKind.CompleteListing]: "/host/properties/new",
   [PendingKind.AcceptTerms]: "/onboarding/host/intermediation-terms",
 };
 // exhaustiveness: a NEW kind breaks this Record until it is mapped (no silent dead card);
 // validity: each value is a typed route (typed routes on), so a drifted literal does not compile.
-const openPending = (p: Pending) => router.push(PENDING_ROUTE[p.kind]);
+const openPending = (p: Pending) => navigate({ to: PENDING_ROUTE[p.kind] });
 ```
 
 This composes with `SKYFE030`: typed routes make the `Record`'s values compile-checked, and the
-no-cast rule keeps anyone from smuggling a raw server string into `router.push` anyway. **The
-config pair matters** — expo-router needs `experiments.typedRoutes` on (TanStack gets it from its
-generated route tree); without typed routes the rule still bans the cast, but the literal degrades
-to an unchecked `string`.
+no-cast rule keeps anyone from smuggling a raw server string into `navigate` anyway. **The config
+pair matters** — TanStack Router gets typed routes from its generated route tree, React Router from its
+generated route types; without typed routes the rule still bans the cast, but the literal degrades to an
+unchecked `string`.
 
 ---
 
@@ -552,12 +537,11 @@ own, and is doctor-removable (deleting the generator does not touch existing fil
 *is* the source. **Source-gen** runs every build, owns its output, clobbers your edits, and the
 behavior lives in the generator, not the file.
 
-The one-shot scaffold shape is the `view`/`viewModel`/`test` triple with the **types fiber from the contract** and
-the behavior left visible for the application to write — a starting point, never an owner. The current `skies` CLI
-does not advertise a frontend generator; create these plain files rather than relying on a phantom command.
-Explicitly **out**, on the same law: the predecessor's "smart stubs" that pre-filled the body
-with the "correct" runtime call. That delegates behavior; it is the frontend twin of the
-"runtime framework you inherit from" the back rejects.
+`skies g feature <Name>` scaffolds the `view`/`viewModel`/`i18n` unit once, with the **types fiber from the
+contract** and the behavior left visible for the application to write — a starting point, never an owner. Tests
+are not scaffolded: a feature's cases live in its spec, written against its failure modes. Explicitly **out**, on
+the same law: the predecessor's "smart stubs" that pre-filled the body with the "correct" runtime call. That
+delegates behavior; it is the frontend twin of the "runtime framework you inherit from" the back rejects.
 
 If the contract changes, the generated `*.gen.ts` regenerates (plumbing) and `tsc` breaks the
 ViewModel where it is now wrong — you fix it by hand. The type enforces the drift; you own the
@@ -574,36 +558,40 @@ a `.mjs` scanner for exactly this, the tell that Biome's custom plugins are not 
 
 With the MVVM seam, the policed surface collapses to **the ViewModel** — the View is mock-free
 by construction, and completeness is the compiler. Every rule is born from observed pain
-(hostpoint's port + the predecessor's wiring rules), never speculation.
+(hostpoint's port + the predecessor's wiring rules), never speculation. The routing rules
+(`SKYFE015`–`019`, `022`, `030`) recognize TanStack Router and React Router idioms; they police a shape, not a
+router runtime.
 
 | Rule | Enforces | Status | Origin |
 |------|----------|--------|--------|
 | `SKYFE001` | View purity — a `*.view.tsx` imports no data layer (generated hooks, the client, `fetch`/`axios`); it consumes its ViewModel. Type-only imports of the contract are exempt | **shipped** | the wired-only seam — keeps the View mock-free |
-| `SKYFE002` | ViewModel is the only data door — only `*.viewModel.ts` (plus the auth/routing infra seams, `lib/session`/`lib/guards`) may consume generated operations. Re-exporting them (`export … from "client.gen"`) outside the doors is the laundering bypass, also flagged; contract types and generated enum values stay free. The ESLint rule gives editor feedback, while `skyfe-endpoint-coverage` independently scans every configured source root and fails off-door operations even if a consumer accidentally narrows the ESLint rule's file scope | **shipped** | one data path, one policed surface |
+| `SKYFE002` | ViewModel is the only data door — only `*.viewModel.ts` (plus the auth/routing infra seams, `lib/session`/`lib/guards`) may consume generated operations. Re-exporting them (`export … from "client.gen"`) outside the doors is the laundering bypass, also flagged; contract types and generated enum values stay free | **shipped** | one data path, one policed surface |
 | `SKYFE003` | **No mock in production code** — no import from `**/__mocks__`/`**/fixtures`/MSW outside `*.test.*` | **shipped** | hostpoint: `WAR-*` storybook fixtures shipped as data |
-| `SKYFE004` | ViewModel is render-agnostic — a `*.viewModel.ts` imports no JSX/`react-dom` | planned | keeps the ViewModel unit-testable without rendering |
+| `SKYFE004` | ViewModel is render-agnostic — a `*.viewModel.ts` imports no JSX/`react-dom` | planned | keeps the ViewModel testable without rendering |
 | `SKYFE007` | Mandatory states — a ViewModel exposing server data exposes `loading` + `error` + `empty` | planned | visible failures need an explicit state |
-| `SKYFE009` | **ViewModel is platform-agnostic** — a `*.viewModel.ts` imports no `react-native`/`expo-*` (value *or* type); platform capabilities are injected ports | **shipped** | keeps the ViewModel + core shareable web↔mobile and Vitest-testable |
 | `SKYFE010` | **State completeness** — a `*.view.tsx` routes loading/error/empty through `<Resource>` (the spine), not raw `isPending`/`isError` | **shipped** | every async state handled by construction, not a hand-rolled branch that forgets one |
-| `SKYFE011` | **i18n parity** — every locale object in a `*.i18n.ts` declares the same keys, compared as **flattened paths** (`empty.title`) so a key missing inside a nested group is caught too; a key in one language but not its siblings is a silent untranslated string. Two mechanisms by layout: the `i18n-completeness` eslint rule when catalogs are in lint scope, `tools/i18n-parity.mjs` when they are cross-package | **shipped** | no string ships untranslated in any language |
+| `SKYFE011` | **i18n parity** — every locale object in a `*.i18n.ts` declares the same keys, compared as **flattened paths** (`empty.title`) so a key missing inside a nested group is caught too; a key in one language but not its siblings is a silent untranslated string | **shipped** | no string ships untranslated in any language |
 | `SKYFE013` | **Mutation surfaces its error** — a react-query `.mutate(...)`/`.mutateAsync(...)` in a ViewModel routes its failure somewhere (inline `onError`, a read `.isError` state, a try/catch or `.catch()` on `mutateAsync`, or a propagated return). An **empty** `onError: () => {}` is flagged too — the silent failure with paperwork. With the `SKYFE027` defaults wired, the app sets `{ globalSurface: true }`: the global `MutationCache.onError` IS the surface (react-query fires it regardless of per-call handlers), so a bare `.mutate()` passes and only the empty handler stays flagged | **shipped** | the front-side of the backend's `error_handling` — no silent failure, no `onError` theater |
-| `SKYFE014` | **No hardcoded copy** — user-facing JSX text + copy props (`placeholder`, `label`, `accessibilityLabel`…) in a View go through i18n (`t()`), not literals | **shipped** | feeds the catalog that `SKYFE011` then keeps complete |
-| `SKYFE015` | **No imperative redirect inside `useEffect`** — a redirect-on-state is declarative (`if (terminal) return <Redirect/Navigate … />`), never `router.replace`/`router.navigate`/a `useNavigate()` call in an effect: it runs after paint and re-fires every render (a flash on TanStack; on expo-router web the router freezes the source screen → an infinite navigation/refetch loop). `push`/`back` on a user action stay allowed. Scoped to the navigating layer (views + routes) | **shipped** | the pilot shipped this loop twice (Splash, then ChooseRole + 5 screens) before the rule existed |
-| `SKYFE016` | **Session one door** — the bearer token is written through one seam (`lib/session`, where the write is paired with a `me`-cache reset); a `*.viewModel`/`*.view` importing the token setter (`setAccessToken`…) directly — **or writing a token-ish key straight to storage** (`localStorage`/`AsyncStorage`/`SecureStore.setItem("…token…", …)`) — is the scattered write that forgets the reset | **shipped** | pauta: a forgotten reset after registration bounced the new user back to `/login` |
+| `SKYFE014` | **No hardcoded copy** — user-facing JSX text + copy props (`placeholder`, `label`, `title`, `aria-label`, `alt`…) in a View go through i18n (`t()`), not literals | **shipped** | feeds the catalog that `SKYFE011` then keeps complete |
+| `SKYFE015` | **No imperative redirect inside `useEffect`** — a redirect-on-state is declarative (`if (terminal) return <Navigate … />`), never `router.navigate`/a `useNavigate()` call in an effect: it runs after paint and re-fires every render (a flash at best; a navigation/refetch loop when the effect re-triggers a guard's query). Navigation on a user action stays allowed. Scoped to the navigating layer (views + routes) | **shipped** | the pilot shipped this loop twice (Splash, then ChooseRole + 5 screens) before the rule existed |
+| `SKYFE016` | **Session one door** — the bearer token is written through one seam (`lib/session`, where the write is paired with a `me`-cache reset); a `*.viewModel`/`*.view` importing the token setter (`setAccessToken`…) directly — **or writing a token-ish key straight to storage** (`localStorage`/`sessionStorage.setItem("…token…", …)`) — is the scattered write that forgets the reset | **shipped** | pauta: a forgotten reset after registration bounced the new user back to `/login` |
 | `SKYFE017` | **Guard tri-state** — a route guard redirects on a `SessionState` (`loading \| authenticated \| anonymous`), never a raw `isAuthenticated` boolean (which reads "still loading" as "signed out"). The read-side twin of `SKYFE010` | **shipped** | the bounce-to-login root cause: a boolean collapses the still-loading case |
-| `SKYFE018` | **Route param guard** — a route reading a required id param (expo-router `useLocalSearchParams`) guards its absence with a declarative redirect, so a param-less hit (bookmark / stale link) can't render a ghost screen on an empty id. The spine's `requiredParam()` union (`missing \| ready`) is the blessed guard shape (`if (id.status === "missing") return <Redirect/>`), recognized beside the bare `!id` form | **shipped** | hostpoint: a param-less `/messaging/chat` rendered an empty "ghost" thread |
-| `SKYFE019` | **Safe back** — no bare `router.back()`/`history.back()`; Back goes through a guarded helper (the spine's `safeBack` / an app `useGoBack`) that falls back to a parent when there's no in-app history | **shipped** | hostpoint: deep-linked screens had a dead "Voltar" button (~13 screens migrated) |
-| `SKYFE020` | **No hardcoded API base URL** — the base URL comes from configuration (env `VITE_API_URL`/`EXPO_PUBLIC_API_URL`, a relative base, or an injected default), never a host baked into `axios.create({ baseURL: "http://…" })`. The backend pins its dev port in `launchSettings`, so the two agree by construction | **shipped** | pauta: the front baked `:8080` while the API ran on the .NET default `:5000` → `me` 404'd → the registered user bounced to login |
+| `SKYFE018` | **Route param guard** — a route reading a required id param through a loose `useParams()` (React Router's bare call, TanStack's `{ strict: false }`) guards its absence with a declarative redirect, so a param-less hit (bookmark / stale link) can't render a ghost screen on an empty id. The spine's `requiredParam()` union (`missing \| ready`) is the blessed guard shape (`if (id.status === "missing") return <Navigate/>`), recognized beside the bare `!id` form. A strict TanStack read is guaranteed by the matched route | **shipped** | hostpoint: a param-less `/messaging/chat` rendered an empty "ghost" thread |
+| `SKYFE019` | **Safe back** — no bare `history.back()` (on `window.history` or TanStack's `router.history`) or React Router `navigate(-1)`; Back goes through a guarded helper (the spine's `safeBack` / an app `useGoBack`) that falls back to a parent when there's no in-app history | **shipped** | hostpoint: deep-linked screens had a dead "Voltar" button (~13 screens migrated) |
+| `SKYFE020` | **No hardcoded API base URL** — the base URL comes from configuration (env `VITE_API_URL`, a relative base, or an injected default), never a host baked into `axios.create({ baseURL: "http://…" })`. The backend pins its dev port in `launchSettings`, so the two agree by construction | **shipped** | pauta: the front baked `:8080` while the API ran on the .NET default `:5000` → `me` 404'd → the registered user bounced to login |
 | `SKYFE021` | **No raw HTML** — no `dangerouslySetInnerHTML` outside the one audited seam (`lib/html`). JSX escapes by construction; raw HTML is the XSS door, and if the app renders rich HTML (a CMS body) the sanitizer lives in that seam, reviewable | **shipped** | the single React opt-out of escaping must not scatter across screens |
-| `SKYFE022` | **No open redirect** — never navigate to a value that arrived in the URL (`router.replace(returnTo)` / `location.href = next` off `useLocalSearchParams`/`useSearch`/`useSearchParams`); map the param through an **allowlist** of known in-app routes first | **shipped** | the phishing primitive: a crafted link sends the session-carrying browser anywhere the attacker chose |
+| `SKYFE022` | **No open redirect** — never navigate to a value that arrived in the URL (`navigate({ to: returnTo })` / `location.href = next` off `useSearch`/`useSearchParams`); map the param through an **allowlist** of known in-app routes first | **shipped** | the phishing primitive: a crafted link sends the session-carrying browser anywhere the attacker chose |
 | `SKYFE023` | No orphan placeholder — `// wire later`, `TODO`/`FIXME`, `WAR-*`, or `@ts-expect-error` on a data call | planned | mirror of `SKYSELF002` — "almost done" is not done (renumbered as shipped rules claimed the lower slots) |
 | `SKYFE027` | **QueryClient carries the mutation defaults** — every production `new QueryClient(...)` wires `mutationCache: new MutationCache({ onSuccess, onError })`: success invalidates every active query + posts the success note (`meta.silent` opts out of the note), failure routes through the feedback seam unconditionally. Tests and the shared test harness (`test/`, `test-utils/`) build bare clients freely. Scaffolded as `lib/query.ts` | **shipped** | pauta: a created category only appeared after F5, with no toast — 13 of 43 ViewModels had no invalidation at all |
 | `SKYFE028` | **No manual refetch ritual** — an `onSuccess` whose entire body is refetch/invalidate calls (inline, named, or `useCallback`-wrapped) duplicates the `SKYFE027` defaults; delete it. A handler that does *more* than refetch (navigate, reset, hand off an id) is behavior — never flagged. Warn-tier: reveals, does not gate | **shipped** | pauta: 30 of 43 ViewModels hand-rolled `onSuccess: refetch` — the convention the majority groped toward, pinned so the minority can't forget it |
 | `SKYFE029` | **Refresh one-door** — the refresh hook/operation (and any hand-rolled `POST` to a refresh route) is consumed only inside the rotation doors (`lib/skies-client`, `lib/session`); anywhere else is a second rotation path. Type-only imports stay free | **shipped** | pauta near-miss: a session-seam refresh bootstrap and a client 401 interceptor landed the same week from different branches — two cold-load rotations would have tripped the backend's theft detection and burned the session family |
-| `SKYFE030` | **No cast on a navigation target** — no `as never`/`as any`/`as unknown` on the argument of `router.push`/`replace`/`navigate` (or a `useNavigate()` call), nor on the `href`/`to` of `<Redirect>`/`<Navigate>`/`<Link>`. The cast exists to silence typed routes; silenced, a drifted route literal compiles clean and 404s in prod. Pass a typed literal or the `{ pathname, params }` object. **Config pair**: typed routes ON (expo-router `experiments.typedRoutes` / TanStack's route tree) — without it the removed cast merely degrades to `string`. Error-tier, routing family | **shipped** | hostpoint: ~8 call sites cast `router.push(x as never)`; when the backend minted two routes that didn't exist (the sibling convention), the muted router compiled them clean → prod 404 |
+| `SKYFE030` | **No cast on a navigation target** — no `as never`/`as any`/`as unknown` on the argument of `router.navigate` (or a `useNavigate()` call), nor on the `to` of `<Navigate>`/`<Link>`. The cast exists to silence typed routes; silenced, a drifted route literal compiles clean and 404s in prod. Pass a typed literal or the `{ to, params }` shape. **Config pair**: typed routes ON (TanStack's route tree / React Router's route types) — without it the removed cast merely degrades to `string`. Error-tier, routing family | **shipped** | hostpoint: ~8 call sites cast their navigation target to `never`; when the backend minted two routes that didn't exist (the sibling convention), the muted router compiled them clean → prod 404 |
 | `SKYFE031` | **Submit handles the invalid path** — in a `*.viewModel.ts`, a one-argument `handleSubmit(onValid)` is flagged: a validation failure runs no code (it happens *before* the mutation, so `SKYFE013`/`SKYFE027` never see it). Use the spine's `submitOrReveal(form.handleSubmit, onValid, { onInvalid })` — it forces the surface and resolves the first invalid field for the shell to navigate to — or pass `onInvalid` by hand. Warn-tier on entry (a single-screen form with visible inline errors is legitimate); promotes with `SKYFE032` | **shipped** | hostpoint: a 9-tab property editor's Save went completely mute when a hidden tab's field failed — no mutation, no toast, no error ("não está salvando a propriedade", in prod) |
-| `SKYFE036` | **Tests live in a spec** — a call to `test`/`it`/`describe` (or a member such as `test.describe`, `it.each([…])(…)`, `describe.skip`) imported from `vitest`, `@playwright/test`, `@jest/globals`, or `bun:test`, or used as a global, is flagged in any file whose path has no `.specs/` segment. Reported once per file. A local function that merely shares the name is not a test. It asks where a test lives, never that one exists | **shipped** | tests written as coverage after the code guarded nothing and proved nothing; the spec is the only place a test is tied to a failure mode and a red-then-green receipt |
 | `SKYFE032` | **Controller surfaces its fieldState** — a `<Controller>` whose inline `render` never reads `fieldState` (destructured or accessed) leaves that field's validation error with no surface; pass `error={fieldState.error?.message}` to the field component. Near-zero false positives (`error` on an unvalidated field is inert); a deliberately non-inline surface must still expose the same error state explicitly. Warn-tier, promoted together with `SKYFE031` — the pair makes "a validation error always shows" hold by construction | **shipped** | hostpoint: the Description input destructured only `{ field }` — its validation failure had no surface at all (same incident as SKYFE031) |
+| `SKYFE036` | **Tests live in a spec** — a call to `test`/`it`/`describe` (or a member such as `test.describe`, `it.each([…])(…)`, `describe.skip`) imported from `vitest`, `@playwright/test`, `@jest/globals`, or `bun:test`, or used as a global, is flagged in any file whose path has no `.specs/` segment. Reported once per file. A local function that merely shares the name is not a test. It asks where a test lives, never that one exists | **shipped** | tests written as coverage after the code guarded nothing and proved nothing; the spec is the only place a test is tied to a failure mode and a red-then-green receipt |
+
+The gaps in the numbering are rules Skies 5 removed. The latest is `SKYFE009`, which kept ViewModels free of React
+Native imports so web and native could share them; it went with the React Native track.
 
 The two directions are asymmetric, and that sets the severity: **front→back** (the UI calls an
 endpoint that doesn't exist) is never valid → a hard **error**, free from `tsc` (the hook isn't
@@ -621,10 +609,10 @@ generated code is committed, so a stale mirror shows up as a diff in review and 
 
 Frontend features are accepted the same way as backend ones: a spec folder under `.specs/` with its failure
 modes, cases in `e2e/`, and a receipt from `skies proof record` (see [CONVENTIONS.md](CONVENTIONS.md#specs-and-proofs)).
-The engine is the app's: Playwright on web, Vitest for a screen's View + ViewModel in jsdom, Maestro or
-`integration_test` on native. Declare a runner in `Skies.toml` that runs one spec folder and writes a JUnit report,
-and name each case after the failure mode it covers (`test("FM-3: an expired session lands on sign-in")`). Nothing in
-the ViewModel, the View, or a JSON manifest points at the spec.
+The engine is the app's: Playwright for the real browser, Vitest for a screen's View + ViewModel in jsdom. Declare a
+runner in `Skies.toml` that runs one spec folder and writes a JUnit report, and name each case after the failure
+mode it covers (`test("FM-3: an expired session lands on sign-in")`). Nothing in the ViewModel, the View, or a JSON
+manifest points at the spec.
 
 **A spec is the only home for a test** (`SKYFE036`). There is no `Foo.test.tsx` beside `Foo.viewModel.ts`: a test
 written as coverage guards nothing it names and never proved it can fail. An isolated system (a formatter, a
@@ -672,8 +660,8 @@ caveat, an invariant. If you're unsure whether a comment earns its place, delete
 
 User-facing copy is **never inlined** in a View; it goes through `react-i18next`. One i18next instance
 (`src/i18n`), pt-BR today. Each feature owns a **namespace** = its folder name, in a co-located
-`src/features/<feat>/<feat>.i18n.ts` (the `ptBR` export), assembled in `src/i18n/resources.ts`; shared
-copy (nav, generic actions) lives in the `common` namespace. A View reads `const { t } =
+`src/features/<feat>/<feat>.i18n.ts` (the `ptBR` export), assembled by `skies i18n` into
+`src/i18n/resources.generated.ts`; shared copy (nav, generic actions) lives in the `common` namespace. A View reads `const { t } =
 useTranslation("<feat>")` and renders `t("some.key")`. Adding a locale is a second key in `resources`
 + a language switch — the feature namespaces don't change. (Like styling, i18n is the app's choice, not
 a framework mechanism; this is Hostpoint's.)
@@ -683,27 +671,19 @@ a framework mechanism; this is Hostpoint's.)
 `api-errors` catalog, typed against the generated `ErrorBody.code` union so a missing code is a type error, and
 `SKYFE011` keeps every locale in step. Composed: code → copy → in every language. This is the front end of the same full-stack discipline `SKY0018`/`SKY0019` enforce on the back.
 
-## Accessibility — enforced, ecosystem-specific
+## Accessibility — jsx-a11y beside the SKYFE plugin
 
-a11y is part of the harness, but unlike the architecture rules it has **no cross-ecosystem parity to
-share**: the web speaks DOM (`alt`, `aria-*`, `href`), React Native speaks accessibility props
-(`accessibilityRole`, `accessible`, `accessibilityLabel`). So it is a **mirrored exclusive** — same
-intent, one plugin per ecosystem, wired in the ESLint config (not the SKYFE plugin, which owns
-architecture):
-
-- **web** → [`eslint-plugin-jsx-a11y`](https://www.npmjs.com/package/eslint-plugin-jsx-a11y) (the `flat/recommended` set).
-- **mobile (RN)** → [`eslint-plugin-react-native-a11y`](https://github.com/FormidableLabs/eslint-plugin-react-native-a11y) (the full set; runs clean on ESLint 9 despite its peer cap at 8).
-
-Both are **warn-first** — a revealed backlog promoted to error per-rule once cleared — with
-`has-accessibility-hint` **off**: a hint is supplementary (only for non-obvious actions), and on by
-default it buries the high-signal rules under noise. This is the same posture as the curated
-community kit (`sonarjs`, `no-secrets`, `@tanstack/query`): external rules wired *alongside* the SKYFE
-plugin, never reinvented inside it.
+a11y is part of the harness, but it is not architecture, so it is not a SKYFE rule: the DOM speaks `alt`,
+`aria-*`, and `href`, and [`eslint-plugin-jsx-a11y`](https://www.npmjs.com/package/eslint-plugin-jsx-a11y) (its
+recommended set) polices them, wired in the ESLint config *alongside* the SKYFE plugin, never reinvented inside
+it. The same posture as the curated community kit (`sonarjs`, `no-secrets`, `@tanstack/query`). A new app can
+start it at warn and promote per rule once the revealed backlog is cleared; the sample runs it at error. Flutter's
+accessibility checks are in [FLUTTER-CONVENTIONS.md](FLUTTER-CONVENTIONS.md).
 
 ## Scope — and non-goals
 
 **In:** the MVVM feature convention, the `SKYFE*` rules, `skies g feature`, and `skies g client` (stock
-orval, wrapped) with the shipped config + mutator. One blessed frontend shape.
+orval, wrapped) with the shipped config + mutator. One blessed frontend shape for the web.
 
 **Out (non-goals), by decision:**
 - **No bespoke generator.** orval stock, wrapped — never a Skies OpenAPI→TS compiler. (The
@@ -715,6 +695,8 @@ orval, wrapped) with the shipped config + mutator. One blessed frontend shape.
 - **No design system in the framework.** Styling library, component kit, tokens, spacing scale, and layout
   rules are the app's. Every product has its own design language; a framework-imposed vocabulary only added
   rules to fight. (Skies 4 shipped a token taxonomy and a design lint band; Skies 5 removed both.)
+- **No React Native.** Mobile is Flutter. Skies 5 dropped the React Native / Expo track, and with it the shared
+  platform-agnostic core that existed only to share ViewModels between web and native.
 - **No TS decorators (`@Slice`/`@Risk`).** The backend's `[Slice]` is a first-class
   C# attribute the Roslyn doctor reads natively; React function components have no idiomatic decorator
   seam, and bolting one on (babel `experimentalDecorators`, wrapper indirection) *adds* LLM decision

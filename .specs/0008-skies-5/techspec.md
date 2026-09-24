@@ -272,3 +272,8 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   `evidence/`); `proof status` distingue `tampered` de `stale`, e `verify` preserva os hashes do red.
 - **Os recibos são o índice de impacto.** `proof impact [paths] [--diff [rev]]` inverte footprints + `touches`;
   `proof record --with-impacted` reprova em green os specs sobrepostos e grava `verified_with`.
+- **React Native / Expo removido.** React fica só para a web; Flutter é o corpo mobile e também um corpo web
+  suportado. O sample junta `core/` + `web/` + `mobile/` num único pacote React web (`frontend/web`); a SKYFE009
+  (`viewmodel-platform-agnostic`, que só mantinha ViewModels livres de react-native/expo) sai do plugin e o
+  `migrate` remove a configuração dela; as regras de roteamento reconhecem só TanStack Router e React Router; o
+  session seam do `@skiesjs/react` perde o `RefreshTokenStore` (na web o refresh é cookie httpOnly).

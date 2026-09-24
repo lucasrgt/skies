@@ -12,7 +12,7 @@ name = "hostpoint"
 
 [products.marketplace]
 backend = "src/Hostpoint.Api"
-frontend = ["clients/app-core", "clients/hostpoint-app"]
+frontend = ["clients/hostpoint-web", "clients/hostpoint-mobile"]
 
 [products.operator]
 backend = "src/Hostpoint.Api"
@@ -45,15 +45,17 @@ Code stays in normal packages and remains stranger-maintainable:
 
 ```text
 src/Hostpoint.Api/              ASP.NET application
-clients/app-core/               shared ViewModels, Views, generated client, i18n
-clients/hostpoint-app/          executable marketplace surface
-clients/hostpoint-os/           executable operator surface
+clients/hostpoint-web/          React marketplace web app: features, generated client, i18n, ui/
+clients/hostpoint-mobile/       Flutter marketplace app (phones; it could serve the web too)
+clients/hostpoint-os/           React operator console
 .specs/                         one folder per feature: spec.md, e2e/, receipt.json
 ```
 
-Promote a shared package only when at least two products actually consume it. Platform capability seams are plain
-interfaces and adapters owned by the application; the framework does not generate UI behavior or hide a runtime
-behind base classes.
+React is the web body and Flutter the mobile one (and a supported web body), so a feature that exists on both
+surfaces has two implementations with the same guarantees; the backend contract and the specs are what they share.
+Promote a shared package only when at least two products on the same stack actually consume it. Capability seams
+(storage, push, camera) are plain interfaces and adapters owned by the application; the framework does not generate
+UI behavior or hide a runtime behind base classes.
 
 ## Specs across the stack
 

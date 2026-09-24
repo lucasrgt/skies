@@ -114,7 +114,7 @@ skies g hub Billing InvoiceUpdates
 skies doctor
 ```
 
-### React and React Native
+### React (web)
 
 ```text
 features/billing/create-invoice/
@@ -123,8 +123,8 @@ features/billing/create-invoice/
   create-invoice.i18n.ts
 ```
 
-The ViewModel is a render-agnostic hook and the only data door; it composes the generated query hooks. The View
-renders. `@skiesjs/react` provides the small spine (`AsyncState`, `Resource`, session, guards, paging, forms) and
+React is the web body. The ViewModel is a render-agnostic hook and the only data door; it composes the generated
+query hooks. The View renders. `@skiesjs/react` provides the small spine (`AsyncState`, `Resource`, session, guards, paging, forms) and
 `@skiesjs/eslint-plugin` enforces the `SKYFE###` architecture rules. Styling and components are the app's.
 
 ```bash
@@ -143,7 +143,8 @@ lib/l10n/features/
   wallets_{pt_BR,en,es}.arb
 ```
 
-`skies_flutter` supplies the matching spine: async composition, session, guards, routing, forms, mutation
+Flutter is the mobile body, and a supported web body too: a product that wants the same components on every
+surface ships its phone apps and its web app from one Flutter codebase. `skies_flutter` supplies the matching spine: async composition, session, guards, routing, forms, mutation
 defaults, localized errors, and paging. `skies g client` wraps stock OpenAPI Generator `dart-dio`; `skies doctor`
 runs the `SKYFL###` rules natively.
 

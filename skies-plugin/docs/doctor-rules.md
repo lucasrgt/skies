@@ -39,16 +39,15 @@ CS1591 public members documented.
 - SKYFE003 no mocks/MSW outside *.test.*
 - SKYFE004 (planned) VM imports no JSX/react-dom
 - SKYFE007 (planned) VM exposes loading/error/empty
-- SKYFE009 VM platform-agnostic (no react-native/expo-*; ports injected)
 - SKYFE010 Views route async states through <Resource> (no raw isPending/isError)
 - SKYFE011 i18n parity: every locale declares the same flattened keys
 - SKYFE013 every mutation surfaces failure (empty onError flagged)
-- SKYFE014 no hardcoded user-facing copy in Views (t() only)
-- SKYFE015 no imperative redirect in useEffect (declarative <Redirect/>)
+- SKYFE014 no hardcoded user-facing copy in Views (t() only; aria-label and alt included)
+- SKYFE015 no imperative redirect in useEffect (declarative <Navigate/>)
 - SKYFE016 session one-door: token writes via lib/session seam (+me-cache reset)
 - SKYFE017 guards read tri-state SessionState, never raw boolean
-- SKYFE018 required route params via requiredParam() union
-- SKYFE019 no bare router.back()/history.back() (safeBack/useGoBack)
+- SKYFE018 required id params from a loose useParams() are guarded (requiredParam() union or `!id`)
+- SKYFE019 no bare history.back()/navigate(-1) (safeBack/useGoBack)
 - SKYFE020 no hardcoded API base URL (env/relative/injected)
 - SKYFE021 no dangerouslySetInnerHTML outside audited lib/html seam
 - SKYFE022 no open redirect (URL-sourced navigation through in-app allowlist)
@@ -63,6 +62,6 @@ CS1591 public members documented.
 
 ## Flutter (native in `skies doctor`)
 
-SKYFL### rules mirror the SKYFE numbers for the same concern; see `docs/FLUTTER-CONVENTIONS.md` in the
-framework repository. SKYFL036: a `test(`/`testWidgets(`/`group(` from flutter_test/test/integration_test outside
+SKYFL### rules mirror the SKYFE numbers for the same concern (SKYFL009, a ViewModel reaching no device plugin, has
+no React twin); see `docs/FLUTTER-CONVENTIONS.md` in the framework repository. SKYFL036: a `test(`/`testWidgets(`/`group(` from flutter_test/test/integration_test outside
 `.specs/` is flagged (the runner's hidden `.skies_spec/` copy is skipped).

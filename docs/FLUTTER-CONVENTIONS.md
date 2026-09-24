@@ -1,9 +1,12 @@
 # Skies — Flutter conventions
 
-Flutter is a native body for the same product guarantees defined in
-[FRONTEND-CONVENTIONS.md](FRONTEND-CONVENTIONS.md). Parity means equivalent capability and enforcement, not a
-literal translation of React APIs. Output remains plain, idiomatic Dart and Flutter; deleting the `skies` CLI
-leaves an ordinary application that still builds and runs.
+Flutter is Skies' mobile body, and a supported web body too. React is the other web body
+([FRONTEND-CONVENTIONS.md](FRONTEND-CONVENTIONS.md)); both carry the same product guarantees. A product that
+wants the same components on every surface builds its phone apps and its web app from one Flutter codebase, so
+the screens, the kit, and the ViewModels are shared rather than mirrored. A product that pairs a Flutter mobile app
+with a React web app gets parity of capability and enforcement, not a literal translation of React APIs. Output
+remains plain, idiomatic Dart and Flutter; deleting the `skies` CLI leaves an ordinary application that still
+builds and runs.
 
 The two laws remain absolute:
 
@@ -115,10 +118,10 @@ is blocking after the first generated stamp.
 
 ## Session and routing
 
-Session restoration and 401 replay call the same `SessionSeam.bootstrapSession` single-flight door. Native refresh
-tokens live behind an injected secure-storage port. Explicit sign-in and sign-out run the total identity reset;
-rotation runs only the light session reset. This preserves the React security invariant that one user's cache can
-never bleed into the next identity.
+Session restoration and 401 replay call the same `SessionSeam.bootstrapSession` single-flight door. The refresh
+token lives behind an injected secure-storage port (the device keystore on mobile). Explicit sign-in and sign-out
+run the total identity reset; rotation runs only the light session reset. This holds the invariant the React seam
+holds too: one user's cache can never bleed into the next identity.
 
 Guards branch on `SessionState`: loading waits, allowed renders, rejected redirects. Authenticated, anonymous, and
 capability routes use the same `guardSession` primitive. Routes normalize required params through `requiredParam`,
@@ -190,8 +193,9 @@ Styling, the widget kit, tokens, and layout are the application's. Accessibility
 
 ## Flutter doctor rule catalog
 
-Every number preserves the corresponding `SKYFE` semantic slot; only the ecosystem spelling changes. The doctor
-enforces architecture only.
+Every number preserves the corresponding `SKYFE` semantic slot; only the ecosystem spelling changes. `SKYFL009` is
+the exception: its React twin kept ViewModels free of React Native and went with that track, while a Flutter
+ViewModel still must not reach device plugins. The doctor enforces architecture only.
 
 | Rule | Flutter enforcement |
 |---|---|
@@ -226,7 +230,7 @@ enforces architecture only.
 and `integration_test/`, skipping hidden folders);
 `skies doctor --package .` runs them over one package, which is what a package's own `lint` script calls. `SKYFL028`, `031`,
 and `032` are warnings; every other finding is an error. The numbers keep the corresponding `SKYFE` slots, so gaps
-are the React rules that were removed in Skies 5.
+are the rules that were removed in Skies 5.
 
 ## Generate versus scaffold
 

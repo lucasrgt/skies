@@ -1,26 +1,25 @@
 # Skies — Frontend conventions
 
-React Native (Expo) mobile + RN-web + Astro (public/SEO); admin OS in react-dom. Per-product
-`core` (ViewModels + client + i18n + model, platform-agnostic) promoted to `shared/` only at
-≥2 products. `shared/kernel` holds auth/client/spine/ports (no app↔os edge). `Skies.toml` lists
-the frontend packages `skies doctor` checks.
+React for the web (react-dom, TanStack Router or React Router, typed routes on). Mobile is Flutter, which can
+serve the web too when a product wants one codebase for every surface; its conventions mirror these (SKYFL###).
+A package shared by two web products is promoted only when ≥2 products consume it. `Skies.toml` lists the frontend
+packages `skies doctor` checks.
 
 ## MVVM triple (one screen = one feature folder)
 
 - View (`*.view.tsx`): pure render, exactly one ViewModel, mock-free by construction.
 - ViewModel (`*.viewModel.ts`): plain hook `use<Name>Model(params) → { state, ...commands }`,
-  render-agnostic AND platform-agnostic (no react-native/expo imports — capabilities arrive as
-  injected ports: storage, navigator, push, file picker, linking, maps).
-- i18n per feature: `<feat>.i18n.ts` exports per-locale objects; assembled in
-  `src/i18n/resources.ts`; shared copy in the `common` namespace; Views read
+  render-agnostic (browser capabilities arrive as injected ports: storage, clipboard, geolocation).
+- i18n per feature: `<feat>.i18n.ts` exports per-locale objects; assembled by `skies i18n` into
+  `src/i18n/resources.generated.ts`; shared copy in the `common` namespace; Views read
   `useTranslation("<feat>")`.
 
 ## Data wiring
 
 orval (stock, react-query target, wrapped not forked) generates `client.gen/`: one typed hook
 per slice, named after the slice (backed by `.WithName(...)` = operationId). The mutator
-(`skies-client.ts`) unwraps Result<T>, injects auth, maps errors. Audience filter keeps only
-this frontend's endpoints (webhooks/internal/other audiences excluded). ViewModels compose
+(`lib/skies-client.ts`) injects auth, sends `X-Client: web` (the cookie session), maps errors. The audience
+filter keeps only app endpoints (`WithEndpointKind(EndpointKind.Asset|Webhook|Internal)` are excluded). ViewModels compose
 generated hooks directly — never wrap in custom repositories. Completeness is the compiler:
 an invented endpoint doesn't exist as an export. Regenerate with `skies g client`.
 
@@ -39,11 +38,11 @@ somewhere visible.
 
 ## Session
 
-One door: token writes via `lib/session` seam, paired with `me`-cache reset. Rotation:
-web = client seam's single-flight 401 refresh+replay; native = gated bootstrap (token exchanged
-once at boot, navigation gated on `ready`). Never both. Guards read tri-state `SessionState`.
-Required params via `requiredParam()`; back via `safeBack`; redirects declarative; URL-sourced
-navigation through an allowlist.
+One door: token writes via `lib/session` seam, paired with `me`-cache reset. The refresh token is an httpOnly
+cookie; rotation is the seam's single-flight `bootstrapSession`, used by the client's 401 refresh+replay and by the
+boot gate (`useSession`, navigation gated on `ready`). Never a second rotation path. Guards read tri-state
+`SessionState`. Required params via `requiredParam()`; back via `safeBack`; redirects declarative (`<Navigate>`);
+URL-sourced navigation through an allowlist.
 
 ## Forms
 
@@ -55,12 +54,12 @@ spine (VM + tab shell) + pure `panels/<X>Panel.view.tsx` binding the shared `con
 
 ## Styling and a11y
 
-Styling, components, and tokens are the app's choice. A11y: jsx-a11y (web) / react-native-a11y (mobile).
+Styling, components, and tokens are the app's choice. A11y: jsx-a11y beside the SKYFE plugin.
 
 ## Specs
 
-Features are proven by `.specs/<id>-<slug>/`: failure modes first, then cases (Playwright or Vitest on web, Maestro
-or `integration_test` on native) titled `FM-n: …`, then `skies proof record`. Drive the real UI against the real API;
+Features are proven by `.specs/<id>-<slug>/`: failure modes first, then cases (Playwright or Vitest for React,
+`flutter_test` or `integration_test` for Flutter) titled `FM-n: …`, then `skies proof record`. Drive the real UI against the real API;
 nothing in the ViewModel or View points at the spec. Every test lives in a spec (SKYFE036, SKYFL036): no
 `*.test.tsx` beside the code, no package `test/` folder; an isolated unit gets its own spec. Flutter cases import
 `package:<app>/...`, so the runner copies the spec's `e2e/` into the package's hidden `.skies_spec/` to run them.

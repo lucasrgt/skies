@@ -92,13 +92,13 @@ public static class Deposit
 
 ---
 
-## Frontend — MVVM + the spine (the React clients, checked by `SKYFE*`)
+## Frontend — MVVM + the spine (the React web clients, checked by `SKYFE*`; mobile is Flutter, `SKYFL*`)
 
 A screen is a pair: a **View** that renders and a **ViewModel** that owns data. Styling and components are the
 app's own.
 
 - **View renders only** (`SKYFE001`); the **ViewModel is the one data door** to the generated client (`SKYFE002`)
-  and is **platform-agnostic** — no `react-native`/`expo` (`SKYFE009`), so the core is shared web↔mobile.
+  and renders nothing, so a spec case drives it as a hook.
 - Async state flows through the spine's `AsyncState` + `<Resource>` (`SKYFE010`), never raw `isPending`/`isError`
   (multi-query screens fold with `combineAsyncStates`). Mutations surface their error — and an empty
   `onError: () => {}` doesn't count (`SKYFE013`). No mocks in production (`SKYFE003`). Copy goes through i18n,
@@ -107,24 +107,25 @@ app's own.
 - **Security** (`SKYFE021–022`): no `dangerouslySetInnerHTML` outside the one audited `lib/html` seam (the XSS
   door); never navigate to a value that arrived in the URL — allowlist it first (open redirect).
 - **Routing & session** (`SKYFE015–019`, `SKYFE030`) — the navigation harness, born from real pilot bugs and
-  router-agnostic (recognizes expo-router ↔ TanStack):
-  - **`SKYFE015`** — a redirect-on-state is declarative (`return <Redirect/Navigate …/>`), never `router.replace`
-    / `router.navigate` / a `useNavigate()` call inside a `useEffect`.
+  router-agnostic (recognizes TanStack Router ↔ React Router):
+  - **`SKYFE015`** — a redirect-on-state is declarative (`return <Navigate …/>`), never `router.navigate` / a
+    `useNavigate()` call inside a `useEffect`.
   - **`SKYFE016`** — the bearer token is written through **one seam** (`lib/session`) that pairs the write with a
     `me`-cache **reset**; a scattered write — importing the setter directly **or** writing a token-ish key to
-    `localStorage`/`AsyncStorage`/`SecureStore` — forgets the reset and bounces a just-authenticated user to login.
+    `localStorage`/`sessionStorage` — forgets the reset and bounces a just-authenticated user to login.
   - **`SKYFE017`** — a guard branches on a **tri-state** `SessionState` (`loading | authenticated | anonymous`),
     never an `isAuthenticated` boolean (which reads "still loading" as "signed out").
-  - **`SKYFE018`** — a route reading a required id param guards its absence with a declarative redirect (no ghost
-    screen on an empty id); the spine's `requiredParam()` union (`missing | ready`) is the blessed guard shape.
-  - **`SKYFE019`** — no bare `router.back()`/`history.back()`; Back goes through a guarded helper
+  - **`SKYFE018`** — a route reading a required id param through a loose `useParams()` guards its absence with a
+    declarative redirect (no ghost screen on an empty id); the spine's `requiredParam()` union (`missing | ready`)
+    is the blessed guard shape.
+  - **`SKYFE019`** — no bare `history.back()`/`navigate(-1)`; Back goes through a guarded helper
     (`safeBack`/`useGoBack`) that falls back to a parent when there is no in-app history.
-  - **`SKYFE030`** — no `as never`/`as any`/`as unknown` on a navigation target (a `router.push`/`replace`/
-    `navigate` argument, a `useNavigate()` call, or the `href`/`to` of `<Redirect>`/`<Navigate>`/`<Link>`).
-    The cast silences typed routes; silenced, a drifted route literal compiles clean and 404s in prod. Keep
-    typed routes ON (expo-router `experiments.typedRoutes` / TanStack's route tree) — the rule's config pair.
+  - **`SKYFE030`** — no `as never`/`as any`/`as unknown` on a navigation target (a `router.navigate` argument, a
+    `useNavigate()` call, or the `to` of `<Navigate>`/`<Link>`). The cast silences typed routes; silenced, a
+    drifted route literal compiles clean and 404s in prod. Keep typed routes ON (TanStack's route tree / React
+    Router's route types) — the rule's config pair.
   - When the **backend drives a navigation** (a pending card, a CTA), the contract carries a **closed kind
-    enum**, never a route string — the client owns the `Record<Kind, Href>` map over the generated enum, so a
+    enum**, never a route string — the client owns the `Record<Kind, Route>` map over the generated enum, so a
     new kind is a compile error until mapped and every target is a typed route.
 - **Forms & validation** (`SKYFE031–032`, warn-tier) — a validation failure always has a surface:
   - **`SKYFE031`** — a one-argument `handleSubmit(onValid)` in a ViewModel swallows validation failures (the

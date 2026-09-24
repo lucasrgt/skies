@@ -7,12 +7,13 @@
 - `[ValueObject]` — immutable, no public ctor/setter, smart constructor returning `Result<T>`.
 - `[Entity]` — private ctor, private setters, private `EnsureValid() → Result<T>` funnel.
 - `[JsonConverter(typeof(ScalarJsonConverter<TVo, TPrim>))]` — a scalar VO crosses the wire as its primitive.
-- `[Endpoint(...)]` — endpoint nature: default `App`; `Webhook`, `Internal`, or `Audience = "admin"`.
+- `.WithEndpointKind(EndpointKind.X)` on a slice's `Map` — endpoint nature: default `App` (no call); `Asset`,
+  `Webhook`, or `Internal` leave the generated client.
 
 ## Frontend markers (file conventions)
 
 - `<Name>.view.tsx` / `<name>_view.dart` — pure render, exactly one ViewModel.
-- `<Name>.viewModel.ts` / `<name>_view_model.dart` — render- and platform-agnostic.
+- `<Name>.viewModel.ts` / `<name>_view_model.dart` — render-agnostic (the Dart one also reaches no device plugin).
 - `<name>.i18n.ts` / ARB catalogs — per-feature copy.
 
 ## CLI (`skies`)
@@ -25,8 +26,8 @@
   module's route group (declared fail-closed when the module has none).
 - `skies g auth [--skip-tenancy] [--skip-cookies]`, `g auth:otp|auth:oauth|auth:email` — auth blueprints, each with
   its own spec folder and E2E.
-- `skies g client [--package <dir>]` — typed client (orval for React, dart-dio for Flutter).
-- `skies g feature <Name> [--package <dir>]` — a ViewModel + View + i18n feature (React or Flutter).
+- `skies g client [--package <dir>]` — typed client (orval for a React web package, dart-dio for Flutter).
+- `skies g feature <Name> [--package <dir>]` — a ViewModel + View + i18n feature (React web or Flutter).
 - `skies g flutter-app <Name> [--path <dir>]` — wire a Flutter app to the spine.
 - `skies i18n [--package <dir>]` — assemble per-feature catalogs.
 - `skies doctor [build args]` — dotnet build (SKY*), eslint (SKYFE*), Flutter rules (SKYFL*), in parallel.
