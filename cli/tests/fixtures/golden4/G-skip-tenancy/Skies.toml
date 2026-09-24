@@ -1,0 +1,15 @@
+# Skies workspace manifest — the single source of truth for this app's topology. `skies doctor`
+# validates it. One Skies.toml per repo, at the root.
+
+[workspace]
+name = "Golden"
+
+[products.app]
+backend = "src/Golden.Api"   # .NET vertical slices — the SKY* analyzers gate this build
+# A Skies frontend package is declared explicitly when added:
+# core = "clients/core"              # shared ViewModels/Views; tests + Assay, no runner of its own
+# library = "clients/ui"             # shared npm package; lint + typecheck + tests, no runner of its own
+# frontend = "clients/web"           # executable surface; additionally owes full E2E
+
+# Package synchronization is self-contained in the released CLI and frontend SDK. No sibling framework checkout
+# is required locally or in CI; applications only declare their product topology here.

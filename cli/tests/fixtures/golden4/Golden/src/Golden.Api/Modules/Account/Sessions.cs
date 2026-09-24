@@ -1,0 +1,18 @@
+using Skies.Framework.Auth;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Issues a login session: opens a fresh refresh family and mints the access token (carrying the
+/// family as its sid) plus the refresh token. Shared by every slice that signs a user in — password
+/// login and Google alike — so the session shape lives in one place.</summary>
+internal static class Sessions
+{
+    public static async Task<(string Access, string Refresh)> Issue(AppDb db, IAccessTokens tokens, User user, DateTime now, CancellationToken ct)
+    {
+        var family = Guid.NewGuid();
+        var (refresh, refreshHash) = SessionToken.Issue();
+        db.UserSessions.Add(UserSession.Start(user.Id, family, refreshHash, now).Value);
+        await db.SaveChangesAsync(ct);
+        return (tokens.Issue(user.Id, user.OrgId, user.Role?.ToString(), family, user.Name), refresh);
+    }
+}

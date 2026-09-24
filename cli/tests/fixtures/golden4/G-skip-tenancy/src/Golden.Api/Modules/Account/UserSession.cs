@@ -1,0 +1,72 @@
+namespace Golden.Api.Modules.Account;
+
+/// <summary>A refresh-token slot in a rotating family — a domain entity that owns its lifecycle, not a data
+/// bag. <b>Not</b> tenant-scoped: it is a global auth artifact keyed by an unguessable token hash, never part
+/// of an org's dataset — so it is looked up directly, with no tenant filter to bypass (the tell that it should
+/// not be scoped). Only the hash is stored. A slot is opened through <see cref="Start"/> and retired through
+/// <see cref="MarkUsed"/>; presenting a used slot again is treated as theft and burns the family.</summary>
+[Entity]
+public class UserSession
+{
+    /// <summary>The slot's identity, assigned when it is started.</summary>
+    public Guid Id { get; private set; }
+
+    /// <summary>The user this session belongs to.</summary>
+    public Guid UserId { get; private set; }
+
+    /// <summary>The lineage a rotating token belongs to. Reuse-detection and logout act on the family.</summary>
+    public Guid FamilyId { get; private set; }
+
+    /// <summary>The SHA-256 hash of the refresh token — the raw token is never stored.</summary>
+    public string TokenHash { get; private set; } = "";
+
+    /// <summary>When this slot was opened.</summary>
+    public DateTime CreatedAt { get; private set; }
+
+    /// <summary>When this slot's token expires.</summary>
+    public DateTime ExpiresAt { get; private set; }
+
+    /// <summary>When this slot was rotated away. Null while it is the family's live token; once set,
+    /// presenting this token again is a reuse — the theft signal (outside the rotation grace window).</summary>
+    public DateTime? UsedAt { get; private set; }
+
+    /// <summary>The optimistic-concurrency token (SKY0026): two refreshes of the same live token that race lose
+    /// the second save to a <c>DbUpdateConcurrencyException</c> instead of both forking the family.</summary>
+    [System.ComponentModel.DataAnnotations.Timestamp]
+    public byte[]? RowVersion { get; private set; }
+
+    // Parameterless and private: the constructor EF Core materialises a row through. A slot is opened via
+    // Start, so there is no public way to construct a blank session.
+    private UserSession() { }
+
+    /// <summary>Open a new slot in <paramref name="familyId"/> for <paramref name="userId"/>, carrying the
+    /// presented token's hash and expiring one <see cref="SessionToken.Lifetime"/> from <paramref name="now"/>.
+    /// Creation funnels through <see cref="EnsureValid"/>.</summary>
+    public static Result<UserSession> Start(Guid userId, Guid familyId, string tokenHash, DateTime now) =>
+        new UserSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            FamilyId = familyId,
+            TokenHash = tokenHash,
+            CreatedAt = now,
+            ExpiresAt = now.Add(SessionToken.Lifetime),
+        }.EnsureValid();
+
+    /// <summary>Rotate this slot away: mark it used at <paramref name="now"/>. The hash already exists, so this
+    /// cannot fail — a void mutation, not a Result.</summary>
+    public void MarkUsed(DateTime now) => UsedAt = now;
+
+    // The single invariant funnel: every create path returns through here, so a broken slot can never be
+    // observed or persisted.
+    private Result<UserSession> EnsureValid()
+    {
+        var validation = new Validation()
+            .Require(Id, "id", AccountErrorCodes.InvalidState)
+            .Require(UserId, "userId", AccountErrorCodes.InvalidState)
+            .NotBlank(TokenHash, "tokenHash", AccountErrorCodes.InvalidState);
+        if (validation.Failed)
+            return validation.ToError();
+        return this;
+    }
+}

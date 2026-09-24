@@ -1,0 +1,32 @@
+namespace __NAMESPACE__.BuildingBlocks;
+
+/// <summary>Error codes for the __NAME__ value object — stable, namespaced i18n keys the frontend localizes
+/// from. Codes are registry constants (SKY0018), so the set stays discoverable for the OpenAPI contract.</summary>
+public static class __NAME__ErrorCodes
+{
+    /// <summary>The value is missing or fails the __NAME__ invariant.</summary>
+    public const string Required = "__NAME_LOWER__.required";
+}
+
+/// <summary>
+/// __NAME__ — an always-valid value object: the type <em>is</em> the rule. There is no public way to
+/// construct an invalid __NAME__, so any __NAME__ in the system is already valid. Fill in the
+/// invariant in <see cref="From"/> (it wraps a string by default — change the wrapped type to fit).
+/// </summary>
+[ValueObject]
+public readonly record struct __NAME__
+{
+    /// <summary>The wrapped value.</summary>
+    public string Value { get; }
+
+    private __NAME__(string value) => Value = value;
+
+    /// <summary>Build a __NAME__, rejecting an invalid value as a domain error.</summary>
+    public static Result<__NAME__> From(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+            ? Result<__NAME__>.Ok(new __NAME__(value))
+            : Error.Validation(__NAME__ErrorCodes.Required, "__NAME_LOWER__ is required");
+
+    /// <inheritdoc />
+    public override string ToString() => Value;
+}

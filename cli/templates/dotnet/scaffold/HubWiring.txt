@@ -1,0 +1,24 @@
+
+Real-time is opt-in. Wire __NAME__Hub in Program.cs:
+
+  builder.Services.AddSignalR();
+  // ... after app is built and authentication/authorization are mapped:
+  app.MapHub<__NAME__Hub>("/hubs/__NAME_LOWER__");
+
+A WebSocket can't send an Authorization header, so for hub paths the access token must
+ride the query string. With Skies.Framework.Auth's JWT, add (using Microsoft.AspNetCore.Authentication.JwtBearer):
+
+  builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o =>
+      o.Events = new JwtBearerEvents
+      {
+          OnMessageReceived = ctx =>
+          {
+              var token = ctx.Request.Query["access_token"];
+              if (!string.IsNullOrEmpty(token) && ctx.Request.Path.StartsWithSegments("/hubs"))
+                  ctx.Token = token;
+              return Task.CompletedTask;
+          },
+      });
+
+Requires Skies.Framework.Auth (run `skies g auth` if you haven't). Scaling past one instance?
+Add a backplane: builder.Services.AddSignalR().AddStackExchangeRedis(connection).

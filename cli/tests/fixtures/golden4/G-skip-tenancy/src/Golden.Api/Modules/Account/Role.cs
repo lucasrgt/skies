@@ -1,0 +1,9 @@
+namespace Golden.Api.Modules.Account;
+
+/// <summary>What a user is. Member and Admin are the common roles; extend this enum as the app's
+/// authorization model grows.</summary>
+public enum Role
+{
+    Member,
+    Admin,
+}

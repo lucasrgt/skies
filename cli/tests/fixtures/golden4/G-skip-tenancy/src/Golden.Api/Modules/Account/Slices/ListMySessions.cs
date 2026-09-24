@@ -1,0 +1,35 @@
+using Skies.Framework.Auth;
+using Microsoft.EntityFrameworkCore;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>List the caller's active sessions — one per live refresh family — so they can see where
+/// they are signed in and revoke the rest. The session the request authenticated with is flagged via
+/// the token's sid.</summary>
+[Slice]
+public static class ListMySessions
+{
+    public record Input();
+
+    public record Output(IReadOnlyList<SessionEntry> Sessions);
+
+    public record SessionEntry(Guid SessionId, DateTime CreatedAt, DateTime ExpiresAt, bool IsCurrent);
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, ICurrentUser current, TimeProvider clock, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow().UtcDateTime;
+        var sessionId = current.SessionId;
+        var sessions = await db.UserSessions
+            .Where(s => s.UserId == current.UserId && s.UsedAt == null && s.ExpiresAt > now)
+            .OrderByDescending(s => s.CreatedAt)
+            .Select(s => new SessionEntry(s.FamilyId, s.CreatedAt, s.ExpiresAt, s.FamilyId == sessionId))
+            .ToListAsync(ct);
+        return new Output(sessions);
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapGet("/sessions", async (AppDb db, ICurrentUser current, TimeProvider clock, CancellationToken ct) =>
+            (await Handle(new Input(), db, current, clock, ct)).ToHttp())
+            .WithName(nameof(ListMySessions))
+            .RequireAuthorization();
+}

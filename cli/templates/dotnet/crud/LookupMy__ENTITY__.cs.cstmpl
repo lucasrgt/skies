@@ -21,5 +21,6 @@ public static class LookupMy__ENTITY__
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/my-__ENTITY_LOWER__", async (AppDb db, ICurrentUser current, CancellationToken ct) =>
             (await Handle(new Input(), db, current, ct)).ToHttp())
+            .WithName(nameof(LookupMy__ENTITY__))
             .RequireAuthorization();
 }

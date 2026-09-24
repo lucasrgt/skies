@@ -1,0 +1,28 @@
+using Skies.Framework.Auth;
+using Microsoft.EntityFrameworkCore;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Return the signed-in user's own profile. Authenticated: the caller comes from the access
+/// token via <see cref="ICurrentUser"/>, so a user can only ever read themselves.</summary>
+[Slice]
+public static class Me
+{
+    public record Input();
+
+    public record Output(Guid UserId, string Email, RegistrationStep Step, Role? Role);
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, ICurrentUser current, CancellationToken ct)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == current.UserId, ct);
+        return user is null
+            ? Error.NotFound(AccountErrorCodes.UserNotFound, "user not found")
+            : new Output(user.Id, user.Email.Value, user.RegistrationStep, user.Role);
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapGet("/me", async (AppDb db, ICurrentUser current, CancellationToken ct) =>
+            (await Handle(new Input(), db, current, ct)).ToHttp())
+            .WithName(nameof(Me))
+            .RequireAuthorization();
+}

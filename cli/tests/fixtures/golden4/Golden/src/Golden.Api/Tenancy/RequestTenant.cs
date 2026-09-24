@@ -1,0 +1,15 @@
+using Skies.Framework.Auth;
+
+namespace Golden.Api.Tenancy;
+
+/// <summary>Resolves the request's org. For an authenticated request the org comes from the access
+/// token (the JWT carries it, read via <see cref="ICurrentUser"/>), so the tenant and the caller agree by
+/// construction. Public requests (register/login) have no token yet and fall back to a single default org
+/// — real public-request resolution (subdomain) is a later step. This is app tenancy <em>policy</em>, so
+/// it lives with the rest of tenancy, not with the auth mechanism the framework owns.</summary>
+public sealed class RequestTenant(ICurrentUser user) : ITenant
+{
+    private static readonly Guid DefaultOrg = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+    public Guid OrgId => user.IsAuthenticated ? user.OrgId : DefaultOrg;
+}

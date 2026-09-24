@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Skies.Framework.Abstractions" Version="4.1.4" />
+    <PackageReference Include="Skies.Framework.AspNetCore" Version="4.1.4" />
+    <!-- The doctor rides along as a build analyzer. Remove it and the app still compiles and runs
+         (Law 2) — you only lose the enforcement. -->
+    <PackageReference Include="Skies.Framework.Doctor" Version="4.1.4" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+    <PackageReference Include="Skies.Framework.Auth" Version="4.1.4" />
+    <PackageReference Include="Skies.Framework.Sms" Version="4.1.4" />
+    <PackageReference Include="Skies.Framework.Identity" Version="4.1.4" />
+    <PackageReference Include="Skies.Framework.Mail" Version="4.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Tests live co-located with the slice. The app assembly never compiles them (no test deps
+         ship); the doctor reads them as AdditionalFiles to require each slice has one. -->
+    <Compile Remove="**\*.Tests.cs" />
+    <AdditionalFiles Include="**\*.Tests.cs" />
+    <!-- The doctor reads the module ctx docs (SKY0004/SKY0005) as AdditionalFiles. -->
+    <AdditionalFiles Include="**\*.ctx.md" />
+    <!-- Clockwork manifests bind every slice to its executable AVP proofs (SKY0030/SKY0031). -->
+    <AdditionalFiles Include="**\*.spec.toml" />
+  </ItemGroup>
+
+</Project>

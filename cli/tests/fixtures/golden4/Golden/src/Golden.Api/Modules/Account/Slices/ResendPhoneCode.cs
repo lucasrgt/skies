@@ -1,0 +1,32 @@
+using System.Security.Cryptography;
+using Skies.Framework.Auth;
+using Skies.Framework.Sms;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Send a fresh 6-digit verification code to the caller's phone. The code is stored
+/// argon2-hashed (low-entropy → verified, never looked up) and expires in 10 minutes.</summary>
+[Slice]
+public static class ResendPhoneCode
+{
+    public record Input(string Phone);
+
+    public record Output();
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, ISmsSender sms, ICurrentUser current, TimeProvider clock, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow().UtcDateTime;
+        var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+        db.PhoneOtps.Add(PhoneOtp.Issue(current.UserId, input.Phone, PasswordHash.Create(code).Value, now).Value);
+        await db.SaveChangesAsync(ct);
+
+        await sms.SendAsync(input.Phone, $"Your Golden code is {code}", ct);
+        return new Output();
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/phone-code", async (Input input, AppDb db, ISmsSender sms, ICurrentUser current, TimeProvider clock, CancellationToken ct) =>
+            (await Handle(input, db, sms, current, clock, ct)).ToHttp())
+            .WithName(nameof(ResendPhoneCode))
+            .RequireAuthorization();
+}

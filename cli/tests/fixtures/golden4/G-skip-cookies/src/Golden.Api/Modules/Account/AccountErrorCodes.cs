@@ -1,0 +1,38 @@
+namespace Golden.Api.Modules.Account;
+
+/// <summary>The Account module's error codes — stable, namespaced i18n keys the frontend localizes from. Every
+/// Error/Check references a const here (SKY0018), so the full set stays discoverable: AddSkiesOpenApi enumerates
+/// it into the OpenAPI ErrorBody.code schema for the typed client. Auth sub-flows (otp/oauth/email) append their
+/// own codes here when added.</summary>
+public static class AccountErrorCodes
+{
+    /// <summary>The email/password pair did not match an account.</summary>
+    public const string InvalidCredentials = "auth.invalid_credentials";
+
+    /// <summary>No user exists for the resolved id.</summary>
+    public const string UserNotFound = "account.user_not_found";
+
+    /// <summary>The refresh session is missing, expired, or malformed.</summary>
+    public const string InvalidSession = "auth.invalid_session";
+
+    /// <summary>The refresh session was revoked.</summary>
+    public const string SessionRevoked = "auth.session_revoked";
+
+    /// <summary>A refresh lost the optimistic-concurrency race while the same live token was being rotated.
+    /// Transient: the winning request already delivered the replacement token, so the client retries with it.</summary>
+    public const string SessionRetry = "auth.session_retry";
+
+    /// <summary>No session exists for the given id.</summary>
+    public const string SessionNotFound = "account.session_not_found";
+
+    /// <summary>An account already exists for this email.</summary>
+    public const string EmailTaken = "account.email_taken";
+
+    /// <summary>The password is shorter than the minimum length.</summary>
+    public const string PasswordTooShort = "password.too_short";
+
+    /// <summary>An entity's invariant funnel (EnsureValid) rejected the state — a present id, a non-blank
+    /// name, and so on. Construction and mutation both return through that funnel, so a broken instance can
+    /// never be observed or persisted.</summary>
+    public const string InvalidState = "account.invalid_state";
+}

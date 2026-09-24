@@ -25,5 +25,6 @@ public static class Delete__ENTITY__
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapDelete("/__ENTITY_LOWER__/{id:guid}", async (Guid id, AppDb db, CancellationToken ct) =>
             (await Handle(new Input(id), db, ct)).ToHttp())
+            .WithName(nameof(Delete__ENTITY__))
             .RequireAuthorization();
 }

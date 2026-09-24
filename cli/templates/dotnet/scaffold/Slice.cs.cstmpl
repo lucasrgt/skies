@@ -1,0 +1,25 @@
+namespace __NAMESPACE__.Modules.__MODULE__;
+
+/// <summary>__NAME__ — fill in the operation; the "why" lives here until it outgrows a header.</summary>
+[Slice]
+public static class __NAME__
+{
+    public record Input(Guid Id);
+    public record Output(Guid Id);
+
+    public static Task<Result<Output>> Handle(Input input, CancellationToken ct)
+    {
+        var validation = new Validation()
+            .Require(input.Id, "id", __MODULE__ErrorCodes.IdRequired);
+        if (validation.Failed)
+            return Task.FromResult<Result<Output>>(validation.ToError());
+
+        return Task.FromResult<Result<Output>>(new Output(input.Id));
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/__NAME_LOWER__", async (Input input, CancellationToken ct) =>
+                (await Handle(input, ct)).ToHttp())
+            .WithName(nameof(__NAME__))
+            .RequireAuthorization();
+}

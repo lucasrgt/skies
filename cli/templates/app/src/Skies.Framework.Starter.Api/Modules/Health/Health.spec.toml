@@ -1,4 +1,0 @@
-module = "Health"
-
-[slices.Ping]
-criteria = ["echoes-input"]

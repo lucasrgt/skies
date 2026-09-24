@@ -1,0 +1,40 @@
+using Skies.Framework.Auth;
+using Skies.Framework.Mail;
+using Microsoft.EntityFrameworkCore;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Send the caller a fresh email-verification link. Authenticated. Mints a high-entropy token,
+/// stores only its hash (valid 24h), and emails the raw token. The send is best-effort: the token is
+/// already persisted, so a later resend recovers without losing state.</summary>
+[Slice]
+public static class RequestEmailVerification
+{
+    public record Input();
+
+    public record Output();
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, IEmailSender email, ICurrentUser current, TimeProvider clock, CancellationToken ct)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == current.UserId, ct);
+        if (user is null)
+            return Error.NotFound(AccountErrorCodes.UserNotFound, "user not found");
+
+        var now = clock.GetUtcNow().UtcDateTime;
+        var (raw, hash) = SessionToken.Issue();
+        db.EmailVerificationTokens.Add(EmailVerificationToken.Issue(user.Id, hash, now).Value);
+        await db.SaveChangesAsync(ct);
+
+        await email.SendAsync(new EmailMessage(
+            user.Email.Value,
+            "Confirm your email",
+            $"Confirm your email with this token: {raw}"), ct);
+        return new Output();
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/verify-email/request", async (Input input, AppDb db, IEmailSender email, ICurrentUser current, TimeProvider clock, CancellationToken ct) =>
+            (await Handle(input, db, email, current, clock, ct)).ToHttp())
+            .WithName(nameof(RequestEmailVerification))
+            .RequireAuthorization();
+}

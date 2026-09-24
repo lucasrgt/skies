@@ -201,33 +201,3 @@ about *generic* mechanisms only.
 This file is the distilled operating manual. The complete catalog + rationale lives in the **Skies**
 framework repo: `docs/CONVENTIONS.md` (backend) and `docs/FRONTEND-CONVENTIONS.md` (frontend). Ground every
 convention fact there, never memory.
-
-<!-- skies:foundations:start -->
-## Skies foundation workflow
-
-The primary coding agent owns the complete foundation lifecycle. Never create or
-delegate one agent per foundation.
-
-1. At task start, run `dotnet tool run skies context --task "<goal>" --path <expected-path>`.
-   Treat every returned decision, invariant, way, scar, and due deferment as governing context.
-2. Rerun `dotnet tool run skies context` after scope changes, context compaction, or movement into
-   an unfamiliar area. Keep retrieval bounded with accurate task text and paths.
-3. Use the repository-local foundation skills only when a real lifecycle event occurs: accepted
-   decisions for WTW, proven patterns for RTW, corrected failures for NYA, or evidence-backed
-   conditional deferments for NWC. Never record hypothetical guidance.
-4. Run focused repository tests and linters during implementation.
-5. Before commit, stage the exact intended paths. The checked pre-commit hook runs
-   `dotnet tool run skies check --task "<completed work>" --staged`; invoke it manually only when validating
-   without committing. Staged checks remain bounded while every directly mapped proof runs.
-6. Follow the repository's single checked authority boundary. With CI authority, pre-push is
-   `--base <target-revision> --fast` and pull-request CI runs affected verification without `--fast`.
-   With local authority, the pre-push hook itself runs `--base <target-revision>` without `--fast`, and no
-   pull-request workflow is required. Never configure both as authoritative.
-7. Run the repository's explicit `--full` release command at its release boundary, locally or in release
-   automation. Bare `skies check --task ...` is intentionally invalid so an ambiguous scope cannot start a
-   surprise exhaustive run. Do not report delivery complete until its selected checked boundary is green.
-8. Rerun the same check after every fix. Exit code 1 means findings remain. Exit code 2 or greater
-   means validation was incomplete. Neither is a pass.
-
-Tests, linters, review, and individual foundation commands do not replace `skies check`.
-<!-- skies:foundations:end -->
