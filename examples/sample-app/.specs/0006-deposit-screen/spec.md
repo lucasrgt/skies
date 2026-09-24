@@ -1,7 +1,7 @@
 ---
 id: "0006"
 runner: web
-touches: [frontend/core/src/deposit/Deposit.view.tsx, frontend/core/src/deposit/deposit.i18n.ts]
+touches: [frontend/web/src/deposit/Deposit.view.tsx, frontend/web/src/deposit/deposit.i18n.ts]
 ---
 # The Deposit screen
 

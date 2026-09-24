@@ -31,4 +31,5 @@ its own, with values read from the theme.
 
 ## Out of scope
 
-The mobile kit (`frontend/mobile/src/ui`), which mirrors this surface on React Native and has no jsdom renderer.
+The kit's look: the cases read every value from the theme, so a restyle is not a failure. Mobile is a Flutter app
+with its own kit (`docs/FLUTTER-CONVENTIONS.md`).

@@ -2,9 +2,8 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 // Runs the spine (@skiesjs/react) tests AND the canonical example's specs (examples/sample-app/.specs/*/e2e). The
-// example keeps every test in a spec, so its cases live there, not beside the code: its agnostic core (the ViewModel +
-// the View) renders against the WEB `@/ui` components in jsdom; the spine + the generated client + i18n resolve to
-// source. Root is the repo so the example (a sibling of frontend/) is in scope; the include globs keep the run to the
+// example keeps every test in a spec, so its cases live there, not beside the code: the web package's ViewModels and
+// Views render against its `@/ui` kit in jsdom; the spine + the generated client + i18n resolve to source. Root is the repo so the example (a sibling of frontend/) is in scope; the include globs keep the run to the
 // real test files. The sample's `[runners.web]` runs this same config with a spec folder as the filter.
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -23,8 +22,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@skiesjs/react": r("./packages/skies-react/src/index.ts"),
-      "@/client.gen/sample": r("../examples/sample-app/frontend/core/src/client.gen/sample.ts"),
-      "@/i18n": r("../examples/sample-app/frontend/core/src/i18n.ts"),
+      "@/client.gen/sample": r("../examples/sample-app/frontend/web/src/client.gen/sample.ts"),
+      "@/i18n": r("../examples/sample-app/frontend/web/src/i18n.ts"),
       "@/ui": r("../examples/sample-app/frontend/web/src/ui/index.ts"),
       // The example lives at examples/ (a sibling of frontend/), so its direct bare imports can't reach
       // frontend/node_modules by node resolution — alias them to the framework's installed copies (their transitive

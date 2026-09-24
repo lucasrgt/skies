@@ -1,7 +1,7 @@
-diff --git a/frontend/core/src/items/Items.viewModel.ts b/frontend/core/src/items/Items.viewModel.ts
+diff --git a/frontend/web/src/items/Items.viewModel.ts b/frontend/web/src/items/Items.viewModel.ts
 index ba365eb..eb1b223 100644
---- a/frontend/core/src/items/Items.viewModel.ts
-+++ b/frontend/core/src/items/Items.viewModel.ts
+--- a/frontend/web/src/items/Items.viewModel.ts
++++ b/frontend/web/src/items/Items.viewModel.ts
 @@ -23,13 +23,14 @@ export function useItemsModel(): ItemsModel {
    // Project the query into the spine. `errorMessage` is localized here (the spine never hardcodes copy);
    // `isEmpty` opts an empty list into the dedicated empty state.

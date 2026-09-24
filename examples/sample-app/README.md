@@ -14,8 +14,9 @@ A small wallet product that shows the Skies 5 shape end to end:
   failure modes in `spec.md`, black-box HTTP tests in `e2e/`, and a `receipt.json` showing every failure mode
   failing on the red revision and passing on green. These specs were written after the code, so each carries a
   `red.patch` that stubs the slice and reproduces "feature not implemented".
-- **`frontend/core`** — the platform-agnostic layer: ViewModels (the single data door), Views, i18n, and the
-  generated client. **`frontend/web`** and **`frontend/mobile`** are the app's own `ui/` components per platform.
+- **`frontend/web`** — the React web package: one folder per feature (the ViewModel as the single data door, the
+  View, the i18n catalog), the generated client (`src/client.gen`), the i18n instance, and the app's own `ui/`
+  kit. Its cases live in the web specs (`0006`–`0008`).
 
 ## Run it
 

@@ -6,8 +6,8 @@ import { useDeposit, type DepositOutput } from "@/client.gen/sample";
 import i18n from "@/i18n";
 
 // CANONICAL FORM UNIT — the form recipe's data door. The `useForm` lives HERE (form logic, not rendering —
-// FRONTEND-CONVENTIONS.md §Forms), so the ViewModel stays platform-agnostic (SKYFE009) and the same form backs the
-// RN mirror. The zod schema is contract-grounded: it restates ONLY the Deposit slice's validation surface
+// FRONTEND-CONVENTIONS.md §Forms), so the View only binds `control` and the submit, and the form's rules are tested
+// through the ViewModel. The zod schema is contract-grounded: it restates ONLY the Deposit slice's validation surface
 // (walletId required+uuid, amount > 0 — Money's rule) and never invents rules the backend doesn't hold.
 
 export interface DepositForm {

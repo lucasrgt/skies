@@ -1,7 +1,7 @@
-diff --git a/frontend/core/src/deposit/Deposit.viewModel.ts b/frontend/core/src/deposit/Deposit.viewModel.ts
+diff --git a/frontend/web/src/deposit/Deposit.viewModel.ts b/frontend/web/src/deposit/Deposit.viewModel.ts
 index 788dc8f..83c8f54 100644
---- a/frontend/core/src/deposit/Deposit.viewModel.ts
-+++ b/frontend/core/src/deposit/Deposit.viewModel.ts
+--- a/frontend/web/src/deposit/Deposit.viewModel.ts
++++ b/frontend/web/src/deposit/Deposit.viewModel.ts
 @@ -48,11 +48,16 @@ export function useDepositModel(): DepositModel {
      { onInvalid: (first) => form.setFocus(first), order: ["walletId", "amount"] },
    );

@@ -1,6 +1,6 @@
 'use client';
 
-// Stateful kit primitive → a client component: the Next App Router needs the directive; a no-op on Vite/RN.
+// Stateful kit primitive → a client component: the Next App Router needs the directive; a no-op on Vite.
 import { createContext, useContext, type ReactNode } from "react";
 import { color, space, text } from "./theme";
 

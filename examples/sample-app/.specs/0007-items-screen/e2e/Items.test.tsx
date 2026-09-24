@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { afterEach, describe, it, expect } from "vitest";
 import { cleanup, render, renderHook, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useItemsModel } from "../../../frontend/core/src/items/Items.viewModel";
-import { ItemsView } from "../../../frontend/core/src/items/Items.view";
+import { useItemsModel } from "../../../frontend/web/src/items/Items.viewModel";
+import { ItemsView } from "../../../frontend/web/src/items/Items.view";
 
 // The Items screen: the ViewModel (the data door) against the real generated client, the HTTP layer an MSW stand-in
 // (frontend-sdk/vitest.setup.ts), and the View rendered through its states.

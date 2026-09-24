@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 import { delay, http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { SAMPLE_API_BASE } from "../examples/sample-app/frontend/core/src/api";
+import { SAMPLE_API_BASE } from "../examples/sample-app/frontend/web/src/api";
 
 // The sample's tests run the real generated client against an MSW stand-in for the backend.
 const MISSING_WALLET = "99999999-9999-4999-8999-999999999999";

@@ -1,12 +1,12 @@
 'use client';
 
-// Stateful kit primitive → a client component: the Next App Router needs the directive; a no-op on Vite/RN.
+// Stateful kit primitive → a client component: the Next App Router needs the directive; a no-op on Vite.
 import { useState } from "react";
 import { color, radius, space, text } from "./theme";
 import { useFieldWiring } from "./Field";
 
-// String-first and platform-neutral: `onChangeText` hands the View a value, not an event, so the
-// same ViewModel binding works against the RN mirror. The enclosing Field supplies the aria wiring;
+// String-first: `onChangeText` hands the View a value, not an event, so a react-hook-form `field.onChange`
+// binds straight to it and no DOM event type leaks into the form. The enclosing Field supplies the aria wiring;
 // an explicit `invalid` prop wins over it.
 export function Input({
   id,

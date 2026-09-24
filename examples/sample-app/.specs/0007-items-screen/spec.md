@@ -1,7 +1,7 @@
 ---
 id: "0007"
 runner: web
-touches: [frontend/core/src/items/Items.view.tsx, frontend/core/src/items/items.i18n.ts]
+touches: [frontend/web/src/items/Items.view.tsx, frontend/web/src/items/items.i18n.ts]
 ---
 # The Items screen
 

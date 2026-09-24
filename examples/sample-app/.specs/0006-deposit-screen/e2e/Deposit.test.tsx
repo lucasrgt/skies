@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { DepositView } from "../../../frontend/core/src/deposit/Deposit.view";
+import { DepositView } from "../../../frontend/web/src/deposit/Deposit.view";
 
 // The Deposit screen through its View and ViewModel, against the real generated client (the HTTP layer is an MSW
 // stand-in, frontend-sdk/vitest.setup.ts). Success replaces the form; a routed app would <Redirect> (SKYFE015).

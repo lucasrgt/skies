@@ -7,7 +7,7 @@ import noSecrets from "eslint-plugin-no-secrets";
 import sonarjs from "eslint-plugin-sonarjs";
 import vitest from "@vitest/eslint-plugin";
 
-// Lint config for the canonical example (examples/sample-app/frontend), executed from the repository root by
+// Lint config for the canonical example (examples/sample-app/frontend/web), executed from the repository root by
 // `npm run lint`. The root location keeps the example inside ESLint's base path while dependencies remain owned
 // by frontend-sdk; the rule self-tests run as a separate leg.
 //
@@ -18,10 +18,7 @@ import vitest from "@vitest/eslint-plugin";
 // The SKYFE plugin is CommonJS; load it via createRequire.
 const require = createRequire(import.meta.url);
 const skies = require("./packages/eslint-plugin/index.cjs");
-// Accessibility — web (DOM) uses jsx-a11y (alt / aria / href). The mobile RN counterpart (react-native-a11y)
-// is dropped until it publishes an eslint-9 peer: its latest release still caps eslint at 8, and we keep the
-// install ERESOLVE-clean rather than pin a peer-dependency escape hatch. Restore the mobile block (and a
-// toWarn helper) once a maintained eslint-9 RN-a11y plugin exists.
+// Accessibility — the DOM speaks alt / aria / href, and jsx-a11y polices it.
 const jsxA11y = require("eslint-plugin-jsx-a11y");
 
 export default [
@@ -29,7 +26,7 @@ export default [
   // react-query correctness (parser comes from the sample block below, which these merge onto).
   ...tanstackQuery.configs["flat/recommended"],
   {
-    files: ["examples/sample-app/frontend/{core,web}/**/*.{ts,tsx}", "examples/sample-app/.specs/*/e2e/**/*.{ts,tsx}"],
+    files: ["examples/sample-app/frontend/web/**/*.{ts,tsx}", "examples/sample-app/.specs/*/e2e/**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2022,
@@ -43,7 +40,6 @@ export default [
       "@typescript-eslint/no-floating-promises": "error",
       "skies/view-purity": "error",
       "skies/data-door": "error",
-      "skies/viewmodel-platform-agnostic": "error",
       "skies/no-mock": "error",
       "skies/state-completeness": "error",
       "skies/i18n-completeness": "error",
@@ -51,7 +47,7 @@ export default [
       "skies/no-hardcoded-copy": "error",
       // The routing harness (SKYFE015–019 + 030) — declarative redirects, one session seam, a tri-state guard,
       // guarded params + Back, and no cast on a navigation target (the typed-routes mute button). Error-tier
-      // (correctness), router-agnostic (expo + TanStack). The default a generated app gets.
+      // (correctness), router-agnostic (TanStack Router, React Router). The default a generated app gets.
       "skies/no-router-replace-in-effect": "error",
       "skies/session-one-door": "error",
       "skies/guard-tristate": "error",

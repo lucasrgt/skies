@@ -19,9 +19,9 @@
   "scripts": {
     "typecheck": "npm run typecheck:spine && npm run typecheck:sample",
     "typecheck:spine": "tsc --noEmit -p packages/skies-react/tsconfig.json",
-    "typecheck:sample": "tsc --noEmit -p ../examples/sample-app/frontend/tsconfig.json && tsc --noEmit -p ../examples/sample-app/.specs/tsconfig.json",
+    "typecheck:sample": "tsc --noEmit -p ../examples/sample-app/frontend/web/tsconfig.json && tsc --noEmit -p ../examples/sample-app/.specs/tsconfig.json",
     "lint": "npm run lint:source && npm run lint:rules",
-    "lint:source": "cd .. && node frontend-sdk/node_modules/eslint/bin/eslint.js examples/sample-app/frontend examples/sample-app/.specs",
+    "lint:source": "cd .. && node frontend-sdk/node_modules/eslint/bin/eslint.js examples/sample-app/frontend/web examples/sample-app/.specs",
     "lint:rules": "node packages/eslint-plugin/index.test.cjs",
     "test": "vitest run",
     "check": "npm run typecheck && npm run lint && npm run test"

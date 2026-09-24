@@ -4,7 +4,7 @@ import { useListItems } from "@/client.gen/sample";
 import i18n from "@/i18n";
 
 // CANONICAL FEATURE UNIT — the ViewModel (the "data door", the front-side of a backend [Slice]). It is the only
-// place that touches the generated client (SKYFE002), it is platform-agnostic so it tests in jsdom (SKYFE009), and
+// place that touches the generated client (SKYFE002), it renders nothing so its case drives it with renderHook, and
 // it exposes its resource as an AsyncState<T> (the spine) so the View handles every state by construction.
 
 export interface Item {

@@ -1,6 +1,6 @@
 # Skies Framework — frontend
 
-The React / React Native side of Skies: a small runtime (`@skiesjs/react`) and architecture-only lint rules
+The React web side of Skies (mobile is Flutter: `flutter-sdk/`): a small runtime (`@skiesjs/react`) and architecture-only lint rules
 (`@skiesjs/eslint-plugin`). Plain React the app composes, not a DSL; delete either package and the app still builds.
 Scaffolding, client generation and i18n assembly live in the `skies` CLI, not here.
 
@@ -15,9 +15,10 @@ frontend-sdk/
   packages/
     skies-react/      # @skiesjs/react — AsyncState/Resource, session seam, guards, nav, params, submit, paging
     eslint-plugin/    # @skiesjs/eslint-plugin — SKYFE rules, one file per rule, RuleTester self-tests
-../examples/sample-app/frontend/
-  core/               # shared ViewModel/View/i18n feature units + the generated client
-  web/ mobile/        # the app's own ui/ components per platform
+../examples/sample-app/frontend/web/
+  src/<feature>/      # ViewModel + View + i18n catalog per feature
+  src/client.gen/     # the generated client
+  src/ui/             # the app's own component kit
 ```
 
 `npm run check` = typecheck + lint (sample + rule self-tests) + vitest.
@@ -43,7 +44,7 @@ owns fetching and caching. The package also ships the tri-state `SessionState`, 
 
 | File | Role |
 |---|---|
-| `<Feature>.viewModel.ts` | the only importer of the generated client; platform-agnostic; exposes `AsyncState` + commands |
+| `<Feature>.viewModel.ts` | the only importer of the generated client; renders nothing; exposes `AsyncState` + commands |
 | `<Feature>.view.tsx` | render only; consumes the ViewModel through `<Resource>` |
 | `<feature>.i18n.ts` | per-feature copy, every locale with the same keys |
 | `<Feature>.test.tsx` | optional colocated tests |
