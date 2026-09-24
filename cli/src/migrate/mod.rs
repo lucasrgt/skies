@@ -6,15 +6,15 @@
 //! decide safely is reported as a follow-up instead of guessed.
 
 mod eslint;
+mod imports;
 mod manifest;
 mod package_json;
 mod scripts;
 mod source;
-mod vendor;
 mod versions;
 mod workflows;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -59,13 +59,8 @@ pub struct Plan {
     pub changes: Vec<Change>,
     /// Notes for a person, each with the files it applies to (empty for repository-wide notes).
     pub follow_ups: BTreeMap<String, Vec<String>>,
-    /// Helper copies already scheduled, so a helper used by many files is written once per package.
-    pub vendored: BTreeSet<PathBuf>,
     /// Whether the dotnet tool manifest goes away with `skies-framework-cli`, which makes `dotnet tool restore` fail.
     pub tool_manifest_removed: bool,
-    /// Packages that import a helper copy from another package instead of receiving their own (see
-    /// `vendor::shared_homes`).
-    pub shared_homes: BTreeMap<PathBuf, PathBuf>,
 }
 
 impl Plan {
@@ -159,7 +154,6 @@ pub fn plan(root: &Path) -> Result<Plan> {
             files.push(entry.into_path());
         }
     }
-    plan.shared_homes = vendor::shared_homes(root, &files);
     for path in &files {
         source::migrate_file(root, path, &mut plan).with_context(|| format!("migrating {}", path.display()))?;
     }
@@ -314,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    fn assay_proofs_keep_their_tags_and_only_lose_removed_imports() {
+    fn assay_proofs_are_left_alone_and_reported() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         write(root, "Skies.toml", "[workspace]\nname = \"demo\"\n");
@@ -331,11 +325,13 @@ mod tests {
             "void main() {\n  // @avp pays-once\n}\n",
         );
 
-        apply(&plan(root).unwrap()).unwrap();
+        let plan = plan(root).unwrap();
+        assert!(plan.follow_ups.keys().any(|note| note.contains("Skies 4 frontend SDK")));
+        apply(&plan).unwrap();
 
         let web = fs::read_to_string(root.join("clients/web/src/pay/Pay.assay.test.tsx")).unwrap();
         assert!(web.contains("/** @avp pays-once */"), "{web}");
-        assert!(!web.contains("@skiesjs/frontend-sdk"), "{web}");
+        assert!(web.contains("@skiesjs/frontend-sdk/product-verification"), "{web}");
         let dart = fs::read_to_string(root.join("clients/app/test/pay.assay_test.dart")).unwrap();
         assert!(dart.contains("// @avp pays-once"));
     }

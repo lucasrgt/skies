@@ -82,13 +82,13 @@ pub fn migrate_file(root: &Path, path: &Path, plan: &mut Plan) -> Result<()> {
         Ok(text) => (text, false),
         Err(error) => (error.into_bytes().into_iter().map(char::from).collect(), true),
     };
-    let vendored = if matches!(extension, "ts" | "tsx" | "js" | "mjs" | "cjs" | "mts" | "cts" | "dart") {
-        super::vendor::rewrite(root, path, &original, plan)
+    let rewritten = if matches!(extension, "ts" | "tsx" | "js" | "mjs" | "cjs" | "mts" | "cts" | "dart") {
+        super::imports::rewrite(root, path, &original, plan)
     } else {
         None
     };
-    let text = vendored.clone().unwrap_or_else(|| original.clone());
-    if let Some(updated) = edit(&text, &relative, plan).or(vendored) {
+    let text = rewritten.clone().unwrap_or_else(|| original.clone());
+    if let Some(updated) = edit(&text, &relative, plan).or(rewritten) {
         if updated.trim().is_empty() && name == "dotnet-tools.json" {
             plan.delete(path);
         } else if updated != original && !latin1 {
@@ -203,7 +203,7 @@ fn csproj(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
     (out != text).then_some(out)
 }
 
-/// An Assay proof keeps its tags; only its imports of removed Skies helpers are rewritten (by the vendor step).
+/// An Assay proof keeps its tags; the imports step reports its dependency on the removed Assay adapter.
 fn assay_proof(_: &str, relative: &str, plan: &mut Plan) -> Option<String> {
     plan.follow_up_file(
         "is an Assay proof; keep avp-assay or rewrite it as a spec E2E",

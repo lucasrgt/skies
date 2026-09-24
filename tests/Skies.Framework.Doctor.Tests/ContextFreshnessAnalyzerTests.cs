@@ -43,12 +43,10 @@ public class ContextFreshnessAnalyzerTests
     }
 
     [Fact]
-    public Task A_journey_cited_in_the_ctx_resolves_against_the_co_located_tests_file()
+    public Task A_test_class_is_not_production_code_and_goes_stale()
     {
-        // `PromotionJourney` is a [Journey] class in a *.Tests.cs — <Compile Remove>'d from this compilation,
-        // fed to the doctor as an AdditionalFile. The api compilation holds no symbol for it, yet the ctx may
-        // legitimately name the journey that covers the module; resolving against the AdditionalFile keeps it
-        // fresh instead of the false "no longer exists" a pilot hit.
+        // A ctx documents the module; a class that exists only in a test file is not part of it, even when the
+        // project happens to feed that file to the doctor.
         var test = Make("""
             # account
 
@@ -58,43 +56,17 @@ public class ContextFreshnessAnalyzerTests
 
             ## Design notes
 
-            Sign-up is covered by `PromotionJourney`.
+            Sign-up is covered by `PromotionFlow`.
             """);
-        test.TestState.AdditionalFiles.Add(("PromotionJourney.Tests.cs", """
-            namespace Demo.Journeys;
+        test.TestState.AdditionalFiles.Add(("PromotionFlow.Tests.cs", """
+            namespace Demo.Tests;
 
-            [Journey]
-            public class PromotionJourney { }
-            """));
-        return test.RunAsync();
-    }
-
-    [Fact]
-    public Task A_citation_absent_from_the_tests_file_is_still_flagged()
-    {
-        // The co-located-tests source must resolve only names it actually declares — a present *.Tests.cs
-        // does not blanket-pass every citation, or freshness would rot.
-        var test = Make("""
-            # account
-
-            ## Boundaries
-
-            - x
-
-            ## Design notes
-
-            The `GhostJourney` is gone.
-            """);
-        test.TestState.AdditionalFiles.Add(("PromotionJourney.Tests.cs", """
-            namespace Demo.Journeys;
-
-            [Journey]
-            public class PromotionJourney { }
+            public class PromotionFlow { }
             """));
         test.TestState.ExpectedDiagnostics.Add(
             new DiagnosticResult(ContextFreshnessAnalyzer.DiagnosticId, DiagnosticSeverity.Error)
-                .WithSpan("Account.ctx.md", 9, 6, 9, 18)
-                .WithArguments("Account.ctx.md", "GhostJourney"));
+                .WithSpan("Account.ctx.md", 9, 24, 9, 37)
+                .WithArguments("Account.ctx.md", "PromotionFlow"));
         return test.RunAsync();
     }
 

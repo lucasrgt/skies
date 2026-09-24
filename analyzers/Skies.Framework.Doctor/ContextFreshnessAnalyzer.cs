@@ -13,18 +13,12 @@ namespace Skies.Framework.Doctor;
 
 /// <summary>
 /// SKY0005 — a module's <c>.ctx.md</c> stays fresh by <em>citation resolution</em>: a backticked code
-/// identifier it names must still exist somewhere the doctor can see — this module's source, a referenced
-/// assembly, or a co-located <c>*.Tests.cs</c> the project feeds the doctor as an <c>AdditionalFile</c>. A
-/// ctx that names <c>`AttachCtx`</c> after that construct was renamed or removed is rot, and the doctor
+/// identifier it names must still exist in this module's source or a referenced assembly. A ctx that names <c>`AttachCtx`</c> after that construct was renamed or removed is rot, and the doctor
 /// catches it; this is the .NET analog of the <c>attach_ctx</c> documentation drift that the Rust codebase's
 /// docs-hygiene gate was built to prevent.
 ///
-/// The third source matters because a journey is a <c>[Journey]</c> class living in a <c>*.Tests.cs</c> that
-/// is <c>&lt;Compile Remove&gt;</c>'d from the api compilation (the sibling test project compiles it), so the
-/// api compilation — where the ctx is an AdditionalFile — cannot see it as a <em>symbol</em>, even though a
-/// module ctx may legitimately name the journey that covers it. A citation that resolves to a type declared
-/// in those AdditionalFiles is fresh, resolved the same textual way the ctx itself is read — no
-/// cross-compilation symbol walk, no name-pattern special-case.
+/// A ctx documents the module, so it cites production code. Test classes are not part of the api compilation and
+/// do not count: the module's behavior is proven by its specs under <c>.specs/</c>, which the ctx does not index.
 ///
 /// Freshness is deliberately <b>not</b> mtime. Because the ctx does not duplicate the code (see the
 /// schema in CONVENTIONS), adding a field must not force a ctx edit — only a *dangling* reference is
@@ -89,8 +83,6 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
         var suspects = new HashSet<string>(allNames.Where(n => !source.Contains(n)), StringComparer.Ordinal);
         if (suspects.Count > 0)
             suspects.ExceptWith(ReferencedNames(context.Compilation, suspects, context.CancellationToken));
-        if (suspects.Count > 0)
-            suspects.ExceptWith(CoLocatedTestTypeNames(context.Options.AdditionalFiles, suspects, context.CancellationToken));
         if (suspects.Count == 0)
             return;   // everything resolves — fresh
 
@@ -101,37 +93,6 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
                     var location = Location.Create(file.Path, citation.Span, text.Lines.GetLinePositionSpan(citation.Span));
                     context.ReportDiagnostic(Diagnostic.Create(Rule, location, Path.GetFileName(file.Path), citation.Name));
                 }
-    }
-
-    // A type declaration in a co-located *.Tests.cs: the keyword then its PascalCase name. Textual on
-    // purpose — these files are AdditionalFiles, not part of this compilation, so there is no symbol to ask.
-    private static readonly Regex TestTypeDeclaration =
-        new(@"\b(?:class|record|struct|interface|enum)\s+([A-Z][A-Za-z0-9_]*)", RegexOptions.Compiled);
-
-    // Which suspects are types declared in a co-located *.Tests.cs the project feeds as an AdditionalFile
-    // (a journey a module ctx names). Scans those files only, and stops once every suspect is accounted for.
-    private static HashSet<string> CoLocatedTestTypeNames(
-        ImmutableArray<AdditionalText> files, HashSet<string> wanted, CancellationToken ct)
-    {
-        var found = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var file in files)
-        {
-            if (found.Count == wanted.Count)
-                break;
-            if (!file.Path.EndsWith(".Tests.cs", StringComparison.OrdinalIgnoreCase))
-                continue;
-            var text = file.GetText(ct)?.ToString();
-            if (text is null)
-                continue;
-            foreach (Match match in TestTypeDeclaration.Matches(text))
-            {
-                var name = match.Groups[1].Value;
-                if (wanted.Contains(name))
-                    found.Add(name);
-            }
-        }
-
-        return found;
     }
 
     private static List<(string Name, TextSpan Span)> Citations(SourceText text)
