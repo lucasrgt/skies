@@ -119,17 +119,25 @@ pub fn plan(root: &Path) -> Result<Plan> {
     let mut plan = Plan::default();
     manifest::migrate(root, &mut plan)?;
 
-    for name in ["csm.toml", "VERIFICATION.md", "VERIFICATION.json"] {
+    for name in ["VERIFICATION.md", "VERIFICATION.json"] {
         let path = root.join(name);
         if path.is_file() {
             plan.delete(&path);
         }
     }
-    for dir in [".skies/csm", ".skies/verification-attempt", ".skies/foundation"] {
+    for dir in [".skies/verification-attempt", ".skies/foundation"] {
         let path = root.join(dir);
         if path.is_dir() {
             plan.delete(&path);
         }
+    }
+    // The CSM stores are the team's recorded decisions, patterns, scars, and deferments. Skies 5 stops running the
+    // tools, but the knowledge is the repository's, so it stays where it is.
+    if root.join("csm.toml").is_file() || root.join(".skies/csm").is_dir() {
+        plan.follow_up(
+            "csm.toml and .skies/csm are kept: Skies no longer runs the CSM tools (why-this-way, right-this-way, \
+             not-you-again, now-we-can); install them on their own to keep using the records, or delete both",
+        );
     }
 
     plan.tool_manifest_removed = [".config/dotnet-tools.json", "dotnet-tools.json"]
@@ -279,8 +287,8 @@ mod tests {
             "{manifest}"
         );
         assert!(!manifest.contains("[framework]"));
-        assert!(!root.join("csm.toml").exists());
-        assert!(!root.join(".skies/csm").exists());
+        assert!(root.join("csm.toml").exists(), "team knowledge is never deleted");
+        assert!(root.join(".skies/csm/lock.toml").exists());
         assert!(!root.join("VERIFICATION.md").exists());
         assert!(!root.join("src/Demo.Api/Modules/Billing/Billing.spec.toml").exists());
         assert!(!root.join("clients/web/e2e/flows.json").exists());

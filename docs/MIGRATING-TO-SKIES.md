@@ -16,7 +16,7 @@ for the reasons.
 | SKY0003, 0008, 0010, 0011, 0020, 0030–0033 | removed |
 | SKYFE005, 006, 008, 012, 024–026, 033–035 and Flutter equivalents | removed |
 | design tokens, `.design/`, design scaffolds | removed; styling is the app's |
-| `csm.toml`, `.skies/`, `skies context`, `skies nya/wtw/rtw/nwc` | removed from Skies; the tools remain available on their own |
+| `skies context`, `skies nya/wtw/rtw/nwc` | removed from Skies; the tools remain available on their own, and `csm.toml` + `.skies/csm` stay in the repository |
 | `VERIFICATION.md`, `VERIFICATION.json` | removed |
 | `Skies.toml` `[framework]`, `core`, `library`, `website` keys | `[products.*] backend` + `frontend` (one path or a list), plus `[runners.*]` |
 | framework-sync, parity manifests | removed; all packages share one version |
@@ -37,7 +37,7 @@ for the reasons.
 
    | Area | What `skies migrate 5` does |
    |---|---|
-   | Proof ceremony | removes `[AVP]`, `[Journey]`, `[Unit]`, `[Integration]`, `[E2E]` (other attributes on the line stay), the `@verify`/`@avp`/`@e2e` doc tags, `e2e/flows.json`, `*.spec.toml`, `VERIFICATION.*`, `csm.toml`, `.skies/csm` |
+   | Proof ceremony | removes `[AVP]`, `[Journey]`, `[Unit]`, `[Integration]`, `[E2E]` (other attributes on the line stay), the `@verify`/`@avp`/`@e2e` doc tags, `e2e/flows.json`, `*.spec.toml`, `VERIFICATION.*`; keeps `csm.toml` and `.skies/csm` (the team's records) and says so |
    | Agent instructions and hooks | removes the `skies:foundations` block in `AGENTS.md`/`CLAUDE.md` and the hook commands in `lefthook.yml` that ran `skies check`/`gate`/`context`; reports prose that still tells agents to run the gate |
    | `Skies.toml` | rewrites it to the 5.x schema (`core`/`library`/`website` fold into `frontend`; `[framework]` goes) |
    | .NET | drops the `skies-framework-cli` dotnet tool (and the manifest when nothing else is in it); sets every `Skies`/`Skies.Framework*` `PackageReference`/`PackageVersion` to the binary's version; adds the `.specs/` compile include to the test project |
