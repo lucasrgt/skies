@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 5.0.0
 
 - Remove the test-only Dio backend ledger (`skies_flutter_testing.dart`); journey evidence is no longer part of
   the framework.

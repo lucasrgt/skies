@@ -1,6 +1,6 @@
 {
   "name": "@skiesjs/eslint-plugin",
-  "version": "4.0.5",
+  "version": "5.0.0",
   "description": "Skies Framework SKYFE architecture rules for React and React Native: MVVM seams, one data door, routing/session/form discipline.",
   "license": "MIT",
   "author": "Lucas Tinoco",
