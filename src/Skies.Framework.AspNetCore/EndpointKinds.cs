@@ -31,8 +31,8 @@ public enum EndpointKind
 /// the client generator filters it: an <see cref="EndpointKind.Asset"/>, <see cref="EndpointKind.Webhook"/>, or
 /// <see cref="EndpointKind.Internal"/>
 /// endpoint is tagged and excluded from the app's generated client, so it never produces a hook and never trips
-/// the loose-endpoint coverage warning. This is the .NET spelling of the <c>[Endpoint(...)]</c> vocabulary —
-/// a builder convention, because a minimal-API handler is a lambda that cannot carry a class attribute to the
+/// the loose-endpoint coverage warning. The marker is a builder call, <c>WithEndpointKind(EndpointKind.X)</c>, not
+/// a class attribute, because a minimal-API handler is a lambda that cannot carry a class attribute to the
 /// endpoint. App-facing is the default and needs no call (opt-out: only the exceptions are marked).
 /// </summary>
 public static class EndpointKindExtensions
