@@ -13,7 +13,7 @@ passing after it. Nothing else is required: no tags, no manifests, no gate.
   spec.md        behavior + failure modes (FM-1..n) + out of scope
   e2e/           black-box tests, each case titled "FM-n: …"
   receipt.json   written by `skies proof record`
-  evidence/      report + artifacts tests save to $SKIES_EVIDENCE (hashed by the receipt)
+  evidence/      artifacts tests save to $SKIES_EVIDENCE (committed, hashed); raw/ keeps full reports (local)
 ```
 
 **Write first, commit together.** The spec and its E2E are written before the code, but they are committed with
@@ -125,8 +125,9 @@ cases import `package:<app>/...` and the spec's runner copies them into the pack
   applications.
 
 Run them now, with `skies proof run <id>`: it runs the spec's E2E once on the working tree, prints each failure
-mode's pass or fail with what the failing cases reported, and writes nothing. Every mode must fail, for the right
-reason (missing endpoint, wrong status, missing effect): a mode that passes now does not discriminate.
+mode's pass or fail with what the failing cases reported, and commits nothing (its report stays in the gitignored
+`evidence/raw/`). Every mode must fail, for the right reason (missing endpoint, wrong status, missing effect): a
+mode that passes now does not discriminate.
 
 ## 4. Implement
 
@@ -152,20 +153,23 @@ skies proof record <id> --with-impacted
 ```
 
 It runs the E2E against the merge-base (every FM must fail) and against the working tree (every FM must pass),
-then writes `receipt.json` and copies the report and saved artifacts into `evidence/`. A tagged FM passes only when
-its cases pass and its verdict reports every tagged criterion as pass. `--with-impacted` then reruns green for every
-other spec whose files overlap yours and names the ones that passed in `verified_with`; if one fails, your change
-broke it: fix the code, not the other spec. Never edit `evidence/` by hand; `skies proof status` reports it as
-tampered. If the E2E cannot even build on the merge-base (it uses code the feature adds), every FM counts as failing,
-for every runner, and the build output is kept as `evidence/red.log`. If a failure mode already passes on the
-merge-base, either the test does not discriminate (fix the test) or the behavior already existed (add a
-`## Non-discriminating` section to `spec.md` explaining why).
+then writes `receipt.json` (per FM, the cases that decided it and, on red, what failed), commits the artifacts the
+tests saved to `evidence/` (256 KB each at most), and keeps the full reports in the gitignored `evidence/raw/`. A
+tagged FM passes only when its cases pass and its verdict reports every tagged criterion as pass. `--with-impacted`
+then reruns green for every other spec whose files overlap yours and names the ones that passed in `verified_with`;
+if one fails, your change broke it: fix the code, not the other spec. Never edit `evidence/` by hand; `skies proof
+status` reports it as tampered. If the E2E cannot even build on the merge-base (it uses code the feature adds), every
+FM counts as failing, for every runner, and the receipt's `red.output` says why (the whole output is
+`evidence/raw/red.log`). If a failure mode already passes on the merge-base, either the test does not discriminate
+(fix the test) or the behavior already existed (add a `## Non-discriminating` section to `spec.md` explaining why).
 
 The merge-base is taken with the default branch. If red resolves to the wrong revision (the app branches from
 `develop`, not `main`), set it once in `Skies.toml`, `[workspace] default_branch = "develop"`, or pass `--red <rev>`.
 
 For a spec written after the code, add a `red.patch` that removes the behavior (for example, stub the handler)
-and record against it.
+and record against it. When `skies proof status` says `red-rotted`, the code under the patch moved and red can no
+longer be reproduced: stub the behavior again, save `git diff --relative` as the spec's `red.patch`, restore the
+code, and run `skies proof record <id> --red-only`, which reruns red alone and keeps green.
 
 ## 6. Revise the module context
 
