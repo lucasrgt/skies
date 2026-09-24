@@ -2,9 +2,10 @@
 
 ## Boundaries
 
-Owns a `Wallet` and its running `Balance`. Four slices: `GetBalance` (read), `ListWallets` (the canonical
+Owns a `Wallet` and its running `Balance`. Five slices: `GetBalance` (read), `ListWallets` (the canonical
 paginated list — ordered by a unique key, paged with `ToPageAsync` into the framework's `Page` shape),
-`Deposit` (the only inflow that grows a balance) and `Withdraw` (the only outflow). Persistence is the
+`Deposit` (the only inflow from outside), `Withdraw` (the only outflow) and `Transfer` (moves a balance
+between two wallets, so the module's total is unchanged). Persistence is the
 shared `AppDb` — slices talk to
 it directly, no repository or unit-of-work layer. The module is a logical bounded context: it writes only
 its own `Wallet`, so it stays liftable later even though it shares the one store. The entity and its slices
@@ -23,8 +24,15 @@ live here, never in a root `Domain/` folder.
   so a `Wallet` is never observed or persisted in a broken state.
 - **Balance is authoritative server-side.** `Deposit` and `Withdraw` recompute from the stored value and
   never trust a client-sent total (`0001-deposit#FM-1`, `0002-withdraw#FM-1`, `0003-wallet-reads#FM-1`).
-- **`Deposit` and `Withdraw` honor an `Idempotency-Key`**: a retry replays the recorded outcome through
-  `IIdempotencyStore` instead of applying the write twice (`0001-deposit#FM-5`, `0002-withdraw#FM-5`).
+- **A transfer is one change, not two.** `Transfer` debits the source through `Wallet.Withdraw` (so the
+  overdraw rule is the entity's, `0009-transfer#FM-2`) and credits the destination through `Wallet.Deposit`,
+  then saves both in a single `SaveChangesAsync`. Every refusal returns before that save, so a missing wallet
+  on either side never leaves the other one moved (`0009-transfer#FM-4`). Naming the same wallet twice is a
+  business-rule refusal (422), not a validation error: the request is well formed (`0009-transfer#FM-3`).
+- **`Deposit`, `Withdraw` and `Transfer` honor an `Idempotency-Key`**: a retry replays the recorded outcome
+  through `IIdempotencyStore` instead of applying the write twice (`0001-deposit#FM-5`, `0002-withdraw#FM-5`,
+  `0009-transfer#FM-6`). A transfer's outcome is both balances, so it is recorded whole and apart from the
+  single-balance outcomes; a key used for a deposit never replays as a transfer.
 - **`ListWallets` orders by the unique id before paging**, so consecutive pages never overlap or skip a
   wallet (`0003-wallet-reads#FM-5`), and the server clamps hostile paging input before it reaches the query
   (`0003-wallet-reads#FM-4`).
