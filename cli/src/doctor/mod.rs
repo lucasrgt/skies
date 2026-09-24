@@ -3,18 +3,20 @@
 //! Every platform already owns its checks: the SKY Roslyn analyzers run inside `dotnet build`, the SKYFE rules
 //! inside the package's `npm run lint`, and the SKYFL rules natively here. A React package also gets a typecheck leg
 //! (its `typecheck` script, else `tsc --noEmit -p`), because a type error is invisible to ESLint and a View bound to a
-//! renamed hook field lints clean. The doctor only finds the packages `Skies.toml` declares, runs their legs in
-//! parallel, and prints one table. It is run on purpose; no
-//! hook calls it, and it polices nothing but architecture.
+//! renamed hook field lints clean. The workspace leg checks the repository root against `[workspace] root`
+//! (SKYWS001/SKYWS002, see [`workspace`]): the layout is architecture too. The doctor only finds the packages
+//! `Skies.toml` declares, runs their legs in parallel, and prints one table. It is run on purpose; no hook calls it,
+//! and it polices nothing but architecture.
 //!
 //! `--package <dir>` runs only the leg for that one directory, so a package's own `lint` script can call the doctor
-//! without a `Skies.toml` lookup and without linting its siblings.
+//! without a `Skies.toml` lookup and without linting its siblings (or the root).
 //!
 //! Exit codes: 0 when no leg has an error-level finding, 1 when one does, 2 when a leg could not run at all
 //! (a missing tool, a package without a manifest). Warnings are reported but never fail the run.
 
 mod legs;
 mod report;
+pub mod workspace;
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -54,6 +56,8 @@ impl Finding {
 /// What a leg is asked to check.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Target {
+    /// The repository root, checked against `Skies.toml` `[workspace] root` (`None` when the key is missing).
+    Workspace(PathBuf, Option<Vec<String>>),
     Dotnet(PathBuf),
     Eslint(PathBuf),
     /// A React package's TypeScript check, run beside its lint.
@@ -92,16 +96,21 @@ pub fn run(build_args: &[String], package: Option<&Path>) -> Result<u8> {
         return run_package(package, build_args);
     }
     let project = Project::from_cwd()?;
-    let targets = targets(&project);
-    if targets.is_empty() {
+    let packages = targets(&project);
+    if packages.is_empty() {
         println!(
-            "skies doctor: {} ({}) declares no backend or frontend packages",
+            "skies doctor: {} ({}) declares no backend or frontend packages; checking the root only",
             project.manifest.workspace.name,
             crate::manifest::FILE_NAME
         );
-        return Ok(0);
+    } else {
+        println!("skies doctor: {}", project.manifest.workspace.name);
     }
-    println!("skies doctor: {}", project.manifest.workspace.name);
+    let mut targets = vec![Target::Workspace(
+        project.root.clone(),
+        project.manifest.workspace.root.clone(),
+    )];
+    targets.extend(packages);
     let started = Instant::now();
     let legs = run_legs(&project.root, &targets, build_args);
     print!("{}", report::render(&project.root, &legs, started.elapsed()));

@@ -18,6 +18,10 @@ pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
     let started = Instant::now();
     let relative = |path: &Path| path.strip_prefix(root).unwrap_or(path).display().to_string();
     let (name, (status, findings)) = match target {
+        Target::Workspace(path, declared) => (
+            "workspace".to_string(),
+            super::workspace::check(path, declared.as_deref()),
+        ),
         Target::Dotnet(path) => (format!("dotnet {}", relative(path)), dotnet(path, build_args)),
         Target::Eslint(path) => (format!("eslint {}", relative(path)), eslint(path)),
         Target::Typecheck(path) => (format!("tsc {}", relative(path)), typecheck(path)),

@@ -4,6 +4,7 @@
 //! [workspace]
 //! name = "Hostpoint"
 //! default_branch = "develop"   # optional: where features branch from, for red and `proof impact`
+//! root = ["src/", "tests/", "clients/", "*.slnx", "README.md"]   # everything allowed at the repository root
 //!
 //! [products.app]
 //! backend = "src/Hostpoint.Api"
@@ -45,6 +46,11 @@ pub struct Workspace {
     /// diffs from there, ahead of the current branch's upstream and `origin/HEAD`. Set it when work happens on a
     /// long-lived branch other than the remote's default (a `develop`, a major-version branch).
     pub default_branch: Option<String>,
+    /// Everything allowed at the repository root: globs matched against one root entry's name, a trailing `/` for a
+    /// directory and none for a file (`.git` and `Skies.toml` are implicit). `skies doctor` flags any other root entry
+    /// (SKYWS001), so junk has to be moved, deleted, or declared on purpose. Required: a manifest without it gets one
+    /// finding with the list to paste. See `doctor::workspace` for the matching rules.
+    pub root: Option<Vec<String>>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -207,6 +213,7 @@ mod tests {
             [workspace]
             name = "Demo"
             default_branch = "v5"
+            root = ["frontend/", "*.slnx"]
 
             [runners.web]
             command = "npx vitest run {dir}"
@@ -216,6 +223,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(manifest.workspace.default_branch.as_deref(), Some("v5"));
+        assert_eq!(
+            manifest.workspace.root.as_deref(),
+            Some(&["frontend/".to_string(), "*.slnx".to_string()][..])
+        );
         let web = &manifest.runners["web"];
         assert_eq!(web.build.as_deref(), Some("npx tsc -b"));
         assert!(web.in_scope("frontend/web/src/App.tsx"));

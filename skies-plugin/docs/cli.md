@@ -14,7 +14,7 @@ Commands:
   new      Create a new Skies application in ./<Name>
   g        Generate code that follows the Skies conventions
   i18n     Assemble per-feature i18n catalogs into the package's locale files
-  doctor   Run the architecture doctors: dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*)
+  doctor   Run the architecture doctors: the declared repository root (SKYWS*), dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*)
   spec     Work with feature specs under .specs/
   proof    Record and check the evidence that a spec's failure modes are handled
   migrate  Migrate an application to a new Skies major version
@@ -272,7 +272,7 @@ Options:
 ## skies doctor
 
 ```text
-Run the architecture doctors: dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*)
+Run the architecture doctors: the declared repository root (SKYWS*), dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*)
 
 Usage: skies doctor [OPTIONS] [BUILD_ARGS]...
 
@@ -280,7 +280,7 @@ Arguments:
   [BUILD_ARGS]...  Extra arguments forwarded to `dotnet build`
 
 Options:
-      --package <PACKAGE>  Check only this package directory (a Flutter or React package, or a .NET project or its folder), so a package's own `lint` script can call the doctor
+      --package <PACKAGE>  Check only this package directory (a Flutter or React package, or a .NET project or its folder), so a package's own `lint` script can call the doctor (the root is not checked)
   -h, --help               Print help
 ```
 
