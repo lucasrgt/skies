@@ -6,13 +6,11 @@
 # Three apps, each rendered with `skies new`:
 #   Full   — g auth + auth:otp + auth:oauth + auth:email, plus module/slice/entity/vo/hub.
 #   Single — g auth --skip-tenancy --skip-cookies.
-#   Crud   — g auth + module + a tenant-scoped data-bag entity + g crud.
+#   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, with no edit after crud.
 #
 # Legs per app:
-#   DOCTOR — build the API with the SKY* analyzers ON; the build must succeed with zero SKY diagnostics.
-#            (Crud is the exception: `g crud` writes columns through public setters, which an [Entity] forbids
-#            (SKY0014), and an unmarked persisted type is SKY0021. That leg asserts SKY0021 on the entity is the
-#            only finding and there is no compiler error; the SPECS leg then proves the app compiles.)
+#   DOCTOR — build the API with the SKY* analyzers ON; the build must succeed with zero SKY diagnostics
+#            (errors and warnings alike, for every app).
 #   SPECS  — build and run the tests project (analyzers off), which compiles .specs/*/e2e; every case must pass
 #            and the count of passed tests must equal the number of FM cases in the specs.
 #
@@ -52,25 +50,13 @@ new_app() {
 
 g() { (cd "$API" && "$SKIES" g "$@" >/dev/null); }
 
-# doctor <App> [allowed-rule] — build with the analyzers on; any SKY finding other than the allowed one fails.
+# doctor <App> — build with the analyzers on; any SKY finding, error or warning, fails.
 doctor() {
-  local app="$1" allowed="${2:-}" out ok=1
+  local app="$1" out ok=1 findings
   echo "==> [$app] DOCTOR: build with the SKY* analyzers on"
   use_working_tree "$WORK/$app/src/$app.Api/$app.Api.csproj"
   out="$(dotnet build "$WORK/$app/src/$app.Api/$app.Api.csproj" -c Debug 2>&1)" || ok=0
-  local findings unexpected
   findings="$(echo "$out" | grep -oE "(error|warning) SKY[0-9]+" | sort | uniq -c | sort -rn || true)"
-  unexpected="$(echo "$findings" | grep -v -E "${allowed:-^$}" | grep -E "SKY" || true)"
-  if [ -n "$allowed" ]; then
-    # The allowed rule is reported as an error, so the build fails; the gap must be exactly that rule.
-    if [ -z "$findings" ] || [ -n "$unexpected" ] || echo "$out" | grep -qE "error CS[0-9]+"; then
-      echo "FAIL: [$app] expected only $allowed findings. Reported:"; echo "${findings:-<none>}"
-      echo "$out" | grep -E "error|SKY[0-9]+" | sort -u | head -40
-      exit 1
-    fi
-    echo "ok: [$app] the only doctor findings are the known $allowed gap:"; echo "$findings"
-    return
-  fi
   if [ "$ok" -ne 1 ] || [ -n "$findings" ]; then
     echo "FAIL: [$app] must build doctor-clean. Reported:"; echo "${findings:-<no SKY findings; the build failed>}"
     echo "$out" | grep -E "error|warning SKY" | sort -u | head -40
@@ -109,45 +95,45 @@ echo "==> rendering Single: auth --skip-tenancy --skip-cookies"
 API="$(new_app Single)"
 g auth --skip-tenancy --skip-cookies
 
-echo "==> rendering Crud: auth + a tenant-scoped data-bag entity + crud"
+echo "==> rendering Crud: auth + module + entity + crud"
 API="$(new_app Crud)"
-g auth; g module Catalog
-# The owner's side of `g crud`: open the module's route group (the scaffold leaves it as a comment), write a plain
-# tenant-scoped entity with writable columns, and register its DbSet.
-sed -i 's#^        //   var catalog = app.MapGroup("/catalog").RequireAuthorization(); // or .AllowAnonymous()#        var catalog = app.MapGroup("/catalog").RequireAuthorization();#' "$API/Modules/Catalog/CatalogModule.cs"
-cat > "$API/Modules/Catalog/Product.cs" <<'EOF'
-using System.ComponentModel.DataAnnotations;
-using Crud.Api.Tenancy;
+g auth; g module Catalog; g entity Catalog Product
+# The owner's side, before `g crud` and only there: give the scaffolded entity its tenancy and its domain state
+# (encapsulated, as `g entity` leaves it), and register its DbSet. crud then writes Open/Update/RowVersion into the
+# entity, the slices, and the module's route group; nothing is edited after it.
+ENTITY="$API/Modules/Catalog/Product.cs"
+sed -i '1i using Crud.Api.Tenancy;\n' "$ENTITY"
+sed -i 's#^public class Product$#public class Product : ITenantScoped#' "$ENTITY"
+cat > "$WORK/product-fields.cs" <<'EOF'
 
-namespace Crud.Api.Modules.Catalog;
-
-/// <summary>A catalog product: a plain tenant-scoped row the CRUD slices read and write.</summary>
-public class Product : ITenantScoped
-{
-    public Guid Id { get; set; }
-
+    /// <summary>The owning org, stamped by the DbContext.</summary>
     public Guid OrgId { get; private set; }
 
-    public string Name { get; set; } = "";
+    /// <summary>The product name shown in the catalog.</summary>
+    public string Name { get; private set; } = "";
 
-    public decimal Price { get; set; }
+    /// <summary>The unit price.</summary>
+    public decimal Price { get; private set; }
 
-    public DateTime CreatedAt { get; set; }
+    /// <summary>When the product was opened.</summary>
+    public DateTime CreatedAt { get; private set; }
 
-    public DateTime UpdatedAt { get; set; }
-
-    [Timestamp]
-    public byte[]? RowVersion { get; private set; }
-}
+    /// <summary>When the product last changed.</summary>
+    public DateTime UpdatedAt { get; private set; }
 EOF
+sed -i "/^    public Guid Id { get; private set; }\$/r $WORK/product-fields.cs" "$ENTITY"
+grep -q 'public class Product : ITenantScoped' "$ENTITY" && grep -q 'public decimal Price' "$ENTITY" \
+  || { echo "FAIL: the g entity scaffold changed shape; the smoke's owner edit no longer applies" >&2; exit 1; }
 sed -i 's#^    public DbSet<UserSession> UserSessions => Set<UserSession>();#&\n\n    public DbSet<Crud.Api.Modules.Catalog.Product> Products => Set<Crud.Api.Modules.Catalog.Product>();#' "$API/AppDb.cs"
+grep -q 'DbSet<Crud.Api.Modules.Catalog.Product>' "$API/AppDb.cs" \
+  || { echo "FAIL: AppDb.cs changed shape; the smoke could not register the DbSet" >&2; exit 1; }
 g crud Catalog Product
 
 doctor Full
 specs Full
 doctor Single
 specs Single
-doctor Crud "SKY0021"
+doctor Crud
 specs Crud
 
 echo "==> auth-smoke OK"
