@@ -17,7 +17,9 @@ export default defineConfig({
       schemas: "./src/client.gen/model",
       client: "react-query",
       httpClient: "axios",
-      clean: true,
+      // Never wipe the output folder: `skies g client` refuses to run while src/client.gen/ holds a file without
+      // orval's header, and after a run removes only the generated files the contract no longer produces.
+      clean: false,
       prettier: false,
       override: {
         mutator: { path: "./src/lib/skies-client.ts", name: "skiesClient" },
