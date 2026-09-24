@@ -5,8 +5,9 @@ namespace Skies.Framework.Identity;
 /// <summary>
 /// Verifies an external identity provider's OIDC id_token — Google, Apple, Microsoft, and the like all
 /// issue one — and returns the verified user. A <b>vendor-neutral</b> port: the framework never names a
-/// provider. Each provider is an external plugin that implements this, validating the token against that
-/// provider's keys; the composition root registers whichever the app uses.
+/// provider. This synchronous port predates <see cref="IExternalIdentityVerifier"/>, which a real verifier needs
+/// (it fetches the provider's keys) and which generated slices call; it stays for the implementations already
+/// written against it.
 /// </summary>
 public interface IExternalIdentity
 {
