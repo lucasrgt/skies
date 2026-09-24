@@ -10,6 +10,8 @@
 #   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, with no edit after crud.
 #
 # Legs per app:
+#   PACKAGE — the generated API holds no auth mechanics of its own (no crypto primitive, no argon2 package): hashing,
+#            token minting, rotation, and code checks are Skies.Framework.Auth's, so a fix there reaches every app.
 #   DOCTOR — run `skies doctor` in the app: the workspace leg (every root entry declared in Skies.toml, SKYWS*) and
 #            the tests project's build (and through it the API's) with the SKY* analyzers ON. Every leg must be clean
 #            (errors and warnings alike, for every app), so the generated spec cases are held to SKY0029 (every test
@@ -69,6 +71,19 @@ doctor() {
     exit 1
   fi
   echo "ok: [$app] skies doctor is clean: the root is declared and the build has zero SKY diagnostics"
+}
+
+# package <App> — fail when the generated API re-implements a mechanism the package owns.
+package() {
+  local app="$1" found
+  echo "==> [$app] PACKAGE: the auth mechanics stay in Skies.Framework.Auth"
+  found="$(grep -rlE 'System\.Security\.Cryptography|RandomNumberGenerator|FixedTimeEquals|SHA256|Konscious' \
+    "$WORK/$app/src/$app.Api" --include='*.cs' --include='*.csproj' || true)"
+  if [ -n "$found" ]; then
+    echo "FAIL: [$app] generated code carries auth mechanics the package owns:"; echo "$found"
+    exit 1
+  fi
+  echo "ok: [$app] no crypto or hashing package in the generated API"
 }
 
 # specs <App> — run the tests project (it compiles .specs/*/e2e) and check every FM case ran and passed.
@@ -142,10 +157,13 @@ grep -q 'DbSet<Crud.Api.Modules.Catalog.Product>' "$API/AppDb.cs" \
   || { echo "FAIL: AppDb.cs changed shape; the smoke could not register the DbSet" >&2; exit 1; }
 g crud Catalog Product
 
+package Full
 doctor Full
 specs Full
+package Single
 doctor Single
 specs Single
+package Crud
 doctor Crud
 specs Crud
 
