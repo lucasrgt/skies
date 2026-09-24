@@ -15,13 +15,12 @@ namespace Skies.Framework.Doctor;
 /// <summary>
 /// SKY0004 — every module that owns a slice carries a <c>&lt;Module&gt;.ctx.md</c> with its spine: a
 /// non-empty <c>## Boundaries</c> and a non-empty <c>## Design notes</c>. The ctx is the home for the
-/// business "why" the code cannot show; the doctor obliges its presence the same way <c>SKY0003</c>
-/// obliges a test, so a module never ships as undocumented code.
+/// business "why" the code cannot show, so a module never ships as undocumented code.
 ///
 /// The module is the last segment of a slice's namespace (<c>App.Api.Modules.Account</c> → Account),
 /// matching the convention that the namespace <em>is</em> the module. The ctx file is read from
 /// <c>AdditionalFiles</c> — the app opts in with <c>&lt;AdditionalFiles Include="**\*.ctx.md" /&gt;</c>
-/// — and matched by name (<c>Account.ctx.md</c>), the same textual approach as <c>SKY0003</c>. This
+/// — and matched by name (<c>Account.ctx.md</c>). This
 /// proves the spine sections exist and carry content, not that the content is correct; freshness (a ctx
 /// that names code which no longer exists) is <c>SKY0005</c>'s job.
 /// </summary>
@@ -137,7 +136,7 @@ public sealed class ModuleContextAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    // Matches [Slice] by simple name (no reference to Skies.Framework.Abstractions needed), like SKY0001/SKY0003.
+    // Matches [Slice] by simple name (no reference to Skies.Framework.Abstractions needed), like SKY0001.
     private static bool IsSlice(ClassDeclarationSyntax cls) =>
         cls.AttributeLists
             .SelectMany(list => list.Attributes)
