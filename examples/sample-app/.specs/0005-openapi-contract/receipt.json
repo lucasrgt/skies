@@ -8,29 +8,114 @@
       "hash": "blake3:dbf6b140d39d9c279dd98424e3e3fc58f985c3740b99a374254b35908e5a12df"
     },
     "cases": {
-      "FM-1": "fail",
-      "FM-2": "fail",
-      "FM-3": "fail",
-      "FM-4": "fail",
-      "FM-5": "fail",
-      "FM-6": "fail",
-      "FM-7": "fail"
+      "FM-1": {
+        "result": "fail",
+        "cases": [
+          "FM-1: ErrorBody.code enumerates the app's registry codes"
+        ],
+        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+      },
+      "FM-2": {
+        "result": "fail",
+        "cases": [
+          "FM-2: a dependency loaded in the process does not widen the contract",
+          "FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes"
+        ],
+        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+      },
+      "FM-3": {
+        "result": "fail",
+        "cases": [
+          "FM-3: a numeric body property is a plain number"
+        ],
+        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+      },
+      "FM-4": {
+        "result": "fail",
+        "cases": [
+          "FM-4: a scalar value object reached only through a nullable property mirrors its primitive"
+        ],
+        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+      },
+      "FM-5": {
+        "result": "fail",
+        "cases": [
+          "FM-5: a numeric query parameter accepts no strings"
+        ],
+        "message": "Assert.DoesNotContain() Failure: Item found in collection\n↓ (pos 1)\nCollection: [\"integer\", \"string\"]\nFound:      \"string\""
+      },
+      "FM-6": {
+        "result": "fail",
+        "cases": [
+          "FM-6: the page's four members are required, plain array and integers"
+        ],
+        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+      },
+      "FM-7": {
+        "result": "fail",
+        "cases": [
+          "FM-7: a slice's output references its own slice-qualified page"
+        ],
+        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+      }
     },
-    "report": "evidence/red.trx"
+    "report": {
+      "file": "evidence/raw/red.trx",
+      "hash": "blake3:d727821f4c6842f35444a098062c87bc642866acb10f928ec0398871ba9fc48b"
+    }
   },
   "green": {
-    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
+    "commit": "af1d31345d2b9961fde2ebf510a8565e1cf50536",
     "dirty": false,
     "cases": {
-      "FM-1": "pass",
-      "FM-2": "pass",
-      "FM-3": "pass",
-      "FM-4": "pass",
-      "FM-5": "pass",
-      "FM-6": "pass",
-      "FM-7": "pass"
+      "FM-1": {
+        "result": "pass",
+        "cases": [
+          "FM-1: ErrorBody.code enumerates the app's registry codes"
+        ]
+      },
+      "FM-2": {
+        "result": "pass",
+        "cases": [
+          "FM-2: a dependency loaded in the process does not widen the contract",
+          "FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes"
+        ]
+      },
+      "FM-3": {
+        "result": "pass",
+        "cases": [
+          "FM-3: a numeric body property is a plain number"
+        ]
+      },
+      "FM-4": {
+        "result": "pass",
+        "cases": [
+          "FM-4: a scalar value object reached only through a nullable property mirrors its primitive"
+        ]
+      },
+      "FM-5": {
+        "result": "pass",
+        "cases": [
+          "FM-5: a numeric query parameter accepts no strings"
+        ]
+      },
+      "FM-6": {
+        "result": "pass",
+        "cases": [
+          "FM-6: the page's four members are required, plain array and integers"
+        ]
+      },
+      "FM-7": {
+        "result": "pass",
+        "cases": [
+          "FM-7: a slice's output references its own slice-qualified page"
+        ]
+      }
     },
-    "report": "evidence/green.trx"
+    "report": {
+      "file": "evidence/raw/green.trx",
+      "hash": "blake3:5bf1d50f2ef202837c708609078cec8d327f0238da2bd69407820045f2b8d0af"
+    }
   },
   "footprint": {
     "backend/Sample.Api/AppDb.cs": {
@@ -98,8 +183,5 @@
     ".specs/0005-openapi-contract/e2e/SchemaContractSpec.cs": "blake3:149fed11b33b145ffab2d99066b7845c992e42c1d5cf9079fcf109d2ca1526b8",
     ".specs/0005-openapi-contract/spec.md": "blake3:ea2bdf9821350d311c22cd4edd80d65b74f078e647b70916e530acb95ae6eb1b"
   },
-  "evidence": {
-    "evidence/green.trx": "blake3:ec52f5bb27c66a842d7ff68ec786bc8de18f8cad0820d933f523bf9432d22a44",
-    "evidence/red.trx": "blake3:58b8483c783f2291dd7e56bc5b2278493878b52d2d1f5105a1792d5144f51ad1"
-  }
+  "evidence": {}
 }

@@ -8,19 +8,47 @@
       "hash": "blake3:d32e89557f50cc8326f1986d7584aadc9229feb7538e06be5dd41082ad7f57ae"
     },
     "cases": {
-      "FM-1": "fail",
-      "FM-2": "fail"
+      "FM-1": {
+        "result": "fail",
+        "cases": [
+          "Items screen > FM-1: the list resource starts in loading while it is fetched"
+        ],
+        "message": "AssertionError: expected 'ready' to be 'loading' // Object.is equality\nExpected: \"loading\"\nReceived: \"ready\""
+      },
+      "FM-2": {
+        "result": "fail",
+        "cases": [
+          "Items screen > FM-2: a list that settles empty renders the kit's empty state"
+        ],
+        "message": "TestingLibraryElementError: Unable to find an element with the text: Nothing here yet. This could be because the text is broken up by multiple elements. In this case, you can provide a function for y…\nIgnored nodes: comments, script, style\n<body>\n<div>"
+      }
     },
-    "report": "evidence/red.xml"
+    "report": {
+      "file": "evidence/raw/red.xml",
+      "hash": "blake3:aa763173406f8b3d98b3201a4173a455c77cc9ce311c9677eac4a1c95d0d5b89"
+    }
   },
   "green": {
-    "commit": "1f3fc846faae20ba5f7e6cec54cf7ddbfddd74a2",
+    "commit": "af1d31345d2b9961fde2ebf510a8565e1cf50536",
     "dirty": false,
     "cases": {
-      "FM-1": "pass",
-      "FM-2": "pass"
+      "FM-1": {
+        "result": "pass",
+        "cases": [
+          "Items screen > FM-1: the list resource starts in loading while it is fetched"
+        ]
+      },
+      "FM-2": {
+        "result": "pass",
+        "cases": [
+          "Items screen > FM-2: a list that settles empty renders the kit's empty state"
+        ]
+      }
     },
-    "report": "evidence/green.xml"
+    "report": {
+      "file": "evidence/raw/green.xml",
+      "hash": "blake3:3b37e6f3cb864bc35a2acc99f547dd5f182a8862e60a40fbb795e2863fea4c2b"
+    }
   },
   "footprint": {
     "frontend/web/src/api.ts": {
@@ -90,8 +118,5 @@
     ".specs/0007-items-screen/e2e/Items.test.tsx": "blake3:c1637a2621fbe43c9b71fd6482d0e14b61bd46f982b985476bbbd7dfdec9d9fc",
     ".specs/0007-items-screen/spec.md": "blake3:7d1fa990f1ec2bcf2796cfc2c99c6b4b7de648c38d6146265f4e9f7afc420ae1"
   },
-  "evidence": {
-    "evidence/green.xml": "blake3:3c5e4545c71625aeb8b0c43f8ae519b0d58879c366243b6afee41e25d13f5e3d",
-    "evidence/red.xml": "blake3:a34e5c46fc2f8c59528e3147225558567b741c80e566b4a2db4dcb9fd6e391d3"
-  }
+  "evidence": {}
 }

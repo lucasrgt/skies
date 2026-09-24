@@ -4,23 +4,58 @@
   "red": {
     "commit": "dd9185ad21f6389f03c606b0e3633d5a486cb74c",
     "cases": {
-      "FM-1": "did-not-build",
-      "FM-2": "did-not-build",
-      "FM-3": "did-not-build",
-      "FM-4": "did-not-build"
+      "FM-1": {
+        "result": "did-not-build"
+      },
+      "FM-2": {
+        "result": "did-not-build"
+      },
+      "FM-3": {
+        "result": "did-not-build"
+      },
+      "FM-4": {
+        "result": "did-not-build"
+      }
     },
-    "report": "evidence/red.log"
+    "report": {
+      "file": "evidence/raw/red.log",
+      "hash": "blake3:bac890eca9eb65569fc4bc52ad17d1298a2cd162608f8e7f21ec739db9dac8ff"
+    },
+    "output": "MISSING DEPENDENCY  Cannot find dependency '@vitest/coverage-v8'"
   },
   "green": {
-    "commit": "1f3fc846faae20ba5f7e6cec54cf7ddbfddd74a2",
+    "commit": "af1d31345d2b9961fde2ebf510a8565e1cf50536",
     "dirty": false,
     "cases": {
-      "FM-1": "pass",
-      "FM-2": "pass",
-      "FM-3": "pass",
-      "FM-4": "pass"
+      "FM-1": {
+        "result": "pass",
+        "cases": [
+          "Transfer screen > FM-1: an empty submit is blocked with three field errors inside the Field anatomy"
+        ]
+      },
+      "FM-2": {
+        "result": "pass",
+        "cases": [
+          "Transfer screen > FM-2: the same wallet on both sides is reported on the destination and never sent"
+        ]
+      },
+      "FM-3": {
+        "result": "pass",
+        "cases": [
+          "Transfer screen > FM-3: a valid submit announces while pending, then reaches the success surface"
+        ]
+      },
+      "FM-4": {
+        "result": "pass",
+        "cases": [
+          "Transfer screen > FM-4: a refused transfer surfaces as a role=alert block and keeps the form"
+        ]
+      }
     },
-    "report": "evidence/green.xml"
+    "report": {
+      "file": "evidence/raw/green.xml",
+      "hash": "blake3:1ed46c41120139c770cd4b8b47d5aa73eded27502b039684adb9d803fc38bb3e"
+    }
   },
   "footprint": {
     "frontend/web/package.json": "blake3:8f309ab6481f644c74f5a5a28af3a69f7390c644c19a8a5f747caee14e6cc863",
@@ -97,8 +132,5 @@
     ".specs/0010-transfer-screen/e2e/Transfer.test.tsx": "blake3:357b27435a76765cac8eff13499cf94a678700f610c5f066d0bb8bca6673b782",
     ".specs/0010-transfer-screen/spec.md": "blake3:be0edef9ea5153785836eab35e94ae6d18df8b57895144b42792c92887c068e1"
   },
-  "evidence": {
-    "evidence/green.xml": "blake3:cc1688c19feed9e65959d3cf63f162f30b91931ac2d1dab55eb901796e9c587f",
-    "evidence/red.log": "blake3:bac890eca9eb65569fc4bc52ad17d1298a2cd162608f8e7f21ec739db9dac8ff"
-  }
+  "evidence": {}
 }

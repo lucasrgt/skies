@@ -1,9 +1,9 @@
-# Evidence is committed, so keep it small: reports and terminal-state screenshots. Traces, videos, and archives
+# Committed evidence stays small: Assay verdicts and terminal-state screenshots. Traces, videos, and archives
 # are regenerable with `skies proof record` / `verify`.
 *.zip
 *.webm
 *.mp4
 trace*
 
-# The repository ignores *.trx as test output; here a TRX file is the receipt's evidence.
-!*.trx
+# Written by `skies proof`: full reports and logs are regenerable and stay local.
+/*/evidence/raw/
