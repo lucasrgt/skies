@@ -4,7 +4,8 @@ const { version } = require("./package.json");
 
 // @skiesjs/eslint-plugin — the SKYFE architecture rules. The front-side parallel of the backend's Roslyn analyzers
 // (Skies.Framework.Doctor): the View renders, the ViewModel is the only data door, no mock leaks into production,
-// async state goes through <Resource>, copy goes through i18n, and routing/session/forms follow one seam each.
+// async state goes through <Resource>, copy goes through i18n, routing/session/forms follow one seam each, and every
+// test lives in a spec.
 // Doctor-removable: delete the plugin and the app still builds; you only lose enforcement.
 //
 // One file per rule under rules/; the rule id (the object key) is stable and the SKYFE code lives in its messages.
@@ -32,6 +33,7 @@ const rules = {
   "no-cast-navigation": require("./rules/no-cast-navigation.cjs"), // SKYFE030
   "submit-handles-invalid": require("./rules/submit-handles-invalid.cjs"), // SKYFE031
   "controller-field-state": require("./rules/controller-field-state.cjs"), // SKYFE032
+  "tests-live-in-specs": require("./rules/tests-live-in-specs.cjs"), // SKYFE036
 };
 
 const plugin = {

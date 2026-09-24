@@ -38,6 +38,7 @@ const RULE_IDS = [
   "no-cast-navigation",
   "submit-handles-invalid",
   "controller-field-state",
+  "tests-live-in-specs",
 ];
 assert.deepEqual(Object.keys(plugin.rules).sort(), [...RULE_IDS].sort(), "rule ids are stable");
 assert.deepEqual(
@@ -668,6 +669,35 @@ ruleTester.run("controller-field-state", plugin.rules["controller-field-state"],
       code: `const P = () => <Controller control={control} name="amount" render={(props) => <Input {...props.field} />} />;`,
       errors: [{ messageId: "blind" }],
     },
+  ],
+});
+
+// SKYFE036 — tests live in a spec. A runner's test call outside `.specs/` is flagged once per file; a spec's e2e/
+// folder, a local function that only shares the name, and a runner's other exports are not.
+ruleTester.run("tests-live-in-specs", plugin.rules["tests-live-in-specs"], {
+  valid: [
+    // A spec's cases, whatever the runner.
+    { filename: "/repo/.specs/0006-deposit-screen/e2e/Deposit.test.tsx", code: `import { it, describe } from "vitest"; describe("x", () => { it("FM-1: y", () => {}); });` },
+    { filename: "/repo/.specs/0009-checkout/e2e/checkout.spec.ts", code: `import { test } from "@playwright/test"; test.describe("x", () => { test("FM-1: y", async () => {}); });` },
+    { filename: "C:\\repo\\.specs\\0001-a\\e2e\\a.test.ts", code: `test("FM-1: y", () => {});` },
+    // A local function named like a runner's is not a test.
+    { filename: "src/lib/validate.ts", code: `function test(value) { return value > 0; } export const ok = test(1);` },
+    { filename: "src/lib/iter.ts", code: `import { it } from "./iterators"; it(1);` },
+    // Other imports from a runner module are not test calls.
+    { filename: "src/lib/helpers.ts", code: `import { vi } from "vitest"; vi.fn();` },
+  ],
+  invalid: [
+    // A co-located vitest file: one report for the file, not one per case.
+    { filename: "src/deposit/Deposit.test.tsx", code: `import { describe, it } from "vitest"; describe("Deposit", () => { it("works", () => {}); it("again", () => {}); });`, errors: [{ messageId: "outsideSpec" }] },
+    // Playwright, including test.describe.
+    { filename: "e2e/login.spec.ts", code: `import { test, expect } from "@playwright/test"; test.describe("login", () => {});`, errors: [{ messageId: "outsideSpec" }] },
+    // jest globals and bun, including a renamed import.
+    { filename: "src/a.test.ts", code: `import { test as check } from "@jest/globals"; check("x", () => {});`, errors: [{ messageId: "outsideSpec" }] },
+    { filename: "src/b.test.ts", code: `import { describe } from "bun:test"; describe.skip("x", () => {});`, errors: [{ messageId: "outsideSpec" }] },
+    // Globals mode: nothing imported, the runner provides it.
+    { filename: "src/c.test.ts", code: `it.each([1, 2])("case %i", (n) => {});`, errors: [{ messageId: "outsideSpec" }] },
+    // A spec-like name outside .specs/ is still outside.
+    { filename: "src/specs/e2e/d.test.ts", code: `test("FM-1: y", () => {});`, errors: [{ messageId: "outsideSpec" }] },
   ],
 });
 

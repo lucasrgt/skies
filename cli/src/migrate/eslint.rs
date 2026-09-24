@@ -31,6 +31,7 @@ const KEPT_RULES: &[&str] = &[
     "session-one-door",
     "state-completeness",
     "submit-handles-invalid",
+    "tests-live-in-specs",
     "view-purity",
     "viewmodel-platform-agnostic",
 ];
