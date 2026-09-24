@@ -1,4 +1,4 @@
-// The one door for transient user feedback (toasts/banners) — the "one seam" shape (SKYFE016) applied to
+// The one door for transient user feedback (toasts/banners) — one seam, like the session's, applied to
 // notifications. The app picks its toast library and wires it ONCE at boot (wireFeedback); everything below
 // the shell — the mutation defaults in lib/query.ts, any ViewModel — speaks to this seam and never imports a
 // toast lib directly. Swapping the library is a one-file change no ViewModel notices.

@@ -2,10 +2,10 @@ import { MutationCache, QueryClient } from "@tanstack/react-query";
 
 import { feedback } from "./feedback";
 
-// The write-side defaults the convention pins (SKYFE027). A successful mutation marks EVERY query stale
+// The write-side defaults every mutation inherits. A successful mutation marks EVERY query stale
 // (TanStack refetches the active ones immediately), so no screen hand-rolls `onSuccess: refetch` and no list
 // is ever one F5 behind its server — the safe, slightly-wasteful default that is always correct. A failed
-// mutation always surfaces through the feedback seam — the global half of SKYFE013 (no silent failure).
+// mutation always surfaces through the feedback seam, so no failure is silent.
 // Targeted invalidation and optimistic updates remain the per-screen opt-in LAYERED ABOVE this default for the
 // screen that proves it needs them, never a replacement for it.
 
@@ -29,7 +29,7 @@ export interface MutationCopy {
   failed(error: unknown): string;
 }
 
-/** Build the app's QueryClient with the convention's mutation defaults wired (SKYFE027). */
+/** Build the app's QueryClient with the convention's mutation defaults wired. */
 export function createQueryClient(copy: MutationCopy): QueryClient {
   const queryClient: QueryClient = new QueryClient({
     mutationCache: new MutationCache({

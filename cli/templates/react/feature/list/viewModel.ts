@@ -1,13 +1,8 @@
 import { toAsyncState, type AsyncState } from "@skiesjs/react";
-// The orval-generated read hook of the `List{{ plural }}` slice (`.WithName(nameof(List{{ plural }}))`) — the ONLY data
-// the door touches.
 import { useList{{ plural }} } from "@/client.gen/{{ client }}";
 import i18n from "@/i18n";
 
-// FEATURE UNIT — the ViewModel (the "data door", the front-side of a backend [Slice]). Only place that touches the
-// generated client (SKYFE002), renders nothing so a spec case drives it with renderHook, exposes its resource as
-// AsyncState<T> (the spine) so the View handles every state by construction.
-
+// The row shape the View renders. Replace it with the generated contract type once the client exists.
 export interface {{ entity }} {
   id: string;
   name: string;
@@ -24,7 +19,7 @@ export function use{{ plural }}Model(): {{ plural }}Model {
     {
       isPending: query.isPending,
       isError: query.isError,
-      data: query.data?.{{ collection }},
+      data: query.data?.{{ collection }}?.items,
       refetch: query.refetch,
     },
     { errorMessage: i18n.t("{{ lower }}:error"), isEmpty: (list) => list.length === 0 },
