@@ -24,7 +24,9 @@ namespace Skies.Framework.Doctor;
 /// <c>SKY0019</c> is the reverse direction — every constant on an <c>*ErrorCodes</c> registry must be referenced
 /// somewhere in the compilation. A code left unused (a flow was dropped but its constant lingers) is silent
 /// drift: it still ships in the OpenAPI <c>ErrorBody</c> enum and the frontend i18n catalog. Together the two
-/// rules make the registry the exact, live set of codes — no orphans, no inline literals.
+/// rules make the registry the exact, live set of codes — no orphans, no inline literals. <c>SKY0019</c> is a
+/// warning: a dead code is untidy contract, not a broken one, and it is often the pending half of a flow being
+/// written.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ErrorCodeAnalyzer : DiagnosticAnalyzer
@@ -52,7 +54,7 @@ public sealed class ErrorCodeAnalyzer : DiagnosticAnalyzer
         title: "Error code constant must be used",
         messageFormat: "The error code '{0}' on {1} is declared but never used — remove it or wire the path that raises it",
         category: "Skies.Framework.Convention",
-        defaultSeverity: DiagnosticSeverity.Error,
+        defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Every constant on an *ErrorCodes registry must be referenced by an Error factory / Validation "
                    + "call somewhere in the compilation. A dead code is silent drift — it still ships in the OpenAPI "

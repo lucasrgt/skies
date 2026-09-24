@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis;
+
 namespace Skies.Framework.Doctor.Tests;
 
 public class ErrorCodeAnalyzerTests
@@ -49,6 +51,14 @@ public class ErrorCodeAnalyzerTests
                 public const string {|SKY0019:NotFound|} = "widgets.not_found";
             }
             """);
+
+    [Fact]
+    public void A_dead_code_is_a_warning_while_a_literal_code_stays_an_error()
+    {
+        var tiers = new ErrorCodeAnalyzer().SupportedDiagnostics.ToDictionary(d => d.Id, d => d.DefaultSeverity);
+        Assert.Equal(DiagnosticSeverity.Error, tiers[ErrorCodeAnalyzer.DiagnosticId]);
+        Assert.Equal(DiagnosticSeverity.Warning, tiers[ErrorCodeAnalyzer.DeadCodeDiagnosticId]);
+    }
 
     [Fact]
     public Task A_referenced_error_code_constant_is_not_flagged() =>
