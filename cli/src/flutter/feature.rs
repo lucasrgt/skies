@@ -13,6 +13,7 @@ use anyhow::{Result, bail};
 use minijinja::context;
 use serde_json::json;
 
+use super::i18n;
 use super::names::{pascal, snake};
 use crate::web::FeatureKind;
 use crate::web::names::singular;
@@ -30,10 +31,13 @@ pub struct FeatureFiles {
     pub l10n: Vec<(String, String)>,
 }
 
-/// The copy each kind starts with, per locale: `(key suffix, text)` pairs; every locale carries the same keys.
+/// The copy each kind starts with, per locale: `(key suffix, text)` pairs; every locale carries the same keys. The
+/// set of locales is the app's (see [`i18n::locales`]); a language with no starter copy here gets the English text
+/// to translate, so parity holds from the first build.
 fn copy(kind: FeatureKind, locale: &str) -> Vec<(&'static str, &'static str)> {
-    match (kind, locale) {
-        (FeatureKind::List, "pt_BR") => vec![
+    let language = locale.split('_').next().unwrap_or(locale);
+    match (kind, language) {
+        (FeatureKind::List, "pt") => vec![
             ("EmptyTitle", "Nenhum item encontrado"),
             ("LoadError", "Não foi possível carregar. Tente novamente."),
         ],
@@ -45,7 +49,7 @@ fn copy(kind: FeatureKind, locale: &str) -> Vec<(&'static str, &'static str)> {
             ("EmptyTitle", "No items found"),
             ("LoadError", "Could not load. Try again."),
         ],
-        (FeatureKind::Form, "pt_BR") => vec![
+        (FeatureKind::Form, "pt") => vec![
             ("IdLabel", "Id"),
             ("IdInvalid", "Informe um id válido."),
             ("SubmitError", "Não foi possível concluir. Tente novamente."),
@@ -66,13 +70,14 @@ fn copy(kind: FeatureKind, locale: &str) -> Vec<(&'static str, &'static str)> {
     }
 }
 
-/// The default (`list`) unit, the shape the SKYFL rule contract checks.
+/// The default (`list`) unit in the default locale, the shape the SKYFL rule contract checks.
 #[cfg(test)]
 pub fn render_feature(name: &str) -> Result<FeatureFiles> {
-    render_feature_of(name, FeatureKind::List)
+    render_feature_of(name, FeatureKind::List, &[i18n::DEFAULT_LOCALE.to_string()])
 }
 
-pub fn render_feature_of(name: &str, kind: FeatureKind) -> Result<FeatureFiles> {
+/// Renders the unit with one ARB catalog per locale in `locales`.
+pub fn render_feature_of(name: &str, kind: FeatureKind, locales: &[String]) -> Result<FeatureFiles> {
     let stem = snake(name);
     if !stem.starts_with(|c: char| c.is_ascii_lowercase()) {
         bail!("'{name}' is not a usable feature name; start it with a letter");
@@ -90,7 +95,7 @@ pub fn render_feature_of(name: &str, kind: FeatureKind) -> Result<FeatureFiles> 
         (format!("{stem}_view.dart"), render(view, &ctx)?),
     ];
     let mut l10n = Vec::new();
-    for locale in ["pt_BR", "es", "en"] {
+    for locale in locales {
         let mut catalog = serde_json::Map::new();
         catalog.insert(format!("{stem}Title"), json!(feature));
         if kind == FeatureKind::Form {
@@ -108,7 +113,7 @@ pub fn render_feature_of(name: &str, kind: FeatureKind) -> Result<FeatureFiles> 
 }
 
 pub fn scaffold(package: &Path, name: &str, kind: FeatureKind) -> Result<u8> {
-    let files = render_feature_of(name, kind)?;
+    let files = render_feature_of(name, kind, &i18n::locales(package))?;
     let lib = package.join("lib/features").join(&files.stem);
     let l10n = package.join("lib/l10n/features");
     let outputs: Vec<(PathBuf, String)> = files
@@ -142,7 +147,11 @@ mod tests {
         let lib: Vec<&str> = files.lib.iter().map(|(name, _)| name.as_str()).collect();
         let l10n: Vec<&str> = files.l10n.iter().map(|(name, _)| name.as_str()).collect();
         assert_eq!(lib, ["wallets_view_model.dart", "wallets_view.dart"]);
-        assert_eq!(l10n, ["wallets_pt_BR.arb", "wallets_es.arb", "wallets_en.arb"]);
+        assert_eq!(
+            l10n,
+            ["wallets_en.arb"],
+            "a package with no catalogs speaks English only"
+        );
 
         let (model, view) = (&files.lib[0].1, &files.lib[1].1);
         assert!(model.contains("extends ChangeNotifier"));
@@ -157,7 +166,8 @@ mod tests {
 
     #[test]
     fn keeps_arb_keys_identical_across_locales() {
-        let files = render_feature("UserWallets").unwrap();
+        let locales = ["en", "es", "pt_BR"].map(String::from);
+        let files = render_feature_of("UserWallets", FeatureKind::List, &locales).unwrap();
         let keys: Vec<Vec<String>> = files
             .l10n
             .iter()
@@ -177,6 +187,45 @@ mod tests {
     }
 
     #[test]
+    fn a_feature_follows_the_locales_the_app_already_speaks() {
+        let dir = tempfile::tempdir().unwrap();
+        let l10n = dir.path().join("lib/l10n/features");
+        std::fs::create_dir_all(&l10n).unwrap();
+        std::fs::write(l10n.join("common_fr.arb"), r#"{"appTitle":"App"}"#).unwrap();
+        std::fs::write(l10n.join("common_pt_BR.arb"), r#"{"appTitle":"App"}"#).unwrap();
+
+        scaffold(dir.path(), "Profile", FeatureKind::List).unwrap();
+
+        let mut written: Vec<String> = std::fs::read_dir(&l10n)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .filter(|name| name.starts_with("profile_"))
+            .collect();
+        written.sort();
+        assert_eq!(written, ["profile_fr.arb", "profile_pt_BR.arb"]);
+        let portuguese = std::fs::read_to_string(l10n.join("profile_pt_BR.arb")).unwrap();
+        assert!(portuguese.contains("Nenhum item encontrado"));
+    }
+
+    #[test]
+    fn scaffolds_cite_no_rule() {
+        let rule = regex::Regex::new(r"SKY(FE|FL|WS)?[0-9]{3,4}").unwrap();
+        for kind in [FeatureKind::List, FeatureKind::Form] {
+            let files = render_feature_of("wallets", kind, &["en".to_string()]).unwrap();
+            for (name, contents) in files.lib.iter().chain(&files.l10n) {
+                assert!(!rule.is_match(contents), "{name} cites a rule id");
+            }
+        }
+        for template in [
+            include_str!("../../templates/flutter/client/mutations.dart"),
+            include_str!("../../templates/flutter/client/session.dart"),
+            include_str!("../../templates/flutter/client/skies_client.dart"),
+        ] {
+            assert!(!rule.is_match(template));
+        }
+    }
+
+    #[test]
     fn writes_under_lib_and_refuses_to_overwrite() {
         let dir = tempfile::tempdir().unwrap();
         scaffold(dir.path(), "Profile", FeatureKind::List).unwrap();
@@ -191,7 +240,8 @@ mod tests {
 
     #[test]
     fn a_form_owns_its_fields_and_the_command_state() {
-        let files = render_feature_of("wallet-transfer", FeatureKind::Form).unwrap();
+        let locales = ["de", "en"].map(String::from);
+        let files = render_feature_of("wallet-transfer", FeatureKind::Form, &locales).unwrap();
         let (model, view) = (&files.lib[0].1, &files.lib[1].1);
 
         assert!(model.contains("enum WalletTransferField { id }"));

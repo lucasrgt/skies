@@ -29,13 +29,12 @@ use crate::flutter::{files_with_extension, i18n};
 use facts::Facts;
 
 /// Every rule still enforced, by code. The gaps are the retired proof, coverage, and design rules.
-pub const RULES: [(&str, &str); 30] = [
+pub const RULES: [(&str, &str); 29] = [
     ("SKYFL001", "view-purity"),
     ("SKYFL002", "data-door"),
     ("SKYFL003", "no-mock"),
     ("SKYFL004", "viewmodel-render-agnostic"),
     ("SKYFL007", "mandatory-state"),
-    ("SKYFL009", "viewmodel-platform-agnostic"),
     ("SKYFL010", "state-completeness"),
     ("SKYFL011", "i18n-parity"),
     ("SKYFL013", "mutation-error-surface"),

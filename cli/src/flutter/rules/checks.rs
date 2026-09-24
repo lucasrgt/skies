@@ -12,20 +12,6 @@ use super::navigation::navigation_rules;
 use super::{Source, code, generated};
 use crate::doctor::{Finding, Severity};
 
-const PLATFORM_PACKAGES: [&str; 12] = [
-    "camera",
-    "connectivity_plus",
-    "device_info_plus",
-    "file_picker",
-    "flutter_secure_storage",
-    "geolocator",
-    "image_picker",
-    "package_info_plus",
-    "path_provider",
-    "permission_handler",
-    "shared_preferences",
-    "url_launcher",
-];
 const MUTATIONS: [&str; 8] = [
     "submit", "save", "create", "update", "delete", "remove", "deposit", "withdraw",
 ];
@@ -253,19 +239,6 @@ fn model_rules(report: &mut Report, facts: &Facts, import: &ImportLine) {
             "viewmodel-render-agnostic",
             Some(line),
             "ViewModel imports or names rendering APIs",
-        );
-    }
-    let platform = import(&|uri| {
-        uri == "dart:io"
-            || PLATFORM_PACKAGES
-                .iter()
-                .any(|name| uri.starts_with(&format!("package:{name}/")))
-    });
-    if let Some(line) = platform {
-        report.add(
-            "viewmodel-platform-agnostic",
-            Some(line),
-            "ViewModel imports a device capability instead of an injected port",
         );
     }
     if !facts.generics.contains("AsyncState") {
