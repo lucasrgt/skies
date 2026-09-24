@@ -46,7 +46,11 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
 
     let scratch = tempfile::Builder::new().prefix("skies-proof-").tempdir()?;
     let mut session = Session::default();
-    let patch_note = if patch.is_some() { format!(" + {RED_PATCH_FILE}") } else { String::new() };
+    let patch_note = if patch.is_some() {
+        format!(" + {RED_PATCH_FILE}")
+    } else {
+        String::new()
+    };
     println!("record {} (runner {runner_name})", spec.name);
     println!("  red    {}{patch_note}", short(&red_commit));
 
@@ -54,7 +58,10 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
     let red_run = {
         let worktree = repo.temp_worktree(&red_commit)?;
         let red_root = worktree.path.join(&repo.prefix);
-        let red_spec = SpecDir { path: red_root.join(spec.rel()), ..spec.clone() };
+        let red_spec = SpecDir {
+            path: red_root.join(spec.rel()),
+            ..spec.clone()
+        };
         copy_spec_sources(&spec, &red_spec)?;
         if let Some(patch) = &patch {
             repo.apply(&worktree.path, patch)?;
@@ -88,7 +95,16 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
     let red_cases: BTreeMap<FmId, RedCase> = red_eval
         .passed
         .iter()
-        .map(|(id, passed)| (*id, if *passed { RedCase::NonDiscriminating } else { RedCase::Fail }))
+        .map(|(id, passed)| {
+            (
+                *id,
+                if *passed {
+                    RedCase::NonDiscriminating
+                } else {
+                    RedCase::Fail
+                },
+            )
+        })
         .collect();
     let unjustified: Vec<FmId> = red_cases
         .iter()
@@ -102,7 +118,10 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
             spec.name,
             short(&red_commit)
         );
-        eprintln!("Make each case fail without the feature, or justify it in {}/{SPEC_FILE}:\n", spec.rel());
+        eprintln!(
+            "Make each case fail without the feature, or justify it in {}/{SPEC_FILE}:\n",
+            spec.rel()
+        );
         eprintln!("## Non-discriminating\n");
         for id in &unjustified {
             eprintln!("- {id} <why this case cannot fail before the feature>");
@@ -122,7 +141,12 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
     print_cases(&red_cases);
 
     let red_report = format!("{EVIDENCE_DIR}/red.{}", red_run.0.format.extension());
-    publish_evidence(&spec, &green.staged, &[(&red_run.1, &red_report), (&green.file, &green.report)], false)?;
+    publish_evidence(
+        &spec,
+        &green.staged,
+        &[(&red_run.1, &red_report), (&green.file, &green.report)],
+        false,
+    )?;
 
     let footprint_paths = footprint(&repo, root, &doc, &red_commit, patch.as_deref())?;
     let receipt = Receipt {
@@ -137,7 +161,12 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
             cases: red_cases,
             report: red_report,
         },
-        green: Green { commit: head, dirty, cases: green.cases, report: green.report },
+        green: Green {
+            commit: head,
+            dirty,
+            cases: green.cases,
+            report: green.report,
+        },
         footprint: hash::hash_all(root, &footprint_paths),
         inputs: hash::hash_all(root, &hash::input_paths(root, &spec)?),
     };
@@ -238,10 +267,17 @@ pub fn run_green(
     let evaluation = match report::evaluate(&doc.failure_modes, &run.report.cases) {
         Ok(evaluation) => evaluation,
         Err(problems) => {
-            return Ok(GreenOutcome::Refuted(format!("the green run does not match spec.md:\n{problems}")));
+            return Ok(GreenOutcome::Refuted(format!(
+                "the green run does not match spec.md:\n{problems}"
+            )));
         }
     };
-    let failing: Vec<FmId> = evaluation.passed.iter().filter(|(_, passed)| !**passed).map(|(id, _)| *id).collect();
+    let failing: Vec<FmId> = evaluation
+        .passed
+        .iter()
+        .filter(|(_, passed)| !**passed)
+        .map(|(id, _)| *id)
+        .collect();
     if !failing.is_empty() {
         return Ok(GreenOutcome::Refuted(format!(
             "{} not passing on the working tree (a failed or skipped case counts as not passing)",

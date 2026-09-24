@@ -54,9 +54,7 @@ impl Call {
     }
 
     pub fn named(&self, label: &str) -> Option<&Arg> {
-        self.args
-            .iter()
-            .find(|arg| arg.label.as_deref() == Some(label))
+        self.args.iter().find(|arg| arg.label.as_deref() == Some(label))
     }
 }
 
@@ -114,9 +112,7 @@ impl Facts {
     }
 
     pub fn first_identifier(&self, names: &[&str]) -> Option<&Located<String>> {
-        self.identifiers
-            .iter()
-            .find(|id| names.contains(&id.value.as_str()))
+        self.identifiers.iter().find(|id| names.contains(&id.value.as_str()))
     }
 
     pub fn calls_named<'a>(&'a self, names: &'a [&str]) -> impl Iterator<Item = &'a Call> {

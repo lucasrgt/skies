@@ -58,13 +58,21 @@ pub fn ensure(module_dir: &Path, namespace: &str, module: &str, code: &ErrorCode
 mod tests {
     use super::*;
 
-    const CODE: ErrorCode = ErrorCode { name: "IdRequired", value: "id.required", summary: "The id is required." };
+    const CODE: ErrorCode = ErrorCode {
+        name: "IdRequired",
+        value: "id.required",
+        summary: "The id is required.",
+    };
 
     #[test]
     fn creates_the_registry_then_appends_without_duplicating() {
         let dir = tempfile::tempdir().unwrap();
         ensure(dir.path(), "Acme.Api", "Billing", &CODE).unwrap();
-        let other = ErrorCode { name: "InvoiceNotFound", value: "invoice.not_found", summary: "No invoice." };
+        let other = ErrorCode {
+            name: "InvoiceNotFound",
+            value: "invoice.not_found",
+            summary: "No invoice.",
+        };
         ensure(dir.path(), "Acme.Api", "Billing", &other).unwrap();
         ensure(dir.path(), "Acme.Api", "Billing", &CODE).unwrap();
 

@@ -13,14 +13,11 @@ use super::i18n::{self, FEATURES_DIR};
 use super::names::{is_package_name, snake};
 use crate::web::scaffold::{run, write_new};
 
-const L10N_YAML: &str = "arb-dir: lib/l10n\ntemplate-arb-file: app_en.arb\noutput-localization-file: app_localizations.dart\n";
+const L10N_YAML: &str =
+    "arb-dir: lib/l10n\ntemplate-arb-file: app_en.arb\noutput-localization-file: app_localizations.dart\n";
 
 /// The shared catalog every app starts with, one per supported locale.
-const COMMON_COPY: [(&str, &str); 3] = [
-    ("en", "Skies app"),
-    ("es", "Aplicación Skies"),
-    ("pt_BR", "App Skies"),
-];
+const COMMON_COPY: [(&str, &str); 3] = [("en", "Skies app"), ("es", "Aplicación Skies"), ("pt_BR", "App Skies")];
 
 pub fn create(name: &str, path: Option<&Path>) -> Result<u8> {
     let package = snake(name);
@@ -70,10 +67,7 @@ pub fn harness_files(dir: &Path) -> Vec<(PathBuf, String)> {
     let mut files = vec![(dir.join("l10n.yaml"), L10N_YAML.to_string())];
     for (locale, title) in COMMON_COPY {
         let catalog = format!("{{\n  \"appTitle\": \"{title}\"\n}}\n");
-        files.push((
-            dir.join(FEATURES_DIR).join(format!("common_{locale}.arb")),
-            catalog,
-        ));
+        files.push((dir.join(FEATURES_DIR).join(format!("common_{locale}.arb")), catalog));
     }
     files
 }
@@ -110,7 +104,8 @@ mod tests {
 
     #[test]
     fn enables_gen_l10n_under_the_flutter_section_only() {
-        let pubspec = "name: demo\ndependencies:\n  flutter:\n    sdk: flutter\n\nflutter:\n  uses-material-design: true\n";
+        let pubspec =
+            "name: demo\ndependencies:\n  flutter:\n    sdk: flutter\n\nflutter:\n  uses-material-design: true\n";
         let out = with_generate(pubspec).unwrap();
         assert!(out.ends_with("flutter:\n  generate: true\n  uses-material-design: true\n"));
         assert_eq!(with_generate(&out).unwrap(), out);

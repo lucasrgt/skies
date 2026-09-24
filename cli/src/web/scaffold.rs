@@ -54,8 +54,7 @@ pub fn write_missing(files: &[(PathBuf, String)]) -> Result<()> {
 
 fn write(path: &Path, contents: &str) -> Result<()> {
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .with_context(|| format!("creating {}", parent.display()))?;
+        std::fs::create_dir_all(parent).with_context(|| format!("creating {}", parent.display()))?;
     }
     std::fs::write(path, contents).with_context(|| format!("writing {}", path.display()))
 }
@@ -67,10 +66,7 @@ pub fn relative_path(from_dir: &Path, target: &Path) -> String {
     let from: Vec<Component> = from_dir.components().collect();
     let to: Vec<Component> = target.components().collect();
     let common = from.iter().zip(&to).take_while(|(a, b)| a == b).count();
-    if !to[..common]
-        .iter()
-        .any(|c| matches!(c, Component::Normal(_)))
-    {
+    if !to[..common].iter().any(|c| matches!(c, Component::Normal(_))) {
         return target.to_string_lossy().replace('\\', "/");
     }
     let mut parts: Vec<String> = vec!["..".to_string(); from.len() - common];
@@ -102,11 +98,7 @@ pub fn run(program: &str, args: &[&str], cwd: &Path) -> Result<()> {
             }
         })?;
     if !status.success() {
-        bail!(
-            "`{program} {}` failed in {} ({status})",
-            args.join(" "),
-            cwd.display()
-        );
+        bail!("`{program} {}` failed in {} ({status})", args.join(" "), cwd.display());
     }
     Ok(())
 }

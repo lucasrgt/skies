@@ -35,13 +35,7 @@ pub struct Finding {
 }
 
 impl Finding {
-    pub fn new(
-        code: &str,
-        severity: Severity,
-        file: PathBuf,
-        line: Option<usize>,
-        message: String,
-    ) -> Finding {
+    pub fn new(code: &str, severity: Severity, file: PathBuf, line: Option<usize>, message: String) -> Finding {
         Finding {
             file,
             line,
@@ -82,10 +76,7 @@ pub struct Leg {
 
 impl Leg {
     pub fn errors(&self) -> usize {
-        self.findings
-            .iter()
-            .filter(|f| f.severity == Severity::Error)
-            .count()
+        self.findings.iter().filter(|f| f.severity == Severity::Error).count()
     }
 }
 
@@ -94,17 +85,16 @@ pub fn run(build_args: &[String]) -> Result<u8> {
     let targets = targets(&project);
     if targets.is_empty() {
         println!(
-            "skies doctor: {} declares no backend or frontend packages",
+            "skies doctor: {} ({}) declares no backend or frontend packages",
+            project.manifest.workspace.name,
             crate::manifest::FILE_NAME
         );
         return Ok(0);
     }
+    println!("skies doctor: {}", project.manifest.workspace.name);
     let started = Instant::now();
     let legs = run_legs(&project.root, &targets, build_args);
-    print!(
-        "{}",
-        report::render(&project.root, &legs, started.elapsed())
-    );
+    print!("{}", report::render(&project.root, &legs, started.elapsed()));
     Ok(exit_code(&legs))
 }
 
@@ -148,10 +138,7 @@ pub fn run_legs(root: &Path, targets: &[Target], build_args: &[String]) -> Vec<L
 }
 
 pub fn exit_code(legs: &[Leg]) -> u8 {
-    if legs
-        .iter()
-        .any(|leg| matches!(leg.status, Status::Failed(_)))
-    {
+    if legs.iter().any(|leg| matches!(leg.status, Status::Failed(_))) {
         2
     } else if legs.iter().any(|leg| leg.errors() > 0) {
         1
@@ -180,10 +167,7 @@ mod tests {
     #[test]
     fn exit_code_separates_findings_from_legs_that_could_not_run() {
         assert_eq!(
-            exit_code(&[
-                leg(Status::Ran, &[]),
-                leg(Status::Skipped("no lint".into()), &[])
-            ]),
+            exit_code(&[leg(Status::Ran, &[]), leg(Status::Skipped("no lint".into()), &[])]),
             0
         );
         assert_eq!(exit_code(&[leg(Status::Ran, &[Severity::Warning])]), 0);

@@ -46,8 +46,12 @@ pub struct Session {
 impl Session {
     pub fn run(&mut self, job: &Job) -> Result<Run> {
         let values = placeholders(job)?;
-        let env: BTreeMap<String, String> =
-            job.runner.env.iter().map(|(key, value)| (key.clone(), expand(value, &values))).collect();
+        let env: BTreeMap<String, String> = job
+            .runner
+            .env
+            .iter()
+            .map(|(key, value)| (key.clone(), expand(value, &values)))
+            .collect();
 
         if let Some(setup) = &job.runner.setup
             && self.done.insert((job.runner_name.to_string(), job.root.to_path_buf()))
@@ -55,7 +59,12 @@ impl Session {
             let log = job.scratch.join(format!("{}-setup.log", job.label));
             let status = shell(&expand(setup, &values), job.root, &env, &log)?;
             if !status {
-                bail!("runner '{}' setup failed on {}:\n{}", job.runner_name, job.label, tail(&log));
+                bail!(
+                    "runner '{}' setup failed on {}:\n{}",
+                    job.runner_name,
+                    job.label,
+                    tail(&log)
+                );
             }
         }
 
@@ -82,7 +91,10 @@ impl Session {
         })?;
         let report = report::parse(&text)
             .with_context(|| format!("reading the {} report {}", job.label, report_path.display()))?;
-        Ok(Run { report, file: report_path })
+        Ok(Run {
+            report,
+            file: report_path,
+        })
     }
 }
 
@@ -102,13 +114,17 @@ fn placeholders(job: &Job) -> Result<BTreeMap<&'static str, String>> {
 }
 
 fn path_text(path: &Path) -> Result<String> {
-    path.to_str().map(String::from).with_context(|| format!("{} is not valid UTF-8", path.display()))
+    path.to_str()
+        .map(String::from)
+        .with_context(|| format!("{} is not valid UTF-8", path.display()))
 }
 
 /// Replaces `{name}` for every known placeholder; unknown braces are left alone so shell syntax like `${VAR}` or
 /// JSON in a command survives.
 pub fn expand(template: &str, values: &BTreeMap<&'static str, String>) -> String {
-    values.iter().fold(template.to_string(), |text, (key, value)| text.replace(&format!("{{{key}}}"), value))
+    values.iter().fold(template.to_string(), |text, (key, value)| {
+        text.replace(&format!("{{{key}}}"), value)
+    })
 }
 
 /// Runs `command` through the platform shell, output captured to `log`. Returns whether it exited successfully.
@@ -141,7 +157,11 @@ fn tail(log: &Path) -> String {
     let text = std::fs::read_to_string(log).unwrap_or_default();
     let lines: Vec<&str> = text.lines().collect();
     let start = lines.len().saturating_sub(LINES);
-    lines[start..].iter().map(|line| format!("  | {line}")).collect::<Vec<_>>().join("\n")
+    lines[start..]
+        .iter()
+        .map(|line| format!("  | {line}"))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 #[cfg(test)]
@@ -152,7 +172,10 @@ mod tests {
     fn expands_known_placeholders_only() {
         let values = BTreeMap::from([("id", "0012".to_string()), ("report", "/tmp/r.xml".to_string())]);
         assert_eq!(
-            expand("test --filter S{id}. --out {report} ${HOME} {\"a\":1} {unknown}", &values),
+            expand(
+                "test --filter S{id}. --out {report} ${HOME} {\"a\":1} {unknown}",
+                &values
+            ),
             "test --filter S0012. --out /tmp/r.xml ${HOME} {\"a\":1} {unknown}"
         );
     }

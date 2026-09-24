@@ -18,7 +18,10 @@ pub struct Flags {
 }
 
 impl Flags {
-    pub const DEFAULT: Flags = Flags { tenancy: true, cookies: true };
+    pub const DEFAULT: Flags = Flags {
+        tenancy: true,
+        cookies: true,
+    };
 }
 
 /// Resolves the flag regions, then replaces the app tokens.
@@ -96,15 +99,33 @@ mod tests {
     fn keeps_the_regions_the_flags_allow_and_drops_every_marker() {
         let both = resolve_regions(BODY, Flags::DEFAULT);
         assert_eq!(both, "a\nb\ne\n");
-        let no_cookies = resolve_regions(BODY, Flags { tenancy: true, cookies: false });
+        let no_cookies = resolve_regions(
+            BODY,
+            Flags {
+                tenancy: true,
+                cookies: false,
+            },
+        );
         assert_eq!(no_cookies, "a\nb\nc\ne\n");
-        let single_tenant = resolve_regions(BODY, Flags { tenancy: false, cookies: false });
-        assert_eq!(single_tenant, "a\nd\ne\n", "a nested region inside a dropped one stays dropped");
+        let single_tenant = resolve_regions(
+            BODY,
+            Flags {
+                tenancy: false,
+                cookies: false,
+            },
+        );
+        assert_eq!(
+            single_tenant, "a\nd\ne\n",
+            "a nested region inside a dropped one stays dropped"
+        );
     }
 
     #[test]
     fn paths_lose_the_suffix_and_gain_the_app_name() {
-        assert_eq!(render_path("Tests/TestApp.cs.cstmpl", "Acme", "acme"), "Tests/TestApp.cs");
+        assert_eq!(
+            render_path("Tests/TestApp.cs.cstmpl", "Acme", "acme"),
+            "Tests/TestApp.cs"
+        );
         assert_eq!(
             render("namespace MyApp.Api; // myapp", "Acme", "acme", Flags::DEFAULT),
             "namespace Acme.Api; // acme"

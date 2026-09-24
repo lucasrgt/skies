@@ -34,7 +34,10 @@ pub fn spec_new(slug: &str, runner: Option<&str>) -> Result<u8> {
         (None, []) => bail!(
             "{FILE_NAME} declares no runner; add one (e.g. [runners.api] command = \"dotnet test ... --logger trx;LogFileName={{report}}\") or pass --runner"
         ),
-        (None, many) => bail!("{FILE_NAME} declares several runners; pick one with --runner ({})", many.join(", ")),
+        (None, many) => bail!(
+            "{FILE_NAME} declares several runners; pick one with --runner ({})",
+            many.join(", ")
+        ),
     };
 
     let id = spec::next_id(&project.root)?;
@@ -44,7 +47,12 @@ pub fn spec_new(slug: &str, runner: Option<&str>) -> Result<u8> {
     std::fs::write(dir.join(spec::SPEC_FILE), spec::template(&id, slug, runner))
         .with_context(|| format!("writing {}", dir.join(spec::SPEC_FILE).display()))?;
 
-    println!("created {}/{name}/ ({}, {}/)", spec::SPECS_DIR, spec::SPEC_FILE, spec::E2E_DIR);
+    println!(
+        "created {}/{name}/ ({}, {}/)",
+        spec::SPECS_DIR,
+        spec::SPEC_FILE,
+        spec::E2E_DIR
+    );
     println!("next: list the failure modes in spec.md, then write one e2e case per mode titled \"FM-n: ...\"");
     Ok(0)
 }
@@ -54,7 +62,10 @@ pub fn status() -> Result<u8> {
     let root = project.root.as_path();
     let specs = spec::discover(root)?;
     if specs.is_empty() {
-        println!("no specs under {}/ (create one with `skies spec new <slug>`)", spec::SPECS_DIR);
+        println!(
+            "no specs under {}/ (create one with `skies spec new <slug>`)",
+            spec::SPECS_DIR
+        );
         return Ok(0);
     }
     let width = specs.iter().map(|spec| spec.name.len()).max().unwrap_or(0);
@@ -78,7 +89,12 @@ pub fn status() -> Result<u8> {
 fn stale_line(changed: &[String]) -> String {
     const SHOWN: usize = 4;
     let noun = if changed.len() == 1 { "file" } else { "files" };
-    let mut names = changed.iter().take(SHOWN).map(String::as_str).collect::<Vec<_>>().join(", ");
+    let mut names = changed
+        .iter()
+        .take(SHOWN)
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(", ");
     if changed.len() > SHOWN {
         names.push_str(", …");
     }

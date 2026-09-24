@@ -58,7 +58,10 @@ fn source_name(files: &[(String, &[u8])]) -> Result<String> {
         .find(|(path, _)| path == ".template.config/template.json")
         .context("the embedded app template has no .template.config/template.json")?;
     let json: serde_json::Value = serde_json::from_slice(config).context("parsing template.json")?;
-    json["sourceName"].as_str().map(str::to_string).context("template.json has no sourceName")
+    json["sourceName"]
+        .as_str()
+        .map(str::to_string)
+        .context("template.json has no sourceName")
 }
 
 /// `Acme` or `Acme.Billing`: the name becomes the solution file, project names, and root namespace, so it has
@@ -92,7 +95,11 @@ mod tests {
         assert_eq!(manifest.workspace.name, "Acme");
         assert_eq!(manifest.products["app"].backend.as_deref(), Some("src/Acme.Api"));
 
-        assert_eq!(new_app(dir.path(), "Acme").unwrap(), 1, "never renders over an existing app");
+        assert_eq!(
+            new_app(dir.path(), "Acme").unwrap(),
+            1,
+            "never renders over an existing app"
+        );
     }
 
     #[test]

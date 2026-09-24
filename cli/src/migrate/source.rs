@@ -21,28 +21,19 @@ const CEREMONY_ATTRIBUTES: &[&str] = &[
 
 /// JSDoc and Dart doc tags that bound code to AVP criteria and E2E flows.
 static DOC_TAG: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^\s*(\*|///|//)\s*@(verify|avp|e2e|backendSlice|skies-criterion|skies-proof)\b")
-        .unwrap()
+    Regex::new(r"^\s*(\*|///|//)\s*@(verify|avp|e2e|backendSlice|skies-criterion|skies-proof)\b").unwrap()
 });
 
 /// An attribute-only C# line such as `[Unit, Fact]` or `[Journey(typeof(Pay), JourneyPath.Happy)]`.
-static ATTRIBUTE_LINE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(\s*)\[(.*)\]\s*$").unwrap());
+static ATTRIBUTE_LINE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\s*)\[(.*)\]\s*$").unwrap());
+
+/// A per-file-kind edit: the text and its root-relative path in, the new text out when anything changed.
+type Edit = fn(&str, &str, &mut Plan) -> Option<String>;
 
 pub fn migrate_file(root: &Path, path: &Path, plan: &mut Plan) -> Result<()> {
-    let name = path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or_default();
-    let extension = path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap_or_default();
-    let relative = path
-        .strip_prefix(root)
-        .unwrap_or(path)
-        .display()
-        .to_string();
+    let name = path.file_name().and_then(|name| name.to_str()).unwrap_or_default();
+    let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or_default();
+    let relative = path.strip_prefix(root).unwrap_or(path).display().to_string();
 
     if name.ends_with(".spec.toml") {
         let text = std::fs::read_to_string(path)?;
@@ -56,7 +47,7 @@ pub fn migrate_file(root: &Path, path: &Path, plan: &mut Plan) -> Result<()> {
         return Ok(());
     }
 
-    let edit: Option<fn(&str, &str, &mut Plan) -> Option<String>> = match (name, extension) {
+    let edit: Option<Edit> = match (name, extension) {
         (_, "cs") => Some(csharp),
         (_, "csproj") => Some(csproj),
         (_, "ts" | "tsx" | "js" | "mjs" | "dart") => Some(doc_tags),
@@ -96,30 +87,18 @@ fn csharp(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
             continue;
         };
         let items = split_top_level(&captures[2]);
-        let kept: Vec<&str> = items
-            .iter()
-            .copied()
-            .filter(|item| !is_ceremony(item))
-            .collect();
+        let kept: Vec<&str> = items.iter().copied().filter(|item| !is_ceremony(item)).collect();
         if kept.len() == items.len() {
             out.push_str(line);
             continue;
         }
         changed = true;
         if !kept.is_empty() {
-            out.push_str(&format!(
-                "{}[{}]{}",
-                &captures[1],
-                kept.join(", "),
-                &line[body.len()..]
-            ));
+            out.push_str(&format!("{}[{}]{}", &captures[1], kept.join(", "), &line[body.len()..]));
         }
     }
     if text.contains("using Assay.Net") {
-        plan.follow_up_file(
-            "uses Assay.Net; keep the package or rewrite the test",
-            relative,
-        );
+        plan.follow_up_file("uses Assay.Net; keep the package or rewrite the test", relative);
     }
     if text.contains("JourneyPath") && !changed {
         plan.follow_up_file("mentions JourneyPath outside an attribute", relative);
@@ -157,10 +136,7 @@ fn split_top_level(list: &str) -> Vec<&str> {
 /// a test project that globs co-located `*.Tests.cs` also compile the spec E2E under `.specs/`.
 fn csproj(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
     if text.contains("Assay.Net") {
-        plan.follow_up_file(
-            "references Assay.Net; remove it once no test uses it",
-            relative,
-        );
+        plan.follow_up_file("references Assay.Net; remove it once no test uses it", relative);
     }
     let lines: Vec<&str> = text.split_inclusive('\n').collect();
     let mut out = String::with_capacity(text.len());
@@ -168,13 +144,8 @@ fn csproj(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
         if line.contains("*.spec.toml") && line.contains("AdditionalFiles") {
             continue;
         }
-        let explains_next = lines
-            .get(index + 1)
-            .is_some_and(|next| next.contains("*.spec.toml"));
-        if explains_next
-            && line.trim_start().starts_with("<!--")
-            && line.trim_end().ends_with("-->")
-        {
+        let explains_next = lines.get(index + 1).is_some_and(|next| next.contains("*.spec.toml"));
+        if explains_next && line.trim_start().starts_with("<!--") && line.trim_end().ends_with("-->") {
             continue;
         }
         out.push_str(line);
@@ -210,10 +181,8 @@ fn doc_tags(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
 }
 
 fn drop_empty_doc_blocks(text: &str) -> String {
-    static EMPTY_BLOCK: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"(?m)^[ \t]*/\*\*[ \t]*\r?\n([ \t]*\*[ \t]*\r?\n)*[ \t]*\*/[ \t]*\r?\n")
-            .unwrap()
-    });
+    static EMPTY_BLOCK: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"(?m)^[ \t]*/\*\*[ \t]*\r?\n([ \t]*\*[ \t]*\r?\n)*[ \t]*\*/[ \t]*\r?\n").unwrap());
     EMPTY_BLOCK.replace_all(text, "").into_owned()
 }
 
@@ -255,9 +224,7 @@ fn lefthook(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
         } else if commands_indent.is_some() && line.trim_end().ends_with(':') {
             // A command under `commands:` owns every following line that is blank or indented deeper.
             let mut end = index + 1;
-            while end < lines.len()
-                && (lines[end].trim().is_empty() || indent_of(lines[end]) > indent)
-            {
+            while end < lines.len() && (lines[end].trim().is_empty() || indent_of(lines[end]) > indent) {
                 end += 1;
             }
             if lines[index..end].iter().any(|line| runs_gate(line)) {
@@ -325,10 +292,7 @@ mod tests {
             "/// Shows the host dashboard.\nclass DashboardViewModel {}\n"
         );
         let ts = "/**\n * @verify x\n */\nexport const a = 1;\n";
-        assert_eq!(
-            doc_tags(ts, "a.ts", &mut plan).unwrap(),
-            "export const a = 1;\n"
-        );
+        assert_eq!(doc_tags(ts, "a.ts", &mut plan).unwrap(), "export const a = 1;\n");
     }
 
     #[test]
@@ -344,7 +308,8 @@ mod tests {
     #[test]
     fn removes_the_foundations_block() {
         let mut plan = Plan::default();
-        let text = "# App\n\nRules.\n\n<!-- skies:foundations:start -->\nRun skies check.\n<!-- skies:foundations:end -->\n";
+        let text =
+            "# App\n\nRules.\n\n<!-- skies:foundations:start -->\nRun skies check.\n<!-- skies:foundations:end -->\n";
         assert_eq!(
             agent_instructions(text, "AGENTS.md", &mut plan).unwrap(),
             "# App\n\nRules.\n"

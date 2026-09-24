@@ -56,10 +56,7 @@ pub fn render_feature(names: &FeatureNames) -> Result<Vec<(String, String)>> {
         lower => names.lower,
     };
     Ok(vec![
-        (
-            format!("{}.viewModel.ts", names.plural),
-            render(VIEW_MODEL, &ctx)?,
-        ),
+        (format!("{}.viewModel.ts", names.plural), render(VIEW_MODEL, &ctx)?),
         (format!("{}.view.tsx", names.plural), render(VIEW, &ctx)?),
         (format!("{}.i18n.ts", names.lower), I18N.to_string()),
     ])
@@ -109,17 +106,10 @@ mod tests {
 
     #[test]
     fn emits_the_three_files_of_the_unit_and_no_tests() {
-        let files: Vec<String> = rendered("bookings")
-            .into_iter()
-            .map(|(name, _)| name)
-            .collect();
+        let files: Vec<String> = rendered("bookings").into_iter().map(|(name, _)| name).collect();
         assert_eq!(
             files,
-            [
-                "Bookings.viewModel.ts",
-                "Bookings.view.tsx",
-                "bookings.i18n.ts"
-            ]
+            ["Bookings.viewModel.ts", "Bookings.view.tsx", "bookings.i18n.ts"]
         );
     }
 
@@ -139,10 +129,7 @@ mod tests {
         }
         for (_, contents) in &files {
             for ceremony in ["@verify", "@avp", "@e2e", "defineVerification", "{{", "{%"] {
-                assert!(
-                    !contents.contains(ceremony),
-                    "{ceremony} leaked into the scaffold"
-                );
+                assert!(!contents.contains(ceremony), "{ceremony} leaked into the scaffold");
             }
         }
     }
@@ -160,11 +147,7 @@ mod tests {
 
         scaffold(dir.path(), "Profile").unwrap();
 
-        assert!(
-            dir.path()
-                .join("src/profile/Profile.viewModel.ts")
-                .is_file()
-        );
+        assert!(dir.path().join("src/profile/Profile.viewModel.ts").is_file());
         assert!(scaffold(dir.path(), "Profile").is_err());
     }
 }

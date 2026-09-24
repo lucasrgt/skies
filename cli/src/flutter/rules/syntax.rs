@@ -54,9 +54,7 @@ impl Walker<'_> {
                 return;
             }
             "import_or_export" => {
-                if let Some(uri) =
-                    find(node, "string_literal").and_then(|s| string_content(s, self.src))
-                {
+                if let Some(uri) = find(node, "string_literal").and_then(|s| string_content(s, self.src)) {
                     let import = self.located(node, uri);
                     self.facts.imports.push(import);
                 }
@@ -67,10 +65,7 @@ impl Walker<'_> {
                 self.facts.identifiers.push(id);
             }
             "type_arguments" => {
-                if let Some(previous) = node
-                    .prev_named_sibling()
-                    .filter(|p| p.kind() == "type_identifier")
-                {
+                if let Some(previous) = node.prev_named_sibling().filter(|p| p.kind() == "type_identifier") {
                     self.facts.generics.insert(self.text(previous));
                 }
             }
@@ -181,9 +176,7 @@ impl Walker<'_> {
             // name is the arrow's body expression.
             "function_expression" => function
                 .child_by_field_name("body")
-                .and_then(|body| {
-                    body.named_child(body.named_child_count().saturating_sub(1) as u32)
-                })
+                .and_then(|body| body.named_child(body.named_child_count().saturating_sub(1) as u32))
                 .map(|expression| self.callee(expression))
                 .unwrap_or_default(),
             _ => (String::new(), None, false),
@@ -285,18 +278,14 @@ impl Walker<'_> {
         let children: Vec<Node> = node.children(&mut cursor).collect();
         for pair in children.windows(2) {
             if pair[0].kind() == "catch_clause" && pair[1].kind() == "block" {
-                self.facts
-                    .catch_blocks
-                    .push(identifiers_in(pair[1], self.src));
+                self.facts.catch_blocks.push(identifiers_in(pair[1], self.src));
             }
         }
     }
 
     fn record_index(&mut self, node: Node) {
-        let (Some(object), Some(index)) = (
-            node.child_by_field_name("object"),
-            node.child_by_field_name("index"),
-        ) else {
+        let (Some(object), Some(index)) = (node.child_by_field_name("object"), node.child_by_field_name("index"))
+        else {
             return;
         };
         let read = IndexRead {

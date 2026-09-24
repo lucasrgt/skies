@@ -18,11 +18,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(
-    name = "skies",
-    version,
-    about = "Scaffold, check, and prove Skies applications."
-)]
+#[command(name = "skies", version, about = "Scaffold, check, and prove Skies applications.")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -166,11 +162,9 @@ fn main() -> ExitCode {
         Command::I18n { package } => web::i18n(package.as_deref()),
         Command::Doctor { build_args } => doctor::run(&build_args),
         Command::Spec(Spec::New { slug, runner }) => proof::spec_new(&slug, runner.as_deref()),
-        Command::Proof(Proof::Record {
-            spec,
-            red,
-            red_patch,
-        }) => proof::record(&spec, red.as_deref(), red_patch.as_deref()),
+        Command::Proof(Proof::Record { spec, red, red_patch }) => {
+            proof::record(&spec, red.as_deref(), red_patch.as_deref())
+        }
         Command::Proof(Proof::Status) => proof::status(),
         Command::Proof(Proof::Verify { specs, stale, all }) => proof::verify(&specs, stale, all),
         Command::Migrate { version, dry_run } => migrate::run(version, dry_run),
@@ -186,18 +180,14 @@ fn main() -> ExitCode {
 
 fn generate_command(generate: Generate) -> anyhow::Result<u8> {
     match generate {
-        Generate::Feature { name, package } => {
-            frontend_package(package.as_deref(), |kind, dir| match kind {
-                FrontendKind::React => web::feature(dir, &name),
-                FrontendKind::Flutter => flutter::feature(dir, &name),
-            })
-        }
-        Generate::Client { package } => {
-            frontend_package(package.as_deref(), |kind, dir| match kind {
-                FrontendKind::React => web::client(dir),
-                FrontendKind::Flutter => flutter::client(dir),
-            })
-        }
+        Generate::Feature { name, package } => frontend_package(package.as_deref(), |kind, dir| match kind {
+            FrontendKind::React => web::feature(dir, &name),
+            FrontendKind::Flutter => flutter::feature(dir, &name),
+        }),
+        Generate::Client { package } => frontend_package(package.as_deref(), |kind, dir| match kind {
+            FrontendKind::React => web::client(dir),
+            FrontendKind::Flutter => flutter::client(dir),
+        }),
         Generate::FlutterApp { name, path } => flutter::app(&name, path.as_deref()),
         backend => dotnet::generate(backend),
     }
@@ -222,9 +212,6 @@ fn frontend_package(
     } else if dir.join("package.json").is_file() {
         run(FrontendKind::React, &dir)
     } else {
-        anyhow::bail!(
-            "{} has neither pubspec.yaml nor package.json",
-            dir.display()
-        )
+        anyhow::bail!("{} has neither pubspec.yaml nor package.json", dir.display())
     }
 }

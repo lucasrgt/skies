@@ -15,13 +15,11 @@ const FRONTEND_ROLES: &[&str] = &["core", "library", "frontend", "website"];
 
 pub fn migrate(root: &Path, plan: &mut Plan) -> Result<()> {
     let path = root.join(FILE_NAME);
-    let text =
-        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
+    let text = std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     if toml::from_str::<Manifest>(&text).is_ok() {
         return Ok(());
     }
-    let table: Table =
-        toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
+    let table: Table = toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
     let rendered = render(&table, plan);
     plan.write(&path, rendered);
     plan.follow_up(format!(
@@ -84,10 +82,7 @@ fn render(table: &Table, plan: &mut Plan) -> String {
         .filter(|key| !["workspace", "products", "runners"].contains(key))
         .collect();
     if !dropped.is_empty() {
-        plan.follow_up(format!(
-            "{FILE_NAME}: dropped section(s) {}",
-            dropped.join(", ")
-        ));
+        plan.follow_up(format!("{FILE_NAME}: dropped section(s) {}", dropped.join(", ")));
     }
     out
 }
@@ -137,10 +132,6 @@ mod tests {
             manifest.products["ui"].frontend.iter().collect::<Vec<_>>(),
             ["clients/ui"]
         );
-        assert!(
-            plan.follow_ups
-                .keys()
-                .any(|note| note.contains("framework"))
-        );
+        assert!(plan.follow_ups.keys().any(|note| note.contains("framework")));
     }
 }

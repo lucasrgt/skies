@@ -105,10 +105,7 @@ impl Project {
             }
             dir = candidate.parent();
         }
-        bail!(
-            "no {FILE_NAME} in {} or any parent directory",
-            start.display()
-        )
+        bail!("no {FILE_NAME} in {} or any parent directory", start.display())
     }
 
     pub fn from_cwd() -> Result<Project> {
@@ -127,8 +124,7 @@ impl Project {
 }
 
 pub fn load(path: &Path) -> Result<Manifest> {
-    let text =
-        std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    let text = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))
 }
 
@@ -164,9 +160,7 @@ mod tests {
 
     #[test]
     fn rejects_unknown_keys() {
-        let error =
-            toml::from_str::<Manifest>("[workspace]\nname = \"x\"\n[gate]\nmode = \"ci\"\n")
-                .unwrap_err();
+        let error = toml::from_str::<Manifest>("[workspace]\nname = \"x\"\n[gate]\nmode = \"ci\"\n").unwrap_err();
         assert!(error.to_string().contains("gate"));
     }
 }

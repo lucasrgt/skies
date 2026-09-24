@@ -7,10 +7,8 @@ use std::path::{Path, PathBuf};
 
 use super::Plan;
 
-const HEADER_TS: &str =
-    "// Copied from Skies 4 by `skies migrate 5`. This file now belongs to the application.\n";
-const HEADER_DART: &str =
-    "// Copied from Skies 4 by `skies migrate 5`. This file now belongs to the application.\n";
+const HEADER_TS: &str = "// Copied from Skies 4 by `skies migrate 5`. This file now belongs to the application.\n";
+const HEADER_DART: &str = "// Copied from Skies 4 by `skies migrate 5`. This file now belongs to the application.\n";
 
 struct Helper {
     /// The import specifier the application used.
@@ -125,8 +123,7 @@ fn relative_import(from_dir: &Path, target: &Path) -> String {
     let from: Vec<_> = from_dir.components().collect();
     let to: Vec<_> = target.components().collect();
     let common = from.iter().zip(&to).take_while(|(a, b)| a == b).count();
-    let mut parts: Vec<String> =
-        std::iter::repeat_n("..".to_string(), from.len() - common).collect();
+    let mut parts: Vec<String> = std::iter::repeat_n("..".to_string(), from.len() - common).collect();
     parts.extend(
         to[common..]
             .iter()
@@ -141,10 +138,7 @@ fn relative_import(from_dir: &Path, target: &Path) -> String {
 }
 
 fn display(root: &Path, path: &Path) -> String {
-    path.strip_prefix(root)
-        .unwrap_or(path)
-        .display()
-        .to_string()
+    path.strip_prefix(root).unwrap_or(path).display().to_string()
 }
 
 #[cfg(test)]
@@ -154,10 +148,7 @@ mod tests {
     #[test]
     fn relative_imports_walk_up_and_down() {
         assert_eq!(
-            relative_import(
-                Path::new("/r/app/e2e"),
-                Path::new("/r/app/e2e/support/x.mjs")
-            ),
+            relative_import(Path::new("/r/app/e2e"), Path::new("/r/app/e2e/support/x.mjs")),
             "./support/x.mjs"
         );
         assert_eq!(

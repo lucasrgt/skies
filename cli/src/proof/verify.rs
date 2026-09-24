@@ -72,7 +72,10 @@ fn select(root: &Path, keys: &[String], stale: bool, all: bool) -> Result<Vec<Sp
             chosen.insert(spec.name);
         }
     }
-    Ok(spec::discover(root)?.into_iter().filter(|spec| chosen.contains(&spec.name)).collect())
+    Ok(spec::discover(root)?
+        .into_iter()
+        .filter(|spec| chosen.contains(&spec.name))
+        .collect())
 }
 
 /// `Ok(Ok(n))` when all n failure modes pass and the receipt was refreshed; `Ok(Err(why))` when the run does not
@@ -90,8 +93,12 @@ fn verify_one(
         return Ok(Err(format!("no receipt; run `skies proof record {}` first", spec.name)));
     };
     let doc = SpecDoc::load(spec)?;
-    let unrecorded: Vec<FmId> =
-        doc.failure_modes.iter().filter(|id| !receipt.red.cases.contains_key(id)).copied().collect();
+    let unrecorded: Vec<FmId> = doc
+        .failure_modes
+        .iter()
+        .filter(|id| !receipt.red.cases.contains_key(id))
+        .copied()
+        .collect();
     if !unrecorded.is_empty() {
         return Ok(Err(format!(
             "{} added after recording, so red never ran for them; run `skies proof record {}`",

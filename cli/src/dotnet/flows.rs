@@ -18,7 +18,9 @@ use super::flow_specs::{Flow, FlowSpec};
 use super::{ApiProject, FRAMEWORK_VERSION, embedded, specs, text};
 
 pub fn generate(root: &Path, flow: Flow) -> Result<u8> {
-    let Some(project) = ApiProject::open(root)? else { return Ok(1) };
+    let Some(project) = ApiProject::open(root)? else {
+        return Ok(1);
+    };
     let spec = flow.spec();
     let account = project.module_dir("Account");
     let account_module = account.join("AccountModule.cs");
@@ -38,7 +40,12 @@ pub fn generate(root: &Path, flow: Flow) -> Result<u8> {
 
     emit_templates(&project, spec)?;
     for &(name, value, summary) in spec.error_codes {
-        error_codes::ensure(&account, &project.namespace, "Account", &ErrorCode { name, value, summary })?;
+        error_codes::ensure(
+            &account,
+            &project.namespace,
+            "Account",
+            &ErrorCode { name, value, summary },
+        )?;
     }
     augment_user(&user_file, spec)?;
     augment_app_db(&project.root.join("AppDb.cs"), spec)?;
@@ -47,7 +54,11 @@ pub fn generate(root: &Path, flow: Flow) -> Result<u8> {
     augment_api_project(&project.csproj, spec)?;
     let folder = specs::emit(&project, spec.folder, Flags::DEFAULT)?;
 
-    println!("{} Its failure modes and E2E are in {}.", spec.summary, folder.display());
+    println!(
+        "{} Its failure modes and E2E are in {}.",
+        spec.summary,
+        folder.display()
+    );
     Ok(0)
 }
 
@@ -56,12 +67,17 @@ pub fn generate(root: &Path, flow: Flow) -> Result<u8> {
 fn emit_templates(project: &ApiProject, spec: &FlowSpec) -> Result<()> {
     let (app_name, app_lower) = (project.app_name(), project.app_lower());
     for (logical, body) in embedded::dotnet_folder(spec.folder) {
-        let destination = project.root.join(blueprint::render_path(&logical, app_name, &app_lower));
+        let destination = project
+            .root
+            .join(blueprint::render_path(&logical, app_name, &app_lower));
         if destination.exists() {
             println!("skipped {} (already present)", destination.display());
             continue;
         }
-        text::write(&destination, blueprint::render(body, app_name, &app_lower, Flags::DEFAULT))?;
+        text::write(
+            &destination,
+            blueprint::render(body, app_name, &app_lower, Flags::DEFAULT),
+        )?;
         println!("created {}", destination.display());
     }
     Ok(())
@@ -87,11 +103,20 @@ fn augment_user(user_file: &Path, spec: &FlowSpec) -> Result<()> {
     let nl = text::newline_of(&source);
     let mut changed = false;
 
-    let fields: Vec<&str> = spec.user_fields.iter().copied().filter(|f| !contains_member(&source, f)).collect();
+    let fields: Vec<&str> = spec
+        .user_fields
+        .iter()
+        .copied()
+        .filter(|f| !contains_member(&source, f))
+        .collect();
     if !fields.is_empty() {
         const ANCHOR: &str = "    public DateTime CreatedAt { get; private set; }";
         if source.contains(ANCHOR) {
-            let block = fields.iter().map(|f| f.replace('\n', nl)).collect::<Vec<_>>().join(&format!("{nl}{nl}"));
+            let block = fields
+                .iter()
+                .map(|f| f.replace('\n', nl))
+                .collect::<Vec<_>>()
+                .join(&format!("{nl}{nl}"));
             source = text::replace_first(&source, ANCHOR, &format!("{ANCHOR}{nl}{nl}{block}"));
             changed = true;
         } else {
@@ -105,7 +130,11 @@ fn augment_user(user_file: &Path, spec: &FlowSpec) -> Result<()> {
     if !methods.is_empty() {
         const ANCHOR: &str = "    private Result<User> EnsureValid()";
         if source.contains(ANCHOR) {
-            let block = methods.iter().map(|m| m.code.replace('\n', nl)).collect::<Vec<_>>().join(&format!("{nl}{nl}"));
+            let block = methods
+                .iter()
+                .map(|m| m.code.replace('\n', nl))
+                .collect::<Vec<_>>()
+                .join(&format!("{nl}{nl}"));
             source = text::replace_first(&source, ANCHOR, &format!("{block}{nl}{nl}{ANCHOR}"));
             changed = true;
         } else {
@@ -117,7 +146,11 @@ fn augment_user(user_file: &Path, spec: &FlowSpec) -> Result<()> {
 
     if changed {
         std::fs::write(user_file, source)?;
-        println!("augmented User.cs ({} field(s), {} method(s))", fields.len(), methods.len());
+        println!(
+            "augmented User.cs ({} field(s), {} method(s))",
+            fields.len(),
+            methods.len()
+        );
     }
     Ok(())
 }
@@ -176,7 +209,12 @@ fn augment_app_db(db_file: &Path, spec: &FlowSpec) -> Result<()> {
 fn augment_account_module(module_file: &Path, spec: &FlowSpec) -> Result<()> {
     let source = text::read(module_file)?;
     let nl = text::newline_of(&source);
-    let missing: Vec<&str> = spec.map_lines.iter().copied().filter(|m| !source.contains(m.trim())).collect();
+    let missing: Vec<&str> = spec
+        .map_lines
+        .iter()
+        .copied()
+        .filter(|m| !source.contains(m.trim()))
+        .collect();
     if missing.is_empty() {
         return Ok(());
     }

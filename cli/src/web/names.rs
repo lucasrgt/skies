@@ -11,10 +11,7 @@ pub fn pascal(value: &str) -> String {
         .filter(|word| !word.is_empty())
         .map(|word| {
             let mut chars = word.chars();
-            let first = chars
-                .next()
-                .map(|c| c.to_ascii_uppercase())
-                .unwrap_or_default();
+            let first = chars.next().map(|c| c.to_ascii_uppercase()).unwrap_or_default();
             std::iter::once(first).chain(chars).collect::<String>()
         })
         .collect()

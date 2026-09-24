@@ -32,7 +32,9 @@ fn normalize_golden(path: &str, golden: String) -> String {
     let edits: &[(&str, &str)] = match path {
         "AGENTS.md" | "CLAUDE.md" => {
             // The `skies:foundations` block (the CSM workflow) is gone, with the blank line before it.
-            let cut = golden.find("\n<!-- skies:foundations:start -->").expect("foundations block");
+            let cut = golden
+                .find("\n<!-- skies:foundations:start -->")
+                .expect("foundations block");
             return golden[..cut].to_string();
         }
         "src/Golden.Api/Golden.Api.csproj" => &[
@@ -77,7 +79,10 @@ fn normalize_golden(path: &str, golden: String) -> String {
         _ => &[],
     };
     edits.iter().fold(golden, |text, (from, to)| {
-        assert!(text.contains(from), "{path}: the golden no longer contains the edited text {from:?}");
+        assert!(
+            text.contains(from),
+            "{path}: the golden no longer contains the edited text {from:?}"
+        );
         text.replacen(from, to, 1)
     })
 }
@@ -85,11 +90,15 @@ fn normalize_golden(path: &str, golden: String) -> String {
 /// The only new output: the auth specs, the `.specs/README.md` the template ships, and the ctx skeleton `g module`
 /// now writes so a module is doctor-clean (SKY0004) from birth.
 fn added(path: &str, expected_specs: &[&str]) -> bool {
-    const MODULE_CONTEXTS: &[&str] =
-        &["src/Golden.Api/Modules/Billing/Billing.ctx.md", "src/Golden.Api/Modules/Catalog/Catalog.ctx.md"];
+    const MODULE_CONTEXTS: &[&str] = &[
+        "src/Golden.Api/Modules/Billing/Billing.ctx.md",
+        "src/Golden.Api/Modules/Catalog/Catalog.ctx.md",
+    ];
     path == ".specs/README.md"
         || MODULE_CONTEXTS.contains(&path)
-        || expected_specs.iter().any(|spec| path.starts_with(&format!(".specs/{spec}/")))
+        || expected_specs
+            .iter()
+            .any(|spec| path.starts_with(&format!(".specs/{spec}/")))
 }
 
 fn skies(dir: &Path, args: &[&str]) {
@@ -120,7 +129,9 @@ fn files(root: &Path) -> BTreeMap<String, Vec<u8>> {
 }
 
 fn fixture(tree: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/golden4").join(tree)
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/golden4")
+        .join(tree)
 }
 
 /// Compares a generated solution against its golden twin under the rules above.
@@ -149,9 +160,16 @@ fn assert_parity(tree: &str, generated: &Path, expected_specs: &[&str]) {
         }
     }
     for spec in expected_specs {
-        assert!(ours.contains_key(&format!(".specs/{spec}/spec.md")), "{tree}: no .specs/{spec}/spec.md");
+        assert!(
+            ours.contains_key(&format!(".specs/{spec}/spec.md")),
+            "{tree}: no .specs/{spec}/spec.md"
+        );
     }
-    assert!(mismatches.is_empty(), "{tree} diverges from the 4.x golden:\n{}", mismatches.join("\n"));
+    assert!(
+        mismatches.is_empty(),
+        "{tree} diverges from the 4.x golden:\n{}",
+        mismatches.join("\n")
+    );
 }
 
 #[test]
@@ -188,12 +206,19 @@ fn the_full_generator_sequence_matches_the_4x_golden() {
     std::fs::write(&product, edited).unwrap();
     skies(&api, &["g", "crud", "Catalog", "Product"]);
 
-    assert_parity("Golden", &solution, &["0001-auth", "0002-auth-otp", "0003-auth-oauth", "0004-auth-email"]);
+    assert_parity(
+        "Golden",
+        &solution,
+        &["0001-auth", "0002-auth-otp", "0003-auth-oauth", "0004-auth-email"],
+    );
 }
 
 #[test]
 fn the_auth_variants_match_the_4x_golden() {
-    for (tree, flag) in [("G-skip-tenancy", "--skip-tenancy"), ("G-skip-cookies", "--skip-cookies")] {
+    for (tree, flag) in [
+        ("G-skip-tenancy", "--skip-tenancy"),
+        ("G-skip-cookies", "--skip-cookies"),
+    ] {
         let work = tempfile::tempdir().unwrap();
         skies(work.path(), &["new", "Golden"]);
         let solution = work.path().join("Golden");

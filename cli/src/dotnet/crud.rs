@@ -70,7 +70,9 @@ struct Crud {
 }
 
 pub fn generate(root: &Path, module: &str, entity: &str) -> Result<u8> {
-    let Some(project) = ApiProject::open(root)? else { return Ok(1) };
+    let Some(project) = ApiProject::open(root)? else {
+        return Ok(1);
+    };
     let module_dir = project.module_dir(module);
     let module_file = module_dir.join(format!("{module}Module.cs"));
     if !module_file.exists() {
@@ -125,7 +127,11 @@ pub fn generate(root: &Path, module: &str, entity: &str) -> Result<u8> {
     let not_found = format!("{entity}NotFound");
     let value = format!("{}.not_found", text::hyphenate(entity));
     let summary = format!("No {entity} exists for the given id.");
-    let code = ErrorCode { name: &not_found, value: &value, summary: &summary };
+    let code = ErrorCode {
+        name: &not_found,
+        value: &value,
+        summary: &summary,
+    };
     error_codes::ensure(&module_dir, &project.namespace, module, &code)?;
 
     wire_module(&module_file, &crud)?;
@@ -160,17 +166,32 @@ impl Crud {
                 ("__CREATE_INPUT_FIELDS__", &self.create_input_fields()),
                 ("__CREATE_ASSIGNMENTS__", &self.create_assignments()),
                 ("__AUTH_USING__", pick(self.has_user_id, "using MyApp.Api.Auth;\n")),
-                ("__USERID_ASSIGNMENT__", pick(self.has_user_id, "            UserId = current.UserId,\n")),
+                (
+                    "__USERID_ASSIGNMENT__",
+                    pick(self.has_user_id, "            UserId = current.UserId,\n"),
+                ),
                 ("__CURRENT_PARAM__", pick(self.has_user_id, "ICurrentUser current, ")),
                 ("__CURRENT_ARG__", pick(self.has_user_id, "current, ")),
                 ("__CREATE_TODO__", &self.todo("            ")),
                 ("__UPDATE_TODO__", &self.todo("        ")),
-                ("__NOW_DECL__", pick(stamps_any, "        var now = clock.GetUtcNow().UtcDateTime;\n")),
-                ("__CREATED_AT_ASSIGN__", pick(self.has_created_at, "            CreatedAt = now,\n")),
-                ("__UPDATED_AT_ASSIGN__", pick(self.has_updated_at, "            UpdatedAt = now,\n")),
+                (
+                    "__NOW_DECL__",
+                    pick(stamps_any, "        var now = clock.GetUtcNow().UtcDateTime;\n"),
+                ),
+                (
+                    "__CREATED_AT_ASSIGN__",
+                    pick(self.has_created_at, "            CreatedAt = now,\n"),
+                ),
+                (
+                    "__UPDATED_AT_ASSIGN__",
+                    pick(self.has_updated_at, "            UpdatedAt = now,\n"),
+                ),
                 (
                     "__UPDATE_TOUCH__",
-                    pick(self.has_updated_at, "        item.UpdatedAt = clock.GetUtcNow().UtcDateTime;\n"),
+                    pick(
+                        self.has_updated_at,
+                        "        item.UpdatedAt = clock.GetUtcNow().UtcDateTime;\n",
+                    ),
                 ),
                 ("__ORDER_KEY__", if self.has_created_at { "CreatedAt" } else { "Id" }),
                 ("__UPDATE_INPUT_FIELDS__", &self.update_input_fields()),
@@ -186,11 +207,18 @@ impl Crud {
         if self.scalars.is_empty() {
             return "string? Unused = null".to_string();
         }
-        self.scalars.iter().map(|f| format!("{} {}", f.ty, f.name)).collect::<Vec<_>>().join(", ")
+        self.scalars
+            .iter()
+            .map(|f| format!("{} {}", f.ty, f.name))
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 
     fn create_assignments(&self) -> String {
-        self.scalars.iter().map(|f| format!("            {0} = input.{0},\n", f.name)).collect()
+        self.scalars
+            .iter()
+            .map(|f| format!("            {0} = input.{0},\n", f.name))
+            .collect()
     }
 
     /// Every scalar made nullable, defaulting to null, for a partial update.
@@ -198,8 +226,18 @@ impl Crud {
         if self.scalars.is_empty() {
             return "string? Unused = null".to_string();
         }
-        let nullable = |ty: &str| if ty.ends_with('?') { ty.to_string() } else { format!("{ty}?") };
-        self.scalars.iter().map(|f| format!("{} {} = null", nullable(&f.ty), f.name)).collect::<Vec<_>>().join(", ")
+        let nullable = |ty: &str| {
+            if ty.ends_with('?') {
+                ty.to_string()
+            } else {
+                format!("{ty}?")
+            }
+        };
+        self.scalars
+            .iter()
+            .map(|f| format!("{} {} = null", nullable(&f.ty), f.name))
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 
     /// A column is overwritten only when its input is non-null; a non-nullable value type unwraps with `.Value`.
@@ -207,8 +245,15 @@ impl Crud {
         self.scalars
             .iter()
             .map(|f| {
-                let suffix = if f.ty.ends_with('?') || f.ty == "string" { "" } else { ".Value" };
-                format!("        if (input.{0} is not null)\n            item.{0} = input.{0}{suffix};\n", f.name)
+                let suffix = if f.ty.ends_with('?') || f.ty == "string" {
+                    ""
+                } else {
+                    ".Value"
+                };
+                format!(
+                    "        if (input.{0} is not null)\n            item.{0} = input.{0}{suffix};\n",
+                    f.name
+                )
             })
             .collect()
     }
@@ -228,7 +273,10 @@ fn parse_fields(source: &str) -> (Vec<Field>, Vec<Field>) {
     let mut scalars = Vec::new();
     let mut complex = Vec::new();
     for capture in PROPERTY.captures_iter(source) {
-        let field = Field { name: capture["name"].trim().to_string(), ty: capture["type"].trim().to_string() };
+        let field = Field {
+            name: capture["name"].trim().to_string(),
+            ty: capture["type"].trim().to_string(),
+        };
         if SYSTEM_FIELDS.contains(&field.name.as_str()) {
             continue;
         }
@@ -257,7 +305,10 @@ fn detect_db_set(root: &Path, entity: &str) -> Result<String> {
         return Ok(fallback);
     }
     let source = text::read(&db_file)?;
-    let pattern = format!(r"DbSet<{}>\s+(?<plural>[A-Za-z_][A-Za-z0-9_]*)\s*=>", regex::escape(entity));
+    let pattern = format!(
+        r"DbSet<{}>\s+(?<plural>[A-Za-z_][A-Za-z0-9_]*)\s*=>",
+        regex::escape(entity)
+    );
     if let Some(capture) = Regex::new(&pattern).expect("dbset regex").captures(&source) {
         return Ok(capture["plural"].to_string());
     }
@@ -273,7 +324,9 @@ fn detect_db_set(root: &Path, entity: &str) -> Result<String> {
 fn wire_module(module_file: &Path, crud: &Crud) -> Result<()> {
     let source = text::read(module_file)?;
     let nl = text::newline_of(&source);
-    let group = GROUP.captures(&source).map_or("app".to_string(), |c| c["g"].to_string());
+    let group = GROUP
+        .captures(&source)
+        .map_or("app".to_string(), |c| c["g"].to_string());
     let missing: Vec<String> = crud
         .slices()
         .iter()
@@ -312,8 +365,11 @@ fn summarize(crud: &Crud, emitted: &[String]) {
             list.join(", ")
         );
     }
-    let what =
-        if emitted.is_empty() { "nothing new (all slices already present)".to_string() } else { emitted.join(", ") };
+    let what = if emitted.is_empty() {
+        "nothing new (all slices already present)".to_string()
+    } else {
+        emitted.join(", ")
+    };
     println!(
         "crud generated for {}/{} — {what}. Write down how it can fail in a spec (`skies spec new`), then prove it.",
         crud.module, crud.entity
@@ -342,7 +398,11 @@ mod tests {
         std::fs::write(dir.path().join("Acme.Api.csproj"), "<Project />").unwrap();
         std::fs::create_dir_all(dir.path().join("Modules/Catalog")).unwrap();
         std::fs::write(dir.path().join("Modules/Catalog/CatalogModule.cs"), "").unwrap();
-        std::fs::write(dir.path().join("Modules/Catalog/Product.cs"), "public class Product { }").unwrap();
+        std::fs::write(
+            dir.path().join("Modules/Catalog/Product.cs"),
+            "public class Product { }",
+        )
+        .unwrap();
 
         assert_eq!(generate(dir.path(), "Catalog", "Product").unwrap(), 1);
         assert!(!dir.path().join("Modules/Catalog/Slices").exists());

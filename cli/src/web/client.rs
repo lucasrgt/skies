@@ -24,10 +24,7 @@ pub fn render_seams(name: &str, contract: &str) -> Result<Vec<(&'static str, Str
         ("src/lib/skies-client.ts", MUTATOR.to_string()),
         ("src/lib/feedback.ts", FEEDBACK.to_string()),
         ("src/lib/query.ts", QUERY.to_string()),
-        (
-            "orval.config.ts",
-            render(ORVAL_CONFIG, context! { name, contract })?,
-        ),
+        ("orval.config.ts", render(ORVAL_CONFIG, context! { name, contract })?),
     ])
 }
 
@@ -58,11 +55,7 @@ pub fn generate(package: &Path) -> Result<u8> {
         package,
     )?;
     let after = tree_hash(&generated);
-    let verdict = if before == after {
-        "unchanged"
-    } else {
-        "updated"
-    };
+    let verdict = if before == after { "unchanged" } else { "updated" };
     println!("client.gen {verdict} from {}", contract.path.display());
     Ok(0)
 }
@@ -115,11 +108,7 @@ mod tests {
         let config = seam("orval.config.ts");
         assert!(config.contains("target: \"./contract/Shop.Api.json\""));
         assert!(config.contains("tags: [\"skies:asset\", \"skies:webhook\", \"skies:internal\"]"));
-        assert!(
-            config.contains(
-                "mutator: { path: \"./src/lib/skies-client.ts\", name: \"skiesClient\" }"
-            )
-        );
+        assert!(config.contains("mutator: { path: \"./src/lib/skies-client.ts\", name: \"skiesClient\" }"));
         assert!(config.contains("target: \"./src/client.gen/shop.ts\""));
         assert!(!regex::Regex::new(r"query:\s*\{").unwrap().is_match(&config));
         assert!(!config.contains("useQuery") && !config.contains("useMutation"));

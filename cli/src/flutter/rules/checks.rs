@@ -65,22 +65,12 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
         findings: Vec::new(),
     };
     let (facts, role) = (&source.facts, source.role);
-    let import = |pred: &dyn Fn(&str) -> bool| {
-        facts
-            .imports
-            .iter()
-            .find(|i| pred(&i.value))
-            .map(|i| i.line)
-    };
+    let import = |pred: &dyn Fn(&str) -> bool| facts.imports.iter().find(|i| pred(&i.value)).map(|i| i.line);
 
     if !role.test {
         let mock = ["__mocks__", "fixtures", "mockito", "mocktail", "msw"];
         if let Some(line) = import(&|uri| mock.iter().any(|m| uri.contains(m))) {
-            report.add(
-                "no-mock",
-                Some(line),
-                "production code imports a mock or fixture",
-            );
+            report.add("no-mock", Some(line), "production code imports a mock or fixture");
         }
     }
     if role.view {
@@ -90,11 +80,7 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
                 .map(|i| i.line)
         });
         if let Some(line) = transport {
-            report.add(
-                "view-purity",
-                Some(line),
-                "View reaches transport or client behavior",
-            );
+            report.add("view-purity", Some(line), "View reaches transport or client behavior");
         }
         let model = sibling(&source.path, "_view.dart", "_view_model.dart");
         let paired = sources.get(model.as_path());
@@ -145,11 +131,7 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
             .is_some_and(|url| url.starts_with("http://") || url.starts_with("https://"))
     });
     if let Some(call) = hardcoded_url {
-        report.add(
-            "configured-base-url",
-            Some(call.line),
-            "API base URL is hardcoded",
-        );
+        report.add("configured-base-url", Some(call.line), "API base URL is hardcoded");
     }
     if !role.html_door {
         let html = import(&|uri| uri.starts_with("package:flutter_html/")).or_else(|| {
@@ -171,11 +153,9 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
     }
     if let Some(binding) = facts.bindings.iter().find(|b| {
         b.name == "onSuccess"
-            && b.identifiers.iter().any(|id| {
-                ["refetch", "reload", "invalidate"]
-                    .iter()
-                    .any(|w| id.contains(w))
-            })
+            && b.identifiers
+                .iter()
+                .any(|id| ["refetch", "reload", "invalidate"].iter().any(|w| id.contains(w)))
     }) {
         report.warn(
             "no-manual-refetch",
@@ -198,11 +178,9 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
 }
 
 fn hardcoded_copy(report: &mut Report, facts: &Facts) {
-    let text_literal = facts.calls_named(&["Text", "RichText"]).find(|call| {
-        call.positional()
-            .next()
-            .is_some_and(|arg| arg.string.is_some())
-    });
+    let text_literal = facts
+        .calls_named(&["Text", "RichText"])
+        .find(|call| call.positional().next().is_some_and(|arg| arg.string.is_some()));
     let labelled = facts.calls.iter().find(|call| {
         call.args.iter().any(|arg| {
             arg.string.is_some()
@@ -256,16 +234,12 @@ fn model_rules(report: &mut Report, facts: &Facts, import: &ImportLine) {
         );
     }
     if !facts.generics.contains("AsyncState") {
-        report.add(
-            "mandatory-state",
-            None,
-            "server-backed ViewModel exposes no AsyncState",
-        );
+        report.add("mandatory-state", None, "server-backed ViewModel exposes no AsyncState");
     }
     let local_surface = facts.catch_blocks.iter().any(|block| {
-        block.iter().any(|id| {
-            id.contains("AsyncFailure") || id.contains("error") || id.contains("feedback")
-        })
+        block
+            .iter()
+            .any(|id| id.contains("AsyncFailure") || id.contains("error") || id.contains("feedback"))
     });
     if let Some(mutation) = mutation(facts)
         && !facts.has_identifier("MutationBoundary")
@@ -290,10 +264,7 @@ fn model_rules(report: &mut Report, facts: &Facts, import: &ImportLine) {
             "expected failure suppresses global feedback without a modeled local failure surface",
         );
     }
-    let validates: Vec<&Call> = facts
-        .calls_named(&["validate"])
-        .filter(|c| c.args.is_empty())
-        .collect();
+    let validates: Vec<&Call> = facts.calls_named(&["validate"]).filter(|c| c.args.is_empty()).collect();
     let has_invalid_path = facts.has_else
         || facts.calls_named(&["submitOrReveal"]).next().is_some()
         || validates.iter().any(|c| c.in_condition);
@@ -373,8 +344,7 @@ fn navigation_rules(report: &mut Report, facts: &Facts) {
     }
     let escaped = facts.calls.iter().find(|call| {
         let receiver = call.receiver.as_deref().unwrap_or_default();
-        let navigates = (receiver == "context"
-            && ["go", "push", "replace"].contains(&call.name.as_str()))
+        let navigates = (receiver == "context" && ["go", "push", "replace"].contains(&call.name.as_str()))
             || receiver == "Navigator"
             || receiver.starts_with("Navigator.");
         navigates
@@ -430,20 +400,14 @@ fn session_rules(report: &mut Report, facts: &Facts, session_door: bool) {
 /// Unfinished-work markers are a text property of comments, so this one is a regex over comment nodes only;
 /// `UnimplementedError(...)` is a real call.
 fn placeholder(report: &mut Report, facts: &Facts) {
-    static MARKER: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"(?i)\b(?:TODO|FIXME|HACK|XXX|wire later)\b").expect("static pattern")
-    });
+    static MARKER: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"(?i)\b(?:TODO|FIXME|HACK|XXX|wire later)\b").expect("static pattern"));
     let line = facts
         .comments
         .iter()
         .find(|comment| MARKER.is_match(&comment.value))
         .map(|comment| comment.line)
-        .or_else(|| {
-            facts
-                .calls_named(&["UnimplementedError"])
-                .next()
-                .map(|call| call.line)
-        });
+        .or_else(|| facts.calls_named(&["UnimplementedError"]).next().map(|call| call.line));
     if let Some(line) = line {
         report.add(
             "no-placeholder",
@@ -455,9 +419,7 @@ fn placeholder(report: &mut Report, facts: &Facts) {
 
 /// Package-wide: write features need one configured `MutationBoundary` somewhere in production code.
 pub fn project(sources: &[Source]) -> Vec<Finding> {
-    let writes = sources
-        .iter()
-        .any(|s| s.role.model && mutation(&s.facts).is_some());
+    let writes = sources.iter().any(|s| s.role.model && mutation(&s.facts).is_some());
     let boundary = sources
         .iter()
         .any(|s| !s.role.test && s.facts.calls_named(&["MutationBoundary"]).next().is_some());

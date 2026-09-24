@@ -101,11 +101,7 @@ pub fn client_name(project_name: &str) -> String {
         .filter(char::is_ascii_alphanumeric)
         .collect::<String>()
         .to_ascii_lowercase();
-    if name.is_empty() {
-        "api".to_string()
-    } else {
-        name
-    }
+    if name.is_empty() { "api".to_string() } else { name }
 }
 
 #[cfg(test)]
@@ -132,17 +128,12 @@ mod tests {
         let contract = for_package(&package).unwrap();
 
         assert_eq!(contract.name, "shop");
-        assert!(
-            contract
-                .path
-                .ends_with("api/Shop.Api/contract/Shop.Api.json")
-        );
+        assert!(contract.path.ends_with("api/Shop.Api/contract/Shop.Api.json"));
     }
 
     #[test]
     fn explains_a_missing_contract() {
-        let dir =
-            workspace("[workspace]\nname = \"s\"\n[products.x]\nbackend = \"api/Missing.Api\"\n");
+        let dir = workspace("[workspace]\nname = \"s\"\n[products.x]\nbackend = \"api/Missing.Api\"\n");
         let package = dir.path().join("web").canonicalize().unwrap();
 
         let error = format!("{:#}", for_package(&package).unwrap_err());

@@ -25,7 +25,11 @@ impl Repo {
             git(root, &["rev-parse", "--show-toplevel"]).context("the project root is not inside a git repository")?,
         );
         let prefix = git(root, &["rev-parse", "--show-prefix"])?;
-        Ok(Repo { top, prefix, root: root.to_path_buf() })
+        Ok(Repo {
+            top,
+            prefix,
+            root: root.to_path_buf(),
+        })
     }
 
     pub fn run(&self, args: &[&str]) -> Result<String> {
@@ -47,7 +51,12 @@ impl Repo {
         let default = self
             .run(&["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"])
             .ok()
-            .or_else(|| ["main", "master"].into_iter().find(|name| self.resolve(name).is_ok()).map(String::from))
+            .or_else(|| {
+                ["main", "master"]
+                    .into_iter()
+                    .find(|name| self.resolve(name).is_ok())
+                    .map(String::from)
+            })
             .context("no default branch to fork from (no origin/HEAD, main, or master); pass --red <rev>")?;
         self.run(&["merge-base", "HEAD", &default])
             .with_context(|| format!("HEAD shares no history with {default}; pass --red <rev>"))
@@ -74,12 +83,22 @@ impl Repo {
     pub fn temp_worktree(&self, commit: &str) -> Result<TempWorktree> {
         // A worktree left by a killed process would otherwise block nothing but clutter `git worktree list`.
         let _ = self.run(&["worktree", "prune"]);
-        let dir = tempfile::Builder::new().prefix("skies-red-").tempdir().context("creating a temporary directory")?;
+        let dir = tempfile::Builder::new()
+            .prefix("skies-red-")
+            .tempdir()
+            .context("creating a temporary directory")?;
         let path = dir.path().join("checkout");
         let path_text = path.to_str().context("the temporary directory path is not UTF-8")?;
-        git(&self.top, &["worktree", "add", "--detach", "--quiet", path_text, commit])
-            .with_context(|| format!("creating a worktree at {commit}"))?;
-        Ok(TempWorktree { top: self.top.clone(), path, _dir: dir })
+        git(
+            &self.top,
+            &["worktree", "add", "--detach", "--quiet", path_text, commit],
+        )
+        .with_context(|| format!("creating a worktree at {commit}"))?;
+        Ok(TempWorktree {
+            top: self.top.clone(),
+            path,
+            _dir: dir,
+        })
     }
 
     /// Applies a patch whose paths are relative to the project root (what `git diff --relative` writes from the app)
@@ -135,7 +154,10 @@ fn patch_paths(patch: &Path, strip: &str) -> Result<Vec<String>> {
     paths.sort();
     paths.dedup();
     if paths.is_empty() {
-        bail!("{} touches no files (expected unified diff headers like `--- a/src/X.cs`)", patch.display());
+        bail!(
+            "{} touches no files (expected unified diff headers like `--- a/src/X.cs`)",
+            patch.display()
+        );
     }
     Ok(paths)
 }
@@ -165,11 +187,19 @@ fn git(dir: &Path, args: &[&str]) -> Result<String> {
         .output()
         .context("running git (is it installed and on PATH?)")?;
     if !output.status.success() {
-        bail!("git {} failed: {}", args.join(" "), String::from_utf8_lossy(&output.stderr).trim());
+        bail!(
+            "git {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
     }
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
 }
 
 fn lines(text: &str) -> Vec<String> {
-    text.lines().map(str::trim).filter(|line| !line.is_empty()).map(String::from).collect()
+    text.lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(String::from)
+        .collect()
 }

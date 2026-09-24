@@ -19,17 +19,12 @@ fn project(files: &[(&str, &str)]) -> tempfile::TempDir {
 
 fn codes(files: &[(&str, &str)]) -> Vec<String> {
     let dir = project(files);
-    diagnose(dir.path())
-        .unwrap()
-        .into_iter()
-        .map(|f| f.code)
-        .collect()
+    diagnose(dir.path()).unwrap().into_iter().map(|f| f.code).collect()
 }
 
 const MODEL: &str = "lib/features/x/x_view_model.dart";
 const VIEW: &str = "lib/features/x/x_view.dart";
-const STATEFUL_MODEL: &str =
-    "final class XViewModel { AsyncState<int> state = const AsyncLoading<int>(); }";
+const STATEFUL_MODEL: &str = "final class XViewModel { AsyncState<int> state = const AsyncLoading<int>(); }";
 
 #[test]
 fn every_kept_rule_fires_on_its_violation() {
@@ -44,30 +39,18 @@ fn every_kept_rule_fires_on_its_violation() {
         ),
         (
             "SKYFL003",
-            &[(
-                "lib/helper.dart",
-                "import 'package:mocktail/mocktail.dart';",
-            )],
+            &[("lib/helper.dart", "import 'package:mocktail/mocktail.dart';")],
         ),
-        (
-            "SKYFL004",
-            &[(MODEL, "Widget build(BuildContext context) => value;")],
-        ),
+        ("SKYFL004", &[(MODEL, "Widget build(BuildContext context) => value;")]),
         (
             "SKYFL007",
             &[(MODEL, "final class XViewModel extends ChangeNotifier {}")],
         ),
         (
             "SKYFL009",
-            &[(
-                MODEL,
-                "import 'package:camera/camera.dart';\nAsyncState<int> state;",
-            )],
+            &[(MODEL, "import 'package:camera/camera.dart';\nAsyncState<int> state;")],
         ),
-        (
-            "SKYFL010",
-            &[(VIEW, "class XView {}"), (MODEL, STATEFUL_MODEL)],
-        ),
+        ("SKYFL010", &[(VIEW, "class XView {}"), (MODEL, STATEFUL_MODEL)]),
         (
             "SKYFL011",
             &[
@@ -88,17 +71,11 @@ fn every_kept_rule_fires_on_its_violation() {
         ),
         (
             "SKYFL015",
-            &[(
-                VIEW,
-                "void f() { addPostFrameCallback((_) { context.go('/home'); }); }",
-            )],
+            &[(VIEW, "void f() { addPostFrameCallback((_) { context.go('/home'); }); }")],
         ),
         (
             "SKYFL016",
-            &[(
-                "lib/features/x/helper.dart",
-                "void f() => setAccessToken('x');",
-            )],
+            &[("lib/features/x/helper.dart", "void f() => setAccessToken('x');")],
         ),
         (
             "SKYFL017",
@@ -114,10 +91,7 @@ fn every_kept_rule_fires_on_its_violation() {
                 "void f() { final id = state.pathParameters['id']; }",
             )],
         ),
-        (
-            "SKYFL019",
-            &[("lib/helper.dart", "void f() => context.pop();")],
-        ),
+        ("SKYFL019", &[("lib/helper.dart", "void f() => context.pop();")]),
         (
             "SKYFL020",
             &[(
@@ -127,17 +101,11 @@ fn every_kept_rule_fires_on_its_violation() {
         ),
         (
             "SKYFL021",
-            &[(
-                "lib/features/x/helper.dart",
-                "Widget build() => Html(data: body);",
-            )],
+            &[("lib/features/x/helper.dart", "Widget build() => Html(data: body);")],
         ),
         (
             "SKYFL022",
-            &[(
-                "lib/routes/login_route.dart",
-                "void f() => context.go(returnTo);",
-            )],
+            &[("lib/routes/login_route.dart", "void f() => context.go(returnTo);")],
         ),
         ("SKYFL023", &[("lib/helper.dart", "// TODO wire later")]),
         (
@@ -153,10 +121,7 @@ fn every_kept_rule_fires_on_its_violation() {
         ),
         (
             "SKYFL029",
-            &[(
-                "lib/features/x/helper.dart",
-                "Future<void> f() => refreshSession();",
-            )],
+            &[("lib/features/x/helper.dart", "Future<void> f() => refreshSession();")],
         ),
         (
             "SKYFL030",
@@ -167,25 +132,16 @@ fn every_kept_rule_fires_on_its_violation() {
         ),
         (
             "SKYFL031",
-            &[(
-                MODEL,
-                "AsyncState<int> state; void submit() { form.validate(); }",
-            )],
+            &[(MODEL, "AsyncState<int> state; void submit() { form.validate(); }")],
         ),
         (
             "SKYFL032",
-            &[(
-                "lib/ui/app_input.dart",
-                "Widget build() => TextFormField();",
-            )],
+            &[("lib/ui/app_input.dart", "Widget build() => TextFormField();")],
         ),
     ];
     for (code, files) in cases {
         let found = codes(files);
-        assert!(
-            found.iter().any(|c| c == code),
-            "{code} was absent; got {found:?}"
-        );
+        assert!(found.iter().any(|c| c == code), "{code} was absent; got {found:?}");
     }
 }
 
@@ -199,10 +155,7 @@ fn a_scaffolded_feature_is_clean() {
     for (name, source) in &feature.l10n {
         files.push((format!("lib/l10n/features/{name}"), source.clone()));
     }
-    let borrowed: Vec<(&str, &str)> = files
-        .iter()
-        .map(|(p, s)| (p.as_str(), s.as_str()))
-        .collect();
+    let borrowed: Vec<(&str, &str)> = files.iter().map(|(p, s)| (p.as_str(), s.as_str())).collect();
     assert_eq!(codes(&borrowed), Vec::<String>::new());
 }
 
@@ -219,10 +172,7 @@ fn a_real_view_reports_architecture_and_state_gaps_by_their_ids() {
         ),
     ]);
     for expected in ["SKYFL001", "SKYFL007", "SKYFL014"] {
-        assert!(
-            found.iter().any(|c| c == expected),
-            "{expected} missing from {found:?}"
-        );
+        assert!(found.iter().any(|c| c == expected), "{expected} missing from {found:?}");
     }
 }
 
@@ -237,23 +187,17 @@ fn retired_proof_and_design_rules_never_fire() {
             "lib/features/x/x_view_model.dart",
             "/// @verify works\n/// @e2e x-happy\nAsyncState<int> state;",
         ),
-        (
-            "lib/helper.dart",
-            "const c = Color(0xff112233); const h = '#abcdef';",
-        ),
+        ("lib/helper.dart", "const c = Color(0xff112233); const h = '#abcdef';"),
         (
             "test/helper_test.dart",
             "void main() { test('later', () {}, skip: true); }",
         ),
     ]);
     for retired in [
-        "SKYFL005", "SKYFL006", "SKYFL008", "SKYFL012", "SKYFL024", "SKYFL025", "SKYFL026",
-        "SKYFL033", "SKYFL034", "SKYFL035",
+        "SKYFL005", "SKYFL006", "SKYFL008", "SKYFL012", "SKYFL024", "SKYFL025", "SKYFL026", "SKYFL033", "SKYFL034",
+        "SKYFL035",
     ] {
-        assert!(
-            !found.iter().any(|c| c == retired),
-            "{retired} still fires: {found:?}"
-        );
+        assert!(!found.iter().any(|c| c == retired), "{retired} still fires: {found:?}");
     }
 }
 
@@ -266,11 +210,7 @@ fn comments_and_strings_do_not_trigger_code_rules() {
         ),
         (MODEL, STATEFUL_MODEL),
     ]);
-    assert_eq!(
-        found,
-        ["SKYFL010"],
-        "only the missing ResourceBuilder remains"
-    );
+    assert_eq!(found, ["SKYFL010"], "only the missing ResourceBuilder remains");
 }
 
 #[test]
@@ -320,10 +260,7 @@ fn guarded_validation_and_route_params_pass() {
 
 #[test]
 fn warnings_are_warnings_and_findings_carry_lines() {
-    let dir = project(&[(
-        "lib/helper.dart",
-        "void a() {}\nfinal onSuccess = () { refetch(); };",
-    )]);
+    let dir = project(&[("lib/helper.dart", "void a() {}\nfinal onSuccess = () { refetch(); };")]);
     let findings = diagnose(dir.path()).unwrap();
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].severity, Severity::Warning);

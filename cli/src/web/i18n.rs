@@ -23,16 +23,9 @@ pub struct Catalog {
 
 pub fn assemble(package: &Path) -> Result<u8> {
     let src = package.join("src");
-    let root = if src.is_dir() {
-        src
-    } else {
-        package.to_path_buf()
-    };
+    let root = if src.is_dir() { src } else { package.to_path_buf() };
     let output = root.join(OUTPUT);
-    let out_dir = output
-        .parent()
-        .context("output has a parent")?
-        .to_path_buf();
+    let out_dir = output.parent().context("output has a parent")?.to_path_buf();
 
     let mut paths = Vec::new();
     find_catalogs(&root, &mut paths)?;
@@ -45,23 +38,14 @@ pub fn assemble(package: &Path) -> Result<u8> {
         .map(|path| {
             let file = path.file_name().unwrap_or_default().to_string_lossy();
             let namespace = file.trim_end_matches(".i18n.ts").to_string();
-            let import_path =
-                relative_path(&out_dir, &path.with_file_name(format!("{namespace}.i18n")));
-            Catalog {
-                namespace,
-                import_path,
-            }
+            let import_path = relative_path(&out_dir, &path.with_file_name(format!("{namespace}.i18n")));
+            Catalog { namespace, import_path }
         })
         .collect();
 
     std::fs::create_dir_all(&out_dir)?;
-    std::fs::write(&output, render_resources(&catalogs))
-        .with_context(|| format!("writing {}", output.display()))?;
-    println!(
-        "assembled {} catalog(s) -> {}",
-        catalogs.len(),
-        output.display()
-    );
+    std::fs::write(&output, render_resources(&catalogs)).with_context(|| format!("writing {}", output.display()))?;
+    println!("assembled {} catalog(s) -> {}", catalogs.len(), output.display());
     for catalog in &catalogs {
         println!("  {}  ({})", catalog.namespace, catalog.import_path);
     }
@@ -149,11 +133,7 @@ mod tests {
     fn discovers_catalogs_under_src_and_writes_the_module() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(dir.path().join("src/items")).unwrap();
-        std::fs::write(
-            dir.path().join("src/items/items.i18n.ts"),
-            "export const enUS = {};",
-        )
-        .unwrap();
+        std::fs::write(dir.path().join("src/items/items.i18n.ts"), "export const enUS = {};").unwrap();
 
         assemble(dir.path()).unwrap();
 

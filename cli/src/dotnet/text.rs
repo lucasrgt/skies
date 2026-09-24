@@ -66,7 +66,9 @@ pub fn replace_app_tokens(text: &str, app_name: &str, app_lower: &str) -> String
 
 /// Applies `(token, value)` pairs in order. Longer tokens must come before tokens they contain.
 pub fn fill(template: &str, pairs: &[(&str, &str)]) -> String {
-    pairs.iter().fold(template.to_string(), |text, (token, value)| text.replace(token, value))
+    pairs
+        .iter()
+        .fold(template.to_string(), |text, (token, value)| text.replace(token, value))
 }
 
 pub fn read(path: &Path) -> Result<String> {

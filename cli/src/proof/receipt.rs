@@ -107,7 +107,11 @@ pub fn freshness(root: &Path, spec: &SpecDir) -> Result<Freshness> {
 
     let mut changed = hash::changed(&receipt.footprint, &hash::hash_all(root, footprint_paths));
     changed.extend(hash::changed(&receipt.inputs, &hash::hash_all(root, &inputs)));
-    Ok(if changed.is_empty() { Freshness::Current } else { Freshness::Stale(changed) })
+    Ok(if changed.is_empty() {
+        Freshness::Current
+    } else {
+        Freshness::Stale(changed)
+    })
 }
 
 #[cfg(test)]

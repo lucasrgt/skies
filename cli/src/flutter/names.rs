@@ -6,9 +6,7 @@ pub fn snake(value: &str) -> String {
     let mut previous: Option<char> = None;
     for c in value.trim().chars() {
         if c.is_ascii_alphanumeric() {
-            if c.is_ascii_uppercase()
-                && previous.is_some_and(|p| p.is_ascii_lowercase() || p.is_ascii_digit())
-            {
+            if c.is_ascii_uppercase() && previous.is_some_and(|p| p.is_ascii_lowercase() || p.is_ascii_digit()) {
                 out.push('_');
             }
             out.push(c.to_ascii_lowercase());

@@ -10,9 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::{Result, bail};
 use serde_json::{Map, Value};
 
-const HTTP_METHODS: [&str; 8] = [
-    "get", "put", "post", "delete", "options", "head", "patch", "trace",
-];
+const HTTP_METHODS: [&str; 8] = ["get", "put", "post", "delete", "options", "head", "patch", "trace"];
 const EXCLUDED_KINDS: [&str; 3] = ["asset", "webhook", "internal"];
 const EXCLUDED_TAGS: [&str; 3] = ["skies:asset", "skies:webhook", "skies:internal"];
 
@@ -48,20 +46,15 @@ fn excluded(operation: &Value) -> bool {
     if operation.get("x-skies-app-client-excluded") == Some(&Value::Bool(true)) {
         return true;
     }
-    if let Some(kind) = operation
-        .get("x-skies-endpoint-kind")
-        .and_then(Value::as_str)
+    if let Some(kind) = operation.get("x-skies-endpoint-kind").and_then(Value::as_str)
         && EXCLUDED_KINDS.contains(&kind.to_ascii_lowercase().as_str())
     {
         return true;
     }
-    operation
-        .get("tags")
-        .and_then(Value::as_array)
-        .is_some_and(|tags| {
-            tags.iter()
-                .any(|tag| tag.as_str().is_some_and(|t| EXCLUDED_TAGS.contains(&t)))
-        })
+    operation.get("tags").and_then(Value::as_array).is_some_and(|tags| {
+        tags.iter()
+            .any(|tag| tag.as_str().is_some_and(|t| EXCLUDED_TAGS.contains(&t)))
+    })
 }
 
 /// Keeps only the components reachable from the rest of the document, following `$ref`s transitively.
@@ -99,10 +92,7 @@ fn prune_components(document: &mut Map<String, Value>) {
         let kept: Map<String, Value> = values
             .into_iter()
             .filter(|(name, _)| {
-                section == "securitySchemes"
-                    || reachable
-                        .get(&section)
-                        .is_some_and(|names| names.contains(name))
+                section == "securitySchemes" || reachable.get(&section).is_some_and(|names| names.contains(name))
             })
             .collect();
         if !kept.is_empty() {
@@ -117,9 +107,7 @@ fn prune_components(document: &mut Map<String, Value>) {
 /// `#/components/schemas/Foo~1Bar` → `("schemas", "Foo/Bar")`, per the JSON Pointer escaping rules.
 fn parse_reference(reference: &str) -> Option<(String, String)> {
     let rest = reference.strip_prefix("#/components/")?;
-    let mut segments = rest
-        .split('/')
-        .map(|s| s.replace("~1", "/").replace("~0", "~"));
+    let mut segments = rest.split('/').map(|s| s.replace("~1", "/").replace("~0", "~"));
     Some((segments.next()?, segments.next()?))
 }
 
@@ -172,11 +160,7 @@ mod tests {
 
         let projected = project_app_client(&contract).unwrap();
 
-        let schemas: Vec<&String> = projected["components"]["schemas"]
-            .as_object()
-            .unwrap()
-            .keys()
-            .collect();
+        let schemas: Vec<&String> = projected["components"]["schemas"].as_object().unwrap().keys().collect();
         assert_eq!(schemas, ["Owner", "Wallet"]);
         assert!(projected["components"]["securitySchemes"]["Bearer"].is_object());
     }

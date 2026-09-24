@@ -28,7 +28,9 @@ struct Repo {
 
 impl Repo {
     fn new() -> Repo {
-        let repo = Repo { dir: tempfile::tempdir().unwrap() };
+        let repo = Repo {
+            dir: tempfile::tempdir().unwrap(),
+        };
         repo.git(&["init", "--quiet", "--initial-branch=main"]);
         repo.write(
             "Skies.toml",
@@ -65,7 +67,14 @@ impl Repo {
 
     fn git(&self, args: &[&str]) {
         let status = Command::new("git")
-            .args(["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"])
+            .args([
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@t",
+                "-c",
+                "commit.gpgsign=false",
+            ])
             .args(args)
             .current_dir(self.dir.path())
             .status()
@@ -74,22 +83,37 @@ impl Repo {
     }
 
     fn skies(&self, args: &[&str]) -> Output {
-        Command::new(env!("CARGO_BIN_EXE_skies")).args(args).current_dir(self.dir.path()).output().unwrap()
+        Command::new(env!("CARGO_BIN_EXE_skies"))
+            .args(args)
+            .current_dir(self.dir.path())
+            .output()
+            .unwrap()
     }
 
     fn worktrees(&self) -> usize {
-        let output = Command::new("git").args(["worktree", "list"]).current_dir(self.dir.path()).output().unwrap();
+        let output = Command::new("git")
+            .args(["worktree", "list"])
+            .current_dir(self.dir.path())
+            .output()
+            .unwrap();
         String::from_utf8_lossy(&output.stdout).lines().count()
     }
 }
 
 fn text(output: &Output) -> String {
-    format!("{}{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr))
+    format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    )
 }
 
 fn spec_with(fms: &[&str]) -> String {
     let lines: Vec<String> = fms.iter().map(|fm| format!("- {fm}")).collect();
-    format!("---\nid: \"0001\"\nrunner: fake\n---\n# Toggle\n\n## Failure modes\n\n{}\n", lines.join("\n"))
+    format!(
+        "---\nid: \"0001\"\nrunner: fake\n---\n# Toggle\n\n## Failure modes\n\n{}\n",
+        lines.join("\n")
+    )
 }
 
 const SPEC: &str = ".specs/0001-toggle";
@@ -99,7 +123,10 @@ fn new_spec(repo: &Repo, cases: &str) {
     assert!(output.status.success(), "{}", text(&output));
     assert!(repo.read(&format!("{SPEC}/spec.md")).contains("runner: fake"));
     assert!(repo.path(&format!("{SPEC}/e2e")).is_dir());
-    repo.write(&format!("{SPEC}/spec.md"), &spec_with(&["FM-1 toggling does nothing", "FM-2 toggling twice breaks"]));
+    repo.write(
+        &format!("{SPEC}/spec.md"),
+        &spec_with(&["FM-1 toggling does nothing", "FM-2 toggling twice breaks"]),
+    );
     repo.write(&format!("{SPEC}/e2e/cases.txt"), cases);
 }
 
@@ -115,12 +142,30 @@ fn record_status_verify_round_trip() {
 
     let receipt: serde_json::Value = serde_json::from_str(&repo.read(&format!("{SPEC}/receipt.json"))).unwrap();
     assert_eq!(receipt["spec"], "0001-toggle");
-    assert_eq!(receipt["red"]["cases"], serde_json::json!({"FM-1": "fail", "FM-2": "fail"}));
-    assert_eq!(receipt["green"]["cases"], serde_json::json!({"FM-1": "pass", "FM-2": "pass"}));
-    assert_eq!(receipt["green"]["dirty"], false, "uncommitted spec files do not make green dirty");
+    assert_eq!(
+        receipt["red"]["cases"],
+        serde_json::json!({"FM-1": "fail", "FM-2": "fail"})
+    );
+    assert_eq!(
+        receipt["green"]["cases"],
+        serde_json::json!({"FM-1": "pass", "FM-2": "pass"})
+    );
+    assert_eq!(
+        receipt["green"]["dirty"], false,
+        "uncommitted spec files do not make green dirty"
+    );
     let footprint: Vec<&String> = receipt["footprint"].as_object().unwrap().keys().collect();
-    assert_eq!(footprint, ["src/feature.txt"], "only what changed since the fork point, never the spec folder");
-    assert!(receipt["inputs"].as_object().unwrap().contains_key(".specs/0001-toggle/e2e/cases.txt"));
+    assert_eq!(
+        footprint,
+        ["src/feature.txt"],
+        "only what changed since the fork point, never the spec folder"
+    );
+    assert!(
+        receipt["inputs"]
+            .as_object()
+            .unwrap()
+            .contains_key(".specs/0001-toggle/e2e/cases.txt")
+    );
     assert!(repo.path(&format!("{SPEC}/evidence/green.xml")).is_file());
     assert!(repo.path(&format!("{SPEC}/evidence/red.xml")).is_file());
     assert_eq!(repo.read(&format!("{SPEC}/evidence/final.txt")), "screenshot\n");
@@ -140,7 +185,10 @@ fn record_status_verify_round_trip() {
     assert_eq!(text(&repo.skies(&["proof", "status"])), "0001-toggle  current\n");
     let refreshed: serde_json::Value = serde_json::from_str(&repo.read(&format!("{SPEC}/receipt.json"))).unwrap();
     assert_eq!(refreshed["red"], receipt["red"], "verify never touches red");
-    assert!(repo.path(&format!("{SPEC}/evidence/red.xml")).is_file(), "verify keeps the red report");
+    assert!(
+        repo.path(&format!("{SPEC}/evidence/red.xml")).is_file(),
+        "verify keeps the red report"
+    );
 
     repo.write("src/feature.txt", "off\n");
     let broken = repo.skies(&["proof", "verify", "0001"]);
@@ -180,7 +228,10 @@ fn inconsistent_cases_and_a_red_at_head_are_refused() {
     let inconsistent = repo.skies(&["proof", "record", "1"]);
     assert_eq!(inconsistent.status.code(), Some(1));
     let message = text(&inconsistent);
-    assert!(message.contains("FM-2 is listed in spec.md but no test case names it"), "{message}");
+    assert!(
+        message.contains("FM-2 is listed in spec.md but no test case names it"),
+        "{message}"
+    );
     assert!(message.contains("names FM-3"), "{message}");
 
     let at_head = repo.skies(&["proof", "record", "1", "--red", "HEAD"]);
@@ -202,7 +253,10 @@ fn a_red_patch_turns_head_into_red() {
     add.extend(spec_files.iter().map(String::as_str));
     repo.git(&add);
     repo.git(&["commit", "--quiet", "-m", "feature"]);
-    repo.write("off.patch", "--- a/src/feature.txt\n+++ b/src/feature.txt\n@@ -1 +1 @@\n-on\n+off\n");
+    repo.write(
+        "off.patch",
+        "--- a/src/feature.txt\n+++ b/src/feature.txt\n@@ -1 +1 @@\n-on\n+off\n",
+    );
 
     let recorded = repo.skies(&["proof", "record", "1", "--red-patch", "off.patch"]);
     assert!(recorded.status.success(), "{}", text(&recorded));

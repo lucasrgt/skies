@@ -16,7 +16,9 @@ use super::blueprint::{self, Flags};
 use super::{ApiProject, FRAMEWORK_VERSION, embedded, first_csproj, specs, text};
 
 pub fn generate(root: &Path, tenancy: bool, cookies: bool) -> Result<u8> {
-    let Some(project) = ApiProject::open(root)? else { return Ok(1) };
+    let Some(project) = ApiProject::open(root)? else {
+        return Ok(1);
+    };
     if project.module_dir("Account").join("AccountModule.cs").exists() {
         eprintln!("skies: an Account module already exists here — remove it first.");
         return Ok(1);
@@ -82,7 +84,11 @@ fn wire_program(project: &ApiProject) -> Result<()> {
     }
 
     source = text::replace_first(&source, "var app =", &format!("builder.AddAccount();{nl}{nl}var app ="));
-    source = text::replace_first(&source, "app.Run();", &format!("AccountModule.Map(app);{nl}{nl}app.Run();"));
+    source = text::replace_first(
+        &source,
+        "app.Run();",
+        &format!("AccountModule.Map(app);{nl}{nl}app.Run();"),
+    );
     std::fs::write(&program, source)?;
     println!("wired auth into Program.cs (builder.AddAccount(); + AccountModule.Map(app);)");
     Ok(())
@@ -103,7 +109,10 @@ fn wire_api_project(csproj: &Path) -> Result<()> {
         return Ok(());
     }
     let nl = text::newline_of(&current);
-    std::fs::write(csproj, text::insert_before_closing_item_group(&current, &missing.join(nl), nl))?;
+    std::fs::write(
+        csproj,
+        text::insert_before_closing_item_group(&current, &missing.join(nl), nl),
+    )?;
     println!("added auth package references to {}", file_name(csproj));
     Ok(())
 }
@@ -125,7 +134,10 @@ fn wire_test_project(test_dir: &Path) -> Result<()> {
         return Ok(());
     }
     let nl = text::newline_of(&current);
-    std::fs::write(&csproj, text::insert_before_closing_item_group(&current, &missing.join(nl), nl))?;
+    std::fs::write(
+        &csproj,
+        text::insert_before_closing_item_group(&current, &missing.join(nl), nl),
+    )?;
     println!("added auth test package references to {}", file_name(&csproj));
     Ok(())
 }
@@ -166,7 +178,11 @@ fn summary(flags: Flags, spec: &Path) -> String {
     format!(
         "auth generated — {}, {}. Its failure modes and E2E are in {}; run them with `dotnet test`.",
         if flags.tenancy { "multi-tenant" } else { "single-tenant" },
-        if flags.cookies { "web-cookie + body delivery" } else { "body-only delivery" },
+        if flags.cookies {
+            "web-cookie + body delivery"
+        } else {
+            "body-only delivery"
+        },
         spec.display()
     )
 }

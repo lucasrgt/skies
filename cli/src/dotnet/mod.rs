@@ -44,7 +44,10 @@ pub fn generate(command: Generate) -> Result<u8> {
         Generate::Vo { name } => scaffold::value_object(&root, &name),
         Generate::Crud { module, entity } => crud::generate(&root, &module, &entity),
         Generate::Hub { module, name } => scaffold::hub(&root, &module, &name),
-        Generate::Auth { skip_tenancy, skip_cookies } => auth::generate(&root, !skip_tenancy, !skip_cookies),
+        Generate::Auth {
+            skip_tenancy,
+            skip_cookies,
+        } => auth::generate(&root, !skip_tenancy, !skip_cookies),
         Generate::AuthOtp => flows::generate(&root, flow_specs::Flow::Otp),
         Generate::AuthOauth => flows::generate(&root, flow_specs::Flow::OAuth),
         Generate::AuthEmail => flows::generate(&root, flow_specs::Flow::Email),
@@ -75,7 +78,11 @@ impl ApiProject {
             return Ok(None);
         };
         let namespace = csproj.file_stem().unwrap_or_default().to_string_lossy().into_owned();
-        Ok(Some(ApiProject { root: root.to_path_buf(), csproj, namespace }))
+        Ok(Some(ApiProject {
+            root: root.to_path_buf(),
+            csproj,
+            namespace,
+        }))
     }
 
     /// The app name: the namespace without its `.Api` suffix (`Acme.Api` becomes `Acme`).
@@ -98,7 +105,9 @@ impl ApiProject {
 
     /// `tests/<App>.Tests` under the solution root, where the test project lives by convention.
     pub fn test_dir(&self) -> PathBuf {
-        self.solution_root().join("tests").join(format!("{}.Tests", self.app_name()))
+        self.solution_root()
+            .join("tests")
+            .join(format!("{}.Tests", self.app_name()))
     }
 
     pub fn module_dir(&self, module: &str) -> PathBuf {

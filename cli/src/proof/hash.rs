@@ -14,8 +14,13 @@ use super::spec::{E2E_DIR, SPEC_FILE, SPECS_DIR, SpecDir};
 
 /// Lockfiles at the project root that pin what the E2E runs against. A dependency bump changes behavior as
 /// surely as a source edit, so they are inputs of every receipt.
-pub const LOCKFILES: [&str; 5] =
-    ["package-lock.json", "packages.lock.json", "pubspec.lock", "Cargo.lock", "Directory.Packages.props"];
+pub const LOCKFILES: [&str; 5] = [
+    "package-lock.json",
+    "packages.lock.json",
+    "pubspec.lock",
+    "Cargo.lock",
+    "Directory.Packages.props",
+];
 
 /// The recorded value for a footprint file that was deleted between red and green. Deleting a file is a change
 /// the receipt covers, and it stays current as long as the file stays gone.
@@ -34,7 +39,12 @@ pub fn hash_all<'a>(root: &Path, paths: impl IntoIterator<Item = &'a String>) ->
     let paths: Vec<&String> = paths.into_iter().collect();
     paths
         .into_par_iter()
-        .map(|rel| (rel.clone(), hash_file(&root.join(rel)).unwrap_or_else(|| ABSENT.to_string())))
+        .map(|rel| {
+            (
+                rel.clone(),
+                hash_file(&root.join(rel)).unwrap_or_else(|| ABSENT.to_string()),
+            )
+        })
         .collect()
 }
 
@@ -50,7 +60,12 @@ pub fn input_paths(root: &Path, spec: &SpecDir) -> Result<BTreeSet<String>> {
             }
         }
     }
-    paths.extend(LOCKFILES.iter().filter(|name| root.join(name).is_file()).map(|name| name.to_string()));
+    paths.extend(
+        LOCKFILES
+            .iter()
+            .filter(|name| root.join(name).is_file())
+            .map(|name| name.to_string()),
+    );
     Ok(paths)
 }
 
@@ -118,7 +133,10 @@ pub fn is_spec_path(path: &str) -> bool {
 
 pub fn relative(root: &Path, path: &Path) -> String {
     let rel = path.strip_prefix(root).unwrap_or(path);
-    rel.components().map(|part| part.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/")
+    rel.components()
+        .map(|part| part.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 /// Paths whose current hash differs from the recorded one, plus paths that are new since recording.
@@ -160,15 +178,31 @@ mod tests {
         write(".specs/0001-a/spec.md");
         std::fs::write(root.path().join(".gitignore"), "obj/\n").unwrap();
 
-        let found =
-            touched_paths(root.path(), &["src/Res/**".into(), "src/Other.cs".into(), "**/spec.md".into()]).unwrap();
-        assert_eq!(found.into_iter().collect::<Vec<_>>(), ["src/Other.cs", "src/Res/Cancel.cs"]);
+        let found = touched_paths(
+            root.path(),
+            &["src/Res/**".into(), "src/Other.cs".into(), "**/spec.md".into()],
+        )
+        .unwrap();
+        assert_eq!(
+            found.into_iter().collect::<Vec<_>>(),
+            ["src/Other.cs", "src/Res/Cancel.cs"]
+        );
     }
 
     #[test]
     fn detects_changed_new_and_missing_paths() {
-        let recorded: Hashes = [("a".into(), "1".into()), ("b".into(), "2".into()), ("c".into(), "3".into())].into();
-        let current: Hashes = [("a".into(), "1".into()), ("b".into(), "9".into()), ("d".into(), "4".into())].into();
+        let recorded: Hashes = [
+            ("a".into(), "1".into()),
+            ("b".into(), "2".into()),
+            ("c".into(), "3".into()),
+        ]
+        .into();
+        let current: Hashes = [
+            ("a".into(), "1".into()),
+            ("b".into(), "9".into()),
+            ("d".into(), "4".into()),
+        ]
+        .into();
         assert_eq!(changed(&recorded, &current), ["b", "c", "d"]);
     }
 }

@@ -82,9 +82,7 @@ pub fn scaffold(package: &Path, name: &str) -> Result<u8> {
         )
         .collect();
     write_new(&outputs)?;
-    println!(
-        "\nnext: wire the loader to the generated client in the composition root, then `skies i18n`."
-    );
+    println!("\nnext: wire the loader to the generated client in the composition root, then `skies i18n`.");
     Ok(0)
 }
 
@@ -99,10 +97,7 @@ mod tests {
         let lib: Vec<&str> = files.lib.iter().map(|(name, _)| name.as_str()).collect();
         let l10n: Vec<&str> = files.l10n.iter().map(|(name, _)| name.as_str()).collect();
         assert_eq!(lib, ["wallets_view_model.dart", "wallets_view.dart"]);
-        assert_eq!(
-            l10n,
-            ["wallets_pt_BR.arb", "wallets_es.arb", "wallets_en.arb"]
-        );
+        assert_eq!(l10n, ["wallets_pt_BR.arb", "wallets_es.arb", "wallets_en.arb"]);
 
         let (model, view) = (&files.lib[0].1, &files.lib[1].1);
         assert!(model.contains("extends ChangeNotifier"));
@@ -111,11 +106,7 @@ mod tests {
         assert!(view.contains("ResourceBuilder<List<Wallet>>"));
         assert!(!view.contains("package:dio") && !view.contains("Text("));
         for (_, contents) in files.lib.iter().chain(&files.l10n) {
-            assert!(
-                !contents.contains("@verify")
-                    && !contents.contains("@e2e")
-                    && !contents.contains("{{")
-            );
+            assert!(!contents.contains("@verify") && !contents.contains("@e2e") && !contents.contains("{{"));
         }
     }
 
@@ -135,11 +126,7 @@ mod tests {
             .collect();
         assert_eq!(
             keys[0],
-            [
-                "user_walletsEmptyTitle",
-                "user_walletsLoadError",
-                "user_walletsTitle"
-            ]
+            ["user_walletsEmptyTitle", "user_walletsLoadError", "user_walletsTitle"]
         );
         assert!(keys.iter().all(|k| k == &keys[0]));
     }
@@ -153,11 +140,7 @@ mod tests {
                 .join("lib/features/profile/profile_view_model.dart")
                 .is_file()
         );
-        assert!(
-            dir.path()
-                .join("lib/l10n/features/profile_en.arb")
-                .is_file()
-        );
+        assert!(dir.path().join("lib/l10n/features/profile_en.arb").is_file());
         assert!(scaffold(dir.path(), "Profile").is_err());
     }
 }

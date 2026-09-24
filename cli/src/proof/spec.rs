@@ -51,7 +51,11 @@ pub fn discover(root: &Path) -> Result<Vec<SpecDir>> {
         let name = entry.file_name().to_string_lossy().into_owned();
         let Some(id) = numeric_prefix(&name) else { continue };
         if entry.path().join(SPEC_FILE).is_file() {
-            specs.push(SpecDir { id: id.to_string(), name, path: entry.path() });
+            specs.push(SpecDir {
+                id: id.to_string(),
+                name,
+                path: entry.path(),
+            });
         }
     }
     specs.sort_by(|a, b| (id_number(&a.id), &a.name).cmp(&(id_number(&b.id), &b.name)));
@@ -71,7 +75,11 @@ pub fn find(root: &Path, key: &str) -> Result<SpecDir> {
             let known: Vec<&str> = specs.iter().map(|spec| spec.name.as_str()).collect();
             format!(
                 "no spec '{key}' under {SPECS_DIR}/ (found: {})",
-                if known.is_empty() { "none".into() } else { known.join(", ") }
+                if known.is_empty() {
+                    "none".into()
+                } else {
+                    known.join(", ")
+                }
             )
         })
 }
@@ -104,7 +112,11 @@ impl SpecDoc {
         if let Some(id) = &doc.id
             && id_number(id) != id_number(&spec.id)
         {
-            bail!("{}: frontmatter id {id} does not match the folder id {}", path.display(), spec.id);
+            bail!(
+                "{}: frontmatter id {id} does not match the folder id {}",
+                path.display(),
+                spec.id
+            );
         }
         Ok(doc)
     }
@@ -206,7 +218,11 @@ fn inline_list(value: &str) -> Result<Vec<String>> {
         .strip_prefix('[')
         .and_then(|rest| rest.strip_suffix(']'))
         .with_context(|| format!("expected a list like [a/**, b.cs], found '{value}'"))?;
-    Ok(inner.split(',').map(|item| unquote(item.trim()).to_string()).filter(|item| !item.is_empty()).collect())
+    Ok(inner
+        .split(',')
+        .map(|item| unquote(item.trim()).to_string())
+        .filter(|item| !item.is_empty())
+        .collect())
 }
 
 /// Drops a trailing `# comment` that sits outside quotes, as YAML would.
@@ -253,7 +269,9 @@ pub fn validate_slug(slug: &str) -> Result<()> {
     let valid = !slug.is_empty()
         && !slug.starts_with('-')
         && !slug.ends_with('-')
-        && slug.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+        && slug
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
     if !valid {
         bail!(
             "slug '{slug}' must be kebab-case: lowercase letters, digits, and single hyphens (e.g. cancel-reservation)"
@@ -336,7 +354,11 @@ mod tests {
             std::fs::write(root.path().join(SPECS_DIR).join(name).join(SPEC_FILE), "").unwrap();
         }
         assert_eq!(next_id(root.path()).unwrap(), "0011");
-        let names: Vec<String> = discover(root.path()).unwrap().into_iter().map(|spec| spec.name).collect();
+        let names: Vec<String> = discover(root.path())
+            .unwrap()
+            .into_iter()
+            .map(|spec| spec.name)
+            .collect();
         assert_eq!(names, ["0001-a", "0010-b"]);
         assert_eq!(find(root.path(), "10").unwrap().name, "0010-b");
         assert_eq!(find(root.path(), "0001-a").unwrap().id, "0001");

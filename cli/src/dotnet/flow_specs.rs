@@ -69,9 +69,16 @@ static OTP: FlowSpec = FlowSpec {
     }],
     db_sets: &[("PhoneOtp", "    public DbSet<PhoneOtp> PhoneOtps => Set<PhoneOtp>();")],
     indexes: &["        model.Entity<PhoneOtp>().HasIndex(o => o.UserId);"],
-    map_lines: &["        ResendPhoneCode.Map(account);", "        VerifyPhone.Map(account);"],
+    map_lines: &[
+        "        ResendPhoneCode.Map(account);",
+        "        VerifyPhone.Map(account);",
+    ],
     error_codes: &[
-        ("NoActiveCode", "auth.no_active_code", "The phone has no active OTP code."),
+        (
+            "NoActiveCode",
+            "auth.no_active_code",
+            "The phone has no active OTP code.",
+        ),
         ("InvalidCode", "auth.invalid_code", "The submitted OTP code is wrong."),
         (
             "TooManyAttempts",
@@ -103,10 +110,21 @@ static OAUTH: FlowSpec = FlowSpec {
     }],
     db_sets: &[],
     indexes: &[],
-    map_lines: &["        RegisterWithGoogle.Map(account);", "        LoginWithGoogle.Map(account);"],
+    map_lines: &[
+        "        RegisterWithGoogle.Map(account);",
+        "        LoginWithGoogle.Map(account);",
+    ],
     error_codes: &[
-        ("InvalidToken", "auth.invalid_token", "The external identity token is invalid."),
-        ("NoAccount", "auth.no_account", "No account exists for this external identity."),
+        (
+            "InvalidToken",
+            "auth.invalid_token",
+            "The external identity token is invalid.",
+        ),
+        (
+            "NoAccount",
+            "auth.no_account",
+            "No account exists for this external identity.",
+        ),
     ],
     summary: "auth:oauth generated — Google sign-up/sign-in (FakeExternalIdentity in dev).",
 };
@@ -146,8 +164,16 @@ static EMAIL: FlowSpec = FlowSpec {
         "        ResetPassword.Map(account);",
     ],
     error_codes: &[
-        ("InvalidToken", "auth.invalid_token", "The verification token is invalid or expired."),
-        ("ResetTokenInvalid", "auth.invalid_reset_token", "The password-reset token is invalid or expired."),
+        (
+            "InvalidToken",
+            "auth.invalid_token",
+            "The verification token is invalid or expired.",
+        ),
+        (
+            "ResetTokenInvalid",
+            "auth.invalid_reset_token",
+            "The password-reset token is invalid or expired.",
+        ),
     ],
     summary: "auth:email generated — email verification + password reset by emailed token (ConsoleEmailSender in dev).",
 };

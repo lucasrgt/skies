@@ -10,14 +10,7 @@ pub fn render(root: &Path, legs: &[Leg], total: Duration) -> String {
     let mut out = String::new();
     let rows: Vec<[String; 4]> = legs
         .iter()
-        .map(|leg| {
-            [
-                leg.name.clone(),
-                status(leg),
-                count(leg),
-                seconds(leg.duration),
-            ]
-        })
+        .map(|leg| [leg.name.clone(), status(leg), count(leg), seconds(leg.duration)])
         .collect();
     let header = ["leg", "status", "findings", "time"].map(String::from);
     let widths: Vec<usize> = (0..4)
@@ -53,19 +46,13 @@ pub fn render(root: &Path, legs: &[Leg], total: Duration) -> String {
                         .unwrap_or(&finding.file)
                         .display()
                         .to_string();
-                    let location = finding
-                        .line
-                        .map_or(file.clone(), |line| format!("{file}:{line}"));
+                    let location = finding.line.map_or(file.clone(), |line| format!("{file}:{line}"));
                     let level = if finding.severity == Severity::Warning {
                         " (warning)"
                     } else {
                         ""
                     };
-                    let _ = writeln!(
-                        lines,
-                        "  {location}  {}{level}  {}",
-                        finding.code, finding.message
-                    );
+                    let _ = writeln!(lines, "  {location}  {}{level}  {}", finding.code, finding.message);
                 }
                 Some(lines)
             }

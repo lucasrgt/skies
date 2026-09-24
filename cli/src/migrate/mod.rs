@@ -84,10 +84,7 @@ pub fn run(version: u32, dry_run: bool) -> Result<u8> {
     }
     let root = std::env::current_dir()?;
     if !root.join(crate::manifest::FILE_NAME).is_file() {
-        bail!(
-            "run from the repository root (no {} here)",
-            crate::manifest::FILE_NAME
-        );
+        bail!("run from the repository root (no {} here)", crate::manifest::FILE_NAME);
     }
     let plan = plan(&root)?;
     print(&root, &plan, dry_run);
@@ -108,11 +105,7 @@ pub fn plan(root: &Path) -> Result<Plan> {
             plan.delete(&path);
         }
     }
-    for dir in [
-        ".skies/csm",
-        ".skies/verification-attempt",
-        ".skies/foundation",
-    ] {
+    for dir in [".skies/csm", ".skies/verification-attempt", ".skies/foundation"] {
         let path = root.join(dir);
         if path.is_dir() {
             plan.delete(&path);
@@ -145,12 +138,7 @@ fn skipped(path: &Path, root: &Path) -> bool {
 
 fn print(root: &Path, plan: &Plan, dry_run: bool) {
     let verb = if dry_run { "would" } else { "will" };
-    let relative = |path: &Path| {
-        path.strip_prefix(root)
-            .unwrap_or(path)
-            .display()
-            .to_string()
-    };
+    let relative = |path: &Path| path.strip_prefix(root).unwrap_or(path).display().to_string();
     let (mut writes, mut deletes) = (0, 0);
     for change in &plan.changes {
         match change {
@@ -257,21 +245,15 @@ mod tests {
         assert!(!root.join("csm.toml").exists());
         assert!(!root.join(".skies/csm").exists());
         assert!(!root.join("VERIFICATION.md").exists());
-        assert!(
-            !root
-                .join("src/Demo.Api/Modules/Billing/Billing.spec.toml")
-                .exists()
-        );
+        assert!(!root.join("src/Demo.Api/Modules/Billing/Billing.spec.toml").exists());
         assert!(!root.join("clients/web/e2e/flows.json").exists());
 
-        let journey =
-            fs::read_to_string(root.join("src/Demo.Api/Journeys/PayJourney.Tests.cs")).unwrap();
+        let journey = fs::read_to_string(root.join("src/Demo.Api/Journeys/PayJourney.Tests.cs")).unwrap();
         assert_eq!(
             journey,
             "public class PayJourney\n{\n    [Fact]\n    public void Pays() { }\n\n    [Fact]\n    public void Quick() { }\n}\n"
         );
-        let view_model =
-            fs::read_to_string(root.join("clients/web/src/pay/Pay.viewModel.ts")).unwrap();
+        let view_model = fs::read_to_string(root.join("clients/web/src/pay/Pay.viewModel.ts")).unwrap();
         assert_eq!(
             view_model,
             "/**\n * Pays an invoice.\n */\nexport function usePayModel() {}\n"

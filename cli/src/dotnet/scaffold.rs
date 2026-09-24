@@ -15,7 +15,9 @@ use super::error_codes::{self, ErrorCode};
 use super::{ApiProject, embedded, text};
 
 pub fn module(root: &Path, name: &str) -> Result<u8> {
-    let Some(project) = ApiProject::open(root)? else { return Ok(1) };
+    let Some(project) = ApiProject::open(root)? else {
+        return Ok(1);
+    };
     let path = project.module_dir(name).join(format!("{name}Module.cs"));
     if path.exists() {
         eprintln!("skies: {} already exists.", path.display());
@@ -25,7 +27,11 @@ pub fn module(root: &Path, name: &str) -> Result<u8> {
     let lower = name.to_lowercase();
     let body = text::fill(
         embedded::dotnet("scaffold/Module.cs.cstmpl"),
-        &[("__NAMESPACE__", &project.namespace), ("__NAME_LOWER__", &lower), ("__NAME__", name)],
+        &[
+            ("__NAMESPACE__", &project.namespace),
+            ("__NAME_LOWER__", &lower),
+            ("__NAME__", name),
+        ],
     );
     text::write(&path, body)?;
     println!("created {}", path.display());
@@ -92,7 +98,9 @@ fn wire_into_registry(project: &ApiProject, name: &str) -> Result<()> {
 }
 
 pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
-    let Some(project) = ApiProject::open(root)? else { return Ok(1) };
+    let Some(project) = ApiProject::open(root)? else {
+        return Ok(1);
+    };
     let path = project.module_dir(module).join("Slices").join(format!("{name}.cs"));
     if path.exists() {
         eprintln!("skies: {} already exists.", path.display());
@@ -113,13 +121,19 @@ pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
     println!("created {}", path.display());
 
     // The scaffolded validation references a registry constant (SKY0018), so the registry must declare it.
-    let code = ErrorCode { name: "IdRequired", value: "id.required", summary: "The id input is required." };
+    let code = ErrorCode {
+        name: "IdRequired",
+        value: "id.required",
+        summary: "The id input is required.",
+    };
     error_codes::ensure(&project.module_dir(module), &project.namespace, module, &code)?;
     Ok(0)
 }
 
 pub fn entity(root: &Path, module: &str, name: &str) -> Result<u8> {
-    let Some(project) = ApiProject::open(root)? else { return Ok(1) };
+    let Some(project) = ApiProject::open(root)? else {
+        return Ok(1);
+    };
     let module_dir = project.module_dir(module);
     let path = module_dir.join(format!("{name}.cs"));
     if path.exists() {
@@ -129,13 +143,20 @@ pub fn entity(root: &Path, module: &str, name: &str) -> Result<u8> {
 
     let body = text::fill(
         embedded::dotnet("scaffold/Entity.cs.cstmpl"),
-        &[("__NAMESPACE__", &project.namespace), ("__MODULE__", module), ("__NAME__", name)],
+        &[
+            ("__NAMESPACE__", &project.namespace),
+            ("__MODULE__", module),
+            ("__NAME__", name),
+        ],
     );
     text::write(&path, body)?;
     println!("created {}", path.display());
 
-    let code =
-        ErrorCode { name: "IdRequired", value: "id.required", summary: "The id is required (entity invariant)." };
+    let code = ErrorCode {
+        name: "IdRequired",
+        value: "id.required",
+        summary: "The id is required (entity invariant).",
+    };
     error_codes::ensure(&module_dir, &project.namespace, module, &code)?;
     println!(
         "note: register it in AppDb.cs — add `public DbSet<{name}> {name}s => Set<{name}>();` — \
@@ -146,7 +167,9 @@ pub fn entity(root: &Path, module: &str, name: &str) -> Result<u8> {
 
 /// Value objects are generic, so they land in `BuildingBlocks/`; a module-specific one can be moved by hand.
 pub fn value_object(root: &Path, name: &str) -> Result<u8> {
-    let Some(project) = ApiProject::open(root)? else { return Ok(1) };
+    let Some(project) = ApiProject::open(root)? else {
+        return Ok(1);
+    };
     let path = project.root.join("BuildingBlocks").join(format!("{name}.cs"));
     if path.exists() {
         eprintln!("skies: {} already exists.", path.display());
@@ -156,7 +179,11 @@ pub fn value_object(root: &Path, name: &str) -> Result<u8> {
     let lower = name.to_lowercase();
     let body = text::fill(
         embedded::dotnet("scaffold/ValueObject.cs.cstmpl"),
-        &[("__NAMESPACE__", &project.namespace), ("__NAME_LOWER__", &lower), ("__NAME__", name)],
+        &[
+            ("__NAMESPACE__", &project.namespace),
+            ("__NAME_LOWER__", &lower),
+            ("__NAME__", name),
+        ],
     );
     text::write(&path, body)?;
     println!("created {}", path.display());
@@ -167,8 +194,13 @@ pub fn value_object(root: &Path, name: &str) -> Result<u8> {
 /// Real-time is opt-in: a fresh app carries no hub until one is generated, and the generator prints the
 /// one-time `Program.cs` wiring rather than editing the composition root for a transport it cannot see.
 pub fn hub(root: &Path, module: &str, name: &str) -> Result<u8> {
-    let Some(project) = ApiProject::open(root)? else { return Ok(1) };
-    let path = project.module_dir(module).join("Realtime").join(format!("{name}Hub.cs"));
+    let Some(project) = ApiProject::open(root)? else {
+        return Ok(1);
+    };
+    let path = project
+        .module_dir(module)
+        .join("Realtime")
+        .join(format!("{name}Hub.cs"));
     if path.exists() {
         eprintln!("skies: {} already exists.", path.display());
         return Ok(1);
@@ -176,14 +208,20 @@ pub fn hub(root: &Path, module: &str, name: &str) -> Result<u8> {
 
     let body = text::fill(
         embedded::dotnet("scaffold/Hub.cs.cstmpl"),
-        &[("__NAMESPACE__", &project.namespace), ("__MODULE__", module), ("__NAME__", name)],
+        &[
+            ("__NAMESPACE__", &project.namespace),
+            ("__MODULE__", module),
+            ("__NAME__", name),
+        ],
     );
     text::write(&path, body)?;
     println!("created {}", path.display());
 
     let lower = name.to_lowercase();
-    let wiring =
-        text::fill(embedded::dotnet("scaffold/HubWiring.txt"), &[("__NAME_LOWER__", &lower), ("__NAME__", name)]);
+    let wiring = text::fill(
+        embedded::dotnet("scaffold/HubWiring.txt"),
+        &[("__NAME_LOWER__", &lower), ("__NAME__", name)],
+    );
     print!("{wiring}");
     Ok(0)
 }
@@ -211,7 +249,11 @@ mod tests {
         project(dir.path());
 
         assert_eq!(module(dir.path(), "Billing").unwrap(), 0);
-        assert_eq!(module(dir.path(), "Billing").unwrap(), 1, "a second run refuses to clobber");
+        assert_eq!(
+            module(dir.path(), "Billing").unwrap(),
+            1,
+            "a second run refuses to clobber"
+        );
 
         let registry = std::fs::read_to_string(dir.path().join("Modules/Modules.cs")).unwrap();
         assert!(registry.starts_with("using Acme.Api.Modules.Billing;\nusing Acme.Api.Modules.Health;"));
@@ -235,7 +277,11 @@ mod tests {
         assert!(slice.contains("BillingErrorCodes.IdRequired"));
         assert!(slice.contains(".WithName(nameof(CreateInvoice))\n            .RequireAuthorization();"));
         assert!(dir.path().join("Modules/Billing/BillingErrorCodes.cs").exists());
-        assert!(!dir.path().join("Modules/Billing/Slices/CreateInvoice.Tests.cs").exists());
+        assert!(
+            !dir.path()
+                .join("Modules/Billing/Slices/CreateInvoice.Tests.cs")
+                .exists()
+        );
     }
 
     #[test]

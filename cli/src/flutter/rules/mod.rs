@@ -87,14 +87,9 @@ impl Role {
             view: name.ends_with("_view.dart"),
             model: name.ends_with("_view_model.dart"),
             ui: relative.starts_with("lib/ui/") || relative.contains("/lib/ui/"),
-            session_door: [
-                "session.dart",
-                "skies_client.dart",
-                "guard.dart",
-                "guards.dart",
-            ]
-            .iter()
-            .any(|f| in_lib(f)),
+            session_door: ["session.dart", "skies_client.dart", "guard.dart", "guards.dart"]
+                .iter()
+                .any(|f| in_lib(f)),
             html_door: relative.starts_with("lib/html/") || relative == "lib/html.dart",
             routing: name.contains("route") || name.contains("guard"),
         }
@@ -156,13 +151,7 @@ fn i18n_parity(project: &Path) -> Result<Vec<Finding>> {
         .into_iter()
         .map(|gap| {
             let message = format!("missing ARB keys: {}", gap.missing.join(", "));
-            Finding::new(
-                code("i18n-parity"),
-                Severity::Error,
-                gap.path,
-                None,
-                message,
-            )
+            Finding::new(code("i18n-parity"), Severity::Error, gap.path, None, message)
         })
         .collect())
 }

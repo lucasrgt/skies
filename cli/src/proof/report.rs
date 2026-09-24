@@ -96,8 +96,14 @@ pub fn parse(xml: &str) -> Result<Report> {
     let document = roxmltree::Document::parse(xml).context("the report is not well-formed XML")?;
     let root = document.root_element();
     match root.tag_name().name() {
-        "testsuites" | "testsuite" => Ok(Report { format: Format::JUnit, cases: junit_cases(root) }),
-        "TestRun" => Ok(Report { format: Format::Trx, cases: trx_cases(root) }),
+        "testsuites" | "testsuite" => Ok(Report {
+            format: Format::JUnit,
+            cases: junit_cases(root),
+        }),
+        "TestRun" => Ok(Report {
+            format: Format::Trx,
+            cases: trx_cases(root),
+        }),
         other => bail!("unrecognized report root <{other}>; expected JUnit <testsuites>/<testsuite> or TRX <TestRun>"),
     }
 }
@@ -114,7 +120,10 @@ fn junit_cases(root: roxmltree::Node) -> Vec<Case> {
             } else {
                 Outcome::Passed
             };
-            Case { name: node.attribute("name").unwrap_or_default().to_string(), outcome }
+            Case {
+                name: node.attribute("name").unwrap_or_default().to_string(),
+                outcome,
+            }
         })
         .collect()
 }
@@ -130,7 +139,10 @@ fn trx_cases(root: roxmltree::Node) -> Vec<Case> {
                 "Failed" | "Error" | "Timeout" | "Aborted" => Outcome::Failed,
                 _ => Outcome::Skipped,
             };
-            Case { name: node.attribute("testName").unwrap_or_default().to_string(), outcome }
+            Case {
+                name: node.attribute("testName").unwrap_or_default().to_string(),
+                outcome,
+            }
         })
         .collect()
 }
@@ -159,10 +171,14 @@ impl fmt::Display for Inconsistency {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut lines = Vec::new();
         for id in &self.uncovered {
-            lines.push(format!("{id} is listed in spec.md but no test case names it (title the case \"{id}: ...\")"));
+            lines.push(format!(
+                "{id} is listed in spec.md but no test case names it (title the case \"{id}: ...\")"
+            ));
         }
         for (id, case) in &self.unknown {
-            lines.push(format!("case \"{case}\" names {id}, which spec.md does not list under ## Failure modes"));
+            lines.push(format!(
+                "case \"{case}\" names {id}, which spec.md does not list under ## Failure modes"
+            ));
         }
         write!(f, "{}", lines.join("\n"))
     }
@@ -237,7 +253,10 @@ mod tests {
         .unwrap();
         assert_eq!(report.format, Format::JUnit);
         let outcomes: Vec<Outcome> = report.cases.iter().map(|case| case.outcome).collect();
-        assert_eq!(outcomes, [Outcome::Passed, Outcome::Failed, Outcome::Failed, Outcome::Skipped]);
+        assert_eq!(
+            outcomes,
+            [Outcome::Passed, Outcome::Failed, Outcome::Failed, Outcome::Skipped]
+        );
     }
 
     #[test]
@@ -269,7 +288,10 @@ mod tests {
     }
 
     fn case(name: &str, outcome: Outcome) -> Case {
-        Case { name: name.into(), outcome }
+        Case {
+            name: name.into(),
+            outcome,
+        }
     }
 
     #[test]
@@ -283,7 +305,10 @@ mod tests {
             case("unrelated helper test", Outcome::Failed),
         ];
         let evaluation = evaluate(&[FmId(1), FmId(2), FmId(3)], &cases).unwrap();
-        assert_eq!(evaluation.passed, [(FmId(1), true), (FmId(2), false), (FmId(3), false)].into());
+        assert_eq!(
+            evaluation.passed,
+            [(FmId(1), true), (FmId(2), false), (FmId(3), false)].into()
+        );
     }
 
     #[test]

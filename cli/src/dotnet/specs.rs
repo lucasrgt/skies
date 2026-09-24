@@ -146,7 +146,10 @@ fn compile_specs_in_tests(project: &ApiProject) -> Result<()> {
     let nl = text::newline_of(&current);
     let block = format!("  <ItemGroup>{nl}{SPEC_COMPILE}{nl}  </ItemGroup>{nl}{nl}");
     std::fs::write(&csproj, text::insert_before_project_end(&current, &block))?;
-    println!("added the .specs E2E folders to {}", csproj.file_name().unwrap_or_default().to_string_lossy());
+    println!(
+        "added the .specs E2E folders to {}",
+        csproj.file_name().unwrap_or_default().to_string_lossy()
+    );
     Ok(())
 }
 
@@ -168,8 +171,14 @@ mod tests {
     #[test]
     fn failure_modes_are_numbered_by_their_order_in_the_spec() {
         let mut files = vec![
-            ("spec.md".to_string(), "- FM-[b] second\n- FM-[a] third\n- FM-[c] first?\n".to_string()),
-            ("e2e/X.cs".to_string(), "\"FM-[a]: x\" \"FM-[c]: y\" \"FM-[b]: z\"".to_string()),
+            (
+                "spec.md".to_string(),
+                "- FM-[b] second\n- FM-[a] third\n- FM-[c] first?\n".to_string(),
+            ),
+            (
+                "e2e/X.cs".to_string(),
+                "\"FM-[a]: x\" \"FM-[c]: y\" \"FM-[b]: z\"".to_string(),
+            ),
         ];
         number_failure_modes(&mut files).unwrap();
         assert_eq!(files[0].1, "- FM-1 second\n- FM-2 third\n- FM-3 first?\n");
@@ -182,21 +191,37 @@ mod tests {
     fn every_shipped_spec_maps_cases_to_failure_modes_one_to_one() {
         let variants = [
             blueprint::Flags::DEFAULT,
-            blueprint::Flags { tenancy: false, cookies: true },
-            blueprint::Flags { tenancy: true, cookies: false },
-            blueprint::Flags { tenancy: false, cookies: false },
+            blueprint::Flags {
+                tenancy: false,
+                cookies: true,
+            },
+            blueprint::Flags {
+                tenancy: true,
+                cookies: false,
+            },
+            blueprint::Flags {
+                tenancy: false,
+                cookies: false,
+            },
         ];
         for slug in ["auth", "auth-otp", "auth-oauth", "auth-email"] {
             for flags in variants {
                 let files = render(slug, flags, "0007", "Acme", "acme").unwrap();
                 let spec = &files.iter().find(|(path, _)| path == "spec.md").unwrap().1;
-                assert!(spec.starts_with("---\nid: \"0007\"\nrunner: api\n---\n"), "{slug} frontmatter");
+                assert!(
+                    spec.starts_with("---\nid: \"0007\"\nrunner: api\n---\n"),
+                    "{slug} frontmatter"
+                );
                 let listed: Vec<usize> = spec
                     .lines()
                     .filter_map(|line| line.strip_prefix("- FM-"))
                     .map(|rest| rest.split(' ').next().unwrap().parse().unwrap())
                     .collect();
-                assert_eq!(listed, (1..=listed.len()).collect::<Vec<_>>(), "{slug} {flags:?}: dense numbering");
+                assert_eq!(
+                    listed,
+                    (1..=listed.len()).collect::<Vec<_>>(),
+                    "{slug} {flags:?}: dense numbering"
+                );
 
                 let mut covered = std::collections::BTreeSet::new();
                 for (path, body) in files.iter().filter(|(path, _)| path.starts_with("e2e/")) {
@@ -208,7 +233,11 @@ mod tests {
                         covered.insert(number);
                     }
                 }
-                assert_eq!(covered.into_iter().collect::<Vec<_>>(), listed, "{slug} {flags:?}: every FM has a case");
+                assert_eq!(
+                    covered.into_iter().collect::<Vec<_>>(),
+                    listed,
+                    "{slug} {flags:?}: every FM has a case"
+                );
             }
         }
     }
@@ -219,6 +248,11 @@ mod tests {
             ("spec.md".to_string(), "- FM-[a] listed\n".to_string()),
             ("e2e/X.cs".to_string(), "\"FM-[ghost]: x\"".to_string()),
         ];
-        assert!(number_failure_modes(&mut files).unwrap_err().to_string().contains("ghost"));
+        assert!(
+            number_failure_modes(&mut files)
+                .unwrap_err()
+                .to_string()
+                .contains("ghost")
+        );
     }
 }

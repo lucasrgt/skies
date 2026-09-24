@@ -39,10 +39,8 @@ pub fn find_arb(root: &Path) -> Vec<PathBuf> {
 }
 
 pub fn read_catalog(path: &Path) -> Result<Catalog> {
-    let text =
-        std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
-    let value =
-        serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
+    let text = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    let value = serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
     Ok(Catalog {
         path: path.to_path_buf(),
         value,
@@ -54,11 +52,7 @@ pub fn check_parity(catalogs: &[Catalog]) -> Vec<ParityGap> {
     let locale = locale_pattern();
     let mut families: BTreeMap<String, Vec<(&Catalog, BTreeSet<&str>)>> = BTreeMap::new();
     for catalog in catalogs {
-        let name = catalog
-            .path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy();
+        let name = catalog.path.file_name().unwrap_or_default().to_string_lossy();
         if !locale.is_match(&name) {
             continue;
         }
@@ -73,10 +67,7 @@ pub fn check_parity(catalogs: &[Catalog]) -> Vec<ParityGap> {
     }
     let mut gaps = Vec::new();
     for entries in families.values() {
-        let union: BTreeSet<&str> = entries
-            .iter()
-            .flat_map(|(_, keys)| keys.iter().copied())
-            .collect();
+        let union: BTreeSet<&str> = entries.iter().flat_map(|(_, keys)| keys.iter().copied()).collect();
         for (catalog, keys) in entries {
             let missing: Vec<String> = union.difference(keys).map(|key| key.to_string()).collect();
             if !missing.is_empty() {
@@ -96,11 +87,7 @@ pub fn assemble_arb(catalogs: &[Catalog]) -> Result<BTreeMap<String, Map<String,
     let pattern = locale_pattern();
     let mut output: BTreeMap<String, Map<String, Value>> = BTreeMap::new();
     for catalog in catalogs {
-        let name = catalog
-            .path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy();
+        let name = catalog.path.file_name().unwrap_or_default().to_string_lossy();
         let Some(captures) = pattern.captures(&name) else {
             continue;
         };
@@ -117,11 +104,7 @@ pub fn assemble_arb(catalogs: &[Catalog]) -> Result<BTreeMap<String, Map<String,
     // write the regional catalog, the base is the same copy.
     let regional: Vec<(String, Map<String, Value>)> = output
         .iter()
-        .filter_map(|(locale, map)| {
-            locale
-                .split_once('_')
-                .map(|(base, _)| (base.to_string(), map.clone()))
-        })
+        .filter_map(|(locale, map)| locale.split_once('_').map(|(base, _)| (base.to_string(), map.clone())))
         .collect();
     for (base, map) in regional {
         output.entry(base).or_insert(map);
@@ -154,10 +137,7 @@ pub fn assemble(package: &Path) -> Result<u8> {
     std::fs::create_dir_all(&output)?;
     for (locale, value) in assemble_arb(&catalogs)? {
         let path = output.join(format!("app_{locale}.arb"));
-        std::fs::write(
-            &path,
-            format!("{}\n", serde_json::to_string_pretty(&value)?),
-        )?;
+        std::fs::write(&path, format!("{}\n", serde_json::to_string_pretty(&value)?))?;
         println!("assembled {}", path.display());
     }
     Ok(0)
@@ -198,10 +178,7 @@ mod tests {
     #[test]
     fn parity_names_the_file_missing_a_key_and_ignores_metadata() {
         let catalogs = vec![
-            catalog(
-                "x_en.arb",
-                json!({ "title": "Title", "empty": "Empty", "@title": {} }),
-            ),
+            catalog("x_en.arb", json!({ "title": "Title", "empty": "Empty", "@title": {} })),
             catalog("x_pt_BR.arb", json!({ "title": "Título" })),
         ];
         assert_eq!(
@@ -232,16 +209,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let features = dir.path().join(FEATURES_DIR);
         std::fs::create_dir_all(&features).unwrap();
-        std::fs::write(
-            features.join("wallets_en.arb"),
-            r#"{"walletsTitle":"Wallets"}"#,
-        )
-        .unwrap();
-        std::fs::write(
-            features.join("wallets_pt_BR.arb"),
-            r#"{"walletsTitle":"Carteiras"}"#,
-        )
-        .unwrap();
+        std::fs::write(features.join("wallets_en.arb"), r#"{"walletsTitle":"Wallets"}"#).unwrap();
+        std::fs::write(features.join("wallets_pt_BR.arb"), r#"{"walletsTitle":"Carteiras"}"#).unwrap();
 
         assert_eq!(assemble(dir.path()).unwrap(), 0);
 

@@ -16,17 +16,9 @@ use super::{Finding, Leg, Severity, Status, Target};
 
 pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
     let started = Instant::now();
-    let relative = |path: &Path| {
-        path.strip_prefix(root)
-            .unwrap_or(path)
-            .display()
-            .to_string()
-    };
+    let relative = |path: &Path| path.strip_prefix(root).unwrap_or(path).display().to_string();
     let (name, (status, findings)) = match target {
-        Target::Dotnet(path) => (
-            format!("dotnet {}", relative(path)),
-            dotnet(path, build_args),
-        ),
+        Target::Dotnet(path) => (format!("dotnet {}", relative(path)), dotnet(path, build_args)),
         Target::Eslint(path) => (format!("eslint {}", relative(path)), eslint(path)),
         Target::Flutter(path) => (format!("flutter {}", relative(path)), flutter(path)),
         Target::Unknown(path) => (
@@ -69,10 +61,7 @@ fn eslint(path: &Path) -> Outcome {
         .and_then(|json| json.get("scripts")?.get("lint").cloned())
         .is_some();
     if !has_lint {
-        return (
-            Status::Skipped("no `lint` script in package.json".into()),
-            Vec::new(),
-        );
+        return (Status::Skipped("no `lint` script in package.json".into()), Vec::new());
     }
     let mut command = Command::new(if cfg!(windows) { "npm.cmd" } else { "npm" });
     command.args(["run", "--silent", "lint"]).current_dir(path);
@@ -239,10 +228,7 @@ Build succeeded.";
         assert_eq!(findings.len(), 3);
         assert_eq!(findings[0].code, "skies/view-purity");
         assert_eq!(findings[0].message, "SKYFE001 View imports the client");
-        assert_eq!(
-            findings[0].file,
-            PathBuf::from("/app/src/items/Items.view.tsx")
-        );
+        assert_eq!(findings[0].file, PathBuf::from("/app/src/items/Items.view.tsx"));
         assert_eq!(findings[1].severity, Severity::Warning);
         assert_eq!(findings[2].code, "eslint");
         assert_eq!(findings[2].line, Some(1));
@@ -250,11 +236,7 @@ Build succeeded.";
 
     #[test]
     fn a_failed_tool_without_diagnostics_is_a_leg_that_could_not_run() {
-        let (status, _) = verdict(
-            false,
-            "restore failed\nNU1101: package not found\n".into(),
-            Vec::new(),
-        );
+        let (status, _) = verdict(false, "restore failed\nNU1101: package not found\n".into(), Vec::new());
         assert_eq!(
             status,
             Status::Failed("restore failed\nNU1101: package not found".into())
