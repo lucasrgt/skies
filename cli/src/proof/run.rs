@@ -1,17 +1,18 @@
-//! `skies proof run`: the spec's cases on the working tree, once, judged per failure mode, and nothing written.
+//! `skies proof run`: the spec's cases on the working tree, once, judged per failure mode.
 //!
 //! The loop an author runs while writing the cases and then the code: which modes pass, which fail, and the
 //! runner's output when something does not. It is green without the bookkeeping: no receipt, no committed evidence.
-//! Only the report and the output are kept, in the spec's gitignored evidence/raw/ (`run.xml`, `run.log`), for a
-//! closer look; everything else the run produces is gone when it returns.
+//! The only files it writes are local, in the spec's evidence/raw/: the report (`run.xml` or `run.trx`), the output
+//! (`run.log`), and what the cases saved under `$SKIES_EVIDENCE/raw/`. Everything else the run produces is gone when
+//! it returns.
 
 use anyhow::Result;
 
-use super::evidence::{self, RAW_DIR};
+use super::evidence::{self, Files, RAW_DIR};
 use super::green::{self, Mode};
-use super::report::{Case, FmId, Outcome, fm_ids};
+use super::report::{Case, FmId, Outcome, case_fm};
 use super::runner::seconds;
-use super::spec::{self, EVIDENCE_DIR, SpecDoc};
+use super::spec::{self, EVIDENCE_DIR, SPECS_DIR, SpecDoc};
 use crate::manifest::Project;
 
 pub fn run(key: &str) -> Result<u8> {
@@ -19,25 +20,35 @@ pub fn run(key: &str) -> Result<u8> {
     let root = project.root.as_path();
     let spec = spec::find(root, key)?;
     let doc = SpecDoc::load(&spec)?;
+    if let Some(why) = doc.empty(&spec) {
+        eprintln!("{why}");
+        return Ok(1);
+    }
     let runner_name = doc.runner(&spec)?;
     let scratch = tempfile::Builder::new().prefix("skies-proof-").tempdir()?;
-    println!("run {} (runner {runner_name}, working tree; writes nothing)", spec.name);
+    println!(
+        "run {} (runner {runner_name}, working tree; writes only {EVIDENCE_DIR}/{RAW_DIR}/)",
+        spec.name
+    );
     let checked = green::check(&project, &spec, &doc, scratch.path())?;
     println!("  ran in {}", seconds(checked.run.elapsed));
-    // The report and output stay for inspection, in the gitignored raw/ folder; nothing committed is touched.
-    evidence::ensure_ignored(root)?;
+    // The report, the output, and what the cases kept local stay for inspection; nothing committed is touched.
+    let mut files = Files::default();
+    files.add_saved(&checked.staged)?;
     let extension = checked.run.report.format.extension();
-    evidence::keep_local(
-        &spec,
-        &[
-            (checked.run.file.clone(), format!("run.{extension}")),
-            (checked.run.log.clone(), "run.log".to_string()),
-        ],
-    )?;
+    files.raw.push((checked.run.file.clone(), format!("run.{extension}")));
+    files.raw.push((checked.run.log.clone(), "run.log".to_string()));
+    evidence::keep_local(&spec, &files.raw)?;
     println!(
         "  report and output in {}/{EVIDENCE_DIR}/{RAW_DIR}/ (local, not committed)",
         spec.rel()
     );
+    if !evidence::is_ignored(root) {
+        println!(
+            "  note: {SPECS_DIR}/.gitignore does not ignore {EVIDENCE_DIR}/{RAW_DIR}/; `skies proof record` adds `{}`",
+            evidence::IGNORE_RULE
+        );
+    }
     let modes = match &checked.modes {
         Ok(modes) => modes,
         Err(problems) => {
@@ -88,7 +99,7 @@ const INDENT: &str = "              ";
 fn failed_cases(cases: &[Case], id: FmId) -> impl Iterator<Item = &Case> {
     cases
         .iter()
-        .filter(move |case| case.outcome != Outcome::Passed && fm_ids(&case.name).contains(&id))
+        .filter(move |case| case.outcome != Outcome::Passed && case_fm(&case.name) == Some(id))
 }
 
 /// A failed or skipped case and the first lines of what it reported.

@@ -1,11 +1,9 @@
 //! Where a feature starts: the default red of `proof record` and the diff base of `proof impact`.
 //!
-//! Without `--red` or a red.patch, the base is the merge-base of HEAD with, in order:
-//!
-//! 1. `[workspace] default_branch` from Skies.toml, when set;
-//! 2. the current branch's upstream, when it is another branch (`feature` tracking `origin/develop`), not the
-//!    branch's own copy on the remote;
-//! 3. the remote's default branch (`origin/HEAD`), else a local `main` or `master`.
+//! Without `--red` or a red.patch, the base is the merge-base of HEAD with the branch features fork from:
+//! `[workspace] default_branch` from Skies.toml, else the remote's default branch (`origin/HEAD`), else a local
+//! `main` or `master`. A branch's upstream is deliberately not consulted: whether it names the fork point or the
+//! branch's own remote copy depends on how the branch was created, and `default_branch` says it once for everyone.
 //!
 //! The choice is always printed with how it was made and how many commits separate it from HEAD, and a base far
 //! behind HEAD is flagged: a red many unrelated commits back fails for reasons that are not the feature.
@@ -39,22 +37,19 @@ impl Base {
     pub fn default(repo: &Repo, configured: Option<&str>) -> Result<Base> {
         let (branch, why) = match configured {
             Some(name) => (configured_branch(repo, name)?, "default_branch in Skies.toml"),
-            None => match other_upstream(repo) {
-                Some(upstream) => (upstream, "this branch's upstream"),
-                None => match repo.origin_head() {
-                    Some(origin) => (origin, "default branch from origin/HEAD"),
-                    None => (
-                        ["main", "master"]
-                            .into_iter()
-                            .find(|name| repo.resolve(name).is_ok())
-                            .map(String::from)
-                            .context(
-                                "no branch to fork from (no default_branch in Skies.toml, upstream, origin/HEAD, \
-                                 main, or master); pass --red <rev>",
-                            )?,
-                        "no origin/HEAD",
-                    ),
-                },
+            None => match repo.origin_head() {
+                Some(origin) => (origin, "default branch from origin/HEAD"),
+                None => (
+                    ["main", "master"]
+                        .into_iter()
+                        .find(|name| repo.resolve(name).is_ok())
+                        .map(String::from)
+                        .context(
+                            "no branch to fork from (no default_branch in Skies.toml, origin/HEAD, main, or \
+                             master); pass --red <rev>",
+                        )?,
+                    "no origin/HEAD",
+                ),
             },
         };
         let commit = repo
@@ -97,13 +92,4 @@ fn configured_branch(repo: &Repo, name: &str) -> Result<String> {
     repo.resolve(&remote)
         .map(|_| remote)
         .with_context(|| format!("default_branch '{name}' in Skies.toml is neither a branch nor origin/{name}"))
-}
-
-/// The upstream when it is another branch; a branch's own remote copy (`v5` → `origin/v5`) says nothing about
-/// where it forked.
-fn other_upstream(repo: &Repo) -> Option<String> {
-    let upstream = repo.upstream()?;
-    let current = repo.current_branch()?;
-    let name = upstream.split_once('/').map_or(upstream.as_str(), |(_, name)| name);
-    (name != current && upstream != current).then_some(upstream)
 }
