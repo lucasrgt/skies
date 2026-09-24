@@ -13,6 +13,7 @@ mod receipt;
 mod record;
 mod report;
 mod runner;
+mod scrub;
 mod spec;
 mod verify;
 

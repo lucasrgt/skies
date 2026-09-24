@@ -15,6 +15,7 @@ use super::hash;
 use super::receipt::{Entry, Green, Patch, Receipt, Red, RedCase};
 use super::report::{self, FmId, Report};
 use super::runner::{Job, NoReport, Session};
+use super::scrub::Scrub;
 use super::spec::{self, E2E_DIR, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
 use super::{avp, impact, verify};
 use crate::manifest::Project;
@@ -67,8 +68,11 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
     // Red, in a worktree that is gone again before green starts. Its `{evidence}` lives in scratch, so an Assay
     // verdict a red case saved survives the worktree.
     let red_evidence = scratch.path().join("red-evidence");
-    let red_run = {
+    let (red_run, scrub) = {
         let worktree = repo.temp_worktree(&red_commit)?;
+        // Built while the worktree exists, so its canonical path can be resolved: red and green paths both become
+        // `{root}` in the evidence.
+        let scrub = Scrub::new(&[&repo.top, &worktree.path]);
         let red_root = worktree.path.join(&repo.prefix);
         let red_spec = SpecDir {
             path: red_root.join(spec.rel()),
@@ -88,7 +92,7 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
             label: "red",
         });
         // A configured report path lives inside the worktree; keep the report (or the build log) past its removal.
-        match run {
+        let red_run = match run {
             Ok(run) => {
                 let kept = scratch.path().join("red.report");
                 std::fs::copy(&run.file, &kept)?;
@@ -102,7 +106,8 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
                 }
                 None => return Err(error),
             },
-        }
+        };
+        (red_run, scrub)
     };
     let (red_cases, red_file, red_report): (BTreeMap<FmId, Entry<RedCase>>, PathBuf, String) = match red_run {
         RedRun::DidNotBuild(log) => {
@@ -177,7 +182,7 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
             files.push((red_evidence.join(&name), format!("{EVIDENCE_DIR}/red.{name}")));
         }
     }
-    green::publish_evidence(&spec, &proven.staged, &files, false)?;
+    green::publish_evidence(&spec, &proven.staged, &files, false, &scrub)?;
 
     let footprint_paths = footprint(&repo, root, &doc, &red_commit, patch.as_deref())?;
     let mut receipt = Receipt {

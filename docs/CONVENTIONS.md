@@ -251,8 +251,8 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
   and `SKIES_SPEC` (the spec folder name) in their environment, besides the `{evidence}` placeholder. What a test
   writes there is copied into `evidence/` and hashed. .NET tests use `SpecEvidence.Save("name.json", value)` from
   `Skies.Framework.Testing` (a no-op outside a proof run). Reports and build logs are normalized as they are copied:
-  the checkout, temp, and home paths become `<root>`, `<tmp>`, and `~`, the machine name `<machine>`, and TRX run
-  ids become stable, so committed evidence leaks nothing about the machine and diffs cleanly.
+  checkout, temp, and home paths become `{root}`, `{tmp}`, and `~`, host and run names `{machine}` and `{run}`, and
+  TRX run ids a stable sequence, so committed evidence leaks nothing about the machine and diffs cleanly.
 - **A failure mode may name an Assay verifier**: `- FM-5 a retry with the same key credits twice
   [avp: idempotency-key-honored]` (several ids comma-separated). The case saves the verdict to
   `$SKIES_EVIDENCE/avp-FM-5.json`, and the mode passes only when its cases pass and every tagged criterion passes.

@@ -1,5 +1,6 @@
 //! Evidence as a spec's safety box, through the real binary: Assay verdicts that decide `[avp: …]` failure modes,
-//! the automatic `SKIES_EVIDENCE`/`SKIES_SPEC` environment, and tamper detection over evidence/.
+//! the automatic `SKIES_EVIDENCE`/`SKIES_SPEC` environment, tamper detection over evidence/, and reports scrubbed of
+//! the machine they ran on.
 
 mod support;
 
@@ -162,4 +163,40 @@ fn ignored_evidence_is_not_part_of_the_record() {
     assert!(receipt["evidence"].get("evidence/final.txt").is_none());
     std::fs::remove_file(repo.path(&format!("{SPEC}/evidence/final.txt"))).unwrap();
     assert_eq!(text(&repo.skies(&["proof", "status"])), "0001-toggle  current\n");
+}
+
+#[test]
+fn committed_reports_name_neither_the_machine_nor_its_paths() {
+    let repo = Repo::with_runner(|runner| {
+        runner.replace(
+            r#"echo '<testsuites><testsuite name="fake">'"#,
+            r#"echo "<testsuites><testsuite name=\"fake\" hostname=\"box-7\"><system-out>$(pwd)/out.log</system-out>""#,
+        )
+    });
+    tagged_spec(&repo, "FM-1: toggles\nFM-2: retries once\n", Some("2 key-honored\n"));
+    repo.implement();
+
+    let recorded = repo.skies(&["proof", "record", "1"]);
+    assert!(recorded.status.success(), "{}", text(&recorded));
+
+    // Red ran in a worktree under the temp directory and green in the checkout; both are the same `{root}`.
+    for report in ["red.xml", "green.xml"] {
+        let evidence = repo.read(&format!("{SPEC}/evidence/{report}"));
+        assert!(
+            evidence.contains(r#"hostname="{machine}"><system-out>{root}/out.log</system-out>"#),
+            "{report}: {evidence}"
+        );
+        assert!(
+            evidence.contains(r#"<testcase name="FM-2: retries once""#),
+            "{report} keeps its cases"
+        );
+    }
+    assert_eq!(text(&repo.skies(&["proof", "status"])), "0001-toggle  current\n");
+
+    let verified = repo.skies(&["proof", "verify", "1"]);
+    assert!(verified.status.success(), "{}", text(&verified));
+    assert!(
+        repo.read(&format!("{SPEC}/evidence/green.xml"))
+            .contains("{root}/out.log")
+    );
 }

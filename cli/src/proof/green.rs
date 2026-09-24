@@ -15,6 +15,7 @@ use super::hash::{self, Hashes};
 use super::receipt::{Entry, GreenCase};
 use super::report::{self, FmId};
 use super::runner::{Job, Session};
+use super::scrub::Scrub;
 use super::spec::{EVIDENCE_DIR, SpecDir, SpecDoc};
 use crate::manifest::Project;
 
@@ -102,9 +103,16 @@ pub fn run_green(
     }))
 }
 
-/// Replaces evidence/ with the staged runner artifacts plus the given files (`(source, path in spec folder)`).
-/// With `keep_red`, the red files of the original recording survive, since `verify` never reruns red.
-pub fn publish_evidence(spec: &SpecDir, staged: &Path, files: &[(PathBuf, String)], keep_red: bool) -> Result<()> {
+/// Replaces evidence/ with the staged runner artifacts plus the given files (`(source, path in spec folder)`), the
+/// reports and logs among them scrubbed of machine-specific paths and names. With `keep_red`, the red files of the
+/// original recording survive, since `verify` never reruns red.
+pub fn publish_evidence(
+    spec: &SpecDir,
+    staged: &Path,
+    files: &[(PathBuf, String)],
+    keep_red: bool,
+    scrub: &Scrub,
+) -> Result<()> {
     let evidence = spec.file(EVIDENCE_DIR);
     let mut kept: Vec<(String, Vec<u8>)> = Vec::new();
     if keep_red && evidence.is_dir() {
@@ -127,7 +135,9 @@ pub fn publish_evidence(spec: &SpecDir, staged: &Path, files: &[(PathBuf, String
         std::fs::write(evidence.join(name), bytes)?;
     }
     for (source, target) in files {
-        std::fs::copy(source, spec.path.join(target)).with_context(|| format!("copying {target} into the spec"))?;
+        scrub
+            .copy(source, &spec.path.join(target))
+            .with_context(|| format!("copying {target} into the spec"))?;
     }
     Ok(())
 }

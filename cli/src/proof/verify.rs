@@ -14,6 +14,7 @@ use super::hash::{self, Hashes};
 use super::receipt::{self, Freshness, Receipt};
 use super::report::FmId;
 use super::runner::Session;
+use super::scrub::Scrub;
 use super::spec::{self, RECEIPT_FILE, SpecDir, SpecDoc};
 use crate::manifest::Project;
 
@@ -151,6 +152,7 @@ fn verify_one(
         &proven.staged,
         &[(proven.file.clone(), proven.report.clone())],
         true,
+        &Scrub::new(&[&repo.top]),
     )?;
 
     let (footprint, inputs) = rehash(root, spec, &doc, &receipt.footprint)?;
