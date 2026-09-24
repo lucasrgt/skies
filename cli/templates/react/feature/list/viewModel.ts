@@ -1,19 +1,26 @@
 import { toAsyncState, type AsyncState } from "@skiesjs/react";
-import { useList{{ plural }} } from "@/client.gen/{{ client }}";
+{%- if row %}
+import type { {{ row }} } from "@/client.gen/model";
+{%- endif %}
+import { use{{ slice }} } from "@/client.gen/{{ client }}";
 import i18n from "@/i18n";
-
+{% if row %}
+// The row the View renders: the contract's own type, so a changed contract breaks the build here.
+export type {{ entity }} = {{ row }};
+{%- else %}
 // The row shape the View renders. Replace it with the generated contract type once the client exists.
 export interface {{ entity }} {
   id: string;
   name: string;
 }
+{%- endif %}
 
 export interface {{ plural }}Model {
   state: { {{ collection }}: AsyncState<{{ entity }}[]> };
 }
 
 export function use{{ plural }}Model(): {{ plural }}Model {
-  const query = useList{{ plural }}();
+  const query = use{{ slice }}();
 
   const {{ collection }} = toAsyncState<{{ entity }}[]>(
     {

@@ -1,13 +1,19 @@
-//! React web tooling: feature scaffold, typed client generation, and i18n assembly. (Mobile is Flutter.)
+//! React web tooling: the app and feature scaffolds, typed client generation, and i18n assembly. (Mobile is
+//! Flutter.)
 //!
 //! `scaffold` and `contract` are shared with the Flutter tooling: both platforms write files under the same
 //! policies and find their backend contract through the same `Skies.toml` lookup.
 
+mod app;
+mod ci;
 mod client;
 pub mod contract;
 mod feature;
+mod form_fields;
 mod i18n;
 pub mod names;
+mod openapi;
+mod register;
 pub mod scaffold;
 
 use std::path::Path;
@@ -16,8 +22,12 @@ use anyhow::Result;
 
 pub use feature::FeatureKind;
 
-pub fn feature(package: &Path, name: &str, kind: FeatureKind) -> Result<u8> {
-    feature::scaffold(&scaffold::package_dir(Some(package))?, name, kind)
+pub fn app(name: &str, path: Option<&Path>) -> Result<u8> {
+    app::create(name, path)
+}
+
+pub fn feature(package: &Path, name: &str, kind: FeatureKind, fields: Option<&str>) -> Result<u8> {
+    feature::scaffold(&scaffold::package_dir(Some(package))?, name, kind, fields)
 }
 
 pub fn client(package: &Path) -> Result<u8> {

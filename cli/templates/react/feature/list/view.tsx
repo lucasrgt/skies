@@ -27,9 +27,15 @@ function {{ plural }}List({ {{ collection }} }: { {{ collection }}: {{ entity }}
   return (
     <Screen>
       <Stack>
+{%- if key %}
         {{ '{' }}{{ collection }}.map((item) => (
-          <Text key={item.id}>{item.name}</Text>
+          <Text key={item.{{ key }}}>{item.{{ display }}}</Text>
         ))}
+{%- else %}
+        {{ '{' }}{{ collection }}.map((item, index) => (
+          <Text key={index}>{item.{{ display }}}</Text>
+        ))}
+{%- endif %}
       </Stack>
     </Screen>
   );

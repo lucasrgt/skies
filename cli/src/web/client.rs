@@ -18,14 +18,21 @@ const FEEDBACK: &str = include_str!("../../templates/react/client/feedback.ts");
 const QUERY: &str = include_str!("../../templates/react/client/query.ts");
 const ORVAL_CONFIG: &str = include_str!("../../templates/react/client/orval.config.ts");
 
-/// The hand-owned files, relative to the package root.
-pub fn render_seams(name: &str, contract: &str) -> Result<Vec<(&'static str, String)>> {
-    Ok(vec![
+/// The hand-owned files the app boots through (the mutator, the feedback seam, the QueryClient), relative to the
+/// package root. `skies g web-app` writes them up front, so a new package runs before it has a contract.
+pub fn render_boot_seams() -> Vec<(&'static str, String)> {
+    vec![
         ("src/lib/skies-client.ts", MUTATOR.to_string()),
         ("src/lib/feedback.ts", FEEDBACK.to_string()),
         ("src/lib/query.ts", QUERY.to_string()),
-        ("orval.config.ts", render(ORVAL_CONFIG, context! { name, contract })?),
-    ])
+    ]
+}
+
+/// The hand-owned files, relative to the package root: the boot seams and the orval config.
+pub fn render_seams(name: &str, contract: &str) -> Result<Vec<(&'static str, String)>> {
+    let mut seams = render_boot_seams();
+    seams.push(("orval.config.ts", render(ORVAL_CONFIG, context! { name, contract })?));
+    Ok(seams)
 }
 
 pub fn generate(package: &Path) -> Result<u8> {

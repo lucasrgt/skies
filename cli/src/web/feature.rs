@@ -1,20 +1,26 @@
 //! `skies g feature` for a React web package: the ViewModel + View + i18n unit, in one of two kinds.
 //!
-//! `list` (the default) is the blessed `items` shape: a read hook folded into `AsyncState` and rendered through
-//! `<Resource>`. `form` is the blessed `deposit` shape: a react-hook-form ViewModel whose submit goes through
+//! `list` (the default) is the blessed `items` shape: the list slice's page folded into `AsyncState` and rendered
+//! through `<Resource>`. `form` is the blessed `deposit` shape: a react-hook-form ViewModel whose submit goes through
 //! `submitOrReveal` into a mutation, with pending, error, and success surfaces. List stays the default because a
-//! module's first screen is usually the read of what it holds, and scripts written against the one-kind generator
-//! keep their meaning; a command screen asks for `--kind form`. Both pass the SKYFE rules and typecheck against the
-//! client `skies g client` generates (the form for a slice with the `g slice` scaffold's `Id` input, until its fields
-//! are made the slice's own). Tests are not scaffolded: in Skies 5 a feature's evidence is the E2E in its
-//! spec folder, written against its failure modes before the code, not a colocated test generated after it.
+//! module's first screen is usually the read of what it holds; a command screen asks for `--kind form`.
+//!
+//! Both read the backend's OpenAPI contract (the one `skies g client` generates from) so they bind to what orval
+//! generates: the list to its slice's page and row type, the form to its command's inputs. A form needs its fields,
+//! so without a contract it takes `--fields` or stops; a list without a contract falls back to a placeholder row.
+//! The unit lands in a kebab-case folder named after the feature (`create-product/`), which is also its i18n
+//! namespace, and imports only what a `skies g web-app` package provides (`@/ui`, `@/i18n`, `@/client.gen/<api>`).
+//! Tests are not scaffolded: in Skies 5 a feature's evidence is the E2E in its spec folder, written against its
+//! failure modes before the code, not a colocated test generated after it.
 
 use std::path::{Path, PathBuf};
 
 use anyhow::{Result, bail};
 use minijinja::context;
 
-use super::names::{camel, pascal, singular};
+use super::form_fields::{self, Field, ListShape};
+use super::names::{camel, kebab, pascal, singular};
+use super::openapi::Document;
 use super::scaffold::{render, write_new};
 use super::{contract, i18n};
 
@@ -28,7 +34,7 @@ const FORM_I18N: &str = include_str!("../../templates/react/feature/form/i18n.ts
 /// What a feature screen does: read a collection, or send one command.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
 pub enum FeatureKind {
-    // A read screen: the `List<Name>` query as `AsyncState`, rendered through `<Resource>` with an empty state.
+    // A read screen: the list slice's page as `AsyncState`, rendered through `<Resource>` with an empty state.
     #[default]
     List,
     // A command screen: a form ViewModel submitting the `<Name>` mutation, with pending, error, and success states.
@@ -44,7 +50,7 @@ pub struct FeatureNames {
     pub collection: String,
     /// The row type: `Booking`.
     pub entity: String,
-    /// The i18n namespace and the folder: `bookings`.
+    /// The folder and the i18n namespace: `bookings`, `create-product`.
     pub lower: String,
 }
 
@@ -56,7 +62,7 @@ impl FeatureNames {
         }
         let collection = camel(&plural);
         let entity = pascal(&singular(&camel(name)));
-        let lower = collection.to_ascii_lowercase();
+        let lower = kebab(&plural);
         Ok(FeatureNames {
             plural,
             collection,
@@ -66,32 +72,97 @@ impl FeatureNames {
     }
 }
 
+/// The list slice a list feature reads: `Products` → `ListProducts`, the plural name `g crud` gives its list. A
+/// contract that only has the singular name (`ListProduct`, from crud before the plural naming) is still honored.
+pub fn list_slice(names: &FeatureNames, doc: Option<&Document>) -> String {
+    let plural = format!("List{}", names.plural);
+    let singular = format!("List{}", names.entity);
+    match doc {
+        Some(doc) if doc.operation(&plural).is_none() && doc.operation(&singular).is_some() => singular,
+        _ => plural,
+    }
+}
+
+/// What the templates need beyond the names.
+pub enum Shape {
+    List { slice: String, rows: Option<ListShape> },
+    Form { fields: Vec<Field>, variables: String },
+}
+
 /// Renders the unit as `(file name, contents)` pairs, in the order they are reported. `client` is the
 /// `@/client.gen/<client>` module the ViewModel imports its hook from; `locales` are the catalog's exports.
 pub fn render_feature(
     names: &FeatureNames,
-    kind: FeatureKind,
+    shape: &Shape,
     client: &str,
     locales: &[String],
 ) -> Result<Vec<(String, String)>> {
-    let ctx = context! {
-        plural => names.plural,
-        name => names.plural,
-        collection => names.collection,
-        entity => names.entity,
-        lower => names.lower,
-        client,
-        locales,
-    };
-    let (view_model, view, i18n) = match kind {
-        FeatureKind::List => (LIST_VIEW_MODEL, LIST_VIEW, LIST_I18N),
-        FeatureKind::Form => (FORM_VIEW_MODEL, FORM_VIEW, FORM_I18N),
+    let title = humanize(&names.plural);
+    let (view_model, view, i18n, ctx) = match shape {
+        Shape::List { slice, rows } => {
+            let collection = rows.as_ref().map_or(&names.collection, |r| &r.collection);
+            let ctx = context! {
+                plural => names.plural, entity => names.entity, lower => names.lower, collection, client, locales,
+                slice, title,
+                row => rows.as_ref().map(|r| r.row.clone()),
+                display => rows.as_ref().map_or("name".to_string(), |r| r.display.clone()),
+                key => rows.as_ref().map_or(Some("id".to_string()), |r| r.key.clone()),
+            };
+            (LIST_VIEW_MODEL, LIST_VIEW, LIST_I18N, ctx)
+        }
+        Shape::Form { fields, variables } => {
+            let fields: Vec<Field> = fields
+                .iter()
+                .map(|field| Field {
+                    rule: field
+                        .rule
+                        .replace("{msg}", &format!("i18n.t(\"{}:errors.{}\")", names.lower, field.name)),
+                    ..field.clone()
+                })
+                .collect();
+            let ctx = context! {
+                name => names.plural, lower => names.lower, client, locales, fields, variables, title,
+            };
+            (FORM_VIEW_MODEL, FORM_VIEW, FORM_I18N, ctx)
+        }
     };
     Ok(vec![
         (format!("{}.viewModel.ts", names.plural), render(view_model, &ctx)?),
         (format!("{}.view.tsx", names.plural), render(view, &ctx)?),
         (format!("{}.i18n.ts", names.lower), render(i18n, &ctx)?),
     ])
+}
+
+/// `CreateProduct` → `Create product`.
+fn humanize(pascal: &str) -> String {
+    let words = kebab(pascal).replace('-', " ");
+    let mut chars = words.chars();
+    chars
+        .next()
+        .map_or_else(String::new, |c| c.to_ascii_uppercase().to_string() + chars.as_str())
+}
+
+/// The mutation's variables: path parameters by name beside the body as `data`, the shape orval generates.
+pub fn variables(fields: &[Field], has_body: bool) -> String {
+    let path: Vec<String> = fields
+        .iter()
+        .filter(|f| f.in_path)
+        .map(|f| format!("{}: {}", f.name, f.value))
+        .collect();
+    let body: Vec<String> = fields
+        .iter()
+        .filter(|f| !f.in_path)
+        .map(|f| format!("{}: {}", f.name, f.value))
+        .collect();
+    let mut parts = path;
+    if has_body || !body.is_empty() {
+        parts.push(format!("data: {{ {} }}", body.join(", ")));
+    }
+    if parts.is_empty() {
+        String::new()
+    } else {
+        format!("{{ {} }}", parts.join(", "))
+    }
 }
 
 /// The folder that holds the package's sources: `src/` when it has one, else its root.
@@ -150,204 +221,91 @@ pub fn app_locales(package: &Path) -> Result<Vec<String>> {
     Ok(vec!["en".to_string()])
 }
 
-pub fn scaffold(package: &Path, name: &str, kind: FeatureKind) -> Result<u8> {
+/// The backend contract for `package`, or why there is none.
+fn load_contract(package: &Path) -> std::result::Result<(Document, PathBuf), String> {
+    let found = contract::for_package(package).map_err(|error| format!("{error:#}"))?;
+    let doc = Document::load(&found.path).map_err(|error| format!("{error:#}"))?;
+    Ok((doc, found.path))
+}
+
+/// The form's inputs: `--fields` when given, else the command's operation in the contract.
+fn form_shape(
+    names: &FeatureNames,
+    fields: Option<&str>,
+    contract: &Result<(Document, PathBuf), String>,
+) -> Result<Shape> {
+    let slice = &names.plural;
+    if let Some(spec) = fields {
+        let fields = form_fields::parse(spec)?;
+        let variables = variables(&fields, true);
+        return Ok(Shape::Form { fields, variables });
+    }
+    let (doc, path) = match contract {
+        Ok(found) => found,
+        Err(reason) => bail!(
+            "a form's fields come from the backend's OpenAPI contract, and none was found ({reason}). Build the \
+             backend (`dotnet build` writes the contract), or pass the fields: --fields name:string,price:number \
+             (nothing was written)"
+        ),
+    };
+    let Some(operation) = doc.operation(slice) else {
+        bail!(
+            "{} has no `{slice}` operation (a slice mapped with `.WithName(nameof({slice}))`). Operations: {}. \
+             Generate the slice and rebuild the backend, or pass --fields (nothing was written)",
+            path.display(),
+            doc.operation_ids().join(", ")
+        );
+    };
+    let fields = form_fields::from_operation(doc, &operation, slice)?;
+    let variables = variables(&fields, operation.body().is_some());
+    Ok(Shape::Form { fields, variables })
+}
+
+pub fn scaffold(package: &Path, name: &str, kind: FeatureKind, fields: Option<&str>) -> Result<u8> {
     let names = FeatureNames::derive(name)?;
+    if fields.is_some() && kind == FeatureKind::List {
+        bail!("--fields describes a form's inputs; pass it with --kind form");
+    }
     let dir = feature_dir(package, &names);
     let client = client_module(package);
     let locales = app_locales(package)?;
-    let files: Vec<(PathBuf, String)> = render_feature(&names, kind, &client, &locales)?
+    let contract = load_contract(package);
+    let doc = contract.as_ref().ok().map(|(doc, _)| doc);
+    let shape = match kind {
+        FeatureKind::List => {
+            let slice = list_slice(&names, doc);
+            let rows = doc
+                .and_then(|doc| Some((doc, doc.operation(&slice)?)))
+                .and_then(|(doc, op)| form_fields::list_shape(doc, &op));
+            Shape::List { slice, rows }
+        }
+        FeatureKind::Form => form_shape(&names, fields, &contract)?,
+    };
+    let files: Vec<(PathBuf, String)> = render_feature(&names, &shape, &client, &locales)?
         .into_iter()
         .map(|(file, contents)| (dir.join(file), contents))
         .collect();
     write_new(&files)?;
-    let slice = match kind {
-        FeatureKind::List => format!("List{}", names.plural),
-        FeatureKind::Form => names.plural.clone(),
+    let slice = match &shape {
+        Shape::List { slice, .. } => slice.clone(),
+        Shape::Form { .. } => names.plural.clone(),
+    };
+    let unverified = match (&contract, &shape) {
+        (Ok((doc, _)), _) if doc.operation(&slice).is_some() => String::new(),
+        (Ok(_), _) => {
+            format!(" The contract has no `{slice}` operation yet: generate the slice and rebuild the backend.")
+        }
+        (Err(_), Shape::List { .. }) => " No contract was found, so the row type is a placeholder to replace.".into(),
+        (Err(_), Shape::Form { .. }) => " No contract was found, so the fields are the ones --fields named.".into(),
     };
     println!(
-        "\nnext: the ViewModel imports `use{slice}` from @/client.gen/{client}: the hook `skies g client` generates \
-         for the `{slice}` slice (`.WithName(nameof({slice}))`). Generate the slice if it does not exist, run \
-         `skies g client`, refine the fields and copy, then `skies i18n`."
+        "\nnext: the ViewModel imports `use{slice}` from @/client.gen/{client}, the hook `skies g client` generates \
+         for the `{slice}` slice.{unverified} Run `skies g client` and `skies i18n`, then give the View a route \
+         (src/routes/router.ts in a `skies g web-app` package)."
     );
     Ok(0)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn locales(names: &[&str]) -> Vec<String> {
-        names.iter().map(|name| name.to_string()).collect()
-    }
-
-    fn rendered(name: &str) -> Vec<(String, String)> {
-        let set = locales(&["ptBR", "esES", "enUS"]);
-        render_feature(&FeatureNames::derive(name).unwrap(), FeatureKind::List, "shop", &set).unwrap()
-    }
-
-    fn form(name: &str) -> Vec<(String, String)> {
-        let set = locales(&["ptBR", "esES", "enUS"]);
-        render_feature(&FeatureNames::derive(name).unwrap(), FeatureKind::Form, "shop", &set).unwrap()
-    }
-
-    /// The keys of one locale block of a rendered i18n module.
-    fn keys(i18n: &str, locale: &str) -> Vec<String> {
-        let block = i18n.split(&format!("export const {locale} = {{")).nth(1).unwrap();
-        let block = &block[..block.find("} as const").unwrap()];
-        block
-            .lines()
-            .filter_map(|line| line.trim().split(':').next().map(str::to_string))
-            .filter(|key| !key.is_empty())
-            .collect()
-    }
-
-    #[test]
-    fn derives_names_from_a_plural_feature_name() {
-        let names = FeatureNames::derive("user-profiles").unwrap();
-        assert_eq!(names.plural, "UserProfiles");
-        assert_eq!(names.collection, "userProfiles");
-        assert_eq!(names.entity, "UserProfile");
-        assert_eq!(names.lower, "userprofiles");
-    }
-
-    #[test]
-    fn emits_the_three_files_of_the_unit_and_no_tests() {
-        let files: Vec<String> = rendered("bookings").into_iter().map(|(name, _)| name).collect();
-        assert_eq!(
-            files,
-            ["Bookings.viewModel.ts", "Bookings.view.tsx", "bookings.i18n.ts"]
-        );
-    }
-
-    #[test]
-    fn wires_the_spine_without_proof_ceremony() {
-        let files = rendered("bookings");
-        let (view_model, view, i18n) = (&files[0].1, &files[1].1, &files[2].1);
-
-        assert!(view_model.contains("AsyncState<Booking[]>"));
-        assert!(view_model.contains("import { useListBookings } from \"@/client.gen/shop\";"));
-        assert!(view_model.contains("i18n.t(\"bookings:error\")"));
-        assert!(
-            view_model.contains("data: query.data?.bookings?.items,"),
-            "the List slice returns a page"
-        );
-        assert!(view.contains("<Resource"));
-        assert!(view.contains("{(bookings) => <BookingsList bookings={bookings} />}"));
-        assert!(view.contains("{bookings.map((item) => ("));
-        for locale in ["ptBR", "esES", "enUS"] {
-            assert!(i18n.contains(&format!("export const {locale}")));
-        }
-        for (_, contents) in &files {
-            for ceremony in ["@verify", "@avp", "@e2e", "defineVerification", "{{", "{%"] {
-                assert!(!contents.contains(ceremony), "{ceremony} leaked into the scaffold");
-            }
-        }
-    }
-
-    #[test]
-    fn a_form_is_the_command_recipe() {
-        let files = form("transfer");
-        let names: Vec<&str> = files.iter().map(|(name, _)| name.as_str()).collect();
-        assert_eq!(
-            names,
-            ["Transfer.viewModel.ts", "Transfer.view.tsx", "transfer.i18n.ts"]
-        );
-        let (view_model, view, i18n) = (&files[0].1, &files[1].1, &files[2].1);
-
-        assert!(view_model.contains("import { useTransfer } from \"@/client.gen/shop\";"));
-        assert!(view_model.contains("const form = useForm<TransferForm>({"));
-        assert!(view_model.contains("const submit = submitOrReveal(\n    form.handleSubmit,"));
-        assert!(view_model.contains("mutation.mutate({ data: { id: values.id } })"));
-        assert!(view_model.contains("submitting: mutation.isPending,"));
-        assert!(view_model.contains("submitError: mutation.isError ? i18n.t(\"transfer:errors.submit\") : null,"));
-        assert!(view_model.contains("completed: mutation.isSuccess,"));
-        assert!(!view_model.contains("useList") && !view_model.contains("AsyncState"));
-        assert!(view.contains("render={({ field, fieldState }) => ("));
-        assert!(view.contains("error={fieldState.error?.message}"));
-        assert!(view.contains("<Text role=\"label\" tone=\"danger\" alert>"));
-        assert!(view.contains("loading={submitting}"));
-        assert!(!view.contains("EmptyState") && !view.contains("client.gen"));
-        assert_eq!(keys(i18n, "ptBR"), keys(i18n, "enUS"));
-        assert_eq!(keys(i18n, "esES"), keys(i18n, "enUS"));
-        assert!(i18n.contains("  title: \"Transfer\",\n"));
-        for (_, contents) in &files {
-            assert!(!contents.contains("{{") && !contents.contains("{%"));
-        }
-    }
-
-    #[test]
-    fn the_locale_set_is_the_packages_and_defaults_to_english() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(dir.path().join("src/b")).unwrap();
-        assert_eq!(app_locales(dir.path()).unwrap(), ["en"]);
-
-        scaffold(dir.path(), "Items", FeatureKind::List).unwrap();
-        let i18n = std::fs::read_to_string(dir.path().join("src/items/items.i18n.ts")).unwrap();
-        assert!(i18n.contains("export const en = {"));
-        assert_eq!(i18n.matches("export const").count(), 1);
-        assert!(i18n.ends_with("} as const;\n") && !i18n.ends_with("\n\n"));
-
-        std::fs::remove_file(dir.path().join("src/items/items.i18n.ts")).unwrap();
-        std::fs::write(
-            dir.path().join("src/b/a.i18n.ts"),
-            "export const frFR = {} as const;\nexport const deDE = {} as const;\n",
-        )
-        .unwrap();
-        assert_eq!(app_locales(dir.path()).unwrap(), ["frFR", "deDE"]);
-
-        scaffold(dir.path(), "Transfer", FeatureKind::Form).unwrap();
-        let i18n = std::fs::read_to_string(dir.path().join("src/transfer/transfer.i18n.ts")).unwrap();
-        assert_eq!(keys(&i18n, "frFR"), keys(&i18n, "deDE"));
-        assert!(!i18n.contains("enUS") && !i18n.contains("ptBR"));
-    }
-
-    #[test]
-    fn scaffolds_cite_no_rule_ids() {
-        for (_, contents) in rendered("bookings").into_iter().chain(form("transfer")) {
-            assert!(
-                !contents.contains("SKY"),
-                "a rule id leaked into the scaffold:\n{contents}"
-            );
-        }
-    }
-
-    #[test]
-    fn rejects_a_name_without_letters() {
-        assert!(FeatureNames::derive("--").is_err());
-        assert!(FeatureNames::derive("9lives").is_err());
-    }
-
-    #[test]
-    fn writes_under_src_and_refuses_to_overwrite() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::create_dir(dir.path().join("src")).unwrap();
-
-        scaffold(dir.path(), "Profile", FeatureKind::List).unwrap();
-
-        assert!(dir.path().join("src/profile/Profile.viewModel.ts").is_file());
-        assert!(scaffold(dir.path(), "Profile", FeatureKind::Form).is_err());
-    }
-
-    #[test]
-    fn the_client_module_is_the_packages_not_the_features() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(
-            dir.path().join("Skies.toml"),
-            "[workspace]\nname = \"s\"\n[products.app]\nbackend = \"api/Sample.Api\"\nfrontend = \"web\"\n",
-        )
-        .unwrap();
-        let web = dir.path().join("web");
-        std::fs::create_dir_all(web.join("src/client.gen/model")).unwrap();
-        let web = web.canonicalize().unwrap();
-        assert_eq!(client_module(&web), "sample", "the name g client will write");
-
-        std::fs::write(web.join("src/client.gen/other.ts"), "").unwrap();
-        std::fs::write(web.join("src/client.gen/sample.ts"), "").unwrap();
-        assert_eq!(client_module(&web), "sample");
-
-        let lone = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(lone.path().join("src/client.gen")).unwrap();
-        std::fs::write(lone.path().join("src/client.gen/shop.ts"), "").unwrap();
-        assert_eq!(client_module(lone.path()), "shop");
-    }
-}
+#[path = "feature_tests.rs"]
+mod tests;

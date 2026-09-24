@@ -51,7 +51,7 @@ pub fn generate(command: Generate) -> Result<u8> {
         | Generate::AuthOtp { backend }
         | Generate::AuthOauth { backend }
         | Generate::AuthEmail { backend } => (backend.project.as_deref(), None),
-        Generate::Feature { .. } | Generate::Client { .. } | Generate::FlutterApp { .. } => {
+        Generate::Feature { .. } | Generate::Client { .. } | Generate::WebApp { .. } | Generate::FlutterApp { .. } => {
             bail!("not a .NET generator")
         }
     };
@@ -80,7 +80,7 @@ pub fn generate(command: Generate) -> Result<u8> {
         Generate::AuthOtp { .. } => flows::generate(&root, flow_specs::Flow::Otp),
         Generate::AuthOauth { .. } => flows::generate(&root, flow_specs::Flow::OAuth),
         Generate::AuthEmail { .. } => flows::generate(&root, flow_specs::Flow::Email),
-        Generate::Feature { .. } | Generate::Client { .. } | Generate::FlutterApp { .. } => {
+        Generate::Feature { .. } | Generate::Client { .. } | Generate::WebApp { .. } | Generate::FlutterApp { .. } => {
             bail!("not a .NET generator")
         }
     }

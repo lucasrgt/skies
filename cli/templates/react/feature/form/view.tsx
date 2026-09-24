@@ -25,26 +25,32 @@ export function {{ name }}View() {
         <Text role="title">{t("title")}</Text>
         <Card>
           <Stack gap="md">
+{%- for field in fields %}
             <Controller
               control={control}
-              name="id"
+              name="{{ field.name }}"
               render={({ field, fieldState }) => (
-                <Field
-                  fieldId="id"
-                  label={t("fields.id.label")}
-                  hint={t("fields.id.hint")}
-                  error={fieldState.error?.message}
-                >
-                  <Input id="id" value={field.value} onChangeText={field.onChange} />
+                <Field fieldId="{{ field.name }}" label={t("fields.{{ field.name }}.label")} error={fieldState.error?.message}>
+                  <Input
+                    id="{{ field.name }}"
+                    name={field.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+{%- if field.input == "number" %}
+                    kind="number"
+{%- endif %}
+                  />
                 </Field>
               )}
             />
+{%- endfor %}
             {submitError ? (
               <Text role="label" tone="danger" alert>
                 {submitError}
               </Text>
             ) : null}
-            <Button label={t("submit")} onPress={submit} loading={submitting} />
+            <Button label={t("submit")} onClick={submit} loading={submitting} />
           </Stack>
         </Card>
       </Stack>

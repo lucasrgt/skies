@@ -5,12 +5,14 @@ import { submitOrReveal } from "@skiesjs/react";
 import { use{{ name }} } from "@/client.gen/{{ client }}";
 import i18n from "@/i18n";
 
-// The form lives in the ViewModel so a spec drives its rules through this hook. The schema restates only the
-// slice's own validation; the backend stays the authority.
+// The form lives in the ViewModel so a spec drives its rules through this hook. Every input holds a string; the
+// schema restates the slice's own rules (from its contract) and the submit converts at the boundary. The backend
+// stays the authority.
 
 export interface {{ name }}Form {
-  // Placeholder: mirrors the `g slice` scaffold's Input(Guid Id). Replace it with the slice's real fields.
-  id: string;
+{%- for field in fields %}
+  {{ field.name }}: string;
+{%- endfor %}
 }
 
 export interface {{ name }}Model {
@@ -25,19 +27,21 @@ export function use{{ name }}Model(): {{ name }}Model {
   const mutation = use{{ name }}();
 
   const schema = z.object({
-    id: z.uuid(i18n.t("{{ lower }}:errors.id")),
+{%- for field in fields %}
+    {{ field.name }}: {{ field.rule }},
+{%- endfor %}
   });
 
   const form = useForm<{{ name }}Form>({
     resolver: zodResolver(schema),
-    defaultValues: { id: "" },
+    defaultValues: { {% for field in fields %}{{ field.name }}: ""{% if not loop.last %}, {% endif %}{% endfor %} },
   });
 
   // An invalid submit focuses the first invalid field instead of doing nothing.
   const submit = submitOrReveal(
     form.handleSubmit,
-    (values) => mutation.mutate({ data: { id: values.id } }),
-    { onInvalid: (first) => form.setFocus(first), order: ["id"] },
+    (values) => mutation.mutate({{ variables }}),
+    { onInvalid: (first) => form.setFocus(first), order: [{% for field in fields %}"{{ field.name }}"{% if not loop.last %}, {% endif %}{% endfor %}] },
   );
 
   return {

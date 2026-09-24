@@ -154,6 +154,10 @@ pub enum Generate {
         /// mutation, with validation, pending, error, and success states.
         #[arg(long, value_enum, default_value_t = web::FeatureKind::List)]
         kind: web::FeatureKind,
+        /// React `--kind form`: the command's input fields, as `name:type` pairs (`title:string,price:number`; types
+        /// `string`, `number`, `uuid`). Without it the fields are read from the backend's OpenAPI contract.
+        #[arg(long, value_name = "FIELDS")]
+        fields: Option<String>,
         /// The frontend package directory (defaults to the current directory).
         #[arg(long)]
         package: Option<PathBuf>,
@@ -175,6 +179,15 @@ pub enum Generate {
         /// Flutter: the generated package's pub version (defaults to 0.1.0).
         #[arg(long)]
         version: Option<String>,
+    },
+    /// A React web application package (Vite, TanStack Router and Query, react-hook-form + zod, i18n, the
+    /// `@skiesjs/react` spine, and the SKYFE lint), declared in Skies.toml when run inside a Skies app.
+    #[command(name = "web-app")]
+    WebApp {
+        name: String,
+        /// Where to create the package (defaults to ./<name>).
+        #[arg(long)]
+        path: Option<PathBuf>,
     },
     /// A Flutter application package wired to the Skies spine.
     #[command(name = "flutter-app")]
@@ -258,9 +271,13 @@ fn generate_command(generate: Generate) -> anyhow::Result<u8> {
         Generate::Feature {
             name,
             kind: feature_kind,
+            fields,
             package,
         } => frontend_package(package.as_deref(), |kind, dir| match kind {
-            FrontendKind::React => web::feature(dir, &name, feature_kind),
+            FrontendKind::React => web::feature(dir, &name, feature_kind, fields.as_deref()),
+            FrontendKind::Flutter if fields.is_some() => {
+                anyhow::bail!("--fields applies to React packages")
+            }
             FrontendKind::Flutter => flutter::feature(dir, &name, feature_kind),
         }),
         Generate::Client {
@@ -288,6 +305,7 @@ fn generate_command(generate: Generate) -> anyhow::Result<u8> {
                 FrontendKind::Flutter => flutter::client(dir, &options),
             })
         }
+        Generate::WebApp { name, path } => web::app(&name, path.as_deref()),
         Generate::FlutterApp { name, path } => flutter::app(&name, path.as_deref()),
         backend => dotnet::generate(backend),
     }

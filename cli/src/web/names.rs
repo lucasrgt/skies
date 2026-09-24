@@ -40,6 +40,25 @@ pub fn singular(value: &str) -> String {
     }
 }
 
+/// `"CreateProduct"` / `"user profiles"` → `"create-product"` / `"user-profiles"`: the folder and i18n namespace
+/// spelling, and an npm package name. Humps and separators both become one hyphen.
+pub fn kebab(value: &str) -> String {
+    let mut out = String::new();
+    let mut previous: Option<char> = None;
+    for c in value.trim().chars() {
+        if c.is_ascii_alphanumeric() {
+            if c.is_ascii_uppercase() && previous.is_some_and(|p| p.is_ascii_lowercase() || p.is_ascii_digit()) {
+                out.push('-');
+            }
+            out.push(c.to_ascii_lowercase());
+        } else if !out.ends_with('-') {
+            out.push('-');
+        }
+        previous = Some(c);
+    }
+    out.trim_matches('-').to_string()
+}
+
 /// A JavaScript-identifier-safe token for an i18n namespace (`user-profile` → `user_profile`).
 pub fn ident(namespace: &str) -> String {
     namespace
@@ -61,5 +80,10 @@ mod tests {
         assert_eq!(singular("categories"), "category");
         assert_eq!(singular("address"), "address");
         assert_eq!(ident("user-profile"), "user_profile");
+        assert_eq!(kebab("CreateProduct"), "create-product");
+        assert_eq!(kebab("userProfiles"), "user-profiles");
+        assert_eq!(kebab("user profiles"), "user-profiles");
+        assert_eq!(kebab("Items"), "items");
+        assert_eq!(kebab("--"), "");
     }
 }
