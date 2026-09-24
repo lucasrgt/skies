@@ -66,20 +66,57 @@ enum Command {
     },
 }
 
+/// Where a backend generator writes.
+#[derive(clap::Args)]
+pub struct Backend {
+    /// The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project,
+    /// else the backend Skies.toml declares (with several, the one holding the module).
+    #[arg(long, value_name = "DIR")]
+    pub project: Option<PathBuf>,
+}
+
 #[derive(Subcommand)]
 pub enum Generate {
     /// A module: <Name>Module.cs, error codes, ctx.md, wired into the module registry.
-    Module { name: String },
-    /// A slice inside a module.
-    Slice { module: String, name: String },
+    Module {
+        name: String,
+        #[command(flatten)]
+        backend: Backend,
+    },
+    /// A slice inside a module, mapped under the module's route group.
+    Slice {
+        module: String,
+        name: String,
+        #[command(flatten)]
+        backend: Backend,
+    },
     /// A rich [Entity] with an EnsureValid invariant funnel.
-    Entity { module: String, name: String },
+    Entity {
+        module: String,
+        name: String,
+        #[command(flatten)]
+        backend: Backend,
+    },
     /// An always-valid [ValueObject] in BuildingBlocks.
-    Vo { name: String },
+    Vo {
+        name: String,
+        #[command(flatten)]
+        backend: Backend,
+    },
     /// List/lookup/create/update/delete slices for a tenant-scoped [Entity], plus the Open/Update they call.
-    Crud { module: String, entity: String },
+    Crud {
+        module: String,
+        entity: String,
+        #[command(flatten)]
+        backend: Backend,
+    },
     /// A SignalR hub for real-time fan-out.
-    Hub { module: String, name: String },
+    Hub {
+        module: String,
+        name: String,
+        #[command(flatten)]
+        backend: Backend,
+    },
     /// The auth module: register, login, refresh, logout, me, sessions.
     Auth {
         /// Leave out multi-tenant scoping (the Tenancy/ files and the request tenant).
@@ -88,16 +125,27 @@ pub enum Generate {
         /// Leave out web-cookie refresh delivery; the refresh token travels in the response body only.
         #[arg(long)]
         skip_cookies: bool,
+        #[command(flatten)]
+        backend: Backend,
     },
     /// Phone verification by SMS code.
     #[command(name = "auth:otp")]
-    AuthOtp,
+    AuthOtp {
+        #[command(flatten)]
+        backend: Backend,
+    },
     /// Google sign-up and sign-in.
     #[command(name = "auth:oauth")]
-    AuthOauth,
+    AuthOauth {
+        #[command(flatten)]
+        backend: Backend,
+    },
     /// Email verification and password reset.
     #[command(name = "auth:email")]
-    AuthEmail,
+    AuthEmail {
+        #[command(flatten)]
+        backend: Backend,
+    },
     /// A frontend feature (ViewModel + View + i18n) in a React web or Flutter package.
     Feature {
         name: String,

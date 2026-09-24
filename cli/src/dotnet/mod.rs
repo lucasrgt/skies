@@ -6,7 +6,8 @@
 //! `*.spec.toml`. The one exception is the auth family, whose blueprint ships its tests as a spec
 //! (`.specs/<id>-auth*/`), because auth is the feature most worth proving and least worth rewriting per app.
 //!
-//! Generators run from the API project directory (the one holding `<App>.Api.csproj`). A user error prints
+//! Generators write into the API project (the directory holding `<App>.Api.csproj`): the current directory when
+//! it is one, else the backend `Skies.toml` declares, or `--project` (see [`locate`]). A user error prints
 //! `skies: ...` and exits 1, like the 4.x CLI; `Err` is reserved for I/O failures.
 
 mod app;
@@ -17,6 +18,7 @@ mod embedded;
 mod error_codes;
 mod flow_specs;
 mod flows;
+mod locate;
 mod scaffold;
 mod specs;
 mod text;
@@ -36,21 +38,47 @@ pub fn new_app(name: &str) -> Result<u8> {
 }
 
 pub fn generate(command: Generate) -> Result<u8> {
-    let root = std::env::current_dir()?;
+    let cwd = std::env::current_dir()?;
+    let (project, module) = match &command {
+        Generate::Slice { module, backend, .. }
+        | Generate::Entity { module, backend, .. }
+        | Generate::Crud { module, backend, .. }
+        | Generate::Hub { module, backend, .. } => (backend.project.as_deref(), Some(module.as_str())),
+        Generate::Module { backend, .. }
+        | Generate::Vo { backend, .. }
+        | Generate::Auth { backend, .. }
+        | Generate::AuthOtp { backend }
+        | Generate::AuthOauth { backend }
+        | Generate::AuthEmail { backend } => (backend.project.as_deref(), None),
+        Generate::Feature { .. } | Generate::Client { .. } | Generate::FlutterApp { .. } => {
+            bail!("not a .NET generator")
+        }
+    };
+    let root = match locate::project_dir(&cwd, project, module) {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("skies: {message}");
+            return Ok(1);
+        }
+    };
+    if root != cwd {
+        println!("project {}", root.strip_prefix(&cwd).unwrap_or(&root).display());
+    }
     match command {
-        Generate::Module { name } => scaffold::module(&root, &name),
-        Generate::Slice { module, name } => scaffold::slice(&root, &module, &name),
-        Generate::Entity { module, name } => scaffold::entity(&root, &module, &name),
-        Generate::Vo { name } => scaffold::value_object(&root, &name),
-        Generate::Crud { module, entity } => crud::generate(&root, &module, &entity),
-        Generate::Hub { module, name } => scaffold::hub(&root, &module, &name),
+        Generate::Module { name, .. } => scaffold::module(&root, &name),
+        Generate::Slice { module, name, .. } => scaffold::slice(&root, &module, &name),
+        Generate::Entity { module, name, .. } => scaffold::entity(&root, &module, &name),
+        Generate::Vo { name, .. } => scaffold::value_object(&root, &name),
+        Generate::Crud { module, entity, .. } => crud::generate(&root, &module, &entity),
+        Generate::Hub { module, name, .. } => scaffold::hub(&root, &module, &name),
         Generate::Auth {
             skip_tenancy,
             skip_cookies,
+            ..
         } => auth::generate(&root, !skip_tenancy, !skip_cookies),
-        Generate::AuthOtp => flows::generate(&root, flow_specs::Flow::Otp),
-        Generate::AuthOauth => flows::generate(&root, flow_specs::Flow::OAuth),
-        Generate::AuthEmail => flows::generate(&root, flow_specs::Flow::Email),
+        Generate::AuthOtp { .. } => flows::generate(&root, flow_specs::Flow::Otp),
+        Generate::AuthOauth { .. } => flows::generate(&root, flow_specs::Flow::OAuth),
+        Generate::AuthEmail { .. } => flows::generate(&root, flow_specs::Flow::Email),
         Generate::Feature { .. } | Generate::Client { .. } | Generate::FlutterApp { .. } => {
             bail!("not a .NET generator")
         }

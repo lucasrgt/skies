@@ -48,7 +48,7 @@ Usage: skies g <COMMAND>
 
 Commands:
   module       A module: <Name>Module.cs, error codes, ctx.md, wired into the module registry
-  slice        A slice inside a module
+  slice        A slice inside a module, mapped under the module's route group
   entity       A rich [Entity] with an EnsureValid invariant funnel
   vo           An always-valid [ValueObject] in BuildingBlocks
   crud         List/lookup/create/update/delete slices for a tenant-scoped [Entity], plus the Open/Update they call
@@ -71,28 +71,30 @@ Options:
 ```text
 A module: <Name>Module.cs, error codes, ctx.md, wired into the module registry
 
-Usage: skies g module <NAME>
+Usage: skies g module [OPTIONS] <NAME>
 
 Arguments:
   <NAME>
 
 Options:
-  -h, --help  Print help
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g slice
 
 ```text
-A slice inside a module
+A slice inside a module, mapped under the module's route group
 
-Usage: skies g slice <MODULE> <NAME>
+Usage: skies g slice [OPTIONS] <MODULE> <NAME>
 
 Arguments:
   <MODULE>
   <NAME>
 
 Options:
-  -h, --help  Print help
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g entity
@@ -100,14 +102,15 @@ Options:
 ```text
 A rich [Entity] with an EnsureValid invariant funnel
 
-Usage: skies g entity <MODULE> <NAME>
+Usage: skies g entity [OPTIONS] <MODULE> <NAME>
 
 Arguments:
   <MODULE>
   <NAME>
 
 Options:
-  -h, --help  Print help
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g vo
@@ -115,13 +118,14 @@ Options:
 ```text
 An always-valid [ValueObject] in BuildingBlocks
 
-Usage: skies g vo <NAME>
+Usage: skies g vo [OPTIONS] <NAME>
 
 Arguments:
   <NAME>
 
 Options:
-  -h, --help  Print help
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g crud
@@ -129,14 +133,15 @@ Options:
 ```text
 List/lookup/create/update/delete slices for a tenant-scoped [Entity], plus the Open/Update they call
 
-Usage: skies g crud <MODULE> <ENTITY>
+Usage: skies g crud [OPTIONS] <MODULE> <ENTITY>
 
 Arguments:
   <MODULE>
   <ENTITY>
 
 Options:
-  -h, --help  Print help
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g hub
@@ -144,14 +149,15 @@ Options:
 ```text
 A SignalR hub for real-time fan-out
 
-Usage: skies g hub <MODULE> <NAME>
+Usage: skies g hub [OPTIONS] <MODULE> <NAME>
 
 Arguments:
   <MODULE>
   <NAME>
 
 Options:
-  -h, --help  Print help
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g auth
@@ -162,9 +168,10 @@ The auth module: register, login, refresh, logout, me, sessions
 Usage: skies g auth [OPTIONS]
 
 Options:
-      --skip-tenancy  Leave out multi-tenant scoping (the Tenancy/ files and the request tenant)
-      --skip-cookies  Leave out web-cookie refresh delivery; the refresh token travels in the response body only
-  -h, --help          Print help
+      --skip-tenancy   Leave out multi-tenant scoping (the Tenancy/ files and the request tenant)
+      --skip-cookies   Leave out web-cookie refresh delivery; the refresh token travels in the response body only
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g auth:otp
@@ -172,10 +179,11 @@ Options:
 ```text
 Phone verification by SMS code
 
-Usage: skies g auth:otp
+Usage: skies g auth:otp [OPTIONS]
 
 Options:
-  -h, --help  Print help
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g auth:oauth
@@ -183,10 +191,11 @@ Options:
 ```text
 Google sign-up and sign-in
 
-Usage: skies g auth:oauth
+Usage: skies g auth:oauth [OPTIONS]
 
 Options:
-  -h, --help  Print help
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g auth:email
@@ -194,10 +203,11 @@ Options:
 ```text
 Email verification and password reset
 
-Usage: skies g auth:email
+Usage: skies g auth:email [OPTIONS]
 
 Options:
-  -h, --help  Print help
+      --project <DIR>  The .NET API project (its directory or .csproj) to write into. Defaults to the current directory's project, else the backend Skies.toml declares (with several, the one holding the module)
+  -h, --help           Print help
 ```
 
 ## skies g feature
