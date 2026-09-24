@@ -74,7 +74,9 @@ pub fn collect(location: &Location, runner: &str, cwd: &Path, roots: &[&Path]) -
             continue;
         };
         read_any = true;
-        let mut dirs: Vec<&Path> = vec![cwd];
+        // A monorepo tool (vitest run from the repository root) names files relative to a directory above the
+        // project, so the project's ancestors are candidates too; only a name that exists on disk is accepted.
+        let mut dirs: Vec<&Path> = cwd.ancestors().collect();
         dirs.extend(file.ancestors().skip(1));
         for (raw, lines) in &parsed.files {
             let path = resolve(raw, &parsed.sources, &dirs);
@@ -218,8 +220,8 @@ fn line_number(text: &str) -> Option<u32> {
 }
 
 /// A report path made absolute: as written when absolute, else under the first base where the file exists (the
-/// report's declared sources, then the runner's directory, then the report's own folder and its parents, which is
-/// where Flutter's and vitest's relative `SF:` names start). A name found nowhere keeps its first candidate.
+/// report's declared sources, then the runner's directory and its parents, then the report's own folder and its
+/// parents, which is where Flutter's and vitest's relative `SF:` names start). A name found nowhere keeps its first candidate.
 fn resolve(raw: &str, sources: &[String], dirs: &[&Path]) -> PathBuf {
     let raw = raw.replace('\\', "/");
     let path = Path::new(&raw);

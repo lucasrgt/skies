@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="2" failures="2" errors="0" time="1.044628739">
-    <testsuite name="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" timestamp="2026-09-24T06:29:28.952Z" hostname="{machine}" tests="2" failures="2" errors="0" skipped="0" time="1.044628739">
-        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-1: the list resource starts in loading while it is fetched" time="0.023955471">
+<testsuites name="vitest tests" tests="2" failures="2" errors="0" time="1.045375052">
+    <testsuite name="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" timestamp="2026-09-24T08:10:42.598Z" hostname="{machine}" tests="2" failures="2" errors="0" skipped="0" time="1.045375052">
+        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-1: the list resource starts in loading while it is fetched" time="0.023577846">
             <failure message="expected &apos;ready&apos; to be &apos;loading&apos; // Object.is equality" type="AssertionError">
 AssertionError: expected &apos;ready&apos; to be &apos;loading&apos; // Object.is equality
 
@@ -11,7 +11,7 @@ Received: &quot;ready&quot;
  ❯ examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx:20:47
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-2: a list that settles empty renders the kit&apos;s empty state" time="1.018086077">
+        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-2: a list that settles empty renders the kit&apos;s empty state" time="1.018825696">
             <failure message="Unable to find an element with the text: Nothing here yet. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
 
 Ignored nodes: comments, script, style

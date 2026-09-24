@@ -186,6 +186,33 @@ fn collect_reads_a_nested_coverlet_folder_and_maps_it_onto_the_project() {
 }
 
 #[test]
+fn collect_resolves_names_written_relative_to_a_directory_above_the_project() {
+    // vitest run with a repository-root config names files from the repository root, above the Skies project.
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path();
+    let project = repo.join("examples/app");
+    std::fs::create_dir_all(project.join("web/src")).unwrap();
+    std::fs::write(project.join("web/src/Pay.viewModel.ts"), "").unwrap();
+    let scratch = tempfile::tempdir().unwrap();
+    let report = scratch.path().join("lcov.info");
+    std::fs::write(
+        &report,
+        "SF:examples/app/web/src/Pay.viewModel.ts\nDA:1,3\nend_of_record\n",
+    )
+    .unwrap();
+    let location = Location {
+        path: report,
+        configured: true,
+    };
+
+    let Outcome::Covered(covered) = collect(&location, "web", &project, &[&project]).unwrap() else {
+        panic!("covered");
+    };
+
+    assert_eq!(covered.keys().collect::<Vec<_>>(), ["web/src/Pay.viewModel.ts"]);
+}
+
+#[test]
 fn collect_explains_missing_coverage() {
     let dir = tempfile::tempdir().unwrap();
     let absent = |configured| Location {

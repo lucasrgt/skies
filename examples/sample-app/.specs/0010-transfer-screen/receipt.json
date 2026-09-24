@@ -12,7 +12,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
+    "commit": "d9ab5d79993267eb138b224da4b821d760f910cc",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -23,7 +23,9 @@
     "report": "evidence/green.xml"
   },
   "footprint": {
-    "frontend/web/src/client.gen/sample.ts": "blake3:47ac67b9b715bbbc66940037d2f3795290db4061748dc37873c72583f19819ce",
+    "frontend/web/package.json": "blake3:8f309ab6481f644c74f5a5a28af3a69f7390c644c19a8a5f747caee14e6cc863",
+    "frontend/web/src/client.gen/sample.ts": "blake3:288508d20320640fffcd1276f0bd64c65a7445300bdfbe6f274f6fa36c1e248e",
+    "frontend/web/src/deposit/Deposit.viewModel.ts": "blake3:9f52c28b9c3a0ded9ade1569a9fcad6761a0c4b11ec3cedaf1b625d20796dc05",
     "frontend/web/src/i18n.ts": "blake3:be327133bc485f18a2b4e10a937c0a5cfed534c3aba1e13c1d1cd6b06e84c9d3",
     "frontend/web/src/i18n/resources.generated.ts": "blake3:57f8aad5fa7eb7df5eec66ab8c453f509a168de29580894fb5dba3179e95d734",
     "frontend/web/src/transfer/Transfer.view.tsx": "blake3:c0a5f7667e1a3af882ffaf6403cacbdd81d1b1a900182328f6decee6089cc613",
@@ -32,21 +34,11 @@
   },
   "footprint_source": "diff",
   "inputs": {
-    ".specs/0010-transfer-screen/e2e/Transfer.test.tsx": "blake3:a478ddd29438d27e3dd81e10137d3cbf4dc1cf6dfb0b27928025921fc692ec99",
+    ".specs/0010-transfer-screen/e2e/Transfer.test.tsx": "blake3:357b27435a76765cac8eff13499cf94a678700f610c5f066d0bb8bca6673b782",
     ".specs/0010-transfer-screen/spec.md": "blake3:be0edef9ea5153785836eab35e94ae6d18df8b57895144b42792c92887c068e1"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:a2f22f2297023a7406b304dccdc7d3e7fa88545eb113ba5d6526075e44b0c438",
-    "evidence/red.xml": "blake3:36f7f3ffc1fc149b56d53f22180357c110751fb4e6eb69ba012c767227f34c1c"
-  },
-  "ctx_revised": [
-    "backend/Sample.Api/Modules/Wallets/Wallets.ctx.md"
-  ],
-  "verified_with": {
-    "0001-deposit": "blake3:a2b9266a58a9c26327f05506f336e41c4931ff7122a8c79addd840f470ebd54b",
-    "0002-withdraw": "blake3:fdbfc4a52334cd10fb184d9fc12ad727b6b9eb645163a76fb5c4273f60007989",
-    "0003-wallet-reads": "blake3:98c6deb7bbab1e81f45675bc49ddc540e9466c23ae6d3f43005826ddfd28a346",
-    "0005-openapi-contract": "blake3:51de6ef90ba86d61ff20d74ba8ed679779911c0050adce43db3a91ace89b7ea7",
-    "0009-transfer": "blake3:9193c1ba64abb385dca57af28353d5d4b3b6a47d303c9c59a2cb5a0e43caeae9"
+    "evidence/green.xml": "blake3:2f132b9bb02f22018e7fa3b4c8d130fa1a15f62f56e95341bf97333a7351174e",
+    "evidence/red.xml": "blake3:b606cacc10f29b76b0a373416a3c1d124ddd28fe30d8be89502f138979d2b1ce"
   }
 }

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="2" failures="0" errors="0" time="0.054464581">
-    <testsuite name="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" timestamp="2026-09-24T08:08:07.340Z" hostname="{machine}" tests="2" failures="0" errors="0" skipped="0" time="0.054464581">
-        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-1: the list resource starts in loading while it is fetched" time="0.021532686">
+<testsuites name="vitest tests" tests="2" failures="0" errors="0" time="0.055999124">
+    <testsuite name="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" timestamp="2026-09-24T08:10:43.503Z" hostname="{machine}" tests="2" failures="0" errors="0" skipped="0" time="0.055999124">
+        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-1: the list resource starts in loading while it is fetched" time="0.021274411">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-2: a list that settles empty renders the kit&apos;s empty state" time="0.030061013">
+        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-2: a list that settles empty renders the kit&apos;s empty state" time="0.031886841">
         </testcase>
     </testsuite>
 </testsuites>
