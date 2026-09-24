@@ -21,4 +21,13 @@ public static class WalletsErrorCodes
 
     /// <summary>The <c>walletId</c> input is required.</summary>
     public const string WalletIdRequired = "walletId.required";
+
+    /// <summary>The <c>fromWalletId</c> input of a transfer is required.</summary>
+    public const string FromWalletIdRequired = "fromWalletId.required";
+
+    /// <summary>The <c>toWalletId</c> input of a transfer is required.</summary>
+    public const string ToWalletIdRequired = "toWalletId.required";
+
+    /// <summary>A transfer names the same wallet as its source and destination.</summary>
+    public const string TransferToSameWallet = "wallets.transfer_same_wallet";
 }
