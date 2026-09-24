@@ -276,41 +276,58 @@ CI cannot produce, so that is all the receipt records.
 - **Every test lives in a spec** (`SKY0029`, `SKYFE036`, `SKYFL036`): a test written after the code guards nothing
   it names and never proved it can fail. An isolated system (a value object, a parser) gets its own spec; `e2e/`
   means "the spec's cases".
-- **Failure modes come before code**, one `- FM-n <text>` line each in `spec.md` (indented lines continue it). The
-  human reviews that list.
-- **The test title is the only link.** A case whose name starts with `FM-n` covers that mode
-  (`[Fact(DisplayName = "FM-2: double cancel refunds once")]`, `test("FM-2: …")`). No attributes or manifests. Every
-  failure mode needs a case and every `FM-n` case must name a mode `spec.md` lists; otherwise the run is refused.
+- **Failure modes come before code.** The human reviews that list.
+- **One grammar ties failure modes to cases**, the same everywhere the engine and the doctor read it:
+  - in `spec.md`, a failure mode is a bullet under `## Failure modes` that starts `- FM-<n>` (or `* FM-<n>:`), then
+    its text; indented lines continue it. `## Non-discriminating` uses the same bullets.
+  - a case proves `FM-<n>` when its title starts with `FM-<n>:` or `FM-<n> `
+    (`[Fact(DisplayName = "FM-2: double cancel refunds once")]`, `test("FM-2: …")`, `testWidgets('FM-2: …')`; the
+    title is what follows the last ` > ` or ` › ` a runner prefixes for describe blocks), or when its method name
+    starts with `FM<n>_` (`FM2_double_cancel`, a .NET case without a DisplayName). Keep Dart cases outside `group()`,
+    whose name Flutter prefixes to the title.
+  - a ctx.md cites a mode as `` `0002-withdraw#FM-2` `` (`SKY0005`).
+
+  `FM` is upper case and the hyphen is required. A line or title that starts like an id but is not one (`FM 3`,
+  `fm_3`, `FM3:`, `FM-[name]`) is an error, never silently a mode or silently nothing. Every failure mode needs a
+  case and every case must name a mode `spec.md` lists; otherwise the run is refused. A spec with no failure mode is
+  refused too (`proof run` and `record` exit 1): it would prove nothing.
 - **`skies proof run <spec>` is the loop while writing.** It runs the spec's E2E once on the working tree and prints
-  each failure mode's pass or fail with what the failing cases reported. It writes no receipt and no committed
-  evidence (its report and output stay in the gitignored `evidence/raw/`): "the cases fail now" before the code,
-  "they pass now" after it.
+  each failure mode's pass or fail with what the failing cases reported. It writes only the spec's local
+  `evidence/raw/` (the report, `run.log`, and what the cases saved under `$SKIES_EVIDENCE/raw/`): no receipt, no
+  committed evidence, nothing else.
 - **`skies proof record <spec>` proves red→green.** It runs the E2E on the red revision, where every mode must fail,
-  then on the working tree, where every mode must pass, and writes `receipt.json`. Red is, in order: `--red <rev>`;
-  `HEAD` plus the spec's `red.patch` (`--red-patch <file>` stores one); the merge-base of `HEAD` with
-  `[workspace] default_branch` from `Skies.toml`; with the current branch's upstream, when that is another branch;
-  with `origin/HEAD` (else `main`, else `master`). `record` prints the choice and how far back it is (`red 5e2f092
-  (merge-base with origin/main, default branch from origin/HEAD; 116 commits before HEAD)`) and warns past 50
-  commits: work on a long-lived branch sets `default_branch`. A mode already passing on red is non-discriminating and
+  then on the working tree, where every mode must pass, and writes `receipt.json`. Red is `--red <rev>`, else `HEAD`
+  with the spec's `red.patch` (`--red-patch <file>` stores one), else the merge-base of `HEAD` with `[workspace]
+  default_branch`, `origin/HEAD`, `main`, or `master`, whichever exists first. `record` prints the choice and how far
+  back it is (`red 5e2f092 (merge-base with origin/main, default branch from origin/HEAD; 116 commits before HEAD)`)
+  and warns past 50 commits. Red runs in a temporary git worktree inside the repository (`.skies-red/` at its top,
+  listed in the local `.git/info/exclude` and removed afterwards), so configuration above the project
+  (`NuGet.config`, `.npmrc`, `global.json`) applies to it. A mode already passing on red is non-discriminating and
   needs a written justification under `## Non-discriminating` in `spec.md`.
-- **Cases that never ran on red count as failing (`did-not-build`), whatever the runner**: no report at all (.NET E2E
-  that reference a type the feature adds, or a failing `build`), or a report where no case names a failure mode and a
-  case failed or the runner exited non-zero (vitest's one file-level failure for a missing import, Playwright or
-  Flutter failing to load). The receipt's `red.output` keeps the lines that say why (`error CS0246: …`). Never
-  applied on green. When red does not match `spec.md`, `record` prints the tail of red's output (kept as
-  `evidence/raw/red.log`): the usual cause is a red revision that is not the one intended.
+- **Cases that never ran on red count as failing (`did-not-build`) only when the spec's own cases are why**: compiler
+  errors located in its `e2e/` files (`error CS…` for .NET, `error TS…`, Dart `Error:` and analyzer errors, also in a
+  runner's copy of them under `.skies_spec/`), or a report whose only failures are file-level failures of its `e2e/`
+  files (vitest's case for an import that does not resolve yet, Flutter's `loading …`). That is the expected red of a
+  new feature: its E2E reference code that does not exist yet. The receipt's `red.output` keeps those lines. Any
+  other reason red could not run its cases (a restore that failed, a missing tool, a runner command the shell could
+  not run, an error in a file outside the spec, no output) is not evidence: `record` exits 2 with the tail of red's
+  output and writes no receipt. When red does not match `spec.md`, `record` prints the tail of red's output: the
+  usual cause is a red revision that is not the one intended. In both cases red's output stays in
+  `evidence/raw/red.log`.
 - **The receipt is the summary a reviewer reads.** It names the runner, red's commit (and `red.patch`), green's
   commit, and per failure mode: the red result (`fail`, `did-not-build`, `non-discriminating`), the green result,
   the cases that proved it, the start of what red's first failing case said (the assertion, not the stack; checkout
   paths become `{root}`), and for a tagged mode its criteria and verdict files. No durations, no hashes, no
   footprint: keys are sorted, so recording an unchanged spec again leaves git clean. Re-record when the failure
   modes change; nothing else asks you to.
-- **Evidence is what a case chose to save.** Runners get `SKIES_EVIDENCE` (the run's evidence folder, absolute) and
-  `SKIES_SPEC` (the spec folder name) in their environment, besides the `{evidence}` placeholder. What a case writes
-  there is committed under `evidence/` (at most 256 KB per file; `record` refuses a larger one and says so), except
-  what it writes under `raw/`, which stays local like the full reports. An Assay verdict that differs only in timings
-  keeps its committed bytes. .NET tests use `SpecEvidence.Save("name.json", value)` from `Skies.Framework.Testing` (a
-  no-op outside a proof run). The engine adds `/*/evidence/raw/` to `.specs/.gitignore` when missing; commit it.
+- **Evidence has one committed home and one local one.** Runners get `SKIES_EVIDENCE` (an absolute folder) and
+  `SKIES_SPEC` (the spec folder name) in their environment, besides the `{evidence}` placeholder.
+  `$SKIES_EVIDENCE/<file>` becomes the spec's `evidence/<file>`, committed and written only by `record` from green
+  (at most 256 KB per file; `record` refuses a larger one and says so). `$SKIES_EVIDENCE/raw/<file>` becomes
+  `evidence/raw/<file>`, local and gitignored, beside the runner's reports and output, written by `run` and `record`.
+  An Assay verdict that differs only in timings keeps its committed bytes. .NET tests use
+  `SpecEvidence.Save("name.json", value)` from `Skies.Framework.Testing` (a no-op outside a proof run). `spec new` and
+  `record` add `/*/evidence/raw/` to `.specs/.gitignore` when missing; commit it.
 - **A failure mode may name an Assay verifier**: `- FM-5 a retry with the same key credits twice
   [avp: idempotency-key-honored]` (several ids comma-separated). The case saves the verdict to
   `$SKIES_EVIDENCE/avp-FM-5.json`, and the mode passes only when its cases pass and every tagged criterion passes.
@@ -319,20 +336,22 @@ CI cannot produce, so that is all the receipt records.
   base `record` would choose) maps each path under `**/Modules/<M>/` to `<M>.ctx.md` and prints the specs its design
   notes cite, all their failure modes for `` `0002-withdraw` `` and just the one for `` `0002-withdraw#FM-2` ``, plus
   every spec whose `touches:` globs in its frontmatter match a path (a screen, a copy catalog, a shared component
-  outside `Modules/`). Read them before writing failure modes; the cases themselves run in CI.
+  outside `Modules/`). `touches` feeds nothing else; `impact` and `record` warn about a glob that matches no file of
+  the project. Read the impacted specs before writing failure modes; the cases themselves run in CI.
 - **Runners are declared in `Skies.toml`**: a shell command that runs one spec's `e2e/` and writes a JUnit or TRX
   report. The engine knows nothing about xUnit, Playwright, or Flutter:
 
   ```toml
   [runners.api]
   build = "dotnet build tests/App.Tests"
-  command = "dotnet test tests/App.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\""
+  command = "dotnet test tests/App.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger 'trx;LogFileName={report}'"
   ```
 
-  Placeholders: `{id}`, `{spec}`, `{dir}` (the spec's `e2e/`), `{report}`, and `{evidence}`. `setup` (optional) runs
-  first in each checkout (start a database, install packages in red's fresh worktree); `build` (optional) compiles
-  once per checkout so `command` can skip it, and a failing build on red is `did-not-build`. The exit code decides
-  nothing; the report does.
+  Placeholders: `{id}`, `{spec}`, `{dir}` (the spec's `e2e/`), `{report}`, and `{evidence}`. Commands run through
+  `sh -c`, so the TRX logger argument is quoted: unquoted, its `;` ends the command and no report is written.
+  `setup` (optional) runs first in each checkout (start a database, install packages in red's fresh worktree);
+  `build` (optional) compiles once per checkout so `command` can skip it. The exit code decides nothing; the report
+  does.
 
   .NET spec tests use the namespace `Specs.S<id>` so the filter selects one spec. The test project compiles them
   with `<Compile Include="..\..\.specs\*\e2e\**\*.cs" />` and nothing else, and references the doctor so `SKY0029`

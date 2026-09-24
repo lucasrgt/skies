@@ -10,13 +10,13 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::LazyLock;
 
 use anyhow::{Context, Result};
-use globset::Glob;
+use globset::{Glob, GlobMatcher};
 use regex::Regex;
 
 use super::base::Base;
 use super::git::Repo;
 use super::report::FmId;
-use super::spec::{self, SpecDoc};
+use super::spec::{self, SpecDir, SpecDoc};
 use crate::manifest::Project;
 
 /// Why a spec is impacted, and which of its failure modes to show (`None`: all of them).
@@ -67,12 +67,12 @@ pub fn impact(paths: &[PathBuf]) -> Result<u8> {
         println!("module context, read before writing failure modes: {ctx}");
     }
     let mut docs = BTreeMap::new();
+    let files = project_files(root);
     for spec in &specs {
         let doc = SpecDoc::load(spec)?;
+        warn_unmatched_touches(spec, &doc, &files)?;
         for glob in &doc.touches {
-            let matcher = Glob::new(glob)
-                .with_context(|| format!("{}: invalid touches glob '{glob}'", spec.rel()))?
-                .compile_matcher();
+            let matcher = touches_matcher(spec, glob)?;
             if let Some(path) = changed.iter().find(|path| matcher.is_match(path)) {
                 let hit = hits.entry(spec.name.clone()).or_default();
                 hit.via.insert(format!("touches {path}"));
@@ -106,6 +106,47 @@ pub fn impact(paths: &[PathBuf]) -> Result<u8> {
         count => println!("{count} specs impacted"),
     }
     Ok(0)
+}
+
+fn touches_matcher(spec: &SpecDir, glob: &str) -> Result<GlobMatcher> {
+    Ok(Glob::new(glob)
+        .with_context(|| format!("{}: invalid touches glob '{glob}'", spec.rel()))?
+        .compile_matcher())
+}
+
+/// Every file of the project git would see (ignored ones left out), relative to the root with forward slashes.
+pub fn project_files(root: &Path) -> Vec<String> {
+    ignore::WalkBuilder::new(root)
+        .hidden(false)
+        .require_git(false)
+        .filter_entry(|entry| entry.file_name() != ".git")
+        .build()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_some_and(|kind| kind.is_file()))
+        .filter_map(|entry| {
+            let rel = entry.path().strip_prefix(root).ok()?;
+            let parts: Vec<String> = rel
+                .components()
+                .map(|part| part.as_os_str().to_string_lossy().into_owned())
+                .collect();
+            Some(parts.join("/"))
+        })
+        .collect()
+}
+
+/// Warns about each `touches` glob that matches no file of the project: it maps nothing to the spec, so it is either
+/// a typo or a path that moved. A warning, never a failure: `touches` only feeds `skies proof impact`.
+pub fn warn_unmatched_touches(spec: &SpecDir, doc: &SpecDoc, files: &[String]) -> Result<()> {
+    for glob in &doc.touches {
+        let matcher = touches_matcher(spec, glob)?;
+        if !files.iter().any(|file| matcher.is_match(file)) {
+            eprintln!(
+                "warning: {}: touches glob '{glob}' matches no file in the project; fix or drop it",
+                spec.name
+            );
+        }
+    }
+    Ok(())
 }
 
 /// The ctx.md of the module `path` sits in (a file or a folder under `Modules/<M>/`), by convention only; whether it

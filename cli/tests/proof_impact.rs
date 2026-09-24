@@ -34,6 +34,7 @@ fn cited_repo() -> Repo {
         "---\nid: \"0003\"\nrunner: fake\ntouches: [web/src/**]\n---\n## Failure modes\n\n\
          - FM-1 the screen shows a stale state, written over\n  two lines\n",
     );
+    repo.write("web/src/Screen.tsx", "export {}\n");
     repo
 }
 
@@ -63,6 +64,36 @@ fn impact_lists_the_specs_whose_touches_match() {
     );
     let none = text(&repo.skies(&["proof", "impact", "src/unrelated.txt"]));
     assert_eq!(none, "no spec cites or touches these paths\n");
+}
+
+#[test]
+fn a_touches_glob_that_matches_nothing_is_a_warning() {
+    let repo = cited_repo();
+    repo.write(
+        ".specs/0004-moved/spec.md",
+        "---\nid: \"0004\"\nrunner: fake\ntouches: [web/src/moved/**]\n---\n## Failure modes\n\n- FM-1 a\n",
+    );
+    let impact = repo.skies(&["proof", "impact", "src/unrelated.txt"]);
+    assert!(impact.status.success(), "a warning never fails: {}", text(&impact));
+    let output = text(&impact);
+    assert!(
+        output.contains("warning: 0004-moved: touches glob 'web/src/moved/**' matches no file in the project"),
+        "{output}"
+    );
+    assert!(
+        !output.contains("0003-screen: touches"),
+        "web/src/** matches Screen.tsx: {output}"
+    );
+
+    repo.write(".specs/0004-moved/e2e/cases.txt", "FM-1: a toggles\n");
+    repo.implement();
+    let recorded = repo.skies(&["proof", "record", "4"]);
+    assert!(recorded.status.success(), "{}", text(&recorded));
+    assert!(
+        text(&recorded).contains("warning: 0004-moved: touches glob 'web/src/moved/**' matches no file"),
+        "{}",
+        text(&recorded)
+    );
 }
 
 #[test]

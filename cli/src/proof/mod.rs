@@ -9,11 +9,13 @@ mod avp;
 mod base;
 mod evidence;
 mod git;
+mod grammar;
 mod green;
 mod impact;
 mod receipt;
 mod record;
 mod red;
+mod red_cause;
 mod report;
 mod run;
 mod runner;
@@ -39,7 +41,7 @@ pub fn spec_new(slug: &str, runner: Option<&str>) -> Result<u8> {
         }
         (None, [only]) => only,
         (None, []) => bail!(
-            "{FILE_NAME} declares no runner; add one (e.g. [runners.api] command = \"dotnet test ... --logger trx;LogFileName={{report}}\") or pass --runner"
+            "{FILE_NAME} declares no runner; add one (e.g. [runners.api] command = \"dotnet test ... --logger 'trx;LogFileName={{report}}'\"), quoting the logger so the shell does not end the command at its `;`"
         ),
         (None, many) => bail!(
             "{FILE_NAME} declares several runners; pick one with --runner ({})",
@@ -53,6 +55,7 @@ pub fn spec_new(slug: &str, runner: Option<&str>) -> Result<u8> {
     std::fs::create_dir_all(dir.join(spec::E2E_DIR)).with_context(|| format!("creating {}", dir.display()))?;
     std::fs::write(dir.join(spec::SPEC_FILE), spec::template(&id, slug, runner))
         .with_context(|| format!("writing {}", dir.join(spec::SPEC_FILE).display()))?;
+    evidence::ensure_ignored(&project.root)?;
 
     println!(
         "created {}/{name}/ ({}, {}/)",
@@ -60,6 +63,8 @@ pub fn spec_new(slug: &str, runner: Option<&str>) -> Result<u8> {
         spec::SPEC_FILE,
         spec::E2E_DIR
     );
-    println!("next: list the failure modes in spec.md, then write one e2e case per mode titled \"FM-n: ...\"");
+    println!(
+        "next: list the failure modes in spec.md as `- FM-<n> <what goes wrong>`, then write e2e cases titled \"FM-<n>: ...\""
+    );
     Ok(0)
 }

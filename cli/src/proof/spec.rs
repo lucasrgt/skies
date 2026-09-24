@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 
-use super::report::{FmId, fm_ids};
+use super::report::{FmId, GRAMMAR_DOC, spec_line};
 
 pub const SPECS_DIR: &str = ".specs";
 pub const SPEC_FILE: &str = "spec.md";
@@ -139,6 +139,18 @@ impl SpecDoc {
         self.modes.get(&id).map(|mode| mode.avp.as_slice()).unwrap_or_default()
     }
 
+    /// Why the spec cannot be run or recorded because it lists no failure mode, if it lists none: a receipt of zero
+    /// modes would prove nothing, and a run of zero modes would pass vacuously.
+    pub fn empty(&self, spec: &SpecDir) -> Option<String> {
+        self.failure_modes.is_empty().then(|| {
+            format!(
+                "{}/{SPEC_FILE} lists no failure mode, so there is nothing to prove. Under `## Failure modes`, write \
+                 one line per way the feature can fail, as `- FM-1 <what goes wrong>` ({GRAMMAR_DOC}).",
+                spec.rel()
+            )
+        })
+    }
+
     pub fn runner(&self, spec: &SpecDir) -> Result<&str> {
         self.runner
             .as_deref()
@@ -179,8 +191,14 @@ pub fn parse(text: &str) -> Result<SpecDoc> {
             continue;
         }
         match section.as_str() {
-            "failure modes" => open = failure_mode_line(line),
-            "non-discriminating" => doc.justified.extend(fm_ids(line)),
+            "failure modes" => {
+                open = spec_line(line)
+                    .map_err(anyhow::Error::msg)?
+                    .map(|(id, text)| (id, text.into()))
+            }
+            "non-discriminating" => doc
+                .justified
+                .extend(spec_line(line).map_err(anyhow::Error::msg)?.map(|(id, _)| id)),
             _ => {}
         }
     }
@@ -199,19 +217,6 @@ fn close_mode(doc: &mut SpecDoc, id: FmId, text: &str) -> Result<()> {
     doc.failure_modes.push(id);
     doc.modes.insert(id, FailureMode { text, avp });
     Ok(())
-}
-
-/// `- FM-3 text` (or `* FM-3: text`): the id must lead the bullet, so prose that merely mentions a failure mode
-/// inside the section does not declare one. Returns the id and the text on this line; indented lines that follow
-/// continue it.
-fn failure_mode_line(line: &str) -> Option<(FmId, String)> {
-    let item = line.trim_start().strip_prefix(['-', '*']).map(str::trim_start)?;
-    let head = item.split_whitespace().next()?;
-    let id = match fm_ids(head).as_slice() {
-        [id] if head.to_ascii_uppercase().starts_with("FM") => *id,
-        _ => return None,
-    };
-    Some((id, item[head.len()..].trim_start_matches(':').trim().to_string()))
 }
 
 /// Splits `text [avp: a, b]` into the text and the criterion ids. A criterion id is kebab-case, as in the AVP
@@ -356,7 +361,7 @@ pub fn template(id: &str, slug: &str, runner: &str) -> String {
         "---\n\
          id: \"{id}\"\n\
          runner: {runner}\n\
-         # touches: [src/Module/**]   # optional: files the receipt should also watch\n\
+         # touches: [clients/web/src/deposit/**]   # optional: paths outside Modules/ that `skies proof impact` maps here\n\
          ---\n\
          # {title}\n\
          \n\
@@ -364,10 +369,10 @@ pub fn template(id: &str, slug: &str, runner: &str) -> String {
          \n\
          ## Failure modes\n\
          \n\
-         <!-- One line per way the feature can fail. Each becomes an e2e case titled \"FM-n: ...\" that fails before\n\
-         the implementation and passes after it. -->\n\
+         <!-- One `- FM-<n> <what goes wrong>` line per way the feature can fail, observable from outside. Each gets\n\
+         e2e cases titled \"FM-<n>: ...\" that fail before the implementation and pass after it. -->\n\
          \n\
-         - FM-1 ...\n\
+         - FM-1 <replace with what goes wrong, e.g. a second cancel refunds twice>\n\
          \n\
          ## Out of scope\n\
          \n\

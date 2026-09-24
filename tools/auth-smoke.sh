@@ -27,6 +27,8 @@
 #            (errors and warnings alike, for every app).
 #   SPECS  — build and run the tests project (analyzers off), which compiles .specs/*/e2e; every case must pass
 #            and the count of passed tests must equal the number of FM cases in the specs.
+#   PROOFS — `skies proof run` on every spec with the app's own runner: each passes, and the engine counts exactly the
+#            `- FM-<n>` lines its spec.md lists (a spec whose modes do not parse fails instead of passing on zero).
 #
 # Headless and Docker-free: the in-memory provider backs the tests. Needs cargo and the .NET 10 SDK on PATH (e.g.
 # `mise exec rust@latest dotnet@10 -- tools/auth-smoke.sh`). Set SKIES to reuse a prebuilt binary, and
@@ -177,6 +179,28 @@ specs() {
   echo "ok: [$app] $passed/$expected spec cases passed ($(ls -d "$WORK/$app"/.specs/*/ | xargs -n1 basename | tr '\n' ' '))"
 }
 
+# proofs <App> — run every spec through the engine (`skies proof run`, the app's own runner): each must pass, and
+# the engine must see every `- FM-<n>` line of its spec.md, so a spec whose failure modes do not parse (zero FMs, or
+# fewer than written) fails here instead of passing vacuously.
+proofs() {
+  local app="$1" spec name modes out
+  echo "==> [$app] PROOFS: skies proof run on every spec"
+  for spec in "$WORK/$app"/.specs/*/spec.md; do
+    name="$(basename "$(dirname "$spec")")"
+    modes="$(awk '/^## /{s=(tolower($0) ~ /^## failure modes/)} s && /^[[:space:]]*[-*][[:space:]]+FM-[0-9]+([: ]|$)/{n++} END{print n+0}' "$spec")"
+    if [ "$modes" -eq 0 ]; then
+      echo "FAIL: [$app] $name/spec.md lists no \`- FM-<n>\` line"; exit 1
+    fi
+    if ! out="$(cd "$WORK/$app" && "$SKIES" proof run "$name" 2>&1)" \
+      || ! echo "$out" | grep -q "^$modes/$modes FMs pass$"; then
+      echo "$out" | tail -40
+      echo "FAIL: [$app] skies proof run $name must pass all $modes failure modes spec.md lists"
+      exit 1
+    fi
+    echo "ok: [$app] $name: $modes/$modes FMs pass through the engine"
+  done
+}
+
 echo "==> rendering Full: auth + otp + oauth + email + module/slice/entity/vo/hub"
 API="$(new_app Full)"
 g auth; g auth:otp; g auth:oauth; g auth:email
@@ -254,14 +278,18 @@ sed -i '/^public static class CatalogErrorCodes/{n;a\
 }' "$API/Modules/Catalog/CatalogErrorCodes.cs"
 mkdir -p "$WORK/Crud/.specs/9999-crud/e2e"
 cat > "$WORK/Crud/.specs/9999-crud/spec.md" <<'EOF'
+---
+id: "9999"
+runner: api
+---
 # Generated CRUD state transitions
 
 ## Failure modes
-- FM-[rejected-update]: invalid input changes an existing entity.
-- FM-[accepted-update]: valid input fails to update an existing entity.
-- FM-[foreign-org]: a signed-in user reads or changes another org's product.
-- FM-[stale-write]: an update or delete made against a version someone else changed since overwrites their change.
-- FM-[app-wide-write]: a signed-in member creates or deletes a tag every org shares.
+- FM-1 invalid input changes an existing entity.
+- FM-2 valid input fails to update an existing entity.
+- FM-3 a signed-in user reads or changes another org's product.
+- FM-4 an update or delete made against a version someone else changed since overwrites their change.
+- FM-5 a signed-in member creates or deletes a tag every org shares.
 EOF
 cat > "$WORK/Crud/.specs/9999-crud/e2e/Mutation.cs" <<'EOF'
 using Crud.Api.Modules.Catalog;
@@ -270,7 +298,7 @@ namespace Specs.S9999;
 
 public class Mutation
 {
-    [Fact(DisplayName = "FM-[rejected-update]: failed validation preserves the original fields and timestamp")]
+    [Fact(DisplayName = "FM-1: failed validation preserves the original fields and timestamp")]
     public void Rejected_update_preserves_state()
     {
         var now = DateTime.UtcNow;
@@ -284,7 +312,7 @@ public class Mutation
         Assert.Equal(now, item.UpdatedAt);
     }
 
-    [Fact(DisplayName = "FM-[accepted-update]: successful validation applies changes to the same entity")]
+    [Fact(DisplayName = "FM-2: successful validation applies changes to the same entity")]
     public void Accepted_update_changes_the_same_instance()
     {
         var now = DateTime.UtcNow;
@@ -320,7 +348,7 @@ public class CatalogOverHttp
 
     private sealed record Tokens(string AccessToken);
 
-    [Fact(DisplayName = "FM-[foreign-org]: another org's product is a not-found to read, list, and update")]
+    [Fact(DisplayName = "FM-3: another org's product is a not-found to read, list, and update")]
     public async Task Another_orgs_product_is_not_found()
     {
         await using var app = new TestApp();
@@ -336,7 +364,7 @@ public class CatalogOverHttp
         Assert.Contains("Lamp", await alice.GetStringAsync("/catalog/products"), StringComparison.Ordinal);
     }
 
-    [Fact(DisplayName = "FM-[stale-write]: a write against an outdated version is a conflict and the newer change survives")]
+    [Fact(DisplayName = "FM-4: a write against an outdated version is a conflict and the newer change survives")]
     public async Task A_stale_version_is_a_conflict()
     {
         await using var app = new TestApp();
@@ -354,7 +382,7 @@ public class CatalogOverHttp
         (await alice.DeleteAsync($"/catalog/products/{lamp.Id}?version={renamed.Version}")).EnsureSuccessStatusCode();
     }
 
-    [Fact(DisplayName = "FM-[app-wide-write]: a member reads tags but cannot write them; an app admin can")]
+    [Fact(DisplayName = "FM-5: a member reads tags but cannot write them; an app admin can")]
     public async Task Only_an_app_admin_writes_app_wide_tags()
     {
         await using var app = new TestApp();
@@ -402,11 +430,14 @@ EOF
 package Full
 doctor Full
 specs Full
+proofs Full
 package Single
 doctor Single
 specs Single
+proofs Single
 package Crud
 doctor Crud
 specs Crud
+proofs Crud
 
 echo "==> auth-smoke OK"

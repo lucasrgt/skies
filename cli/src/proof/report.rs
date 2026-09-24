@@ -1,16 +1,16 @@
 //! Test reports and the one rule of the proof system: failure modes and test cases must agree.
 //!
 //! The engine does not know xUnit, Playwright, or Flutter. A runner writes JUnit XML or a .NET TRX file, and a
-//! case is tied to a failure mode only by its name (`"FM-2: double cancel"`, `FM2_double_cancel`). Nothing in
-//! production code carries a tag.
+//! case is tied to a failure mode only by its name (`"FM-2: double cancel"`, `FM2_double_cancel`), by the grammar
+//! in `grammar`. Nothing in production code carries a tag.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
-use std::sync::LazyLock;
 
 use anyhow::{Context, Result, bail};
-use regex::Regex;
 use serde::{Serialize, Serializer};
+
+pub use super::grammar::{GRAMMAR_DOC, Named, case_fm, case_mode, spec_line};
 
 /// A failure-mode id such as `FM-3`. Ordered numerically so `FM-10` sorts after `FM-9` in receipts and output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -28,22 +28,6 @@ impl Serialize for FmId {
     }
 }
 
-/// `FM` with an optional `-`, `_`, or space before the number, not glued to a preceding letter or digit, so
-/// `PLATFORM-1` or `XFM2` never count while `Deposit_FM2`, `FM-2:` and `fm 2` do.
-static FM_PATTERN: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?i)(?:^|[^a-z0-9])fm[-_ ]?(\d+)").expect("valid regex"));
-
-/// Every failure-mode id a test name (or a spec line) mentions, deduplicated and in order.
-pub fn fm_ids(text: &str) -> Vec<FmId> {
-    let mut ids = BTreeSet::new();
-    for capture in FM_PATTERN.captures_iter(text) {
-        if let Ok(number) = capture[1].parse() {
-            ids.insert(FmId(number));
-        }
-    }
-    ids.into_iter().collect()
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Outcome {
     Passed,
@@ -58,6 +42,9 @@ pub struct Case {
     pub outcome: Outcome,
     /// What a failed case reported (the assertion message, the start of the stack), when the report says.
     pub message: Option<String>,
+    /// The file the report ties the case to (JUnit `file`, else `classname`: vitest writes the test file there), so a
+    /// file-level failure on red can be traced to the spec's own e2e.
+    pub file: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -123,6 +110,7 @@ fn junit_cases(root: roxmltree::Node) -> Vec<Case> {
                 name: node.attribute("name").unwrap_or_default().to_string(),
                 outcome,
                 message,
+                file: node.attribute("file").or(node.attribute("classname")).map(String::from),
             }
         })
         .collect()
@@ -154,6 +142,7 @@ fn trx_cases(root: roxmltree::Node) -> Vec<Case> {
                 name: node.attribute("testName").unwrap_or_default().to_string(),
                 outcome,
                 message,
+                file: None,
             }
         })
         .collect()
@@ -173,11 +162,13 @@ pub struct Evaluation {
 pub struct Inconsistency {
     pub uncovered: Vec<FmId>,
     pub unknown: Vec<(FmId, String)>,
+    /// Cases whose names start like a failure-mode id but do not follow the grammar.
+    pub look_alikes: Vec<String>,
 }
 
 impl Inconsistency {
     pub fn is_empty(&self) -> bool {
-        self.uncovered.is_empty() && self.unknown.is_empty()
+        self.uncovered.is_empty() && self.unknown.is_empty() && self.look_alikes.is_empty()
     }
 }
 
@@ -194,6 +185,12 @@ impl fmt::Display for Inconsistency {
                 "case \"{case}\" names {id}, which spec.md does not list under ## Failure modes"
             ));
         }
+        for case in &self.look_alikes {
+            lines.push(format!(
+                "case \"{case}\" starts like a failure-mode id but is not one: title it \"FM-<n>: ...\" or name the \
+                 method FM<n>_... ({GRAMMAR_DOC})"
+            ));
+        }
         write!(f, "{}", lines.join("\n"))
     }
 }
@@ -204,12 +201,11 @@ pub fn evaluate(spec_fms: &[FmId], cases: &[Case]) -> Result<Evaluation, Inconsi
     let mut by_fm: BTreeMap<FmId, Vec<Case>> = BTreeMap::new();
     let mut problems = Inconsistency::default();
     for case in cases {
-        for id in fm_ids(&case.name) {
-            if listed.contains(&id) {
-                by_fm.entry(id).or_default().push(case.clone());
-            } else {
-                problems.unknown.push((id, case.name.clone()));
-            }
+        match case_mode(&case.name) {
+            Named::Mode(id) if listed.contains(&id) => by_fm.entry(id).or_default().push(case.clone()),
+            Named::Mode(id) => problems.unknown.push((id, case.name.clone())),
+            Named::LookAlike => problems.look_alikes.push(case.name.clone()),
+            Named::Nothing => {}
         }
     }
     problems.uncovered = listed.iter().filter(|id| !by_fm.contains_key(id)).copied().collect();
@@ -226,23 +222,6 @@ pub fn evaluate(spec_fms: &[FmId], cases: &[Case]) -> Result<Evaluation, Inconsi
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn matches_fm_ids_in_titles_and_method_names() {
-        assert_eq!(fm_ids("FM-2: double cancel"), [FmId(2)]);
-        assert_eq!(fm_ids("Specs.S0001.DepositSpec.FM2_double_cancel"), [FmId(2)]);
-        assert_eq!(fm_ids("Deposit_fm_12_x"), [FmId(12)]);
-        assert_eq!(fm_ids("fm 3 and FM-1"), [FmId(1), FmId(3)]);
-        assert_eq!(fm_ids("FM-02"), [FmId(2)]);
-    }
-
-    #[test]
-    fn ignores_fm_glued_to_other_words() {
-        assert!(fm_ids("PLATFORM-1 boots").is_empty());
-        assert!(fm_ids("XFM2").is_empty());
-        assert!(fm_ids("2FM-1").is_empty());
-        assert!(fm_ids("FM-: nothing").is_empty());
-    }
 
     #[test]
     fn fm_ids_serialize_in_numeric_order() {
@@ -304,6 +283,7 @@ mod tests {
             name: name.into(),
             outcome,
             message: None,
+            file: None,
         }
     }
 
@@ -353,12 +333,21 @@ mod tests {
 
     #[test]
     fn reports_uncovered_and_unknown_failure_modes() {
-        let cases = [case("FM-1: a", Outcome::Passed), case("FM-9: stray", Outcome::Passed)];
+        let cases = [
+            case("FM-1: a", Outcome::Passed),
+            case("FM-9: stray", Outcome::Passed),
+            case("FM 2: spaced", Outcome::Passed),
+        ];
         let problems = evaluate(&[FmId(1), FmId(2)], &cases).unwrap_err();
         assert_eq!(problems.uncovered, [FmId(2)]);
         assert_eq!(problems.unknown, [(FmId(9), "FM-9: stray".to_string())]);
+        assert_eq!(problems.look_alikes, ["FM 2: spaced"]);
         let message = problems.to_string();
         assert!(message.contains("FM-2 is listed in spec.md"));
         assert!(message.contains("names FM-9"));
+        assert!(
+            message.contains("case \"FM 2: spaced\" starts like a failure-mode id"),
+            "{message}"
+        );
     }
 }

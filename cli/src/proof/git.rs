@@ -43,18 +43,6 @@ impl Repo {
         self.resolve("HEAD")
     }
 
-    /// The branch HEAD is on, or `None` when detached.
-    pub fn current_branch(&self) -> Option<String> {
-        self.run(&["symbolic-ref", "--quiet", "--short", "HEAD"]).ok()
-    }
-
-    /// The current branch's upstream as git abbreviates it (`origin/v5`), if it has one.
-    pub fn upstream(&self) -> Option<String> {
-        self.run(&["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])
-            .ok()
-            .filter(|name| !name.is_empty())
-    }
-
     /// The remote's default branch (`origin/main`), from `origin/HEAD`.
     pub fn origin_head(&self) -> Option<String> {
         self.run(&["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"])
@@ -81,15 +69,23 @@ impl Repo {
         Ok(paths)
     }
 
-    /// Checks out `commit` in a fresh detached worktree under the system temp directory. The returned guard removes
-    /// it on drop, so an early return or a failing runner never leaves a stray worktree behind.
+    /// Checks out `commit` in a fresh detached worktree inside the repository, at `<top>/.skies-red/<random>/checkout`.
+    /// Inside, not under the system temp directory, so every configuration a tool looks up in the parent directories
+    /// (a NuGet.config, .npmrc, global.json, or tool manifest at or above the repository) applies to red exactly as it
+    /// does to the working tree. Not inside `.git/`, because tools refuse to read there (Vite, and so vitest, denies
+    /// `**/.git/**`). The folder is listed in the repository's local `info/exclude`, so git never shows it, and it
+    /// exists only while red runs: the returned guard removes the worktree and the folder on drop, so an early return
+    /// or a failing runner leaves nothing behind.
     pub fn temp_worktree(&self, commit: &str) -> Result<TempWorktree> {
         // A worktree left by a killed process would otherwise block nothing but clutter `git worktree list`.
         let _ = self.run(&["worktree", "prune"]);
+        self.exclude(RED_DIR)?;
+        let parent = self.top.join(RED_DIR);
+        std::fs::create_dir_all(&parent).with_context(|| format!("creating {}", parent.display()))?;
         let dir = tempfile::Builder::new()
-            .prefix("skies-red-")
-            .tempdir()
-            .context("creating a temporary directory")?;
+            .prefix("red-")
+            .tempdir_in(&parent)
+            .with_context(|| format!("creating a directory under {}", parent.display()))?;
         let path = dir.path().join("checkout");
         let path_text = path.to_str().context("the temporary directory path is not UTF-8")?;
         git(
@@ -100,8 +96,27 @@ impl Repo {
         Ok(TempWorktree {
             top: self.top.clone(),
             path,
-            _dir: dir,
+            dir: Some(dir),
+            parent,
         })
+    }
+
+    /// Adds `/<name>/` to the repository's local exclude file (`info/exclude`, never committed) when it is missing,
+    /// so a folder the engine creates at the top never shows as untracked, nor as an undeclared root entry.
+    fn exclude(&self, name: &str) -> Result<()> {
+        let common = PathBuf::from(self.run(&["rev-parse", "--path-format=absolute", "--git-common-dir"])?);
+        let path = common.join("info").join("exclude");
+        let rule = format!("/{name}/");
+        let mut text = std::fs::read_to_string(&path).unwrap_or_default();
+        if text.lines().any(|line| line.trim() == rule) {
+            return Ok(());
+        }
+        if !text.is_empty() && !text.ends_with('\n') {
+            text.push('\n');
+        }
+        text.push_str(&format!("# skies proof record: red's temporary checkout\n{rule}\n"));
+        std::fs::create_dir_all(common.join("info"))?;
+        std::fs::write(&path, text).with_context(|| format!("writing {}", path.display()))
     }
 
     /// Applies a patch whose paths are relative to the project root (what `git diff --relative` writes from the app)
@@ -129,11 +144,15 @@ impl Repo {
     }
 }
 
+/// The folder at the repository top that holds red's checkouts while they run.
+pub const RED_DIR: &str = ".skies-red";
+
 pub struct TempWorktree {
     top: PathBuf,
     /// The checkout's top level, the counterpart of [`Repo::top`].
     pub path: PathBuf,
-    _dir: tempfile::TempDir,
+    dir: Option<tempfile::TempDir>,
+    parent: PathBuf,
 }
 
 impl Drop for TempWorktree {
@@ -142,6 +161,9 @@ impl Drop for TempWorktree {
             let _ = git(&self.top, &["worktree", "remove", "--force", path]);
         }
         let _ = git(&self.top, &["worktree", "prune"]);
+        drop(self.dir.take());
+        // Empty unless another record runs at the same time, whose checkout must stay.
+        let _ = std::fs::remove_dir(&self.parent);
     }
 }
 

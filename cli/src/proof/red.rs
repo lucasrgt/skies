@@ -1,20 +1,22 @@
 //! Red: the spec's cases on a revision without the feature, in a throwaway worktree.
 //!
-//! Every failure mode must fail there. Cases that cannot even run count as failing (`did-not-build`), whatever the
-//! runner: no report at all (.NET E2E that reference a type the feature adds), or a report in which no case names a
-//! failure mode while something failed (vitest's one file-level case for an import that does not exist yet,
-//! Playwright or Flutter failing at load). The runner's output is kept locally as `evidence/raw/red.log` and printed
+//! Every failure mode must fail there. When the cases never ran (no report, or a report in which no case names a
+//! failure mode while something failed), every mode counts as failing (`did-not-build`) only if `red_cause` traces
+//! the failure to the spec's own e2e files: the E2E reference code the feature adds. Any other reason red could not
+//! run its cases (a broken restore, a missing tool, a bad runner command) stops `record` with the output, because
+//! calling that red would prove nothing. The runner's output is kept locally as `evidence/raw/red.log` and printed
 //! whenever red does not match spec.md, so a wrong red revision is visible instead of a riddle.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 
 use super::evidence::RAW_DIR;
 use super::git::Repo;
 use super::receipt::RedResult;
-use super::report::{self, Case, FmId, Outcome, fm_ids};
+use super::red_cause::{self, SpecFiles};
+use super::report::{self, Case, FmId, Named, Outcome, case_mode};
 use super::runner::{self, Job, NoReport, tail};
 use super::spec::{E2E_DIR, EVIDENCE_DIR, SPEC_FILE, SpecDir, SpecDoc};
 use super::summary::{self, Scrub};
@@ -26,7 +28,7 @@ pub struct Red {
     pub results: BTreeMap<FmId, RedResult>,
     /// Per mode, the start of what its first failing case said.
     pub messages: BTreeMap<FmId, String>,
-    /// The runner's report and its extension; `None` when red did not build.
+    /// The runner's report and its extension; `None` when it wrote none.
     pub report: Option<(PathBuf, &'static str)>,
     /// The runner's output.
     pub log: PathBuf,
@@ -93,15 +95,25 @@ pub fn run(
         Ok(run) => run,
         Err(error) => match error.downcast_ref::<NoReport>() {
             Some(no_report) => {
-                let log = no_report.log.clone();
-                let why = "the runner wrote no report";
-                return Ok(Some(did_not_build(doc, why, log, evidence, &scrub)));
+                let never = NeverRan {
+                    why: "the runner wrote no report",
+                    log: no_report.log.clone(),
+                    cases: None,
+                    report: None,
+                };
+                return did_not_build(spec, doc, never, evidence, &scrub).map(Some);
             }
             None => return Err(error),
         },
     };
     if let Some(why) = never_ran(&run.report.cases, run.success) {
-        return Ok(Some(did_not_build(doc, why, run.log, evidence, &scrub)));
+        let never = NeverRan {
+            why,
+            log: run.log,
+            cases: Some(&run.report.cases),
+            report: Some((run.file.clone(), run.report.format.extension())),
+        };
+        return did_not_build(spec, doc, never, evidence, &scrub).map(Some);
     }
     let evaluation = match report::evaluate(&doc.failure_modes, &run.report.cases) {
         Ok(evaluation) => evaluation,
@@ -137,30 +149,63 @@ pub fn run(
     }))
 }
 
-/// Every failure mode fails red because its cases never ran; the output says why.
-fn did_not_build(doc: &SpecDoc, why: &str, log: PathBuf, evidence: PathBuf, scrub: &Scrub) -> Red {
+/// A red run whose cases never ran: why it looks so, its output, and its report's cases when it wrote one.
+struct NeverRan<'a> {
+    why: &'static str,
+    log: PathBuf,
+    cases: Option<&'a [Case]>,
+    /// The report and its extension, kept locally beside the output.
+    report: Option<(PathBuf, &'static str)>,
+}
+
+/// Every failure mode fails red because its cases never ran, when the spec's own e2e is why; otherwise an error that
+/// stops `record` with red's output, and no receipt.
+fn did_not_build(spec: &SpecDir, doc: &SpecDoc, never: NeverRan, evidence: PathBuf, scrub: &Scrub) -> Result<Red> {
+    let text = std::fs::read_to_string(&never.log).unwrap_or_default();
+    let lines = match red_cause::attribute(&text, never.cases, &SpecFiles::new(spec)) {
+        Ok(lines) => lines,
+        Err(cause) => {
+            keep_log(spec, &never.log)?;
+            if let Some((file, extension)) = &never.report {
+                let raw = spec.file(EVIDENCE_DIR).join(RAW_DIR);
+                std::fs::copy(file, raw.join(format!("red.{extension}")))?;
+            }
+            bail!(
+                "red's cases never ran ({}), and not because of the spec's own e2e: {cause}.\n\
+                 That red proves nothing, so no receipt was written. Make red build up to the spec's cases (a restore \
+                 or tool the red checkout lacks: add a `setup` to the runner; a runner command that fails on its \
+                 own: fix it in Skies.toml), or pass --red <rev>. The whole output is in {}/{EVIDENCE_DIR}/{RAW_DIR}/\
+                 red.log; its end:\n{}",
+                never.why,
+                spec.rel(),
+                tail(&never.log)
+            );
+        }
+    };
     println!(
-        "  red did not build: {why}, so every failure mode counts as failing (output in {EVIDENCE_DIR}/{RAW_DIR}/red.log)"
+        "  red did not build because of the spec's own e2e ({}), so every failure mode counts as failing (output in \
+         {EVIDENCE_DIR}/{RAW_DIR}/red.log)",
+        summary::excerpt(&lines[..1], scrub).unwrap_or_default()
     );
-    Red {
+    Ok(Red {
         results: doc
             .failure_modes
             .iter()
             .map(|id| (*id, RedResult::DidNotBuild))
             .collect(),
         messages: BTreeMap::new(),
-        report: None,
-        output: summary::output(&log, scrub),
-        log,
+        report: never.report,
+        output: summary::excerpt(&lines, scrub),
+        log: never.log,
         evidence,
-    }
+    })
 }
 
-/// Why a red report shows the cases never ran, if it does: no case names a failure mode, and either one failed or
-/// errored (a file that could not load) or the runner exited non-zero. Only ever asked of red; on green the same
-/// report is a mismatch with spec.md.
+/// Why a red report shows the cases never ran, if it does: no case names a failure mode (or starts like one), and
+/// either one failed or errored (a file that could not load) or the runner exited non-zero. Only ever asked of red;
+/// on green the same report is a mismatch with spec.md.
 pub fn never_ran(cases: &[Case], success: bool) -> Option<&'static str> {
-    if cases.iter().any(|case| !fm_ids(&case.name).is_empty()) {
+    if cases.iter().any(|case| case_mode(&case.name) != Named::Nothing) {
         return None;
     }
     if cases.iter().any(|case| case.outcome == Outcome::Failed) {
@@ -177,9 +222,7 @@ pub fn never_ran(cases: &[Case], success: bool) -> Option<&'static str> {
 fn mismatch(spec: &SpecDir, problems: &str, log: &Path) -> Result<()> {
     eprintln!("{}: the red run does not match spec.md:\n{problems}", spec.name);
     eprintln!("red's last output:\n{}", tail(log));
-    let raw = spec.file(EVIDENCE_DIR).join(RAW_DIR);
-    std::fs::create_dir_all(&raw)?;
-    std::fs::copy(log, raw.join("red.log"))?;
+    keep_log(spec, log)?;
     eprintln!(
         "(the whole output is in {}/{EVIDENCE_DIR}/{RAW_DIR}/red.log)",
         spec.rel()
@@ -188,6 +231,14 @@ fn mismatch(spec: &SpecDir, problems: &str, log: &Path) -> Result<()> {
         "If red is the wrong revision (see the `red` line above), pass --red <rev> or set `default_branch` under \
          [workspace] in Skies.toml."
     );
+    Ok(())
+}
+
+/// Keeps red's output as the spec's local `evidence/raw/red.log` when red stops `record`, for a closer look.
+fn keep_log(spec: &SpecDir, log: &Path) -> Result<()> {
+    let raw = spec.file(EVIDENCE_DIR).join(RAW_DIR);
+    std::fs::create_dir_all(&raw)?;
+    std::fs::copy(log, raw.join("red.log"))?;
     Ok(())
 }
 
@@ -214,6 +265,7 @@ mod tests {
             name: name.into(),
             outcome,
             message: None,
+            file: None,
         }
     }
 
@@ -233,5 +285,9 @@ mod tests {
         let named = [case("FM-1: a", Outcome::Failed), case("setup", Outcome::Failed)];
         assert!(never_ran(&named, false).is_none(), "a case naming a mode ran");
         assert!(never_ran(&[case("FM-9: stray", Outcome::Passed)], false).is_none());
+        assert!(
+            never_ran(&[case("FM 1: spaced", Outcome::Failed)], false).is_none(),
+            "a look-alike is the grammar's error, not a build failure"
+        );
     }
 }

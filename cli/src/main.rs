@@ -213,20 +213,23 @@ pub enum Spec {
 #[derive(Subcommand)]
 pub enum Proof {
     /// Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the
-    /// failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the
-    /// spec's gitignored evidence/raw/. Exits 1 unless every mode passes.
+    /// failing cases reported. Writes only the spec's local evidence/raw/ (the report, run.log, and what the cases
+    /// saved under $SKIES_EVIDENCE/raw/); never a receipt or committed evidence. Exits 1 unless every mode passes,
+    /// and for a spec.md that lists no `- FM-<n>` line.
     Run {
         /// The spec id or folder name.
         spec: String,
     },
     /// Run the spec's E2E on the red revision (every failure mode must fail) and on the working tree (every one
-    /// must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards.
+    /// must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards. Cases that
+    /// never ran on red count as failing only when the spec's own e2e files are why (a compile error or unresolved
+    /// import in them); any other red failure (restore, missing tool, runner command) exits 2 with no receipt.
     Record {
         /// The spec id or folder name.
         spec: String,
         /// The revision the failure modes must fail on. Defaults to HEAD plus the spec's red.patch when it has one,
-        /// else the merge-base of HEAD with `[workspace] default_branch` from Skies.toml, else with the current
-        /// branch's upstream (when it is another branch), else with origin/HEAD. The choice is printed.
+        /// else the merge-base of HEAD with `[workspace] default_branch` from Skies.toml, origin/HEAD, main, or
+        /// master, whichever exists first. The choice is printed.
         #[arg(long)]
         red: Option<String>,
         /// A patch applied to HEAD for red, for specs written after the code; kept as the spec's red.patch.

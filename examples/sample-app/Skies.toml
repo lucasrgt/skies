@@ -12,8 +12,9 @@ tests = "backend/Sample.Tests"   # `skies doctor` builds it, so the SKY rules (S
 frontend = "frontend/web"        # its `lint` runs frontend-sdk's ESLint config, so `skies doctor` runs the SKYFE rules
 
 # Every .specs/<id>/e2e/ folder is compiled into Sample.Tests (see its csproj); the filter runs one spec's namespace
-# and the TRX logger writes the report `skies proof` reads back. `build` compiles once per checkout (red's worktree,
-# then the working tree), so `command` skips it and a red that does not compile counts as did-not-build.
+# and the TRX logger (quoted: `sh -c` would end the command at its `;`) writes the report `skies proof` reads back.
+# `build` compiles once per checkout (red's worktree, then the working tree), so `command` skips it; a red whose own
+# e2e does not compile counts as did-not-build, and any other build failure stops `record`.
 [runners.api]
 build = "dotnet build backend/Sample.Tests"
 command = "dotnet test backend/Sample.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\""
