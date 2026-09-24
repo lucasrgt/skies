@@ -113,7 +113,7 @@ fn verify_refreshes_the_executed_files_and_keeps_the_changed_ones() {
     assert!(verified.status.success(), "{}", text(&verified));
     assert!(
         text(&verified)
-            .contains("verified  2/2 FMs pass (refreshed; footprint 2 files, coverage, 1 by executed lines)"),
+            .contains("verified  2/2 FMs pass (refreshed; footprint 2 files, coverage, 1 by executed lines; "),
         "{}",
         text(&verified)
     );
