@@ -342,3 +342,13 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   (uma vez por checkout e invocação; falha no red = `did-not-build`), o sample compila uma vez e roda
   `dotnet test --no-build`, e o `--with-impacted` reaproveita a sessão do green. `record 0009 --with-impacted`: 29,8 s
   → 18,8 s (red 4,1 s, green 3,2 s, seis impactados 11,4 s; cada spec da API 3,2 s → 2,1 s sem o build).
+- **Raiz declarada (`[workspace] root`, SKYWS001/002).** Decisão do dono: repositório acumula lixo na raiz (logs,
+  imagens, docs soltos, pastas avulsas). O `Skies.toml` agora lista tudo o que pode ficar na raiz: globs sobre o nome
+  de uma entrada, `/` no fim só casa diretório e sem `/` só casa arquivo; `.git` e `Skies.toml` são implícitos; o que
+  o `.gitignore` ignora nunca conta, nem pasta sem nenhum arquivo visível ao git. O `skies doctor` ganhou a perna
+  `workspace` (nativa, sem processo, crate `ignore`): SKYWS001 (erro) para entrada não declarada, SKYWS002 (aviso)
+  para declaração que não casa nada; manifesto sem `root` recebe um SKYWS001 com a lista atual pronta para colar;
+  `--package` não roda. `skies new` escreve a lista do template (o app gerado sai limpo; o `auth-smoke` agora roda o
+  próprio `skies doctor`), e `skies migrate 5` declara as entradas atuais e pede para podar. No Hostpoint
+  (`hostpoint-skies5`, clone raso): 41 entradas declaradas, entre elas `doctor-rollout.log`, `favicon.png`,
+  `.aerofortress/`, `.cursor/`, `.jevd/`, `jevd*.json`, `taskfleet.toml` e `lefthook.yml` para o dono decidir.

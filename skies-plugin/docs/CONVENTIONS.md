@@ -413,6 +413,16 @@ broken crypto, disabled certificate validation, deprecated TLS (CA53xx). Opt out
 `<SkiesSecurityAnalysis>false</SkiesSecurityAnalysis>`, or override one rule from your own `.globalconfig` at a
 `global_level` above 50. The framework libraries hold the same floor via `build/Skies.Framework.Library.props`.
 
+**Workspace.** `skies doctor` also checks the repository root against `Skies.toml` `[workspace] root`, natively and
+without spawning a process (`--package` skips it). Entries are globs on one root entry's name; a trailing `/` is a
+directory only, no slash a file only; `.git` and `Skies.toml` are implicit; `.gitignore`d entries never count. See
+[MONOREPO-ARCHITECTURE.md](MONOREPO-ARCHITECTURE.md#the-root-allowlist).
+
+| Rule | Enforces | Why |
+|------|----------|-----|
+| `SKYWS001` | Every root entry git would see matches `[workspace] root`: move it under a declared folder, delete it, or declare it. A manifest without `root` gets one finding with today's entries ready to paste | junk (logs, images, stray docs) piles up at the root |
+| `SKYWS002` | Warning. A `root` entry that matches nothing at the root is stale: remove it | the allowlist should say what the root is |
+
 ## The self-harness — framework development only
 
 `Skies.Framework.SelfHarness` holds Skies' own libraries to a higher bar, like the Rails repo does. It is

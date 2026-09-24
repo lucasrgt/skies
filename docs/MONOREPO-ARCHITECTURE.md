@@ -10,6 +10,7 @@ behavior stays visible in project files, package scripts, and runner configurati
 [workspace]
 name = "hostpoint"
 default_branch = "develop"
+root = [".github/", ".specs/", "clients/", "docs/", "src/", "tests/", ".gitignore", "AGENTS.md", "README.md", "*.slnx"]
 
 [products.marketplace]
 backend = "src/Hostpoint.Api"
@@ -37,6 +38,7 @@ Three sections exist, and unknown keys fail to parse:
   record` takes red as the merge-base of HEAD with it (after `--red` and a spec's `red.patch`), and `skies proof
   impact` diffs from there. Without it, the current branch's upstream (when it is another branch) and then
   `origin/HEAD` are used. Set it when work happens on a long-lived branch other than the remote's default.
+  Required `root` lists everything allowed at the repository root (see [The root allowlist](#the-root-allowlist)).
 - `[products.*]` lists each product's `backend` (a .NET application root), optional `tests` (the .NET project that
   compiles the spec E2E; `skies doctor` builds it instead of the backend, so `SKY0029` sees stray tests), and
   `frontend` packages (one path or a list; React has `package.json`, Flutter `pubspec.yaml`). A backend or package
@@ -56,6 +58,31 @@ Three sections exist, and unknown keys fail to parse:
   - `report` pins the report path (relative to the root) when the tool cannot take `{report}`.
   - `env` adds variables (placeholders expand in values); `SKIES_EVIDENCE`, `SKIES_SPEC`, and `SKIES_COVERAGE` are
     always set.
+
+## The root allowlist
+
+Repositories accumulate junk at the root: logs, screenshots, stray notes, a folder someone needed once. An agent adds
+to it whenever it has nowhere better to put a file, and nobody decides to remove it. `[workspace] root` makes every
+root entry a decision the manifest records: a new one is a one-line diff a reviewer sees, and anything else is a
+`skies doctor` finding.
+
+- Each entry is a glob ([globset](https://docs.rs/globset)) matched against one root entry's **name**, never a path:
+  `src/`, `*.slnx`, `README.md`. `src/Api/` is rejected.
+- **A trailing `/` matches a directory only; no trailing slash matches a file only.** `docs/` never allows a file
+  named `docs`, and `README.md` never allows a folder; the finding says so when the other kind is declared.
+- Matching is case-sensitive, and `*` matches dotfiles too. A name with glob characters is declared with them
+  escaped as one-character classes (`[[]draft[]].md`); `skies migrate 5` and the doctor's suggestion do it for you.
+- `.git` and `Skies.toml` are always allowed and never listed.
+- Only what git would see counts: `.gitignore`d entries (build output, `node_modules/`, IDE state) are never flagged,
+  and neither is a directory holding nothing git would see (an ignored agent-worktrees folder, an empty folder). The
+  check reads one directory level (plus each root folder until its first visible file), spawns no process, and takes
+  milliseconds.
+
+The doctor's workspace leg reports `SKYWS001` (error) for each undeclared root entry ("move it under a declared
+folder, delete it, or declare it") and `SKYWS002` (warning) for a declared entry that matches nothing on disk (a
+stale line). A manifest without `root` gets one `SKYWS001` whose message carries today's root as a list ready to
+paste. `skies new` writes the template's list; `skies migrate 5` declares the current root entries, so a migrated app
+stays doctor-clean, and asks the owner to delete the junk and trim the list. `skies doctor --package` skips the leg.
 
 ## Package ownership
 
