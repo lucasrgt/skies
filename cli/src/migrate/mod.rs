@@ -177,7 +177,10 @@ fn skipped(path: &Path, root: &Path) -> bool {
             || (name.starts_with('.') && path.is_dir() && ![".config", ".github"].contains(&name)))
 }
 
+/// Writes the report in one go and ignores a closed stdout, so `skies migrate 5 --dry-run | head` never panics.
 fn print(root: &Path, plan: &Plan, dry_run: bool) {
+    use std::fmt::Write as _;
+    let mut out = String::new();
     let verb = if dry_run { "would" } else { "will" };
     let relative = |path: &Path| path.strip_prefix(root).unwrap_or(path).display().to_string();
     let (mut writes, mut deletes) = (0, 0);
@@ -185,33 +188,38 @@ fn print(root: &Path, plan: &Plan, dry_run: bool) {
         match change {
             Change::Write { path, .. } => {
                 writes += 1;
-                println!("  edit    {}", relative(path));
+                writeln!(out, "  edit    {}", relative(path)).unwrap();
             }
             Change::Delete { path } => {
                 deletes += 1;
-                println!("  delete  {}", relative(path));
+                writeln!(out, "  delete  {}", relative(path)).unwrap();
             }
         }
     }
-    println!("skies migrate 5 {verb} edit {writes} and delete {deletes} path(s).");
+    writeln!(
+        out,
+        "skies migrate 5 {verb} edit {writes} and delete {deletes} path(s)."
+    )
+    .unwrap();
     if !plan.follow_ups.is_empty() {
-        println!("\nFinish by hand:");
+        writeln!(out, "\nFinish by hand:").unwrap();
         for (note, files) in &plan.follow_ups {
             match files.as_slice() {
-                [] => println!("  - {note}"),
-                [one] => println!("  - {one}: {note}"),
+                [] => writeln!(out, "  - {note}").unwrap(),
+                [one] => writeln!(out, "  - {one}: {note}").unwrap(),
                 many => {
-                    println!("  - {note} ({} files):", many.len());
+                    writeln!(out, "  - {note} ({} files):", many.len()).unwrap();
                     for file in many.iter().take(5) {
-                        println!("      {file}");
+                        writeln!(out, "      {file}").unwrap();
                     }
                     if many.len() > 5 {
-                        println!("      … and {} more", many.len() - 5);
+                        writeln!(out, "      … and {} more", many.len() - 5).unwrap();
                     }
                 }
             }
         }
     }
+    let _ = std::io::Write::write_all(&mut std::io::stdout(), out.as_bytes());
 }
 
 fn apply(plan: &Plan) -> Result<()> {
