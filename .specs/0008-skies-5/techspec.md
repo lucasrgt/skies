@@ -285,3 +285,7 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   `semanticLabel` nem `excludeFromSemantics`) em error; SKYFL039 (alvo de toque só com ícone, sem rótulo) e SKYFL040
   (campo de texto sem `labelText`/`label`/`hintText`) em warning. Sem gêmeo SKYFE; calibradas nos pacotes Flutter
   do hostpoint sem falso positivo visível.
+- **O `.ctx.md` continua obrigatório (SKY0004) e fica vivo por citar os specs.** Uma nota de design cita o spec que
+  prova o invariante (`` `0002-withdraw#FM-2` ``); a SKY0005 lê `.specs/*/spec.md` como AdditionalFiles e acusa spec
+  ou FM inexistente. `proof impact` lista o ctx de cada módulo tocado, `proof record` avisa (sem falhar) quando o
+  ctx não foi revisado e grava `ctx_revised`; o ctx fica fora do footprint salvo via `touches`.

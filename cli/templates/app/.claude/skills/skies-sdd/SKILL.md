@@ -28,9 +28,10 @@ skies proof impact <files or folders you expect to touch>
 skies proof verify <the impacted ids>      # baseline: they must pass before you change anything
 ```
 
-`impact` reads every receipt's footprint and prints each impacted spec with its failure modes. Read them: they are
-behavior other features rely on, and your failure modes must not contradict them. If a baseline verify already
-fails, report it before starting; it is not yours to hide.
+`impact` reads every receipt's footprint and prints each impacted spec with its failure modes, then the
+`<Module>.ctx.md` of every module the paths reach. Read both before writing failure modes: the specs are behavior
+other features rely on, the ctx holds the module's invariants and the specs that prove them, and your failure modes
+must contradict neither. If a baseline verify already fails, report it before starting; it is not yours to hide.
 
 ## 2. Write the spec (before any code)
 
@@ -117,8 +118,21 @@ If a failure mode already passes on the merge-base, either the test does not dis
 For a spec written after the code, add a `red.patch` that removes the behavior (for example, stub the handler)
 and record against it.
 
-## 6. Report
+## 6. Revise the module context
+
+For every module the change touched, reread its `<Module>.ctx.md`. If an invariant changed or a new one appeared,
+update `## Design notes` and cite the spec that proves it, as the backticked folder name with an optional failure
+mode: "Overdraw is refused as a business rule (`` `0002-withdraw#FM-2` ``)." Remove a note whose invariant is gone.
+Keep it prose: the why, not a list of files or routes. `skies doctor` (`SKY0005`) flags a citation whose spec or
+failure mode does not exist.
+
+The note `skies proof record` printed in step 5 ("Wallets.ctx.md was not revised in this change; …") names each
+touched module whose ctx stayed as it was; it never fails. A ctx is not part of any footprint, so revising it after
+recording stales nothing; record again if you want the receipt's `ctx_revised` to list the revision.
+
+## 7. Report
 
 Report the spec path, the failure modes (with their `[avp: …]` tags), the receipt summary (red/green per FM), the
-impacted specs and whether they still pass (`verified_with`), and `skies doctor` status. If other receipts went
-stale because of your change (`skies proof status`), say so and rerun them with `skies proof verify <ids>`.
+impacted specs and whether they still pass (`verified_with`), the ctx.md files you revised, and `skies doctor`
+status. If other receipts went stale because of your change (`skies proof status`), say so and rerun them with
+`skies proof verify <ids>`.

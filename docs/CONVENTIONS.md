@@ -213,14 +213,29 @@ types, tests, or routes is duplication, and duplication rots.
 - `# <module>` and a 1–3 line purpose.
 - `## Boundaries`: inside, outside, non-goals. Stops scope leak; the highest-value section.
 - `## Design notes`: the non-obvious invariants and why they hold. Performance, security, and cross-module effects
-  fold in here when they carry a why.
+  fold in here when they carry a why. Each invariant cites the spec that proves it (below).
 
 **Optional:** `## Wiring` (dependencies not obvious from imports), `## Not yet ported` (deliberate absences).
 **Excluded** (recoverable, so it would drift): data models, DTOs, route or error tables, test matrices, examples,
 file lists, change logs (decisions go to an ADR and git), diagrams (explain a non-linear flow in prose).
 
-**Freshness is citation resolution** (`SKY0005`): a ctx naming a slice or type that no longer exists is stale.
-Not mtime: since the ctx does not duplicate code, adding a field must not force a ctx edit.
+**Spec citations tie the prose to evidence.** A design note cites the spec that proves its invariant as the
+backticked spec folder name, optionally with one failure mode after `#`: `` `0002-withdraw` `` or
+`` `0002-withdraw#FM-2` `` ("Overdraw is refused as a business rule (`` `0002-withdraw#FM-2` ``)."). A note with no
+spec behind it is a hypothesis; write the spec or drop the claim.
+
+**Freshness is citation resolution** (`SKY0005`): a ctx naming a slice or type that no longer exists is stale, and
+so is one citing a spec folder that does not exist or a failure mode its `spec.md` does not list. The doctor reads
+the specs as AdditionalFiles (`<AdditionalFiles Include="..\..\.specs\*\spec.md" />` in the API project, beside
+`**\*.ctx.md`); with none fed, every spec citation is flagged. A code citation is a single PascalCase identifier; a
+spec citation starts with digits, so the two never overlap. Not mtime: since the ctx does not duplicate code, adding
+a field must not force a ctx edit. For the same reason a ctx is not hashed into a receipt footprint unless a spec
+lists it in `touches`.
+
+**Kept alive by the proof loop, not a gate.** `skies proof impact` names the ctx.md of every module the paths reach
+(`**/Modules/<M>/` → `<M>.ctx.md`), to read before writing failure modes. `skies proof record` notes, never fails,
+when the spec touched a module whose ctx was not revised in the same change, and records the revised ones in the
+receipt's `ctx_revised`.
 
 ## Specs and proofs
 
@@ -259,8 +274,8 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
   Optional: an untagged mode is decided by its cases alone.
 - **The receipts are the impact index.** `skies proof impact <paths>` (or `--diff [<rev>]`, the default without
   paths) inverts footprints and `touches` into path → specs, printing each impacted spec's failure modes and receipt
-  state. Read them before changing shared code; `skies proof record <spec> --with-impacted` re-proves them after and
-  names the passing ones in `verified_with`.
+  state, then the ctx.md of each module the paths reach. Read them before changing shared code;
+  `skies proof record <spec> --with-impacted` re-proves them after and names the passing ones in `verified_with`.
 - **Runners are declared in `Skies.toml`**: a shell command that runs one spec's `e2e/` and writes a JUnit or TRX
   report. The engine knows nothing about xUnit, Playwright, or Flutter:
 
@@ -310,7 +325,7 @@ spec's E2E and review. Never suppress a rule: a firing rule means the shape is w
 | `SKY0001` | Slice conformance: static class; nested `Input` and `Output`; `Handle → Task<Result<T>>`; `Map`; ordered Input → Output → Handle → Map | one readable shape per feature |
 | `SKY0002` | Endpoint stays thin: a route handler is an expression-bodied lambda or method group, never a statement block | business logic hides in routes |
 | `SKY0004` | Every module has a `<Module>.ctx.md` with a non-empty `## Boundaries` and `## Design notes` | the why gets forgotten |
-| `SKY0005` | `.ctx.md` is fresh: every backticked identifier it cites resolves in source or a reference (not mtime) | ctx drifts from code |
+| `SKY0005` | `.ctx.md` is fresh: every backticked identifier it cites resolves in source or a reference, and every cited spec (`` `0002-withdraw#FM-2` ``) exists with that failure mode (not mtime) | ctx drifts from code and evidence |
 | `SKY0006` | No `IRepository` / unit-of-work abstraction in a slice | clean-architecture bloat |
 | `SKY0007` | File ≤ 500 lines (EF `Migrations/` exempt: tool-emitted, append-only) | locality for readers and agents |
 | `SKY0009` | Write-ownership: a write (Add/Update/Remove/…) on another module's entity is flagged, on a `DbSet` or through `DbContext.Add(entity)`; cross-module reads, joins, and calls are free. `.Tests.cs` exempt | keeps a module carvable later |
