@@ -1,134 +1,9 @@
-//! End to end through the real binary: a throwaway git repository, a shell-script runner that writes JUnit, and
-//! the full spec new → record → status → verify loop. The runner passes a case only when `src/feature.txt` says
-//! `on`, so the base commit is a genuine red and the working tree a genuine green.
+//! End to end through the real binary: the full spec new → record → status → verify loop over the fake runner in
+//! `support`, with a genuine red at the base commit and a genuine green in the working tree.
 
-use std::path::PathBuf;
-use std::process::{Command, Output};
+mod support;
 
-const RUNNER: &str = r#"#!/bin/sh
-# usage: run.sh <e2e dir> <report>; one case per line of <e2e dir>/cases.txt
-state=$(head -n 1 src/feature.txt)
-{
-  echo '<testsuites><testsuite name="fake">'
-  while IFS= read -r name; do
-    [ -z "$name" ] && continue
-    case "$name" in
-      *always*) echo "<testcase name=\"$name\"/>" ;;
-      *) if [ "$state" = on ]; then echo "<testcase name=\"$name\"/>"; else echo "<testcase name=\"$name\"><failure/></testcase>"; fi ;;
-    esac
-  done < "$1/cases.txt"
-  echo '</testsuite></testsuites>'
-} > "$2"
-echo "screenshot" > "$3/final.txt"
-"#;
-
-struct Repo {
-    dir: tempfile::TempDir,
-}
-
-impl Repo {
-    fn new() -> Repo {
-        let repo = Repo {
-            dir: tempfile::tempdir().unwrap(),
-        };
-        repo.git(&["init", "--quiet", "--initial-branch=main"]);
-        repo.write(
-            "Skies.toml",
-            "[workspace]\nname = \"demo\"\n\n[runners.fake]\ncommand = \"sh run.sh {dir} {report} {evidence}\"\n",
-        );
-        repo.write("run.sh", RUNNER);
-        repo.write("src/feature.txt", "off\n");
-        repo.write("src/unrelated.txt", "x\n");
-        repo.git(&["add", "."]);
-        repo.git(&["commit", "--quiet", "-m", "base"]);
-        repo.git(&["checkout", "--quiet", "-b", "feature"]);
-        repo
-    }
-
-    /// Commits the feature on the branch, as an author would before recording.
-    fn implement(&self) {
-        self.write("src/feature.txt", "on\n");
-        self.git(&["commit", "--quiet", "-am", "implement the feature"]);
-    }
-
-    fn path(&self, rel: &str) -> PathBuf {
-        self.dir.path().join(rel)
-    }
-
-    fn write(&self, rel: &str, text: &str) {
-        let path = self.path(rel);
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(path, text).unwrap();
-    }
-
-    fn read(&self, rel: &str) -> String {
-        std::fs::read_to_string(self.path(rel)).unwrap()
-    }
-
-    fn git(&self, args: &[&str]) {
-        let status = Command::new("git")
-            .args([
-                "-c",
-                "user.name=t",
-                "-c",
-                "user.email=t@t",
-                "-c",
-                "commit.gpgsign=false",
-            ])
-            .args(args)
-            .current_dir(self.dir.path())
-            .status()
-            .unwrap();
-        assert!(status.success(), "git {args:?}");
-    }
-
-    fn skies(&self, args: &[&str]) -> Output {
-        Command::new(env!("CARGO_BIN_EXE_skies"))
-            .args(args)
-            .current_dir(self.dir.path())
-            .output()
-            .unwrap()
-    }
-
-    fn worktrees(&self) -> usize {
-        let output = Command::new("git")
-            .args(["worktree", "list"])
-            .current_dir(self.dir.path())
-            .output()
-            .unwrap();
-        String::from_utf8_lossy(&output.stdout).lines().count()
-    }
-}
-
-fn text(output: &Output) -> String {
-    format!(
-        "{}{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    )
-}
-
-fn spec_with(fms: &[&str]) -> String {
-    let lines: Vec<String> = fms.iter().map(|fm| format!("- {fm}")).collect();
-    format!(
-        "---\nid: \"0001\"\nrunner: fake\n---\n# Toggle\n\n## Failure modes\n\n{}\n",
-        lines.join("\n")
-    )
-}
-
-const SPEC: &str = ".specs/0001-toggle";
-
-fn new_spec(repo: &Repo, cases: &str) {
-    let output = repo.skies(&["spec", "new", "toggle"]);
-    assert!(output.status.success(), "{}", text(&output));
-    assert!(repo.read(&format!("{SPEC}/spec.md")).contains("runner: fake"));
-    assert!(repo.path(&format!("{SPEC}/e2e")).is_dir());
-    repo.write(
-        &format!("{SPEC}/spec.md"),
-        &spec_with(&["FM-1 toggling does nothing", "FM-2 toggling twice breaks"]),
-    );
-    repo.write(&format!("{SPEC}/e2e/cases.txt"), cases);
-}
+use support::{Repo, SPEC, new_spec, text};
 
 #[test]
 fn record_status_verify_round_trip() {
@@ -275,24 +150,14 @@ fn a_red_patch_turns_head_into_red() {
 
 #[test]
 fn e2e_that_does_not_build_on_red_counts_as_failing() {
-    let repo = Repo::new();
     // A runner that, like `dotnet test` over E2E that reference code the feature adds, writes no report at all
     // until the feature exists.
-    repo.git(&["checkout", "--quiet", "main"]);
-    repo.write(
-        "run.sh",
-        &RUNNER.replace(
+    let repo = Repo::with_runner(|runner| {
+        runner.replace(
             "state=$(head -n 1 src/feature.txt)",
             "state=$(head -n 1 src/feature.txt)\n[ \"$state\" = on ] || { echo 'error CS0246: type not found'; exit 1; }",
-        ),
-    );
-    repo.git(&[
-        "commit",
-        "--quiet",
-        "-am",
-        "runner that cannot build without the feature",
-    ]);
-    repo.git(&["checkout", "--quiet", "-B", "feature"]);
+        )
+    });
     new_spec(&repo, "FM-1: toggles\nFM-2: toggles twice\n");
     repo.implement();
 

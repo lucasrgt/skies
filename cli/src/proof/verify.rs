@@ -9,12 +9,12 @@ use std::path::Path;
 use anyhow::{Result, bail};
 
 use super::git::Repo;
+use super::green::{self, GreenOutcome};
 use super::hash::{self, Hashes};
 use super::receipt::{self, Freshness, Receipt};
-use super::record::{self, GreenOutcome};
 use super::report::FmId;
 use super::runner::Session;
-use super::spec::{self, SpecDir, SpecDoc};
+use super::spec::{self, RECEIPT_FILE, SpecDir, SpecDoc};
 use crate::manifest::Project;
 
 pub fn verify(keys: &[String], stale: bool, all: bool) -> Result<u8> {
@@ -28,36 +28,71 @@ pub fn verify(keys: &[String], stale: bool, all: bool) -> Result<u8> {
         println!("nothing to verify: every receipt is current");
         return Ok(0);
     }
+    let outcomes = verify_specs(&project, &selected)?;
+    print_outcomes(&outcomes);
+    let failed = outcomes.iter().filter(|outcome| outcome.result.is_err()).count();
+    if failed > 0 {
+        println!("{failed} of {} failed; their receipts are unchanged", outcomes.len());
+        return Ok(1);
+    }
+    Ok(0)
+}
 
+/// One spec's verify: `Ok(receipt hash)` when every failure mode passed and the receipt was refreshed, or why not.
+pub struct Outcome {
+    pub name: String,
+    pub result: Result<Verified, String>,
+}
+
+pub struct Verified {
+    pub modes: usize,
+    /// The blake3 of the refreshed receipt.json, which names exactly the receipt state that was proven.
+    pub receipt: String,
+}
+
+/// Reruns green for each spec in order, sharing one session so a runner's setup runs once.
+pub fn verify_specs(project: &Project, specs: &[SpecDir]) -> Result<Vec<Outcome>> {
+    let root = project.root.as_path();
     let repo = Repo::open(root)?;
     let head = repo.head()?;
     let scratch = tempfile::Builder::new().prefix("skies-proof-").tempdir()?;
     let mut session = Session::default();
-    let mut rows = Vec::new();
-    for spec in &selected {
-        let result = verify_one(root, spec, &project, &repo, &head, &mut session, scratch.path());
-        rows.push(match result {
-            Ok(Ok(count)) => (spec.name.clone(), true, format!("{count}/{count} FMs pass")),
-            Ok(Err(finding)) => (spec.name.clone(), false, finding),
-            Err(error) => (spec.name.clone(), false, format!("{error:#}")),
+    let mut outcomes = Vec::new();
+    for spec in specs {
+        let result = match verify_one(root, spec, project, &repo, &head, &mut session, scratch.path()) {
+            Ok(Ok(modes)) => Ok(Verified {
+                modes,
+                receipt: hash::hash_file(&spec.file(RECEIPT_FILE)).unwrap_or_else(|| hash::ABSENT.to_string()),
+            }),
+            Ok(Err(finding)) => Err(finding),
+            Err(error) => Err(format!("{error:#}")),
+        };
+        outcomes.push(Outcome {
+            name: spec.name.clone(),
+            result,
         });
     }
+    Ok(outcomes)
+}
 
-    let width = rows.iter().map(|(name, ..)| name.len()).max().unwrap_or(0);
-    for (name, ok, detail) in &rows {
-        let verdict = if *ok { "verified" } else { "failed  " };
+/// `<spec>  verified  n/n FMs pass`, or `failed` with the reason indented under it.
+pub fn print_outcomes(outcomes: &[Outcome]) {
+    let width = outcomes.iter().map(|outcome| outcome.name.len()).max().unwrap_or(0);
+    for outcome in outcomes {
+        let (verdict, detail) = match &outcome.result {
+            Ok(verified) => ("verified", format!("{0}/{0} FMs pass", verified.modes)),
+            Err(finding) => ("failed  ", finding.clone()),
+        };
         let mut lines = detail.lines();
-        println!("{name:<width$}  {verdict}  {}", lines.next().unwrap_or_default());
+        println!(
+            "{:<width$}  {verdict}  {}",
+            outcome.name,
+            lines.next().unwrap_or_default()
+        );
         for line in lines {
             println!("{:<width$}            {line}", "");
         }
     }
-    let failed = rows.iter().filter(|(_, ok, _)| !ok).count();
-    if failed > 0 {
-        println!("{failed} of {} failed; their receipts are unchanged", rows.len());
-        return Ok(1);
-    }
-    Ok(0)
 }
 
 /// Named specs, then stale ones, then all, deduplicated, in id order.
@@ -102,26 +137,32 @@ fn verify_one(
     if !unrecorded.is_empty() {
         return Ok(Err(format!(
             "{} added after recording, so red never ran for them; run `skies proof record {}`",
-            record::join(&unrecorded),
+            green::join(&unrecorded),
             spec.name
         )));
     }
 
-    let green = match record::run_green(root, spec, &doc, project, session, scratch)? {
-        GreenOutcome::Proven(green) => green,
+    let proven = match green::run_green(root, spec, &doc, project, session, scratch)? {
+        GreenOutcome::Proven(proven) => proven,
         GreenOutcome::Refuted(message) => return Ok(Err(message)),
     };
-    record::publish_evidence(spec, &green.staged, &[(&green.file, &green.report)], true)?;
+    green::publish_evidence(
+        spec,
+        &proven.staged,
+        &[(proven.file.clone(), proven.report.clone())],
+        true,
+    )?;
 
     let (footprint, inputs) = rehash(root, spec, &doc, &receipt.footprint)?;
-    let count = green.cases.len();
+    let count = proven.cases.len();
     receipt.runner = doc.runner(spec)?.to_string();
     receipt.green.commit = head.to_string();
     receipt.green.dirty = repo.dirty()?;
-    receipt.green.cases = green.cases;
-    receipt.green.report = green.report;
+    receipt.green.cases = proven.cases;
+    receipt.green.report = proven.report;
     receipt.footprint = footprint;
     receipt.inputs = inputs;
+    receipt.evidence = Some(green::evidence_hashes(spec, receipt.evidence.as_ref())?);
     receipt.save(spec)?;
     Ok(Ok(count))
 }

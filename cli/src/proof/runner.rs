@@ -63,12 +63,13 @@ pub struct Session {
 impl Session {
     pub fn run(&mut self, job: &Job) -> Result<Run> {
         let values = placeholders(job)?;
-        let env: BTreeMap<String, String> = job
-            .runner
-            .env
-            .iter()
-            .map(|(key, value)| (key.clone(), expand(value, &values)))
-            .collect();
+        let mut env = automatic_env(&values);
+        env.extend(
+            job.runner
+                .env
+                .iter()
+                .map(|(key, value)| (key.clone(), expand(value, &values))),
+        );
 
         if let Some(setup) = &job.runner.setup
             && self.done.insert((job.runner_name.to_string(), job.root.to_path_buf()))
@@ -92,6 +93,10 @@ impl Session {
         }
         if let Some(parent) = report_path.parent() {
             std::fs::create_dir_all(parent)?;
+        }
+        // A verdict or artifact left by an earlier run must never count as this run's evidence.
+        if job.evidence.exists() {
+            std::fs::remove_dir_all(job.evidence).with_context(|| format!("clearing {}", job.evidence.display()))?;
         }
         std::fs::create_dir_all(job.evidence)?;
 
@@ -132,6 +137,16 @@ fn placeholders(job: &Job) -> Result<BTreeMap<&'static str, String>> {
     };
     values.insert("report", path_text(&report)?);
     Ok(values)
+}
+
+/// Environment every runner gets without configuring it: tests find where to drop artifacts (an Assay verdict, a
+/// screenshot) and which spec they serve, whatever the test framework and however the command is written. A
+/// runner's own `env` still wins on a name clash.
+fn automatic_env(values: &BTreeMap<&'static str, String>) -> BTreeMap<String, String> {
+    BTreeMap::from([
+        ("SKIES_EVIDENCE".to_string(), values["evidence"].clone()),
+        ("SKIES_SPEC".to_string(), values["spec"].clone()),
+    ])
 }
 
 fn path_text(path: &Path) -> Result<String> {

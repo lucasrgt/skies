@@ -154,9 +154,24 @@ pub enum Proof {
         /// A patch applied to the red checkout before running, for specs written after the code.
         #[arg(long)]
         red_patch: Option<PathBuf>,
+        /// After recording, rerun green for every other spec whose footprint overlaps this one's and name the ones
+        /// that pass in the receipt's `verified_with`. Exits 1 if any of them fails.
+        #[arg(long)]
+        with_impacted: bool,
     },
-    /// List receipts that are current and receipts whose inputs changed. Hashes only; runs nothing.
+    /// List receipts that are current, stale (their files changed), or tampered (their evidence was edited).
+    /// Hashes only; runs nothing.
     Status,
+    /// Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its
+    /// failure modes and whether its receipt is current. With no paths, uses the files changed on this branch.
+    Impact {
+        /// Files or directories to look up, relative to the current directory.
+        paths: Vec<PathBuf>,
+        /// Also look up the files changed since <rev> (default: the merge-base with the default branch), including
+        /// uncommitted and untracked files.
+        #[arg(long, value_name = "REV", num_args = 0..=1, default_missing_value = "")]
+        diff: Option<String>,
+    },
     /// Rerun specs and refresh their green evidence.
     Verify {
         /// Spec ids or folder names.
@@ -178,10 +193,21 @@ fn main() -> ExitCode {
         Command::I18n { package } => web::i18n(package.as_deref()),
         Command::Doctor { package, build_args } => doctor::run(&build_args, package.as_deref()),
         Command::Spec(Spec::New { slug, runner }) => proof::spec_new(&slug, runner.as_deref()),
-        Command::Proof(Proof::Record { spec, red, red_patch }) => {
-            proof::record(&spec, red.as_deref(), red_patch.as_deref())
-        }
+        Command::Proof(Proof::Record {
+            spec,
+            red,
+            red_patch,
+            with_impacted,
+        }) => proof::record(
+            &spec,
+            &proof::RecordOptions {
+                red: red.as_deref(),
+                red_patch: red_patch.as_deref(),
+                with_impacted,
+            },
+        ),
         Command::Proof(Proof::Status) => proof::status(),
+        Command::Proof(Proof::Impact { paths, diff }) => proof::impact(&paths, diff.as_deref()),
         Command::Proof(Proof::Verify { specs, stale, all }) => proof::verify(&specs, stale, all),
         Command::Migrate { version, dry_run } => migrate::run(version, dry_run),
     };
