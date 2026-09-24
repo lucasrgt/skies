@@ -61,3 +61,6 @@ Thumbs.db
 
 # Rust
 /target/
+
+# Agent worktrees
+/.claude/worktrees/

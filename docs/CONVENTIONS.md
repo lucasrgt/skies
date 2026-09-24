@@ -125,7 +125,7 @@ public static class Deposit
   is flagged (`SKY0023`): the signature would claim a check the body doesn't make.
 - **Co-located `<Module>.ctx.md`** carries the business "why" — the rules that are not in the
   control flow. One per module (not per slice). Shape + rationale in
-  [The ctx.md schema](#the-ctxmd-schema); presence + spine are gated by `SKY0004`.
+  [The ctx.md schema](#the-ctxmd-schema); presence + spine are checked by `SKY0004`.
 - **LAW — validation is always inline at the top of the Handle; never extracted to a method.**
   Build the value objects, accumulate with `Validation` (`Check` for an inline condition,
   `Collect` for a value object's verdict, and the shorthands for the recurring shapes —
@@ -231,9 +231,9 @@ applied to navigation.
 *Analyzer decision (2026-06): evaluated and **not shipped**.* The heuristic — flag a `"/"`-prefixed
 string literal in a slice-payload property named `*Target`/`*Route`/`*Href`/`*Path` — has plausible
 false positives that are themselves legitimate contract data (API paths, storage object paths,
-webhook URLs), and the consumption side is already gated mechanically: the client cannot navigate to
+webhook URLs), and the consumption side is already enforced mechanically: the client cannot navigate to
 an arbitrary server string without a cast, and `SKYFE030` makes that cast an error. A false positive
-teaches suppression; the convention + the front-side gate close the loop. Revisit only if a pilot
+teaches suppression; the convention + the front-side rule close the loop. Revisit only if a pilot
 ships another server-minted route *after* this convention landed.
 
 ---
@@ -262,7 +262,7 @@ the two laws. The result is plain C# that happens to be hard to misuse.
   An entity that a persisted write touches also declares its **concurrency posture**: a `[Timestamp]
   public byte[]? RowVersion { get; private set; }` (or `[ConcurrencyCheck]` on a domain field), so two
   concurrent requests can't silently last-write-win each other —
-  `SKY0026` (warning-tier during `skies doctor`, blocking in `skies gate`) watches for the missing token. It reports
+  `SKY0026` (warning-tier) watches for the missing token. It reports
   tracked updates/deletes, not insert-only rows or entities merely read beside another write: a concurrency
   token cannot improve either of those cases.
 
@@ -310,10 +310,9 @@ src/<App>.Api/
     <Module>.ctx.md               #   the module's "why" — Boundaries + Design notes (see schema)
     <Entity>.cs                   #   entities live at the module root — domain, not operations
     Slices/<Name>.cs              #   one slice = one operation (Input/Output/Handle/Map)
-    Slices/<Name>.Tests.cs        #   tests co-located with the slice they exercise
   BuildingBlocks/                  # shared value objects (Money, Cpf) — generic, owned by no module
-  Journeys/<Name>Journey.Tests.cs  # happy + sad E2E journeys required for every write slice
-tests/<App>.Tests/                 # thin runner: globs the co-located *.Tests.cs, provides TestApp
+tests/<App>.Tests/                 # thin runner: compiles .specs/*/e2e and any co-located *.Tests.cs, provides TestApp
+.specs/<id>-<slug>/                # one feature: spec.md (failure modes) + e2e/ + receipt.json — see "Specs and proofs"
 ```
 
 - **Slices live in `Slices/`; the domain (entities, DbContext) lives at the module root.** The split
@@ -364,7 +363,7 @@ is **not** a mirror of the code: anything recoverable from the types, the tests,
 duplication, and duplication rots. (corbanx's 16-section feature doc was the reference; we graded its
 sections against that one test and kept about a third.)
 
-**Spine — required, gated by `SKY0004`:**
+**Spine — required, checked by `SKY0004`:**
 
 - `# <module>` + a 1–3 line purpose paragraph.
 - `## Boundaries` — Inside / Outside (and non-goals). Where the module's seams are, and where *not* to
@@ -379,7 +378,7 @@ sections against that one test and kept about a third.)
 
 **Excluded by law** (recoverable → would duplicate and drift): data models (the entities *are* the
 model), DTO/contracts (the `Input`/`Output` records *are* the contract), route tables (the `Map` *is*
-the route), error tables (`ToHttp` owns the mapping), test matrices (the `*.Tests.cs` *are* the matrix),
+the route), error tables (`ToHttp` owns the mapping), test matrices (the specs *are* the matrix),
 request/response examples, code-pointer file lists, and change logs (procedence is narrative, not
 normative — decisions go to an ADR + git, never the ctx). **No Mermaid / flow diagrams** either: a
 non-linear flow is explained in prose in the Design notes.
@@ -387,92 +386,88 @@ non-linear flow is explained in prose in the Design notes.
 `SKY0005` keeps it honest by **freshness as citation-resolution**, not mtime: a ctx that names a slice or
 type which no longer exists is stale. An mtime rule would be wrong here — because the ctx does not
 duplicate the code, adding a field must *not* force a ctx edit. A citation resolves against this module's
-source, a referenced assembly, **or a co-located `*.Tests.cs`** the project feeds the doctor as an
-`AdditionalFile` — so a module ctx may name the journey that covers it (a `[Journey]` class is
-`<Compile Remove>`'d from the api compilation, hence invisible as a *symbol* but readable as text), without
-the false "no longer exists" it would otherwise raise.
+source or a referenced assembly.
 
 ---
 
-## Testing — co-located, categorized, host-provided
+## Specs and proofs
 
-Tests live **next to the slice** (`Deposit.Tests.cs` beside `Deposit.cs`): the app assembly
-excludes them (`<Compile Remove>`) so no test dependency ships; a thin per-app test project
-compiles them via glob. No mirror-the-architecture test tree.
+A feature is accepted by **evidence in its spec folder**, not by annotations spread through production code.
 
-- **Categories are a closed vocabulary** (`Skies.Framework.Testing`): `[Unit]` (fast, no infrastructure),
-  `[Integration]` (real infrastructure — database, HTTP), `[E2E]` (cross-module journey). Each
-  maps to the xUnit trait `Category=<kind>`, so `dotnet test --filter Category=Unit` and the
-  doctor read the same single signal — the attribute on the test.
-- **The integration host is `SkiesWebTest<TProgram>`.** It boots the real app and hands you one
-  hook, `SwapStores(IServiceCollection)`, to reconfigure services for the test. The base holds
-  **no database opinion and drags no provider dependency**. Two paths, both the app's to choose:
+```
+.specs/0012-cancel-reservation/
+  spec.md          what the feature does, its failure modes (FM-1..n), what is out of scope
+  e2e/             black-box tests, one or more cases per failure mode
+  receipt.json     written by `skies proof record`
+  evidence/        the test report and small artifacts (screenshots, HTTP logs)
+```
+
+- **Failure modes come before code.** `spec.md` lists how the feature can fail, one `- FM-n <text>` line each.
+  The human reviews that list; it is the point of control.
+- **The test title is the only link.** A case whose name or display name starts with `FM-n` covers that
+  failure mode (`[Fact(DisplayName = "FM-2: double cancel refunds once")]`, `test("FM-2: …")`). No attributes,
+  tags, or manifests in the application code.
+- **A receipt proves red and green.** `skies proof record <spec>` runs the E2E against the red revision (the
+  merge-base, or `HEAD` plus the spec's `red.patch` for a spec written after the code), where every failure
+  mode must fail, then against the working tree, where every failure mode must pass. A failure mode that
+  already passes on red is recorded as non-discriminating and needs a written justification in `spec.md`.
+- **A receipt is a record, not a gate.** It stores the hashes of the files the feature touched.
+  `skies proof status` lists the receipts whose files changed since (hashes only, milliseconds);
+  `skies proof verify --stale` reruns them. Nothing runs in a hook unless the team chooses to add one.
+- **Runners are declared in `Skies.toml`.** A runner is a shell command that runs one spec's `e2e/` folder and
+  writes a JUnit or TRX report; the engine knows nothing about xUnit, Playwright, or Flutter:
+
+  ```toml
+  [runners.api]
+  command = "dotnet test tests/App.Tests --filter FullyQualifiedName~Specs.S{id}. --logger trx;LogFilePath={report}"
+  ```
+
+  .NET spec tests use the namespace `Specs.S<id>` so the filter selects exactly one spec. The test project
+  compiles them with `<Compile Include="..\..\.specs\*\e2e\**\*.cs" />`.
+
+## Testing — hosts and isolation
+
+- **Prefer E2E through the real host.** `SkiesWebTest<TProgram>` boots the real app and hands you one hook,
+  `SwapStores(IServiceCollection)`, to reconfigure services for the test. The base holds **no database opinion
+  and drags no provider dependency**. Two paths, both the app's to choose:
   - *Fast and isolated* — reference `Skies.Framework.Testing.InMemory`, call
     `services.UseIsolatedInMemory<WalletsDb>()`.
   - *A real database* — reference `Skies.Framework.Testing.Postgres`: one `PostgresTestDatabase` (a single
     Testcontainers Postgres, one migrated **template** database, an isolated `CREATE DATABASE …
-    TEMPLATE` clone per test, with a tiny aggressively pruned connection pool) wrapped in the app's own static accessor; register its
-    connection in `SwapStores`. Keyed stores let two contexts share one database (the
-    "written-by-one-request, read-by-the-next" pattern). The in-memory package never enters the
-    graph. (Graduated from the hostpoint pilot's `TestDatabase`.)
+    TEMPLATE` clone per test, with a tiny aggressively pruned connection pool) wrapped in the app's own static
+    accessor; register its connection in `SwapStores`. Keyed stores let two contexts share one database (the
+    "written-by-one-request, read-by-the-next" pattern).
     **Take stores from `CreateStore(...)` and dispose the lease.** A clone is a physical copy of the
-    migrated template, so a database is only reclaimed when its lease is returned — keyed stores when
-    the last holder returns theirs. A ~700-test suite asking for two or three stores each and returning
-    none leaves ~1500 live databases in the shared container; the WSL2/Docker VM grows with them and the
-    host starts killing processes (measured: 14.4 GB resident, the symptoms surfacing as Npgsql timeouts
-    and killed test workers rather than as anything database-shaped). `CreateDatabase(...)` returns a bare
-    connection string with no lifetime and cannot reclaim anything — it remains only for callers written
-    before leases existed, and the class warns on stderr once a run accumulates enough un-returned clones.
-- **Assertions and mocking are the app's free choice** — the kit ships and mandates none
-  (FluentAssertions, Shouldly, NSubstitute, xUnit-native all work). The one deliberate coupling is
-  the **runner: xUnit** (the categories are xUnit traits).
-- `SKY0003` makes every slice carry a co-located test; the build fails without one.
-- **Acceptance verification is universal.** Every `[Slice]` declares at least one criterion in its module's
-  `<Module>.spec.toml` (`SKY0031`) and has a subject-bound `[AVP(typeof(Slice), "criterion-id")]` proof (`SKY0030`).
-  The proof runs in the official gate; a disabled test is a failure (`SKY0032`). There is no lighter slice class.
-- **Every write proves failure, not just success.** A write slice is covered end-to-end on **both** paths: a
-  happy journey and at least one sad journey, each declared with `[Journey(typeof(Slice),
-  JourneyPath.Happy|Sad)]` on the `[E2E]` test. `SKY0008` derives the debt from ordinary code: persistence calls
-  and write endpoint verbs are writes; set-based EF updates/deletes and raw/interpolated SQL execution count even
-  without `SaveChanges`. A visible `MapGet` with no write signal is a read; an unfamiliar or ambiguous shape
-  receives the stronger write bar. The implementing agent never supplies the classification.
-  The sad journey asserts the failure status **and** that no state changed.
-- **`[Journey]` is not a category — it is the proof of a write slice, both ways.** `[Unit]` / `[Integration]` /
-  `[E2E]` are the categories (pick one); `[Journey]` binds an `[E2E]` test to the write it covers. `SKY0008`
-  enforces write ⇒ happy + sad journeys and `SKY0010` enforces journey ⇒ write. A voluntary read traversal is a
-  plain `[E2E]` flow. Naming follows: **`*Journey.Tests.cs`** = write-slice proofs,
-  **`*Flow.Tests.cs`** = plain `[E2E]` flows.
-- **Verification has no application-controlled mode.** The proof depth above is an unconditional invariant;
-  `Skies.toml` only declares topology and rejects non-topology sections. No attribute, CLI flag, manifest
-  key, skip, or exception can lower the bar. The former classification attributes are absent from the package,
-  so using one is a compiler error rather than tolerated decoration.
-- **A generator that scaffolds a write ships its journeys too.** `skies g slice`, `skies g auth`
-  (`Login`/`Refresh`/`Register`) and every augment (`g auth:otp` → `VerifyPhone`) emit matching
-  `Journeys/*.Tests.cs`. The generic write scaffold is deliberately red until both journeys prove their terminal
-  state. When a journey cannot be driven purely over HTTP (an SMS or email code never crosses the wire), the
-  generated journey layers a **capturing provider** over the booted app through the `SwapStores` /
-  `WithWebHostBuilder` hook — the same test seam, with zero production change.
+    migrated template, so a database is only reclaimed when its lease is returned. A ~700-test suite asking
+    for two or three stores each and returning none leaves ~1500 live databases in the shared container
+    (measured: 14.4 GB resident, surfacing as Npgsql timeouts and killed test workers).
+- **When a flow cannot be driven purely over HTTP** (an SMS or email code never crosses the wire), layer a
+  capturing provider over the booted app through `SwapStores` / `WithWebHostBuilder` — the same seam, with zero
+  production change.
+- **Unit tests are for isolated systems only, and failure modes come first.** A value object, a pricing
+  calculation, a parser: write down how it can fail, then write the code. Such tests sit next to the code as
+  `<Name>.Tests.cs` and are ordinary tests, outside the receipt system. Never write unit tests after the code to
+  cover it.
+- **Assertions and mocking are the app's free choice** — the kit ships and mandates none.
 
 ---
 
 ## The doctor — rule catalog
 
 Every rule is born from observed pain (the corbanx pilot + the Rails-repo discipline),
-never speculation. Keep it minimal; add only on real drift.
+never speculation. Keep it minimal; add only on real drift. The doctor enforces **architecture only**:
+no rule demands that a test, a tag, or a manifest exists. (Skies 4 had nine such rules; they taught agents to
+satisfy the checker instead of proving behavior, and were removed in 5.0.)
 
 | Rule | Enforces | Status | Origin |
 |------|----------|--------|--------|
 | `SKY0001` | Slice conformance (static class; nested `Input` and `Output`; `Handle → Task<Result<T>>`; `Map`; ordered Input → Output → Handle → Map) | **shipped** | corbanx: "deviated from architecture" |
 | `SKY0002` | Endpoint stays thin (a route handler is an expression-bodied lambda or method group, never a statement block) | **shipped** | corbanx: "business logic in routes" |
-| `SKY0003` | Every slice has a co-located `<Slice>.Tests.cs` | **shipped** | corbanx: "didn't write tests" |
 | `SKY0004` | Every module has a `<Module>.ctx.md` with the spine (`## Boundaries` + `## Design notes`, non-empty) | **shipped** | corbanx: "forgot to write ai.context" |
-| `SKY0005` | `.ctx.md` is fresh — a backticked identifier it cites resolves in source, a reference, or a co-located `*.Tests.cs` (not mtime) | **shipped** | corbanx: "ai.context drifted" |
+| `SKY0005` | `.ctx.md` is fresh — a backticked identifier it cites resolves in source or a reference (not mtime) | **shipped** | corbanx: "ai.context drifted" |
 | `SKY0006` | No `IRepository` / unit-of-work abstraction in a slice | **shipped** | clean-arch bloat cut |
 | `SKY0007` | File ≤ 500 LOC (EF `Migrations/` exempt — tool-emitted, append-only) | **shipped** | Rails-repo discipline |
-| `SKY0008` | **Every shape-derived write slice has happy and sad journeys**. Persistence/write endpoint signals classify it; a proven `MapGet` is read; ambiguity fails closed as write | **shipped** | self-classification let ordinary production writes evade E2E |
 | `SKY0009` | **Write-ownership**: a module writes only its own entities — a write (Add/Update/Remove/…) on another module's entity is flagged, on a `DbSet` *or* through the untyped `DbContext.Add(entity)` form; reads/joins/calls across modules are free. `.Tests.cs` exempt | **shipped** | modular monolith — write-ownership keeps a context carvable later |
-| `SKY0010` | A `[Journey]` covers a shape-derived write slice — the inverse of `SKY0008`. Use plain `[E2E]` for a voluntary read flow | **shipped** | journey metadata must map to an enforced obligation |
-| `SKY0011` | **Tests live in `src/`**: a test method (`[Fact]`/`[Theory]`/`[Unit]`/`[Integration]`/`[E2E]`/`[Journey]`) authored outside a `src/` directory is flagged. The `tests/<App>.Tests` project is infrastructure only (WebApplicationFactory, DB harness, shared bootstrap); unit tests sit next to their slice, journeys under `src/.../Journeys` | **shipped** | keeps tests co-located + doctor-visible; the runner project stays pure infra |
 | `SKY0012` | **Endpoint named after the slice**: a `[Slice]`'s `Map` must call `.WithName("<SliceName>")` (or `nameof`). That name is the OpenAPI `operationId` the typed client generates its hook from (`use<SliceName>`), keeping backend↔frontend 1:1. A missing `Map` is SKY0001's concern, not this rule's | **shipped** | the back→front naming seam — a forgotten name drifts the generated client |
 | `SKY0013` | **Value object always-valid**: a `[ValueObject]` is immutable, exposes no public constructor and no public setter, and is built only through a static smart constructor returning `Result<T>` (the `Money.From` shape) — so an invalid instance can never exist | **shipped** | anemic domain — a value must be unconstructable when invalid, not validated after the fact |
 | `SKY0014` | **Entity encapsulation + invariant funnel**: an `[Entity]` exposes no public constructor (born via a factory, rehydrated by EF via a private one) and no public setter, and declares a private `EnsureValid()` (or `Validate()`) returning `Result<T>` that every create/mutate path returns through | **shipped** | anemic domain — invariants must live on the entity, unbypassable (the sample's own `Wallet` was a setter bag) |
@@ -481,22 +476,17 @@ never speculation. Keep it minimal; add only on real drift.
 | `SKY0017` | **Composition root is an index**: the top-level statements (`Program.cs`) wire only `AddSkies` / `AddPlatform` / `AddModules` and the matching `UseSkies` / `UsePlatform` / `MapModules`; any other service registration (`IServiceCollection`), pipeline step, or endpoint mapping (`Use*`/`Map*`) there is flagged and redirected to the platform or a module | **shipped** | the index rots into a dumping ground — infra creeps back into `Program.cs`, drifts, and bit-rots there unwatched |
 | `SKY0018` | **Error code is a registry constant**: the `code` passed to an `Error` factory / `Validation.Check` / `Validation.Add` / `FieldError` must reference a `const` on a class named `*ErrorCodes` (e.g. `WalletsErrorCodes.NotFound`), never an inline literal | **shipped** | a code invisible to reflection can't be enumerated into the OpenAPI contract — it would reach a user untranslated; the registry keeps the set discoverable + typed end-to-end |
 | `SKY0019` | **Error code constant is used**: every `const` on an `*ErrorCodes` registry must be referenced by an `Error`/`Validation` call somewhere in the compilation — the reverse of `SKY0018` | **shipped** | drop a flow and leave its code behind → a dead code still ships in the OpenAPI enum + the i18n catalog; this keeps the registry the exact, live set (no orphans) |
-| `SKY0020` | **A `[Journey]` asserts its post-condition**: happy requires an observable-effect assertion; sad requires both rejection and unchanged-state assertion tokens. Error-tier, textual over journey AdditionalFiles | **shipped** | a journey that exists but proves no terminal state is theater |
 | `SKY0021` | **A persisted or entity-owned type declares its mark**: a `DbSet<T>` whose `T` is unmarked must be `[Entity]`; a complex member of an `[Entity]` (after one nullable/collection layer) that is neither `[ValueObject]`, `[Entity]`, nor an enum must be `[ValueObject]`. The rung *beneath* SKY0013/SKY0014, which only fire on already-marked types — so an unmarked domain type would otherwise escape every encapsulation check. Does not flag dead/unused types or framework types | **shipped** | the pauta port shipped an anemic `User` (a table, no `[Entity]`) past a green doctor — the omission of the mark was the evasion |
 | `SKY0022` | **An endpoint's authorization is a decision, never an omission**: every `[Slice]` carries an explicit posture — `.RequireAuthorization(…)` or `.AllowAnonymous()` — on its own `Map` chain or on the route group the module mounts it on (`app.MapGroup("/x").RequireAuthorization()`). `.AllowAnonymous()` is not a loophole: it is the same decision, made visible and reviewable. A missing `Map` is SKY0001's concern | **shipped** | the classic silent failure — a new endpoint ships open because nobody decided anything |
 | `SKY0023` | **An injected `ICurrentUser` is consulted**: a `[Slice]` `Handle` that takes an `ICurrentUser` parameter and never reads it is flagged — the caller was wired in to scope the operation, so an unread parameter is a missing ownership/role/org check, not dead code. Consult the caller or remove the parameter | **shipped** | the signature claims an authorization posture the body doesn't have — the check was meant and then silently dropped |
 | `SKY0024` | **Raw SQL never absorbs runtime values as text**: a `*Raw` EF call (`FromSqlRaw`, `ExecuteSqlRaw`/`Async`, `SqlQueryRaw`) whose SQL argument interpolates or concatenates a non-literal is flagged — the SQL-injection shape. The fix is one token: `FromSql`/`ExecuteSql`/`SqlQuery` take the same interpolated string and turn every hole into a `DbParameter`. Constant SQL through `*Raw` stays legal | **shipped** | injection hides in the one raw query an app eventually needs — the safe twin costs nothing |
 | `SKY0025` | **A held `Result<T>` is checked before it is unwrapped**: reading `.Value`/`.Error` on a result stored in a local or parameter with no earlier outcome consult in the same member (`IsSuccess`/`IsFailure`, an `is { IsSuccess: … }` pattern, or a `Validation.Collect` fold) is flagged — on the wrong outcome the access throws. Unwrapping *inline* on a fresh construction (`Money.From(10m).Value` in a seed/test) stays legal: it is the deliberate known-valid idiom | **shipped** | the type's number-one misuse — `result.Value` straight through, an exception where an `Error` was supposed to flow |
-| `SKY0026` | **Every tracked update/delete declares its concurrency posture**: a slice whose `Handle` mutates or explicitly updates/removes an entity with no visible token (`[Timestamp]`, `[ConcurrencyCheck]`, or `RowVersion`) is flagged. Insert-only rows and entities merely read beside a different write are excluded. Advisory in `skies doctor` because fluent-only configuration is invisible; blocking in `skies gate` | **shipped** | the sample's own `Deposit` raced: two concurrent deposits, one balance silently lost |
+| `SKY0026` | **Every tracked update/delete declares its concurrency posture**: a slice whose `Handle` mutates or explicitly updates/removes an entity with no visible token (`[Timestamp]`, `[ConcurrencyCheck]`, or `RowVersion`) is flagged. Insert-only rows and entities merely read beside a different write are excluded. Warning-tier because fluent-only configuration is invisible to the analyzer | **shipped** | the sample's own `Deposit` raced: two concurrent deposits, one balance silently lost |
 | `SKY0027` | **A slice must not materialize an unbounded set**: a `ToListAsync`/`ToList` (or the array twins) ending a `DbSet`-rooted chain — directly or through a queryable local — with no `Take`/`ToPageAsync` on the way is flagged. **Parent-scoped queries are exempt**: a `Where` equating (or `Contains`-matching) a `*Id` member (`s => s.JobId == id` — the steps of ONE job) is bounded by the aggregate's cardinality, and a synthetic `Take(n)` there would document a bound that isn't the real rule; `OrgId`/`TenantId` equality is the tenant scope itself and stays flagged. Warning-tier: legitimately small sets exist, and the fix documents the decision — `.Take(n)` writes the bound down, `ToPageAsync` pages it behind a stable order | **shipped** | hostpoint: list slices served whole tables that paged fine at dev-data scale; pauta's 0.3.0 adoption surfaced ~16 parent-scoped loads (steps of one job, sessions of one user) where the v1 rule over-fired — the exemption is that lesson |
 | `SKY0028` | **A paged order needs a unique tiebreaker**: the ordering chain feeding `ToPageAsync` must contain the entity's primary key — a member named `Id`, or the EF-conventional `{Entity}Id` on the queried entity itself (a foreign `*Id` such as `CustomerId` is many-rows-shared and does not count) — else the final sort key is flagged. Warning-tier; a pre-ordered local the analyzer cannot read stays silent | **shipped** | hostpoint: `ListPublicPointReviews` ordered `OrderByDescending(CreatedAt)` with no tiebreaker past a green doctor — rows repeated and vanished between pages once timestamps tied; pauta: 0/34 migrated slices had a tiebreaker before the wave |
-| `SKY0030` | **A manifest-declared criterion has a subject-bound AVP proof**: `<Module>.spec.toml`'s `(module, slice, criterion)` obligation is flagged unless an `[AVP(typeof(Slice), "criterion")]` proof with that exact tuple exists. One slice can never borrow another slice's proof | **shipped** | repo-wide id matching let one passing test pay unrelated verification debt |
-| `SKY0031` | **Every `[Slice]` declares at least one criterion in its spec manifest**. Together with SKY0030: slice ⟹ criterion ⟹ exact executable proof | **shipped** | optional acceptance verification left most production features unproved |
-| `SKY0032` | **Tests must execute**: a test carrying xUnit `Fact/Theory` `Skip`, `SkipWhen`, `SkipUnless`, or `Explicit` is flagged in compiled or AdditionalFiles source, and `skies gate` also rejects every TRX `NotExecuted` outcome. A disabled or conditionally omitted test is never evidence even though `dotnet test` normally exits zero | **shipped** | generated and hand-written skipped tests made a green test process look like verified behavior |
-| `SKY0033` | **A journey is one isolated executable E2E proof**: each `*Journey.Tests.cs` method carries `[E2E]`, `[Fact]`/`[Theory]`, and exactly one `[Journey]`; unit/integration categories, stacked subjects and undiscoverable methods do not pay SKY0008 | **shipped** | the least-resistance migration was to relabel an existing unit test or stack many write obligations on one shallow method |
 
-The doctor catches **structural drift**, not logic correctness. Correctness is tests +
-review. Expect it to reclaim the *structural* fraction of drift, not 100%.
+The doctor catches **structural drift**, not logic correctness. Correctness is the spec's
+E2E + review. Expect it to reclaim the *structural* fraction of drift, not 100%.
 
 Beside the SKY* rules the doctor ships a **security floor** for the built-in .NET analyzers
 (`buildTransitive/skies.globalconfig`): a curated CA* set — dropped `CancellationToken`
@@ -507,177 +497,6 @@ your own `.globalconfig` at a `global_level` above 50. The libraries hold themse
 same floor via `build/Skies.Framework.Library.props`.
 
 ---
-
-## The gate — `skies gate` and the verification matrix
-
-The doctor answers "is the form right?"; the AVP proofs answer "does the behavior hold?".
-`skies gate` is the deterministic, change-aware command that answers both and writes the evidence down. Proof
-**obligation** is universal; runtime **execution** is selected from Git impact:
-
-1. **Doctor legs** — manifest validation, framework sync, the backend build (every SKY* rule,
-   including the SKY0030/SKY0031 bridge) and each manifest-selected frontend harness's lint + typecheck.
-   The standalone `skies doctor` keeps warning-tier findings advisory while work is in progress. `skies gate`
-   is the final-state boundary: it adds `-warnaserror`, reruns ESLint with `--max-warnings=0`, and invokes
-   SKYFE008 in strict mode over each conventional `src/client.gen` and the union of source roots in its
-   manifest-declared product topology. A warning therefore remains
-   readable during construction but can never be the path by which incomplete work reaches the gate.
-   The gate also rejects SKY/SKYFE `#pragma`, `SuppressMessage`, `NoWarn`, downgraded analyzer severity,
-   generated-code impersonation, inline `eslint-disable`, and disabled-rule configuration. Its ESLint leg
-   independently forces every rule exported by the installed harness, so an indirect config expression cannot
-   hide one either. The contract must be satisfied, not silenced.
-2. **Backend proof leg** — the default/`--affected` form expands changed slices and test files to their unit,
-   `[AVP]`, and `[Journey]` classes and supplies the resulting filter itself. A Roslyn syntax graph follows changed
-   shared types and extension methods through every direct and transitive C# consumer, so an entity or service
-   selects the slices and test classes that actually depend on it instead of paying for the whole solution.
-   Ambiguous names conservatively add edges; a production file with no reachable proof remains fail-closed.
-   `--staged --fast` roots that selection in the index; `--full` executes every test. A caller-authored `--filter`
-   is rejected, and any selected skipped/not-executed result makes the gate red.
-3. **Frontend proof legs, selected by product role** — every product `core` runs `npm run test`
-   over the non-Assay partition plus direct `assay verify` over `*.assay.test.*`; every executable `frontend`
-   runs those same legs plus the strict `skyfe-e2e-doctor` and `npm run test:e2e`. The workspace-level
-   `skyfe-feature-e2e` leg requires every ViewModel to resolve to one of those surface flows, every backend slice
-   hook consumed by a frontend data door to be named by the linked flow, and subject-bound happy+sad paths for
-   every visible feature. A backend slice with no frontend consumer remains backend-only. Product `website`
-   declarations are surfaces too; validation independently inventories ViewModel/flow-bearing packages, so deleting
-   a product key cannot shrink the gate. The filename partition makes every selected test execute exactly
-   once: AVP is a real gate leg, not a duplicate second Vitest pass. `test:e2e` must contain the unfiltered full
-   runner rather than an opaque wrapper or file/grep selector, and the doctor compares every manifest `spec/case`
-   with Playwright's collected inventory before execution. A missing or placeholder script, narrowed config,
-   manifest, runner, terminal assertion, seed, or real execution is a failure; there is no omitted-proof tier.
-   Affected execution uses ViewModel names, flow `features`, and `backendSlices` to select co-located Assays and the
-   exact Playwright/Maestro specs. Ambiguous/shared frontend changes widen to the whole package or workspace.
-4. **The matrix** — declarations (`*.spec.toml`) × proof sites
-   (`[AVP(typeof(Slice), "id")]`) × test verdicts,
-   joined per module: criterion → proof → verdict, plus the findings the gate refuses to swallow —
-   a declared criterion with no proof (the gap), a proof no manifest declares (creep), a
-   slice declaring nothing, a proof that never reached a decision (a skip is never a
-   pass), a malformed manifest. In affected runs, valid unselected rows are explicitly `not-affected`; they are
-   non-blocking inventory rows and never counted as passes.
-
-Execution modes are closed and framework-owned:
-
-- `skies gate` — complete transitive proof closure for committed and local working-tree changes;
-- `skies gate --affected --base <revision>` — push/PR closure frozen to `<revision>...HEAD`, excluding local-only and untracked files that cannot enter that review;
-- `skies gate --staged --fast` — index-rooted pre-commit feedback; exhaustive fallbacks and browser/device execution
-  are deferred to the repository's selected authority boundary;
-- `skies gate --affected --base <revision> [--fast]` — pre-push review over the commits being sent. CI-authority
-  repositories use `--fast`; local-authority repositories omit it and own the authoritative affected verdict;
-- `skies gate --full` — exhaustive audit, mandatory before release and optionally configured for main/manual/nightly.
-
-A leg that could not run is reported apart from a leg that failed. The verdict is three-valued — `GREEN`,
-`RED` (exit 1, a finding), `INCOMPLETE` (exit 2, nothing was proven or disproven) — in the console, in
-`VERIFICATION.md` and in `VERIFICATION.json` alike, and every frontend tool follows the same convention. An absent
-runner, an unusable environment, or a verifier that never started therefore never reads as a disproven proof:
-mistaking "did not run" for "failed" sends the reader hunting a failure nobody observed, and the exit ends in
-`--no-verify` — past the boundary the gate exists to hold. The frontend Assay leg also hands the verifier its
-selection through a file instead of a command line, and a selection covering the package's whole Assay surface
-collapses to the verifier's own discovery: naming a few hundred co-located verifications outgrows the Windows
-shell's 8191-character argument limit and kills the run before a single verification executes.
-
-Missing Git ancestry makes a scoped gate incomplete (exit 2); restore the comparison before retrying, or request
-an explicit full audit at the release boundary. If production impact cannot be mapped or runtime-wide build/test
-infrastructure changes, the selector widens to full. Gate-control files (`.config/dotnet-tools.json`, `lefthook.yml`, and checked
-workflows) are different: the doctor validates their contract, but changing the fiscal does not execute unrelated
-application proofs. Application annotations and arbitrary test filters never participate.
-
-Authoritative and full `check`/`gate` commands allow one automatic attempt per checkout. A failed or interrupted
-attempt blocks the next broad run, even after edits or a scope change. An exclusive lease also prevents overlapping
-broad runs. Staged and fast checks remain available for diagnosis. Stop and check whether you are in a loop before
-retrying: inspect the first failure, correct its cause and verify the correction with a focused test. Then supply
-`--retry-review <json-file>` with `PreviousAttemptId`, `Diagnosis`, `Correction`, and `FocusedVerification` strings.
-The previous attempt ID is in the receipt printed by the command. A review authorizes one further attempt and cannot
-be replayed after another failure; it records the operator's evidence rather than independently certifying it.
-No proof is waived. Successful completion permits subsequent work. Attempt state lives in Git metadata under
-`skies-verification`; do not delete it to bypass a failed run. This guard controls these CLI commands, not model
-tokens or arbitrary commands invoked outside Skies.
-
-The C# dependency graph resolves top-level types and qualified references: nested `Input`/`Output` names and
-namespace segments never join unrelated slices. A module specification selects that module; a transitive proof
-selects its own test class without recursively selecting every other proof of every subject it mentions.
-Long backend selections use one standard runsettings filter, never an unfiltered run or overlapping batches.
-Generated TypeScript clients propagate changed runtime exports through actual imports; erased type changes
-remain covered by the universal typecheck. Shared client imports cross declared package boundaries using each
-package's TypeScript configuration. Uncertain generated impact falls back to the owning package.
-Feature-local translations select their feature and locale proofs. Flow matching uses the original affected
-features, and Playwright executes a deduplicated native test list containing the mapped cases, one worker.
-Doctor concurrency and Vitest workers are capped at two; .NET build/test defaults to two MSBuild nodes.
-Affected console output summarizes passing and
-unaffected rows while preserving every finding; full audits retain the complete matrix.
-Native Node unit scripts receive Node file selection and concurrency arguments, with executable JUnit evidence,
-instead of Vitest flags. Selected backend runs require valid non-empty receipts, and a full Flutter library
-requires an executable unit or Assay suite. A process exit of zero without evidence is not a passed proof.
-
-An explicit `--full` audit writes the canonical artifacts at the workspace root: **`VERIFICATION.md`**
-(human — commit it; a reviewer reads the exhaustive proof state without running anything) and
-**`VERIFICATION.json`** (machine-readable attestation). Staged and affected gates print the same scoped matrix
-without replacing those files, so hooks and CI never dirty a checkout or downgrade the committed full audit to a
-partial snapshot. The exit code IS every gate's verdict: 0 only when every selected leg and the matrix hold.
-
-### The gate travels with the scaffold — born gated, like slices and modules
-
-A gate nobody is forced to run is opt-in by human memory — and a pilot proved the failure mode:
-a whole module landed on `main` with every one of its tests red, silently, because nothing watched
-the push. So the wiring is part of the supply, not an exercise for each app:
-
-- **`skies new` scaffolds the enforcement**: `.github/workflows/ci.yml` runs the affected gate on every push and PR
-  and runs the full audit on version tags or manual dispatch. `lefthook.yml` runs the staged-fast gate before commit
-  and bounded base-relative feedback before push. `.config/dotnet-tools.json` pins the CLI version used by hooks
-  and CI.
-- An app is **born gated** exactly as it is born with slices, modules and the doctor: red work
-  cannot reach `main` unnoticed. Retrofitting an existing app is the same three files.
-- Manifest validation requires exactly one authoritative affected boundary without `--fast`: either a checked
-  pull-request workflow or a base-relative local pre-push hook. It also requires an explicit `--full` package
-  command or release/reusable/manual workflow. CI authority is the scaffold default; local authority avoids a
-  duplicated remote run when one development machine is also the delivery boundary.
-
-### Semantic memory travels with the scaffold
-
-Skies projects start with Codebase Semantic Memory as the shared home for NYA,
-RTW, WTW, and NWC:
-
-- `csm.toml` declares the common storage root. Skies scaffolds `.skies/csm/`,
-  with one child owned by each independent tool. Personal judge selection and
-  disposable indexes remain ignored inside that tree.
-- `dotnet tool run skies <nya|rtw|wtw|nwc> <args...>` resolves the
-  framework-pinned CSM release. CSM verifies, installs, and locks the native
-  tool versions outside the repository. No Rust toolchain or global install is
-  part of project setup.
-- Root agent instructions require recall at task start and whenever scope or
-  context changes, scar-driven review before accepting a versioned
-  specification, remember only after a real reusable correction, and check
-  before completion.
-- `nya replay` is reserved for explicit corpus maintenance or evaluation. It
-  validates historical correction patches against their scars without
-  executing an agent or claiming a prevention rate.
-- Local pre-commit and pre-push hooks run the matching uncommitted or
-  base-relative recurrence check. CI does not select a model or credential on
-  behalf of the team; an organization may add its own ephemeral judge after
-  configuring that trust boundary.
-- `skies doctor` validates the versioned CSM surface without reading personal
-  configuration or downloading binaries.
-
-The split is deliberate. Skies deterministically proves code shape and
-executable behavior. CSM coordinates the repository-specific semantic layers;
-each underlying tool remains independently usable outside a Skies project.
-
-### Declaring criteria — born closed, not caught later
-
-The bridge is cheapest when the slice is born with it:
-
-```
-skies criteria list                          # the catalog menu — and what Assay.Net can actually run
-skies criteria suggest CreateCheckout        # ranked archetype families for a slice, with the matched words
-skies g slice Payments Charge --verify idempotency-key-honored,gate-enforced-on-submission
-```
-
-`--verify` declares the ids in `Modules/<M>/<M>.spec.toml` (creating the manifest with the house
-header, or surgically merging into an existing one — human edits survive) and scaffolds the
-co-located `<Slice>.Avp.Tests.cs`: one test per criterion carrying
-`[AVP(typeof(Slice), "id")]`, already wired to
-the right Assay.Net archetype, **red by design** until the subject factory boots the real endpoint.
-Obligation and proof ship in the same change-set — deferral is exactly the gap the bridge exists to
-close. Calibrate before trusting a green: the same verifier must FAIL an escape variant (the
-sample-app's `Withdraw.Avp.Tests.cs` shows the full shape).
 
 ---
 
@@ -707,8 +526,7 @@ user project.
 ## Scope — and non-goals
 
 **In:** the standard project shape, the doctor, the ai-context discipline, the thin wire
-(`Result<T>`, `[Slice]`, `[ValueObject]`, `[Entity]`), a slice scaffold (`rails g`-style,
-planned), a knowledge-graph dump for the LLM (planned).
+(`Result<T>`, `[Slice]`, `[ValueObject]`, `[Entity]`), the scaffolders, and spec receipts.
 
 **Out (non-goals), by decision:**
 - **No source-gen of behavior.** Plumbing only, if ever — and not in v0. (It is a
@@ -720,6 +538,9 @@ planned), a knowledge-graph dump for the LLM (planned).
   + enforced, never re-generated; real-time is **opt-in** via `skies g hub` (see
   §"Real-time — hubs"). The failure mode is the sprawl/source-gen, not the capability.
 - **No runtime framework you inherit from.** Conventions + analyzer, not base classes.
+- **No gates or bureaucracy.** No hook the framework installs, no check that audits the agent, no policing
+  of CI, suppressions, or package versions. Opinion is expressed by the scaffolders and the doctor; evidence
+  by receipts.
 
 When a proposal smells like capability instead of convention+enforcement, it is a scope
 violation. Reject in line.

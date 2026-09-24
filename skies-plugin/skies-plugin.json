@@ -1,6 +1,6 @@
 {
   "name": "skies",
-  "version": "4.0.3",
-  "description": "The Skies .NET framework kit: scaffolding, domain conventions, frontend MVVM harness, the doctor, and the AVP, NYA, WTW, RTW, and NWC foundation stack.",
+  "version": "5.0.0",
+  "description": "The Skies kit: vertical-slice and MVVM conventions, architecture doctors, scaffolders, and spec-driven delivery with reproducible receipts.",
   "knowledgeHome": "skies"
 }

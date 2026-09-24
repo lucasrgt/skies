@@ -1,73 +1,47 @@
-# Migrating to Skies 4.0
+# Migrating to Skies 5
 
-Skies 4.0 is a clean product rename and a breaking package migration. Runtime
-behavior and the convention model remain the same, but every public identity
-now belongs to Skies. The previous package line is frozen and receives no new
-features.
+Skies 5 keeps the runtime conventions (slices, modules, entities, value objects, MVVM, error codes, ctx.md) and
+removes the verification apparatus around them. Read [the decision](decisions/skies-5-evidence-over-apparatus.md)
+for the reasons.
 
-## Identity map
+## What changes
 
-| Before 4.0 | Skies 4.0 |
+| Skies 4 | Skies 5 |
 |---|---|
-| `lucasrgt/aerofortress-framework` | `lucasrgt/skies` |
-| `AeroFortress.Framework.*` | `Skies.Framework.*` |
-| `aerofortress-framework-cli` | `skies-framework-cli` |
-| `af` | `skies` |
-| `AeroFortress.toml` | `Skies.toml` |
-| `.aerofortress/` | `.skies/` |
-| `dotnet new aerofortress` | `dotnet new skies` |
-| `@aerofortress/frontend-sdk` | `@skiesjs/frontend-sdk` |
-| `@aerofortress/react` | `@skiesjs/react` |
-| `eslint-plugin-aerofortress` | `@skiesjs/eslint-plugin` |
-| `@aerofortress/assay` | `avp-assay` |
-| `AF####` | `SKY####` |
-| `AFFE###` | `SKYFE###` |
-| `AFSELF###` | `SKYSELF###` |
-
-Public namespaces, assembly names, project names, generated code, analyzer
-identifiers, and template identities follow the same mapping.
-
-## Application APIs
-
-| Before 4.0 | Skies 4.0 |
-|---|---|
-| `AddAeroFortress()` | `AddSkies()` |
-| `UseAeroFortress()` | `UseSkies()` |
-| `AeroFortressExtensions` | `SkiesExtensions` |
-| `AeroFortressManifest` | `SkiesManifest` |
+| `skies-framework-cli` dotnet tool | the `skies` binary (`npm install -g @skiesjs/cli` or `cargo install skies-cli`) |
+| `skies gate`, `skies check`, lefthook hooks | nothing runs automatically; `skies doctor` and `skies proof` on demand |
+| `<Module>.spec.toml`, `[AVP(...)]`, Assay.Net, avp-assay | `.specs/<id>/spec.md` with failure modes + `e2e/` + `receipt.json` |
+| `[Journey]`, `[Unit]`, `[Integration]`, `[E2E]` | plain `[Fact]`; spec E2E use `DisplayName = "FM-n: …"` |
+| `@verify`, `@avp`, `@e2e`, `flows.json`, backend ledger | removed |
+| SKY0003, 0008, 0010, 0011, 0020, 0030–0033 | removed |
+| SKYFE005, 006, 008, 012, 024–026, 033–035 and Flutter equivalents | removed |
+| design tokens, `.design/`, design scaffolds | removed; styling is the app's |
+| `csm.toml`, `.skies/`, `skies context`, `skies nya/wtw/rtw/nwc` | removed from Skies; the tools remain available on their own |
+| `VERIFICATION.md`, `VERIFICATION.json` | removed |
+| `Skies.toml` `[framework]`, `core`, `library`, `website` keys | `[products.*] backend` + `frontend` (one path or a list), plus `[runners.*]` |
+| framework-sync, parity manifests | removed; all packages share one version |
+| Node.js SDK (`@skiesjs/core`, `express`, …) | discontinued; stay on the last 4.x release |
 
 ## Upgrade an existing repository
 
-1. Replace every `AeroFortress.Framework.*` package reference with the matching
-   `Skies.Framework.*` package at version `4.1.0`. Migrate straight to `4.1.0`
-   rather than an earlier 4.0.x: `Skies.Framework.Testing.Postgres` never
-   dropped the databases it cloned per test before `4.1.0`, and a large suite
-   leaves enough of them behind to exhaust the Docker VM's memory.
-2. Replace the tool package and command. The CLI carries its own version,
-   independent of the `Skies.Framework.*` library line:
+1. Install the binary and run the migration from the repository root:
 
    ```bash
-   dotnet tool uninstall -g aerofortress-framework-cli
-   dotnet tool install -g skies-framework-cli --version 4.1.1
+   npm install -g @skiesjs/cli
+   skies migrate 5 --dry-run   # review
+   skies migrate 5
    ```
 
-3. Rename `AeroFortress.toml` to `Skies.toml` and `.aerofortress/` to
-   `.skies/`.
-4. Replace namespaces and application APIs using the maps above.
-5. Replace frontend package names, refresh the npm lockfile, and update
-   `AFFE` suppressions or rule references to `SKYFE`.
-6. Update CI paths, cache dependency paths, hooks, and scripts to use the new
-   solution, projects, CLI, and manifest.
-7. Run the complete gate:
+   It removes the proof annotations and tags, `flows.json`, `*.spec.toml`, `VERIFICATION.*`, `csm.toml`,
+   `.skies/csm`, the foundations block in `AGENTS.md`/`CLAUDE.md`, and the Skies hooks in `lefthook.yml`; rewrites
+   `Skies.toml` to the 5.x schema; drops the `skies-framework-cli` dotnet tool; and adds the `.specs/` compile
+   include to the test project.
+2. Bump every `Skies.Framework.*`, `@skiesjs/*`, and `skies_flutter` reference to `5.0.0` and refresh lockfiles.
+3. Remove `Assay.Net` / `avp-assay` / `assay-design` references if the migration reported any it could not edit.
+4. Declare a runner in `Skies.toml` for each E2E engine you use (see
+   [MONOREPO-ARCHITECTURE.md](MONOREPO-ARCHITECTURE.md)).
+5. Run `skies doctor`, `dotnet test`, and your frontend tests.
 
-   ```bash
-   skies foundations init
-   skies gate --full
-   ```
-
-`skies foundations init` adopts the complete AVP, NYA, WTW, RTW, and NWC
-foundation contract. Skies projects do not select a subset of that stack.
-
-The GitHub repository rename preserves standard GitHub redirects, but package
-identities do not redirect. Consumers must move to the Skies package line
-explicitly.
+Existing tests keep running as ordinary tests. They are not converted into specs. New features start with
+`skies spec new`. For a critical area, write a spec after the fact and record it with a `red.patch` that removes the
+behavior, so the receipt still shows every failure mode failing before and passing after.

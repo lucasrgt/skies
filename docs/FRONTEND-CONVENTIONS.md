@@ -46,7 +46,7 @@ less (Rails-in-RN):
 - **orval** (target `react-query`) — generates the typed slice-hooks from the .NET API's OpenAPI
   (`/openapi/v1.json`). RN-agnostic output; the same wire works on device.
 - **zod** + **react-hook-form** — input schemas + form state.
-- **TypeScript strict** — `tsc` is part of the gate; it is what makes "wired" decidable.
+- **TypeScript strict** — `tsc` is part of the doctor; it is what makes "wired" decidable.
 - **Vitest** (jsdom) — the test runner for the **platform-agnostic core**: ViewModels (render-agnostic hooks,
   tested with `@testing-library/react`'s `renderHook` — no RN runtime), the generated client, types, schemas.
   *Not* jest-expo: rendering RN components is out of scope (the View is thin by convention), and Vitest is
@@ -79,7 +79,6 @@ One screen = a co-located triple. The suffixes are the analyzer anchor, the way 
 features/<zone>/<name>/
   <Name>.view.tsx        # the View — pure render; consumes exactly one ViewModel
   <Name>.viewModel.ts    # the ViewModel — the only data door; composes generated slice-hooks
-  <Name>.test.tsx        # co-located test, as on the backend (SKY0003)
   <name>.i18n.ts         # the feature's i18n namespace (ptBR/esES/enUS)
   panels/ | steps/       # for multi-panel/multi-step features (sub-views, same harness rules)
 ```
@@ -158,8 +157,7 @@ orval.config.ts          # the shipped convention config — the "poison" lives 
 - **Audience filters the client at the generator, not the rule.** orval is configured to include only
   endpoints tagged for *this* frontend's audience (`app`). Webhooks, internal/server-to-server, and
   other-audience endpoints carry a different `[Endpoint(...)]` kind (below), are tagged accordingly, and
-  never enter `client.gen/`. So `SKYFE008` (loose-endpoint coverage) is high-signal by construction — the
-  noise is removed in the plumbing (config of a stock tool), not papered over by the rule. This is the old
+  never enter `client.gen/`. The noise is removed in the plumbing (config of a stock tool). This is the old
   skies's "audience SDK projection", done by tool config instead of a bespoke compiler.
 
 ---
@@ -482,12 +480,12 @@ server-to-server, OAuth redirects, other-audience admin panels). So the framewor
 drives everything else. This is **classification, not suppression**: it does not say "ignore the rule here",
 it says "this endpoint *is* a webhook", and the harness derives that a webhook has no UI wiring.
 
-- **Opt-out, not opt-in.** The default is `App` — app-facing, *must* be wired (`SKYFE008`). The dangerous
-  case (forgot to wire) must be loud by default; the legitimate exception (a webhook) costs one marker. (This
+- **Opt-out, not opt-in.** The default is `App` — app-facing. The legitimate exception (a webhook) costs one
+  marker. (This
   is right *because* a Skies app is UI-first/mobile — app-facing is dominant. An API-first product would
   reconsider.)
 - **One classification, many derivations.** A single endpoint-nature marker on the slice feeds: orval
-  (audience filter → non-app endpoints leave the client), `SKYFE008` (covers only app-facing), and a future
+  (audience filter → non-app endpoints leave the client) and a future
   backend doctor rule (a `Webhook` must verify its signature / be idempotent). One declaration, several
   enforcements; intent flowing back→front.
 - **Closed enum of natures, zero behavior params** — the guard-rail against the mini-language the constitution
@@ -569,7 +567,7 @@ behavior.
 ## The harness — rule catalog (`SKYFE*`)
 
 The frontend doctor is an **ESLint custom plugin** (`@skiesjs/eslint-plugin`) for in-file rules,
-plus a thin `ts-morph` pass for the cross-file shape, invoked alongside `skies doctor`. ESLint
+run by `npm run lint` and by `skies doctor`. ESLint
 is the mature path for custom semantic rules — hostpoint reached for Biome and had to hand-roll
 a `.mjs` scanner for exactly this, the tell that Biome's custom plugins are not yet there.
 
@@ -583,14 +581,10 @@ by construction, and completeness is the compiler. Every rule is born from obser
 | `SKYFE002` | ViewModel is the only data door — only `*.viewModel.ts` (plus the auth/routing infra seams, `lib/session`/`lib/guards`) may consume generated operations. Re-exporting them (`export … from "client.gen"`) outside the doors is the laundering bypass, also flagged; contract types and generated enum values stay free. The ESLint rule gives editor feedback, while `skyfe-endpoint-coverage` independently scans every configured source root and fails off-door operations even if a consumer accidentally narrows the ESLint rule's file scope | **shipped** | one data path, one policed surface |
 | `SKYFE003` | **No mock in production code** — no import from `**/__mocks__`/`**/fixtures`/MSW outside `*.test.*` | **shipped** | hostpoint: `WAR-*` storybook fixtures shipped as data |
 | `SKYFE004` | ViewModel is render-agnostic — a `*.viewModel.ts` imports no JSX/`react-dom` | planned | keeps the ViewModel unit-testable without rendering |
-| `SKYFE005` | **Co-located test that exercises the ViewModel** — every `*.viewModel.ts` has a sibling `*.test.tsx` that imports it and calls `renderHook()`. Existence alone is not enough: mounting `useXModel()` compiles the ViewModel against the real generated client and proves the hook is callable. Behavior assertions stay per-screen judgment (no test-theater) | **shipped** | mirror of `SKY0003` — the triple's third leg; "renders + has a data door but no test" is not done |
-| `SKYFE006` | **Co-located integration test for every screen** — a `*.view.tsx` with a sibling `*.viewModel.ts` has a `*.test.tsx` that `render()`s it through the shared Providers harness. Presentational fragments (no viewModel) are out of scope — covered via their shell | **shipped** | the integration tier — "renders but untested" is not done |
 | `SKYFE007` | Mandatory states — a ViewModel exposing server data exposes `loading` + `error` + `empty` | planned | visible failures need an explicit state |
-| `SKYFE008` | **Endpoint coverage (back→front)** — every app-facing generated operation is value-imported by ≥1 data door through its `use<Slice>` hook or imperative `slice` function (a ViewModel, or the auth/routing infra seams SKYFE002 blesses). The unavoidable raw-call seam uses `@backendSlice Slice METHOD /path`; the feature-E2E gate independently requires the matching call and real happy/sad browser proof before endpoint coverage accepts that link. An unrelated local command or bare annotation cannot impersonate wiring in the complete gate. A product with multiple frontend surfaces supplies every source root and coverage is computed over their union; an unreferenced operation is a **warning** while the feature is being built and a **blocking finding in `skies gate`**. Asset/webhook/internal endpoints leave by kind tag and never enter the data client | **shipped** (`tools/endpoint-coverage.mjs`) | back→front completeness — catches "backend done, UI not wired" without misclassifying asset or other-surface routes |
 | `SKYFE009` | **ViewModel is platform-agnostic** — a `*.viewModel.ts` imports no `react-native`/`expo-*` (value *or* type); platform capabilities are injected ports | **shipped** | keeps the ViewModel + core shareable web↔mobile and Vitest-testable |
 | `SKYFE010` | **State completeness** — a `*.view.tsx` routes loading/error/empty through `<Resource>` (the spine), not raw `isPending`/`isError` | **shipped** | every async state handled by construction, not a hand-rolled branch that forgets one |
 | `SKYFE011` | **i18n parity** — every locale object in a `*.i18n.ts` declares the same keys, compared as **flattened paths** (`empty.title`) so a key missing inside a nested group is caught too; a key in one language but not its siblings is a silent untranslated string. Two mechanisms by layout: the `i18n-completeness` eslint rule when catalogs are in lint scope, `tools/i18n-parity.mjs` when they are cross-package | **shipped** | no string ships untranslated in any language |
-| `SKYFE012` | **Design tokens** — no inline hex color outside the token/theme/palette files; color comes from the theme | **shipped** | one palette; theming (dark mode, white-label) survives |
 | `SKYFE013` | **Mutation surfaces its error** — a react-query `.mutate(...)`/`.mutateAsync(...)` in a ViewModel routes its failure somewhere (inline `onError`, a read `.isError` state, a try/catch or `.catch()` on `mutateAsync`, or a propagated return). An **empty** `onError: () => {}` is flagged too — the silent failure with paperwork. With the `SKYFE027` defaults wired, the app sets `{ globalSurface: true }`: the global `MutationCache.onError` IS the surface (react-query fires it regardless of per-call handlers), so a bare `.mutate()` passes and only the empty handler stays flagged | **shipped** | the front-side of the backend's `error_handling` — no silent failure, no `onError` theater |
 | `SKYFE014` | **No hardcoded copy** — user-facing JSX text + copy props (`placeholder`, `label`, `accessibilityLabel`…) in a View go through i18n (`t()`), not literals | **shipped** | feeds the catalog that `SKYFE011` then keeps complete |
 | `SKYFE015` | **No imperative redirect inside `useEffect`** — a redirect-on-state is declarative (`if (terminal) return <Redirect/Navigate … />`), never `router.replace`/`router.navigate`/a `useNavigate()` call in an effect: it runs after paint and re-fires every render (a flash on TanStack; on expo-router web the router freezes the source screen → an infinite navigation/refetch loop). `push`/`back` on a user action stay allowed. Scoped to the navigating layer (views + routes) | **shipped** | the pilot shipped this loop twice (Splash, then ChooseRole + 5 screens) before the rule existed |
@@ -602,123 +596,33 @@ by construction, and completeness is the compiler. Every rule is born from obser
 | `SKYFE021` | **No raw HTML** — no `dangerouslySetInnerHTML` outside the one audited seam (`lib/html`). JSX escapes by construction; raw HTML is the XSS door, and if the app renders rich HTML (a CMS body) the sanitizer lives in that seam, reviewable | **shipped** | the single React opt-out of escaping must not scatter across screens |
 | `SKYFE022` | **No open redirect** — never navigate to a value that arrived in the URL (`router.replace(returnTo)` / `location.href = next` off `useLocalSearchParams`/`useSearch`/`useSearchParams`); map the param through an **allowlist** of known in-app routes first | **shipped** | the phishing primitive: a crafted link sends the session-carrying browser anywhere the attacker chose |
 | `SKYFE023` | No orphan placeholder — `// wire later`, `TODO`/`FIXME`, `WAR-*`, or `@ts-expect-error` on a data call | planned | mirror of `SKYSELF002` — "almost done" is not done (renumbered as shipped rules claimed the lower slots) |
-| `SKYFE024` | **UI door** — a `*.view.tsx` renders no host element (no lowercase JSX) and carries no `style`/`className` attribute; everything visual comes from `@/ui` (the app-owned kit). A missing primitive is extended in `ui/`, never inlined. The `SKYFE002` one-door pattern applied to paint — the design band, [DESIGN-CONVENTIONS.md](DESIGN-CONVENTIONS.md) | planned (design band) | the sample's pre-kit `ui.tsx` leaked `className` — one passthrough reopened every visual decision |
-| `SKYFE025` | **Scale only** — outside `ui/`, token files, and tests: no numeric literal in spacing/typography style keys (`padding*`/`margin*`/`gap`/`rowGap`/`columnGap`/`borderRadius`/`fontSize`/`lineHeight`; `0` allowed), no Tailwind arbitrary value on a spacing/typography utility (`p-[13px]`, `text-[14px]`); layout dimensions (`max-w-[560px]`) stay free, mirroring the style half | **shipped** | off-scale values are how rhythm dies one screen at a time |
-| `SKYFE026` | **Semantic colors** — outside token files: no `rgb()/hsl()/oklch()` literals, no CSS named colors in color-ish style keys, no value-import of a raw palette export outside `ui/`. Completes `SKYFE012`: color is a role, or it does not ship | planned (design band) | a forked palette defeats theming silently; hex was only one spelling of the leak |
 | `SKYFE027` | **QueryClient carries the mutation defaults** — every production `new QueryClient(...)` wires `mutationCache: new MutationCache({ onSuccess, onError })`: success invalidates every active query + posts the success note (`meta.silent` opts out of the note), failure routes through the feedback seam unconditionally. Tests and the shared test harness (`test/`, `test-utils/`) build bare clients freely. Scaffolded as `lib/query.ts` | **shipped** | pauta: a created category only appeared after F5, with no toast — 13 of 43 ViewModels had no invalidation at all |
 | `SKYFE028` | **No manual refetch ritual** — an `onSuccess` whose entire body is refetch/invalidate calls (inline, named, or `useCallback`-wrapped) duplicates the `SKYFE027` defaults; delete it. A handler that does *more* than refetch (navigate, reset, hand off an id) is behavior — never flagged. Warn-tier: reveals, does not gate | **shipped** | pauta: 30 of 43 ViewModels hand-rolled `onSuccess: refetch` — the convention the majority groped toward, pinned so the minority can't forget it |
 | `SKYFE029` | **Refresh one-door** — the refresh hook/operation (and any hand-rolled `POST` to a refresh route) is consumed only inside the rotation doors (`lib/skies-client`, `lib/session`); anywhere else is a second rotation path. Type-only imports stay free | **shipped** | pauta near-miss: a session-seam refresh bootstrap and a client 401 interceptor landed the same week from different branches — two cold-load rotations would have tripped the backend's theft detection and burned the session family |
 | `SKYFE030` | **No cast on a navigation target** — no `as never`/`as any`/`as unknown` on the argument of `router.push`/`replace`/`navigate` (or a `useNavigate()` call), nor on the `href`/`to` of `<Redirect>`/`<Navigate>`/`<Link>`. The cast exists to silence typed routes; silenced, a drifted route literal compiles clean and 404s in prod. Pass a typed literal or the `{ pathname, params }` object. **Config pair**: typed routes ON (expo-router `experiments.typedRoutes` / TanStack's route tree) — without it the removed cast merely degrades to `string`. Error-tier, routing family | **shipped** | hostpoint: ~8 call sites cast `router.push(x as never)`; when the backend minted two routes that didn't exist (the sibling convention), the muted router compiled them clean → prod 404 |
 | `SKYFE031` | **Submit handles the invalid path** — in a `*.viewModel.ts`, a one-argument `handleSubmit(onValid)` is flagged: a validation failure runs no code (it happens *before* the mutation, so `SKYFE013`/`SKYFE027` never see it). Use the spine's `submitOrReveal(form.handleSubmit, onValid, { onInvalid })` — it forces the surface and resolves the first invalid field for the shell to navigate to — or pass `onInvalid` by hand. Warn-tier on entry (a single-screen form with visible inline errors is legitimate); promotes with `SKYFE032` | **shipped** | hostpoint: a 9-tab property editor's Save went completely mute when a hidden tab's field failed — no mutation, no toast, no error ("não está salvando a propriedade", in prod) |
 | `SKYFE032` | **Controller surfaces its fieldState** — a `<Controller>` whose inline `render` never reads `fieldState` (destructured or accessed) leaves that field's validation error with no surface; pass `error={fieldState.error?.message}` to the field component. Near-zero false positives (`error` on an unvalidated field is inert); a deliberately non-inline surface must still expose the same error state explicitly. Warn-tier, promoted together with `SKYFE031` — the pair makes "a validation error always shows" hold by construction | **shipped** | hostpoint: the Description input destructured only `{ field }` — its validation failure had no surface at all (same incident as SKYFE031) |
-| `SKYFE033` | **Every feature declares and executes AVP** — every `*.viewModel.ts` declares its semantic JSDoc `@verify <criterion-id>` set. Each obligation needs its exact co-located `<Feature>.assay.test.tsx` carrying `@avp <criterion-id>` and a `defineVerification(...)` for that exact id; the reverse edge is mandatory too, so an `@avp` without the subject's matching `@verify` fails instead of running invisibly outside the E2E inventory. One executable case cannot lend execution to extra markers. Every `productVerification` callback contains an executable assertion oracle (or the scaffold's deliberate red `throw`), so an empty callback cannot manufacture a green proof. The `.test` segment is mandatory so Vitest discovers it. Direct `assay verify` supplies the gate verdict. Error-tier | **shipped** | AVP existed but was optional, and one generic case, orphan proof, empty callback, or non-discoverable file could impersonate an entire proof set |
-| `SKYFE034` | **Every test must execute** — nested `.skip`, `.fixme`, `.todo`, `.skipIf`, `.runIf`, `.only`, and `x*`/`f*` test aliases in `*.test.*` or `*.spec.*` are errors (including `test.each(...).skip` and `test.concurrent.only`). A runner's zero exit while tests were skipped or excluded is not evidence | **shipped** | skip/focus syntax made incomplete frontend and Playwright suites look green |
-| `SKYFE035` | **Every visible feature links its semantic AVP/Assay set to real E2E** — each `*.viewModel.ts` declares every distinct JSDoc `@e2e <flow-id>` obligation, and every flow naming that feature must be reciprocally enumerated. The workspace doctor keeps happy + sad as the minimum path floor, then requires every subject flow to name `criteria` from that ViewModel's `@verify` set and requires the entire set to be covered. It also requires every UI-consumed backend slice in a real flow from its consumer set. Shared hooks are proved once, not once per importer | **shipped** | happy + sad alone became another coverage number an agent could satisfy with two shallow cases; extra feature flows could previously sit outside the ViewModel inventory |
 
 The two directions are asymmetric, and that sets the severity: **front→back** (the UI calls an
 endpoint that doesn't exist) is never valid → a hard **error**, free from `tsc` (the hook isn't
 generated, so it can't compile). **back→front** (the endpoint exists, nothing wired it yet) is a
-legitimate intermediate state → a **warning** (`SKYFE008`). Failing the interactive lint/build there would be wrong;
-the release boundary is different: `skies gate` promotes the warning to a blocking finding because no app-facing
-endpoint may ship unwired;
-revealing it is the point. The completeness gate — "does this call a real endpoint?" — is **not** a
+legitimate intermediate state, not an error. "Does this call a real endpoint?" is **not** a
 rule. It is `tsc` against the generated client. Lean on the type system; the harness only forbids the
-bypass and surfaces the loose ends.
+bypass.
 
-**Contract freshness — the mirror is pinned to its spec.** Every loop above reads the generated client
-as truth, but nothing re-checks the mirror after generation: a backend shape change leaves the front
-compiling happily against a stale client. `tools/contract-freshness.mjs` closes that: the codegen script
-ends with `--stamp` (writes `client.gen/.spec-hash`, a whitespace-insensitive fingerprint of the OpenAPI
-document), and the doctor leg compares the stamp against the live spec — a mismatch is a build-time "the
-contract moved; regenerate", not a runtime 404. A **notice** until the first stamp exists, a hard gate
-after.
+**Contract freshness.** Regenerate the client with `skies g client` whenever the backend contract moves; the
+generated code is committed, so a stale mirror shows up as a diff in review and as a type error at the call site.
 
 ---
 
-## E2E journeys — `flows.json` + depth
+## Specs — E2E with a receipt
 
-E2E is flow-level, but completeness is enforced in **both directions**. Every ViewModel declares
-`@e2e <flow-id>` (`SKYFE035`); `tools/feature-e2e-coverage.mjs` resolves those obligations against the union
-of the product's executable surfaces. Each surface curates its journeys in `e2e/flows.json`, and
-`tools/e2e-doctor.mjs` proves every declared journey is executable. Absence and an empty list are blocking —
-there is no bootstrap-green state. Each entry is
-`{ id, name, features: ["FeatureBasename"], criteria: [{ id: "criterion-id", evidence: "asserted marker" }], path: "happy"|"sad", target: "web"|"native", spec, case?, terminal, backendSlices?, backendContract?, backendOutcome? }`:
-
-- **Feature and endpoint coverage** (hard gap): each ViewModel id resolves to subject-bound flows whose
-  `features` array contains exactly that one basename; one flow cannot pay multiple ViewModels. Every visible feature
-  reciprocally enumerates every flow that names it, so an additional journey cannot escape its `@verify`/AVP ledger.
-  has both `path: "happy"` and `path: "sad"`, but those labels are only a floor. Every subject flow names the exact
-  `@verify` criteria it proves. Every criterion names distinct `evidence` that the exact case visibly asserts;
-  metadata without a matching assertion is a hard gap. One criterion belongs to one executable case, so happy and
-  sad paths cannot borrow the same proof. A coherent journey may prove several behaviors only when it carries a
-  distinct observable assertion for each, and their union must cover the ViewModel's complete Assay set. Unknown
-  criteria, uncited criteria, reused evidence, and a criterion-free flow are hard gaps. Therefore two shallow
-  journeys never complete a feature that declares five semantic obligations.
-  Every backend `use<Slice>` hook consumed by the UI must be named in
-  at least one subject flow belonging to one of the ViewModels that actually imports it; a shared query is not
-  re-proved by every importer. Generated client calls in shared infrastructure retain happy and sad flow evidence.
-  If infrastructure must make a literal raw HTTP call, it declares the exact seam beside it as
-  `@backendSlice SliceName METHOD /path`; the workspace doctor rejects undeclared calls, stale/unknown declarations,
-  and missing happy/sad proofs. ViewModels never use this escape hatch.
-  A web flow naming `backendSlices` must identify the checked-in OpenAPI
-  file in `backendContract`. Its exact case starts `observeBackend(page, backendContract)` before interaction and
-  calls canonical `expectBackendSlices` or bounded `waitForBackendSlices` with exactly the manifest names. The default is
-  `status:"success"` for a happy flow and `status:"error"` for a sad flow. When a sad product state is a
-  successful response (an empty collection, an absent optional registration, a pending state), declare
-  `backendOutcome:"success"`; the doctor then requires that exact observed outcome instead of encouraging an
-  invented transport failure. These functions come from
-  `skies-frontend-sdk/playwright-backend`; the observation is branded and resolves real page responses to
-  OpenAPI `operationId` values. Playwright `globalSetup` calls the package's `probeBackend()` (or
-  `createBackendGlobalSetup()`) against `PW_API_URL`, which alone sets `PW_API_READY=1` after a successful HTTP
-  response. A local namesake/plain object does not count. The spec file may
-  not install request interception (`page.route`, `route.fulfill`, HAR routing, MSW, mock/stub imports, or
-  API-mock helpers), import the generated client, or make a direct fetch/APIRequest call. Mocked/front-only
-  rendering remains useful smoke coverage in a separate spec, but cannot prove an endpoint.
-  A slice with no frontend consumer remains backend-only.
-  Once the UI consumes it, the linked executable journey is mandatory. A shared `core` resolves against all
-  product surfaces rather than owning a fake browser. The conventional `src/storybook/` development surface is
-  excluded from production feature and endpoint inventory; there is no configurable ignore list that an agent can
-  widen to hide ordinary application code.
-- **Complete frontend depth** (hard gap): happy + sad belongs to the visible feature, never to an annotation or
-  backend risk class. A UI-consumed write also has its backend happy/sad `[Journey]` pair; the browser proofs cover
-  the visible seam, while a UI-consumed read still owes visible success and failure behavior.
-- **Existence** (hard `gaps`): the `spec` file exists and its `target`-derived runner is configured:
-  Playwright config for web, the complete `maestro test e2e` package script for native. There is no runner field and no alternative-engine slot; Cypress and
-  Detox configurations are noncanonical gaps. Web proofs are Playwright `.spec/.test` JavaScript or TypeScript;
-  native proofs are Maestro `.yaml/.yml`. Multiple flow proofs may share a spec only when each names a
-  distinct enabled `case` title, preventing one generic file from impersonating several journeys. For web, the
-  doctor also runs Playwright collection and matches every manifest `spec/case` against the collected inventory;
-  `testIgnore`, a narrowed `testMatch`, or a drifted `testDir` therefore cannot hide a checked-in obligation.
-- **Derived parity** (`tools/journey-parity.mjs`, SKYFE-JOURNEY): backend write shape and the co-located
-  `[Journey(typeof(Slice), Happy|Sad)]` inventory are compared with frontend `backendSlices`. Every UI-bound write
-  needs both backend paths; a write absent from every frontend manifest is explicitly backend-only and remains
-  valid. The configured backend root must contain `[Slice]` declarations; pointing at a journeys-only leaf fails
-  instead of reporting a fictitious zero-write API. A genuinely read-only API still has GET slices and passes that
-  inventory check. Unsupported manifest fields are rejected rather than silently accepted as bypass metadata. A backend
-  shared by multiple executable surfaces passes all independently-gated manifests; their union determines the
-  UI-bound write set.
-- **Depth** (`depthGaps`, blocking, **SKYFE-JOURNEY-002**): a spec *existing* is not coverage — it can
-  stop at the door. Every flow must declare `terminal` (the testID or route its spec asserts
-  *after* entry, to prove the journey reaches its end), and the spec must actually reference it; a spec
-  that asserts only the entry screen is flagged. *Why this exists:* a pilot's onboarding shipped a
-  "complete → back to step 0" bug under a green doctor because the backend journey proved the lifecycle
-  reached `Complete` while the frontend spec proved only entry — the bug lived in the **seam** between
-  them. `terminal` forces the traversal across that seam to be asserted. See
-  [`docs/decisions/skies-framework-fail-closed-verification.md`](decisions/skies-framework-fail-closed-verification.md).
-- **Execution** — every `skies gate` runs the global Assay/E2E inventory. The affected form maps changed ViewModels,
-  feature directories, backend slices, and flow bindings to the relevant non-Assay Vitest files, direct
-  `assay verify` paths, and Playwright/Maestro specs. `skies gate --full` runs every manifest-declared package and flow.
-  This partitions the Vitest inventory by filename, so every selected proof executes exactly once.
-  The CLI sets `CI=true` and `SKY_GATE=1` for the real E2E process even when the gate runs locally, so the standard
-  Playwright `reuseExistingServer: !process.env.CI` convention always boots the checked-out stack. A hardcoded
-  `reuseExistingServer: true` is rejected: a health-compatible stale process is not evidence for the current build.
-  On CI, the CLI installs the browsers from the project's pinned Playwright dependency only when the selected
-  closure contains a web flow; backend-only changes do not pay browser setup.
-  The E2E package script must contain every unfiltered runner selected by its manifest targets (`playwright test`
-  for web, `maestro test e2e` for native); lifecycle setup belongs in runner configuration/global setup, not an opaque wrapper that
-  can silently select files. Missing or placeholder scripts,
-  seed-pending specs, disabled/focused specs, and tests that never launch the real runner are failures. An
-  unaffected flow is reported as unaffected, never passed. Unknown/shared changes widen; releases run `--full`.
+Frontend features are accepted the same way as backend ones: a spec folder under `.specs/` with its failure
+modes, black-box E2E in `e2e/`, and a receipt from `skies proof record` (see [CONVENTIONS.md](CONVENTIONS.md#specs-and-proofs)).
+The E2E engine is the app's: Playwright on web, Maestro or `integration_test` on native. Declare a runner in
+`Skies.toml` that runs one spec folder and writes a JUnit report, and name each case after the failure mode it
+covers (`test("FM-3: an expired session lands on sign-in")`). Nothing in the ViewModel, the View, or a JSON
+manifest points at the spec.
 
 ---
 
@@ -750,11 +654,9 @@ useTranslation("<feat>")` and renders `t("some.key")`. Adding a locale is a seco
 a framework mechanism; this is Hostpoint's.)
 
 **Error codes — translated in every language, enforced.** The backend ships every error as a stable code
-(`ErrorBody.code`, the registry constants behind `SKY0018`/`SKY0019`); the front owns the copy. Two gates guarantee no
-error reaches a user untranslated: **coverage** — every code in the generated `ErrorBody.code` union has an
-`api-errors` catalog entry (`skyfe-error-codes`; a notice until the client is regenerated against the enum-bearing
-OpenAPI, a hard gate after) — and **parity** (`SKYFE011`) — that entry exists in every locale. Composed: code → copy
-→ in every language. This is the front end of the same full-stack discipline `SKY0018`/`SKY0019` enforce on the back.
+(`ErrorBody.code`, the registry constants behind `SKY0018`/`SKY0019`); the front owns the copy in its
+`api-errors` catalog, typed against the generated `ErrorBody.code` union so a missing code is a type error, and
+`SKYFE011` keeps every locale in step. Composed: code → copy → in every language. This is the front end of the same full-stack discipline `SKY0018`/`SKY0019` enforce on the back.
 
 ## Accessibility — enforced, ecosystem-specific
 
@@ -771,14 +673,12 @@ Both are **warn-first** — a revealed backlog promoted to error per-rule once c
 `has-accessibility-hint` **off**: a hint is supplementary (only for non-obvious actions), and on by
 default it buries the high-signal rules under noise. This is the same posture as the curated
 community kit (`sonarjs`, `no-secrets`, `@tanstack/query`): external rules wired *alongside* the SKYFE
-plugin, never reinvented inside it. The design layer raised this bar exactly once: with the
-canonical screens (the recipes — [DESIGN-CONVENTIONS.md](DESIGN-CONVENTIONS.md)), **web jsx-a11y
-runs at error** for the sample tree — the exemplar proved green reachable, so the bar rose with it.
+plugin, never reinvented inside it.
 
 ## Scope — and non-goals
 
-**In:** the MVVM feature convention, the `SKYFE*` harness, a `g view` scaffold, and `skies gen
-client` (stock orval, wrapped) with the shipped config + mutator. One blessed frontend shape.
+**In:** the MVVM feature convention, the `SKYFE*` rules, `skies g feature`, and `skies g client` (stock
+orval, wrapped) with the shipped config + mutator. One blessed frontend shape.
 
 **Out (non-goals), by decision:**
 - **No bespoke generator.** orval stock, wrapped — never a Skies OpenAPI→TS compiler. (The
@@ -787,24 +687,15 @@ client` (stock orval, wrapped) with the shipped config + mutator. One blessed fr
   re-emitted. No "smart stubs" that pre-fill logic. (The source-gen vector.)
 - **No MVVM framework.** Plain custom hooks, not classes/observables/two-way binding. (The
   stranger-maintainable law.)
-- **No prescribed styling *mechanism* — but the design *vocabulary* is conventional.** The blessed
-  shape pins what touches the seam (router, query layer, generator, form lib, test runner) and stays
-  neutral on the paint *mechanism*: the styling library (StyleSheet / NativeWind / Tamagui /
-  Unistyles / CSS vars) and the icon set remain **the app's choice**, mapped by hand from the tokens,
-  once. What is no longer free-invented is the **vocabulary**: the token taxonomy (names + types),
-  the closed kit shape (the app-owned `ui/`), and the ui-door discipline are the convention,
-  constitutionalized in [DESIGN-CONVENTIONS.md](DESIGN-CONVENTIONS.md) and enforced by the design
-  band (`SKYFE024–026`, beside `SKYFE012`). Token **values** stay the app's — that is the entire
-  theming story. (Hostpoint keeps NativeWind + its own finished components; if it ever adopts, it is
-  by aliasing values onto the taxonomy with zero visual delta — the mechanism choice is untouched.)
-- **No TS decorators (`@Slice`/`@Journey`/`@Risk`).** The backend's `[Slice]` is a first-class
+- **No design system in the framework.** Styling library, component kit, tokens, spacing scale, and layout
+  rules are the app's. Every product has its own design language; a framework-imposed vocabulary only added
+  rules to fight. (Skies 4 shipped a token taxonomy and a design lint band; Skies 5 removed both.)
+- **No TS decorators (`@Slice`/`@Risk`).** The backend's `[Slice]` is a first-class
   C# attribute the Roslyn doctor reads natively; React function components have no idiomatic decorator
   seam, and bolting one on (babel `experimentalDecorators`, wrapper indirection) *adds* LLM decision
   space — the opposite of the goal. Symmetry of **concept** (the slice), not of **mechanism**: on the
   front the **folder/file convention is the annotation**, discovered structurally
-  (`features/<x>/<X>.view.tsx`), exactly as `[Slice]` is on the back. Traceability uses ordinary erased JSDoc
-  (`@e2e <flow-id>`) plus plain JSON flow metadata. Verification depth is complete and structural on both sides;
-  no frontend decorator, runtime wrapper, risk flag, or downgrade exists.
+  (`features/<x>/<X>.view.tsx`), exactly as `[Slice]` is on the back.
 - **No multi-app sprawl.** One frontend shape, enforced — sprawl was aerocoding's *N* apps, not
   one blessed convention.
 - **No frontend in core.** The harness ships as a separate, optional, doctor-removable package —

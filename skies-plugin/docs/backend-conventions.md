@@ -8,8 +8,8 @@ Opinionated .NET convention bundle (Rails mindset). Vertical-slice architecture.
 matching Use/Map — nothing else), `AppDb.cs` (ONE DbContext), `Platform/` (app cross-cutting,
 one partial per concern: Persistence, Security, Observability, Web), `Modules.cs` (explicit
 registry, no reflection), `Modules/<Module>/` (bounded contexts: entities + `Slices/` +
-`<Module>.ctx.md`), `BuildingBlocks/` (shared VOs), `Journeys/` (E2E), `tests/<App>.Tests/`
-(test runner infra only — test code lives in src/).
+`<Module>.ctx.md`), `BuildingBlocks/` (shared VOs), `tests/<App>.Tests/` (the runner: compiles
+`.specs/*/e2e` and any co-located `*.Tests.cs`), `.specs/<id>-<slug>/` (one folder per feature).
 
 ## Slices
 
@@ -48,19 +48,15 @@ matching slice (one source of rules) and fans the result to the room. Ephemeral 
 backplane + Redis at the composition root. Caller identity from `Context.User` via
 `ClaimsCurrentUser` (outside the HTTP pipeline).
 
-## Testing
+## Specs and tests
 
-Co-located next to the slice (`Deposit.Tests.cs` beside `Deposit.cs`), categorized
-[Unit]/[Integration]/[E2E]. Every slice declares at least one criterion in its module
-`*.spec.toml` and carries an exact subject-bound executable `[AVP]` proof. Host:
-`SkiesWebTest<TProgram>` boots the real app;
-`SwapStores(IServiceCollection)` reconfigures stores for tests — in-memory
-(`UseIsolatedInMemory<Db>()`) or real Postgres (`Skies.Framework.Testing.Postgres`, Testcontainers
-template clone per test, pooled). Every shape-derived write proves both paths with isolated
-`*Journey.Tests.cs` E2E cases: happy reaches its terminal state; sad proves rejection AND unchanged
-state. Read/write is derived from ordinary code and ambiguity receives the write bar. No marker,
-manifest mode, skip, or agent judgment can weaken the obligation. `skies gate --affected` executes the complete
-Git-derived closure; `skies gate --full` executes every proof before release. Unaffected is never reported as pass.
+Features are proven by their spec: `.specs/<id>-<slug>/spec.md` lists failure modes (FM-n) before the code,
+`e2e/` holds black-box tests titled `FM-n: …` (namespace `Specs.S<id>`), and `skies proof record` writes a
+receipt (every FM fails on red, passes on green). Host: `SkiesWebTest<TProgram>` boots the real app;
+`SwapStores(IServiceCollection)` reconfigures stores — in-memory (`UseIsolatedInMemory<Db>()`) or real Postgres
+(`Skies.Framework.Testing.Postgres`, a Testcontainers template clone per test; dispose the lease). Unit tests only
+for isolated systems, failure modes first, co-located as `<Name>.Tests.cs`. No gate runs them; `skies proof
+status` shows which receipts went stale.
 
 ## ctx.md (per module — the business "why")
 
