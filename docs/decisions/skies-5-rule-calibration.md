@@ -81,3 +81,45 @@ Also newly in reach: 13 `part of '*_view.dart'` files now meet the View rules (n
    `@skiesjs/eslint-plugin`'s `recommended` raises every SKYFE architecture rule to error, leaving SKYFE028, 031, and
    032 as warnings; `SKYFL009` (device plugins in a ViewModel) is retired with its React twin. The findings above
    are unchanged; only how loudly they are reported moved.
+
+## Audit follow-up (2026-09-24)
+
+An independent audit read the rules rather than their output and found precision gaps the first calibration could
+not see, because the applications did not exercise them; twin rules that meant different things on the web and in
+Flutter; three web rules still "(planned)" while their Flutter twins ran; no Flutter escape hatch; and the security
+floor documented at error while CA2100 shipped as a warning the doctor dropped. Each fix carries a regression test,
+and the calibration was re-run read-only on fresh copies of the Hostpoint and Marombas repositories (the same
+packages as above; React parse-only with every `skies/*` rule on).
+
+| Rule | Change | Before | After | Class of what remains | Test |
+|---|---|---|---|---|---|
+| SKYFL029 | a `refresh` call is a rotation only on the generated client or a session/auth receiver; Riverpod's `ref.refresh(provider)` is not | 0 | 0 | — | `twin_tests.rs` |
+| SKYFE016 / SKYFL016 | a session key is a whole word (`token`, `jwt`, `session`, `auth`), so `authorName` is not; both twins share the predicate and the setter set | 1 / 0 | 1 / 0 | true: a legacy copy imports `setSession` | `viewmodel.test.cjs`, `twin_tests.rs` |
+| SKYFE017 / SKYFL017 | one meaning: a redirect decided on an auth boolean (web: `<Navigate>` or `return`/`throw redirect(…)`; Flutter: a GoRouter `redirect:` or an `if` in a route/guard file), no longer any `isAuthenticated` read | 0 / 0 | 0 / 0 | — | same |
+| SKYFL028 | only a ViewModel `onSuccess` whose whole body refetches, like SKYFE028 | 0 | 0 | — | `twin_tests.rs` |
+| SKYFL032 | also accepts `forceErrorText` and a decoration `errorText`; a draft widening it to every `TextFormField` found 2 false positives (optional note fields with no validator have no error to lose), so it stays on the `lib/ui/` field primitive | 0 | 0 | — | `twin_tests.rs` |
+| SKYFL007 | a purely local ViewModel (no client call, no `Future`/`Stream`) is not server-backed | 0 | 0 | — | `twin_tests.rs` |
+| SKYFE004 | new: a ViewModel renders no JSX, imports no `react-dom` | — | 0 | — | `viewmodel.test.cjs` |
+| SKYFE007 | new: a ViewModel exposing a query's `data` exposes its states. The first draft (per read, `AsyncState` only) found 84; 83 projected `isPending`/`isError` by hand or read a query their screen already loads, so explicit flags count and the rule asks once per ViewModel, as SKYFL007 does | — | 5 | true: form ViewModels whose secondary read (suggestions, a subscription flag, `me`) fails silently to a default | `viewmodel.test.cjs` |
+| SKYFE023 / SKYFL023 | new on the web, warning in both. The draft matched `todo` in a Portuguese comment ("em todo o app"): markers are the uppercase ones in both twins | — / 0 | 6 / 0 | true: `@ts-expect-error`/`@ts-ignore` in a legacy design system and one View | same |
+| SKY0004 | located on the ctx (the section's heading) or the `[Module]` class, never an arbitrary slice | 0 / 0 | 0 / 0 | — | `ModuleContextAnalyzerTests` |
+| SKY0005 | a code citation needs a lowercase letter (`POST`, `JWT`, `SKY0005` are prose); spec citations are exactly `<spec>#FM-<n>` and spec lines `- FM-<n> …`, look-alikes reported with the grammar | 0 / 0 | 0 / 0 | — | `ContextCitationGrammarTests` |
+| SKY0006 | only a `*Repository`/`*UnitOfWork` that holds a `DbContext`/`DbSet` (and its interfaces); a vendor `GitHubRepository` is not | 0 / 0 | 0 / 0 | — | `NoRepositoryAnalyzerTests` |
+| CA2100 | error, as the floor documents; the doctor reports every floor rule at any severity | 0 / 0 | 0 / 0 | — | `legs.rs` |
+
+Unchanged elsewhere: SKY0029 1561 / 914, SKY0027 10 / 4 (warning), SKYFL036 387, SKYFL038 4, and every other React
+count in the first table. Every rule the audit named was already quiet on these applications: its false positives
+live in idioms they do not use (Riverpod, an `author` field, a vendor repository), which is why they are pinned by
+tests rather than by counts.
+
+Decisions, continuing the list above:
+
+6. A shared number is one rule. `SKYFE0nn` and `SKYFL0nn` (up to 036) state the same intent at the same tier, in
+   each ecosystem's spelling; `cli/src/doctor/catalog_tests.rs` pins both catalogs to the code that runs them and
+   to each other, and no catalog lists a planned rule.
+7. Tiers, reviewed rule by rule: an error guards architecture or security, a warning is a taste or a heuristic
+   that cannot see everything. SKYFE023/SKYFL023 join SKY0007, SKY0019, SKY0026–0028, SKYFE/SKYFL028, 031, 032, and
+   SKYFL039/040 as warnings; every other rule stays an error.
+8. Every ecosystem has one narrow, visible hatch (`CONVENTIONS.md`, Suppression): `#pragma`/`[SuppressMessage]`,
+   `eslint-disable-next-line … -- <reason>`, and the new `// skies-ignore: SKYFLnnn <reason>`, which requires the
+   reason and is listed by `skies doctor`. No suppression was needed to reach the counts above.
