@@ -4,6 +4,38 @@
 
 [workspace]
 name = "skies"
+# Everything allowed at the framework's root (`skies doctor`: SKYWS001). A trailing / names a folder, no slash a file.
+# New work goes under an existing folder; a new root entry is a decision, made here.
+root = [
+  ".github/",
+  ".specs/",
+  "analyzers/",
+  "assets/",
+  "build/",
+  "cli/",
+  "docs/",
+  "examples/",
+  "flutter-sdk/",
+  "frontend-sdk/",
+  "skies-plugin/",
+  "src/",
+  "tests/",
+  "tools/",
+  ".gitattributes",
+  ".gitignore",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "Cargo.lock",
+  "Cargo.toml",
+  "Directory.Build.props",
+  "LICENSE",
+  "README.md",
+  "Skies.Framework.slnx",
+  "eslint.config.mjs",
+  "package-lock.json",
+  "package.json",
+  "rustfmt.toml",
+]
 
 [products.sample]
 backend = "examples/sample-app/backend/Sample.Api"

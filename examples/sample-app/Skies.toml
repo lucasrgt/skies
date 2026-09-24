@@ -3,6 +3,8 @@
 
 [workspace]
 name = "Sample"
+# Everything allowed at the sample's root (`skies doctor`: SKYWS001). A trailing / names a folder, no slash a file.
+root = [".specs/", "backend/", "frontend/", "README.md", "nuget.config"]
 
 [products.app]
 backend = "backend/Sample.Api"
