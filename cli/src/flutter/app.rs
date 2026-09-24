@@ -93,7 +93,11 @@ fn with_spec_copies_ignored(text: &str) -> String {
     if text.lines().any(|line| line.trim() == SPEC_COPIES) {
         return text.to_string();
     }
-    let separator = if text.is_empty() || text.ends_with('\n') { "" } else { "\n" };
+    let separator = if text.is_empty() || text.ends_with('\n') {
+        ""
+    } else {
+        "\n"
+    };
     format!("{text}{separator}\n# Where the Skies flutter runner copies a spec's cases to run them.\n{SPEC_COPIES}\n")
 }
 

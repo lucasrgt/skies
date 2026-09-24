@@ -285,7 +285,10 @@ fn a_test_outside_a_spec_is_flagged_once_per_file() {
             "integration_test/app_test.dart",
             "import 'package:integration_test/integration_test.dart';\nimport 'package:flutter_test/flutter_test.dart';\nvoid main() { testWidgets('a', (t) async {}); }",
         ),
-        ("test/unit_test.dart", "import 'package:test/test.dart';\nvoid main() { test('a', () {}); }"),
+        (
+            "test/unit_test.dart",
+            "import 'package:test/test.dart';\nvoid main() { test('a', () {}); }",
+        ),
     ]);
     let findings: Vec<_> = diagnose(dir.path())
         .unwrap()
