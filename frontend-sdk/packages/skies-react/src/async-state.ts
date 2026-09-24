@@ -1,7 +1,7 @@
 // AsyncState<T> — the frontend spine's core, the read-side analogue of the backend's Result<T>. A screen's
 // ViewModel (its data door) exposes a resource as this discriminated union instead of ad-hoc isPending/isError
 // booleans, so the View handles all four states by construction (an exhaustive switch / the <Resource> gate) —
-// the same way an exhaustive `Result` match forces the sad path. Pure TS, design-system- and platform-agnostic.
+// the same way an exhaustive `Result` match forces the sad path. Pure TS, design-system-agnostic.
 
 export type AsyncState<T> =
   | { status: "loading" }

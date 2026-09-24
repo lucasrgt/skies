@@ -1,25 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSessionSeam, type RefreshTokenStore } from "./session-seam";
+import { createSessionSeam } from "./session-seam";
 
 // The seam exists so a token write and the session-cache reset are ONE move — the scattered write that
 // forgets the reset (and bounces a just-authenticated user back to login) must be unrepresentable.
 describe("createSessionSeam", () => {
-  const memoryStore = (): RefreshTokenStore & { token: string } => {
-    const store = {
-      token: "",
-      load: () => Promise.resolve(store.token),
-      save: (t: string) => {
-        store.token = t;
-        return Promise.resolve();
-      },
-      clear: () => {
-        store.token = "";
-        return Promise.resolve();
-      },
-    };
-    return store;
-  };
-
   it("signIn pairs the token write with the identity cache reset by construction", async () => {
     const setAccessToken = vi.fn();
     const onIdentityChanged = vi.fn();
@@ -31,17 +15,16 @@ describe("createSessionSeam", () => {
     expect(onIdentityChanged).toHaveBeenCalledOnce();
   });
 
-  it("bootstrap restores the session from the stored refresh and re-saves the rotated one", async () => {
-    const store = memoryStore();
-    store.token = "old-refresh";
-    const refresh = vi.fn(async () => ({ accessToken: "jwt", refreshToken: "new-refresh" }));
-    const seam = createSessionSeam({ setAccessToken: vi.fn(), onIdentityChanged: vi.fn(), refresh, store });
+  it("bootstrap re-mints the bearer from the refresh cookie and hands it to the sink", async () => {
+    const setAccessToken = vi.fn();
+    const refresh = vi.fn(async () => ({ accessToken: "jwt" }));
+    const seam = createSessionSeam({ setAccessToken, onIdentityChanged: vi.fn(), refresh });
 
     const restored = await seam.bootstrapSession();
 
     expect(restored).toBe(true);
-    expect(refresh).toHaveBeenCalledWith("old-refresh");
-    expect(store.token).toBe("new-refresh");
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(setAccessToken).toHaveBeenCalledWith("jwt");
   });
 
   it("a failed bootstrap reports anonymous instead of throwing — no session is a state, not an error", async () => {
@@ -56,28 +39,15 @@ describe("createSessionSeam", () => {
     expect(await seam.bootstrapSession()).toBe(false);
   });
 
-  it("clearSession drops the token, the store, and resets the cache in one move", async () => {
-    const store = memoryStore();
-    store.token = "refresh";
+  it("clearSession drops the token and resets the cache in one move", async () => {
     const setAccessToken = vi.fn();
     const onIdentityChanged = vi.fn();
-    const seam = createSessionSeam({ setAccessToken, onIdentityChanged, refresh: async () => null, store });
+    const seam = createSessionSeam({ setAccessToken, onIdentityChanged, refresh: async () => null });
 
     await seam.clearSession();
 
     expect(setAccessToken).toHaveBeenCalledWith(null);
-    expect(store.token).toBe("");
     expect(onIdentityChanged).toHaveBeenCalledOnce();
-  });
-
-  it("omitting the store is the web posture — nothing persisted, nothing thrown", async () => {
-    const seam = createSessionSeam({
-      setAccessToken: vi.fn(),
-      onIdentityChanged: vi.fn(),
-      refresh: async () => ({ accessToken: "jwt" }),
-    });
-
-    expect(await seam.bootstrapSession()).toBe(true);
   });
 
   // The split that kills the hostpoint cache-leak: a sign-in is an IDENTITY change (total wipe), a bootstrap is a

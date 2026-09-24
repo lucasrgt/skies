@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 
 // The boot gate over the session seam. Runs the one-time bootstrap (re-mint the access token from the persisted
 // refresh) and reports when it has settled. Mount at the app root and gate the navigator on `ready`, so no route
-// fires an authed request before the session is restored — this is what makes an F5 on any route (web) or a cold
-// native start resume the session instead of 401-ing. Graduated from the hostpoint pilot.
+// fires an authed request before the session is restored — this is what makes an F5 on any route resume the
+// session instead of 401-ing. Graduated from the hostpoint pilot.
 
 /**
  * Settle the session before the navigator renders:
