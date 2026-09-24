@@ -22,7 +22,7 @@ live here, never in a root `Domain/` folder.
   never observed or persisted in a broken state.
 - **Balance is authoritative server-side.** `Deposit` and `Withdraw` recompute from the stored value and
   never trust a client-sent total.
-- **`Deposit` and `Withdraw` are not yet idempotent** — a retried request double-applies;
-  idempotency keys are planned. The "why" lives in each slice header because the slices are self-contained.
+- **`Deposit` and `Withdraw` honor an `Idempotency-Key`**: a retry replays the recorded outcome through
+  `IIdempotencyStore` instead of applying the write twice (specs 0001 and 0002).
 - **`WalletsDb.OnModelCreating` carries storage facts only** (precision 18,2; the `Money`↔decimal
   converter), never domain invariants.

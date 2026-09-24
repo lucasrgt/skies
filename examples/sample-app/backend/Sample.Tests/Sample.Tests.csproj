@@ -13,9 +13,6 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
-    <!-- The published AVP backend adapter runs the [AVP] runtime proofs that Doctor 2 requires.
-         The framework depends on AVP, never the reverse. -->
-    <PackageReference Include="Assay.Net" Version="0.4.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,8 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Co-located tests: the files live next to the slice in src/, compiled here. -->
+    <!-- Co-located tests: the files live next to the code in src/, compiled here. -->
     <Compile Include="..\Sample.Api\**\*.Tests.cs" />
+    <!-- Spec E2E: each .specs/<id>/e2e/ folder is compiled here and run by `skies proof`. -->
+    <Compile Include="..\..\.specs\*\e2e\**\*.cs" />
   </ItemGroup>
 
 </Project>

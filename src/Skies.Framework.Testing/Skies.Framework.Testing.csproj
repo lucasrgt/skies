@@ -5,10 +5,8 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- This is a shipped framework package, not a test project — the xunit/Mvc.Testing references
-         make the SDK assume otherwise: it disables packing and `dotnet test` tries to run the assembly
-         as tests (which aborts — there are none). IsPackable re-enables the package; IsTestProject=false
-         tells the test runner to skip it. It ships so consumers get [Unit] etc. -->
+    <!-- This is a shipped framework package, not a test project — the Mvc.Testing reference makes the SDK
+         assume otherwise. IsPackable re-enables the package; IsTestProject=false tells the test runner to skip it. -->
     <IsPackable>true</IsPackable>
     <IsTestProject>false</IsTestProject>
   </PropertyGroup>
@@ -20,7 +18,6 @@
   <ItemGroup>
     <!-- No database/provider dependency here: the base is opinion-free. The in-memory fast path
          lives in the separate Skies.Framework.Testing.InMemory package; any other provider is the app's own. -->
-    <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
   </ItemGroup>
 

@@ -6,7 +6,6 @@ public class MoneyTests
 {
     // The boundary the mutation run exposed: 0 is valid money. Without this, flipping `>= 0` to
     // `> 0` survived — no test exercised the zero case.
-    [Unit]
     [Fact]
     public void Zero_is_valid_money()
     {
@@ -16,7 +15,6 @@ public class MoneyTests
         Assert.Equal(0m, result.Value.Amount);
     }
 
-    [Unit]
     [Fact]
     public void A_positive_amount_is_valid()
     {
@@ -26,7 +24,6 @@ public class MoneyTests
         Assert.Equal(10m, result.Value.Amount);
     }
 
-    [Unit]
     [Fact]
     public void A_negative_amount_is_rejected()
     {
@@ -36,7 +33,6 @@ public class MoneyTests
         Assert.Equal(ErrorKind.Validation, result.Error.Kind);
     }
 
-    [Unit]
     [Fact]
     public void Add_sums_two_amounts()
     {

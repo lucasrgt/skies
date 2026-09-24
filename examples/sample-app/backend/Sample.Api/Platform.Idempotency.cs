@@ -5,8 +5,7 @@ namespace Sample.Api;
 /// <summary>
 /// Demo-grade idempotency for write slices: it remembers the outcome of an Idempotency-Key so a retried
 /// request replays that outcome instead of applying the write twice. In-memory and process-local — a real app
-/// backs this with a durable store (a table, Redis) and scopes the key to the operation. The seam is the point:
-/// a slice that honors a key becomes provable (AVP <c>request-idempotency / idempotency-key-honored</c>).
+/// backs this with a durable store (a table, Redis) and scopes the key to the operation.
 /// </summary>
 public interface IIdempotencyStore
 {
