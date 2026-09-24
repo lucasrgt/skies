@@ -156,44 +156,62 @@ pub fn parse(text: &str) -> Result<SpecDoc> {
         None => text,
     };
     let mut section = String::new();
+    // The failure mode being read: its id and its text so far, which indented lines below it continue.
+    let mut open: Option<(FmId, String)> = None;
     for line in body.lines() {
+        let continues = open.is_some()
+            && section == "failure modes"
+            && line.starts_with([' ', '\t'])
+            && !line.trim().is_empty()
+            && !line.trim_start().starts_with(['-', '*']);
+        if continues {
+            if let Some((_, text)) = open.as_mut() {
+                text.push(' ');
+                text.push_str(line.trim());
+            }
+            continue;
+        }
+        if let Some((id, text)) = open.take() {
+            close_mode(&mut doc, id, &text)?;
+        }
         if let Some(heading) = line.strip_prefix("## ") {
             section = heading.trim().to_ascii_lowercase();
             continue;
         }
         match section.as_str() {
-            "failure modes" => {
-                if let Some((id, mode)) = failure_mode_line(line)? {
-                    if doc.failure_modes.contains(&id) {
-                        bail!("{id} is listed twice under ## Failure modes");
-                    }
-                    doc.failure_modes.push(id);
-                    doc.modes.insert(id, mode);
-                }
-            }
+            "failure modes" => open = failure_mode_line(line),
             "non-discriminating" => doc.justified.extend(fm_ids(line)),
             _ => {}
         }
     }
+    if let Some((id, text)) = open.take() {
+        close_mode(&mut doc, id, &text)?;
+    }
     Ok(doc)
 }
 
+/// Records a failure mode once its last continuation line is read, so a tag may sit on any of its lines.
+fn close_mode(doc: &mut SpecDoc, id: FmId, text: &str) -> Result<()> {
+    if doc.failure_modes.contains(&id) {
+        bail!("{id} is listed twice under ## Failure modes");
+    }
+    let (text, avp) = avp_tag(text).with_context(|| format!("{id}: malformed [avp: …] tag"))?;
+    doc.failure_modes.push(id);
+    doc.modes.insert(id, FailureMode { text, avp });
+    Ok(())
+}
+
 /// `- FM-3 text` (or `* FM-3: text`): the id must lead the bullet, so prose that merely mentions a failure mode
-/// inside the section does not declare one.
-fn failure_mode_line(line: &str) -> Result<Option<(FmId, FailureMode)>> {
-    let Some(item) = line.trim_start().strip_prefix(['-', '*']).map(str::trim_start) else {
-        return Ok(None);
-    };
-    let Some(head) = item.split_whitespace().next() else {
-        return Ok(None);
-    };
+/// inside the section does not declare one. Returns the id and the text on this line; indented lines that follow
+/// continue it.
+fn failure_mode_line(line: &str) -> Option<(FmId, String)> {
+    let item = line.trim_start().strip_prefix(['-', '*']).map(str::trim_start)?;
+    let head = item.split_whitespace().next()?;
     let id = match fm_ids(head).as_slice() {
         [id] if head.to_ascii_uppercase().starts_with("FM") => *id,
-        _ => return Ok(None),
+        _ => return None,
     };
-    let rest = item[head.len()..].trim_start_matches(':').trim();
-    let (text, avp) = avp_tag(rest).with_context(|| format!("{id}: malformed [avp: …] tag"))?;
-    Ok(Some((id, FailureMode { text, avp })))
+    Some((id, item[head.len()..].trim_start_matches(':').trim().to_string()))
 }
 
 /// Splits `text [avp: a, b]` into the text and the criterion ids. A criterion id is kebab-case, as in the AVP
@@ -358,92 +376,5 @@ pub fn template(id: &str, slug: &str, runner: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    const SAMPLE: &str = "---\nid: \"0012\"   # the folder id\nrunner: web\ntouches: [src/Res/**, 'src/Pay.cs']\n---\n# Cancel\n\nCancel mentions FM-9 in prose.\n\n## Failure modes\n\n- FM-1 other guest -> 404\n- FM-2: twice -> one refund\n* FM-3 after check-in -> 409\nSee FM-7 in passing.\n\n## Non-discriminating\n\n- FM-2 the refund ledger already dedupes at the base revision.\n\n## Out of scope\n- FM-8 is not a failure mode here\n";
-
-    #[test]
-    fn reads_frontmatter_and_failure_modes() {
-        let doc = parse(SAMPLE).unwrap();
-        assert_eq!(doc.id.as_deref(), Some("0012"));
-        assert_eq!(doc.runner.as_deref(), Some("web"));
-        assert_eq!(doc.touches, ["src/Res/**", "src/Pay.cs"]);
-        assert_eq!(doc.failure_modes, [FmId(1), FmId(2), FmId(3)]);
-        assert_eq!(doc.justified, [FmId(2)]);
-    }
-
-    #[test]
-    fn reads_avp_tags_and_keeps_them_out_of_the_text() {
-        let doc = parse(
-            "## Failure modes\n- FM-1 plain\n- FM-5: a retry credits twice [avp: idempotency-key-honored]\n\
-             - FM-6 two tags [AVP: a-b, c] trailing\n",
-        )
-        .unwrap();
-        assert!(doc.modes[&FmId(1)].avp.is_empty());
-        assert_eq!(doc.modes[&FmId(1)].text, "plain");
-        assert_eq!(doc.modes[&FmId(5)].text, "a retry credits twice");
-        assert_eq!(doc.modes[&FmId(5)].avp, ["idempotency-key-honored"]);
-        assert_eq!(doc.modes[&FmId(6)].avp, ["a-b", "c"]);
-        assert_eq!(doc.modes[&FmId(6)].text, "two tags trailing");
-    }
-
-    #[test]
-    fn rejects_malformed_avp_tags() {
-        for line in ["- FM-1 x [avp: ]", "- FM-1 x [avp: Not Kebab]", "- FM-1 x [avp: a"] {
-            let error = parse(&format!("## Failure modes\n{line}\n")).unwrap_err();
-            assert!(format!("{error:#}").contains("FM-1"), "{line}: {error:#}");
-        }
-    }
-
-    #[test]
-    fn reads_dashed_touches() {
-        let doc = parse("---\nid: 1\nrunner: api\ntouches:\n  - a/**\n  - \"b.cs\"\n---\n").unwrap();
-        assert_eq!(doc.touches, ["a/**", "b.cs"]);
-    }
-
-    #[test]
-    fn rejects_duplicate_failure_modes() {
-        let error = parse("## Failure modes\n- FM-1 a\n- FM-1 b\n").unwrap_err();
-        assert!(error.to_string().contains("FM-1 is listed twice"));
-    }
-
-    #[test]
-    fn the_template_parses_back() {
-        let doc = parse(&template("0004", "cancel-reservation", "api")).unwrap();
-        assert_eq!(doc.id.as_deref(), Some("0004"));
-        assert_eq!(doc.runner.as_deref(), Some("api"));
-        assert!(doc.touches.is_empty());
-        assert_eq!(doc.failure_modes, [FmId(1)]);
-        assert!(template("0004", "cancel-reservation", "api").contains("# Cancel reservation"));
-    }
-
-    #[test]
-    fn numbers_and_finds_specs() {
-        let root = tempfile::tempdir().unwrap();
-        for name in ["0001-a", "0009-notes", "0010-b"] {
-            std::fs::create_dir_all(root.path().join(SPECS_DIR).join(name)).unwrap();
-        }
-        for name in ["0001-a", "0010-b"] {
-            std::fs::write(root.path().join(SPECS_DIR).join(name).join(SPEC_FILE), "").unwrap();
-        }
-        assert_eq!(next_id(root.path()).unwrap(), "0011");
-        let names: Vec<String> = discover(root.path())
-            .unwrap()
-            .into_iter()
-            .map(|spec| spec.name)
-            .collect();
-        assert_eq!(names, ["0001-a", "0010-b"]);
-        assert_eq!(find(root.path(), "10").unwrap().name, "0010-b");
-        assert_eq!(find(root.path(), "0001-a").unwrap().id, "0001");
-        assert!(find(root.path(), "0009").is_err());
-    }
-
-    #[test]
-    fn validates_slugs() {
-        assert!(validate_slug("cancel-reservation").is_ok());
-        assert!(validate_slug("Cancel").is_err());
-        assert!(validate_slug("-x").is_err());
-        assert!(validate_slug("a b").is_err());
-    }
-}
+#[path = "spec_tests.rs"]
+mod tests;
