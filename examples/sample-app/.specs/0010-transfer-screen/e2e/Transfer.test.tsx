@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TransferView } from "../../../frontend/web/src/transfer/Transfer.view";
 
 // The Transfer screen through its View and ViewModel, against the real client hook (the HTTP layer is an MSW
 // stand-in, frontend-sdk/vitest.setup.ts: a transfer above 100 answers 422 insufficient funds).
@@ -11,6 +10,13 @@ function wrapper({ children }: { children: ReactNode }) {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+// The View is imported per case, not at the top: on the red revision the module does not exist yet, and a top-level
+// import would fail the file before any case is named, so the receipt could not tell which failure modes failed.
+async function renderScreen() {
+  const { TransferView } = await import("../../../frontend/web/src/transfer/Transfer.view");
+  render(<TransferView />, { wrapper });
 }
 
 afterEach(() => {
@@ -35,7 +41,7 @@ function submit() {
 describe("Transfer screen", () => {
   it("FM-1: an empty submit is blocked with three field errors inside the Field anatomy", async () => {
     const wire = vi.spyOn(globalThis, "fetch");
-    render(<TransferView />, { wrapper });
+    await renderScreen();
     submit();
     const alerts = await screen.findAllByRole("alert");
     expect(alerts).toHaveLength(3);
@@ -45,7 +51,7 @@ describe("Transfer screen", () => {
 
   it("FM-2: the same wallet on both sides is reported on the destination and never sent", async () => {
     const wire = vi.spyOn(globalThis, "fetch");
-    render(<TransferView />, { wrapper });
+    await renderScreen();
     fill(SOURCE, SOURCE, "10");
     submit();
     expect(await screen.findByText("Choose a different wallet to send to.")).toBeTruthy();
@@ -53,7 +59,7 @@ describe("Transfer screen", () => {
   });
 
   it("FM-3: a valid submit announces while pending, then reaches the success surface", async () => {
-    render(<TransferView />, { wrapper });
+    await renderScreen();
     fill(SOURCE, DESTINATION, "40");
     submit();
     await waitFor(() => expect(screen.getByRole("button").getAttribute("aria-busy")).toBe("true"));
@@ -61,7 +67,7 @@ describe("Transfer screen", () => {
   });
 
   it("FM-4: a refused transfer surfaces as a role=alert block and keeps the form", async () => {
-    render(<TransferView />, { wrapper });
+    await renderScreen();
     fill(SOURCE, DESTINATION, "500");
     submit();
     const alert = await screen.findByText("We couldn't complete the transfer. Check the balance and try again.");
