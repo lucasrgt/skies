@@ -160,6 +160,11 @@ on-device cases (`IntegrationTestWidgetsFlutterBinding`), copy into `app/integra
 device (`flutter test integration_test/.skies_spec -d <device> …`). Red runs in a fresh git worktree, where
 `flutter test` resolves the package on its own.
 
+For a footprint of the files a spec executes rather than the ones it changed, add `--coverage` to `flutter test` and
+declare where it writes, `coverage = "app/coverage/lcov.info"` in the runner. Its LCOV names are relative to the
+package (`lib/src/...`), which the engine finds from that path; files with no executed line stay out. Without it the
+footprint is the diff since red.
+
 `SKIES_EVIDENCE` and `SKIES_SPEC` reach the runner's host process, not the device: a host-side test reads
 `Platform.environment['SKIES_EVIDENCE']`, and an on-device run saves artifacts from its host driver
 (`integration_test_driver`'s `responseDataCallback`). An Assay-decided mode carries `[avp: <criterion-id>]` and its

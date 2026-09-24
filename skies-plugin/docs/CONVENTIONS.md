@@ -259,9 +259,17 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
   or `HEAD` plus the spec's `red.patch` for a spec written after the code), where every mode must fail, then on the
   working tree, where every mode must pass. E2E that do not build on red count as failing, with the build output as
   evidence. A mode already passing on red is non-discriminating and needs a written justification in `spec.md`.
-- **A receipt is a record, not a gate.** It hashes the files the feature touched and everything under `evidence/`.
-  `skies proof status` shows `stale` (files changed) and `tampered` (evidence edited) receipts from hashes alone;
-  `skies proof verify --stale` reruns them. Nothing runs in a hook unless the team adds one.
+- **A receipt is a record, not a gate.** It hashes the files the feature depends on (its footprint) and everything
+  under `evidence/`. `skies proof status` shows `stale` (files changed) and `tampered` (evidence edited) receipts
+  from hashes alone; `skies proof verify --stale` reruns them. Nothing runs in a hook unless the team adds one.
+- **The footprint is what green executed.** When the runner writes coverage, the footprint is every project file
+  with an executed line in the green run (build output, generated code, and `.specs/` left out), plus the files
+  changed since red, plus `touches`; the receipt says `"footprint_source": "coverage"`. A change to a shared file
+  the spec never edited (the platform wiring, an entity, a middleware) then makes it stale and shows in
+  `proof impact`. A file whose code only runs at startup (route mapping, service registration) is executed by every
+  spec that boots the host, so it lands in all their footprints. Without coverage the footprint is the diff plus
+  `touches` (`"diff"`), and `record` says so. `verify` refreshes the executed part from its own run and keeps the
+  recorded changed files (`footprint_changed`). Coverage never enters `evidence/`: the footprint hashes are the record.
 - **Evidence is a frozen, portable artifact.** Runners get `SKIES_EVIDENCE` (the run's evidence folder, absolute)
   and `SKIES_SPEC` (the spec folder name) in their environment, besides the `{evidence}` placeholder. What a test
   writes there is copied into `evidence/` and hashed. .NET tests use `SpecEvidence.Save("name.json", value)` from
@@ -281,8 +289,15 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
 
   ```toml
   [runners.api]
-  command = "dotnet test tests/App.Tests --filter FullyQualifiedName~Specs.S{id}. --logger trx;LogFilePath={report}"
+  command = "dotnet test tests/App.Tests --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\" --collect \"XPlat Code Coverage\" --results-directory {coverage} -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura"
   ```
+
+  Placeholders: `{id}`, `{spec}`, `{dir}` (the spec's `e2e/`), `{report}`, `{evidence}`, and `{coverage}`. Coverage
+  is optional: a runner opts in by passing `{coverage}` (a path the engine picks; also `SKIES_COVERAGE`) or by
+  declaring `coverage = "<path under the root>"` where its tool writes anyway. It may be a Cobertura or LCOV file or a
+  folder holding them; the engine reads every one it finds there, by content. `coverlet.collector` (in the test
+  project) writes Cobertura under `<results directory>/<guid>/`, hence `--results-directory {coverage}`. Relative
+  names in a report resolve against the root, then the report's folder and its parents.
 
   .NET spec tests use the namespace `Specs.S<id>` so the filter selects one spec. The test project compiles them
   with `<Compile Include="..\..\.specs\*\e2e\**\*.cs" />` and nothing else, and references the doctor so `SKY0029`

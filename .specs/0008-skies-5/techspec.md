@@ -131,8 +131,9 @@ O motor não conhece xUnit, Playwright nem Flutter: lê JUnit. Isso apaga `Front
 }
 ```
 
-- **Footprint:** arquivos alterados entre `red.commit` e `green.commit` + `touches` + a pasta do spec + lockfiles.
-  (v2: arquivos realmente executados, via coverage.)
+- **Footprint:** arquivos executados pelo green (coverage do runner, quando há) + arquivos alterados entre
+  `red.commit` e `green.commit` + `touches`; a pasta do spec e os lockfiles entram como `inputs`. Sem coverage,
+  cai para diff + `touches` (`footprint_source: "diff"`). Ver §10.
 - **Red:** todo FM tem de falhar no commit base. Um FM que passa no base é gravado como `non-discriminating` e o
   `record` pede uma linha de justificativa no spec. É o antídoto contra teste que não morde.
 - **Consistência:** todo FM do spec tem um caso; todo caso `FM-*` está no spec. É a única checagem do sistema.
@@ -247,8 +248,11 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
 
 - **Sem rerun automático, regressão só aparece quando alguém roda.** Escolha consciente. `proof status` torna os
   recibos stale visíveis em milissegundos; `proof verify --stale` é o comando para quando importar.
-- **Footprint v1 é estreito:** mudança num middleware compartilhado não marca como stale os recibos que o usam.
-  Mitigação futura: footprint por coverage.
+- **Footprint v1 era estreito:** mudança num middleware compartilhado não marcava como stale os recibos que o
+  usam. Mitigado pelo footprint por coverage (§10). O risco que sobra é o inverso, e é conservador: coverage é por
+  arquivo, então código que só roda no boot (registro de serviço, `Map` de cada slice) entra no footprint de todo
+  spec que sobe o host, e editar qualquer slice deixa todos esses stale. E um arquivo sem linha executável (só
+  `const`, só interface) nunca aparece no coverage; entra só pelo diff ou por `touches`.
 - **Reescrita do CLI em Rust** é o item de maior custo. Mitigação: templates reaproveitados, paridade byte-a-byte
   como critério, e o CLI 4.x continua funcionando até a fase 2 fechar.
 - **Menos enforcement:** a qualidade do E2E depende da revisão humana dos FMs. O ponto de controle sai do
@@ -289,3 +293,14 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   prova o invariante (`` `0002-withdraw#FM-2` ``); a SKY0005 lê `.specs/*/spec.md` como AdditionalFiles e acusa spec
   ou FM inexistente. `proof impact` lista o ctx de cada módulo tocado, `proof record` avisa (sem falhar) quando o
   ctx não foi revisado e grava `ctx_revised`; o ctx fica fora do footprint salvo via `touches`.
+- **Footprint por coverage (entregue).** Um runner opta por `{coverage}` (caminho que o motor escolhe; também
+  `SKIES_COVERAGE`) ou por `coverage = "<caminho>"` no `[runners.*]`; o motor lê Cobertura (coverlet) e LCOV
+  (vitest, `flutter test --coverage`) pelo conteúdo, arquivo ou pasta (o coverlet aninha em `<guid>/`). O footprint
+  vira: arquivos do projeto com ao menos uma linha executada no green (sem `obj/`, `bin/`, `*.g.cs`, `client.gen/`,
+  `.specs/`, nem nada fora da raiz) ∪ diff red..green ∪ `touches`, com `footprint_source: "coverage"` e o diff em
+  `footprint_changed`. Sem coverage, o `record` diz por quê e cai para o diff. O `verify` troca a parte executada
+  pela do seu próprio green e mantém `footprint_changed`; um recibo `diff` vira `coverage` no primeiro verify com
+  coverage. Coverage nunca entra em `evidence/` (o bloco `CollectorDataEntries` do TRX também sai); `proof status`
+  hasheia uma vez cada arquivo compartilhado entre recibos. No sample, os specs da API passaram de 4/4/3/1/3 para
+  12/12/12/1/13 arquivos; editar `Platform.Idempotency.cs` deixa stale 0001, 0002, 0003 e 0005 (o `AddIdempotency`
+  roda no boot de todo host), não 0004 nem os specs web.
