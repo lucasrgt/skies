@@ -30,9 +30,10 @@ The checker became the target. Agents learned to satisfy it, and every new looph
    modes written before the code, black-box E2E in `e2e/`, and `receipt.json` from `skies proof record`, which
    requires every failure mode to fail on the red revision and pass on the working tree. The test title (`FM-n`) is
    the only link between spec and test.
-3. **No gates.** The framework installs no hook and runs nothing automatically. A receipt stores the hashes of the
-   files the feature touched; `skies proof status` shows which receipts went stale and `skies proof verify` reruns
-   them when someone decides it matters.
+3. **No gates, and CI owns green.** The framework installs no hook and runs nothing automatically. The app's CI
+   already runs every spec's cases on every push, so a receipt does not re-answer "does it still pass": it proves
+   red→green once (per failure mode, what failed before the feature and passed with it) and pins nothing.
+   `skies proof impact` finds the specs a change reaches from the module ctx.md citations and `touches`.
 4. **One Rust binary for all tooling.** Scaffolders, the doctor orchestrator, the Flutter rules, and the proof
    engine are a single `skies` executable. C# remains only where it runs inside .NET (libraries, Roslyn analyzers);
    TypeScript and Dart only for runtime spines and the ESLint plugin.
@@ -42,8 +43,10 @@ The checker became the target. Agents learned to satisfy it, and every new looph
 
 ## Consequences
 
-- A regression surfaces when someone reruns a stale receipt, not on every push. This is deliberate: speed and
-  clarity over an automatic net that had stopped catching real bugs.
-- The receipt footprint is the set of files changed by the feature. A change to a shared file used by, but not
-  changed in, the feature does not mark its receipt stale. Coverage-based footprints are future work.
+- A regression surfaces in CI, where the spec's cases run with every other test, not in the receipt. The receipt
+  holds only what CI cannot produce: that the cases failed without the feature.
+- The proof engine once grew footprints (coverage, then per-line fingerprints), staleness, `verify`, and
+  impacted-spec reruns, about 5.3k lines and some 35 concepts, past the Skies 4 gate this decision replaced. An
+  audit found they re-answered CI's question, so they were removed: the engine is `proof run`, `proof record`, and
+  `proof impact`. Anything that rebuilds a staleness index needs a failure CI misses to justify it.
 - Review moves to where it pays: a human reads the failure modes in `spec.md` before code exists.

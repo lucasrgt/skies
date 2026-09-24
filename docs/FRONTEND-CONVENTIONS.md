@@ -380,13 +380,7 @@ command = "node ../../frontend-sdk/node_modules/vitest/vitest.mjs run --config .
 (`npm --prefix clients/web ci`, `clients/web/node_modules/vitest/vitest.mjs`) and include
 `.specs/*/e2e/**/*.test.{ts,tsx}` in the Vitest config, the tsconfig, and the ESLint `files`.
 
-For a footprint of the files a spec executes rather than the ones it changed, let Vitest write LCOV: add
-`@vitest/coverage-v8` to the package's dev dependencies, append
-`--coverage.enabled --coverage.reporter=lcov` to the command, and declare where it lands,
-`coverage = "clients/web/coverage/lcov.info"` (Vitest's default `coverage/` under its root). LCOV names are relative to
-the Vitest root, which the engine finds from that path. Without it the footprint is the diff since red.
-
-Tests write artifacts to `process.env.SKIES_EVIDENCE` when set; they become the spec's hashed `evidence/`. For an
+Tests write artifacts to `process.env.SKIES_EVIDENCE` when set; they become the spec's committed `evidence/`. For an
 Assay-decided mode, tag its line (`- FM-4 … [avp: <criterion-id>]`) and write the verdict with
 `verdictToJsonLine(verdict)` to `$SKIES_EVIDENCE/avp-FM-4.json`; the mode then passes only with a passing verdict.
 

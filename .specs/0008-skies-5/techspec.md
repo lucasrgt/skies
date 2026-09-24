@@ -390,3 +390,15 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   `Handle` e `SessionToken.*` → `RefreshSessionOptions.Default.*`). Código gerado: Full 1610 → 1373 linhas de C# na
   API (slices 753 → 652), Single 781 → 678; nenhuma decisão de segurança fica no app (0 linhas de cripto, rotação ou
   contagem de tentativas). O `migrate 5` não reescreve auth: aponta um `Refresh.cs` do Skies 4 com uma nota.
+- **Motor de prova enxuto (decisão do dono após auditoria adversarial).** O motor tinha passado do gate do Skies 4
+  que substituiu (~5,3k linhas não-teste em 29 arquivos, ~35 conceitos). O CI gerado já roda `dotnet test`/`npm test`
+  e executa o green de todo spec a cada push, então staleness, `verify`, footprint por coverage, impressão por linha,
+  `--with-impacted`, `verified_with`, red rot e `--red-only` respondiam de novo o que o CI responde; só o red é
+  evidência única. Ficam `spec new`, `proof run` (green uma vez, nada commitado), `proof record` (red falha todo FM,
+  `did-not-build` para qualquer runner; green passa todo FM; `## Non-discriminating`; checagem de consistência; Assay
+  `[avp: …]`) e `proof impact` derivado das citações do ctx.md (`**/Modules/<M>/` → `<M>.ctx.md` → specs citados) mais
+  `touches:`. O recibo é por FM: red e green, os casos, a primeira mensagem do red, critérios e veredito Assay; commits
+  de red (+ `red.patch`) e green; o runner. Sem durações, hashes, footprint nem `ctx_revised`; regravar um spec sem
+  mudança dá diff zero (verificado nos 10 do sample). Runner: `command`, `setup`, `build`; saem `report`, `env`,
+  `coverage`, `scope` e `SKIES_COVERAGE`, coverlet e `@vitest/coverage-v8`. `status` e `verify` saem da CLI. Motor:
+  5 273 → ~2 500 linhas não-teste, 29 → 16 arquivos.

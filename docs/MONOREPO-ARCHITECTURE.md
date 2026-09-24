@@ -21,15 +21,12 @@ backend = "src/Hostpoint.Api"
 frontend = "clients/hostpoint-os"
 
 [runners.api]
-scope = ["src/"]
 build = "dotnet build tests/Hostpoint.Tests"
-command = "dotnet test tests/Hostpoint.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger trx;LogFilePath={report} --collect \"XPlat Code Coverage\" --results-directory {coverage}"
+command = "dotnet test tests/Hostpoint.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger trx;LogFilePath={report}"
 
 [runners.web]
-scope = ["clients/hostpoint-web/"]
-command = "npx playwright test {dir} --reporter=junit"
-env = { PLAYWRIGHT_JUNIT_OUTPUT_NAME = "{report}" }
 setup = "docker compose up -d db"
+command = "PLAYWRIGHT_JUNIT_OUTPUT_NAME={report} npx playwright test {dir} --reporter=junit"
 ```
 
 Three sections exist, and unknown keys fail to parse:
@@ -44,20 +41,13 @@ Three sections exist, and unknown keys fail to parse:
   `frontend` packages (one path or a list; React has `package.json`, Flutter `pubspec.yaml`). A backend or package
   may appear in several products. `skies doctor` builds every backend and checks every frontend package listed here.
 - `[runners.*]` are the commands that run one spec's E2E. Placeholders: `{id}` (the spec id), `{spec}` (its folder
-  name), `{dir}` (its `e2e/` folder), `{report}` (where the JUnit or TRX report goes), `{evidence}` (the spec's
-  evidence folder for screenshots and logs), `{coverage}` (where coverage goes). Keys:
+  name), `{dir}` (its `e2e/` folder), `{report}` (where the JUnit or TRX report goes), and `{evidence}` (where a case
+  saves artifacts to commit; also `SKIES_EVIDENCE`, with the spec folder name in `SKIES_SPEC`). Environment a tool
+  needs goes in the command itself (`NAME={report} npx …`). Keys, and unknown ones fail to parse:
   - `command` (required) runs from the checkout's project root; its exit code decides nothing, the report does.
-  - `setup` runs once per checkout per invocation before the first spec that uses the runner (start a database).
-  - `build` runs once per checkout per invocation after `setup`, so `command` can skip compiling
-    (`dotnet test --no-build`); a failing build on red counts as `did-not-build`.
-  - `scope` lists the paths (relative to the root) that belong to this runner's specs: only files under them count
-    for the diff part of a footprint, `touches` matches, coverage, and ctx notes, so an API spec never pins a screen
-    and a screen's spec never pins the backend. Without it, every file in the project counts.
-  - `coverage` pins where the runner writes Cobertura or LCOV (a file or a folder, relative to the root) when the
-    tool cannot take `{coverage}`; with coverage, a footprint is the lines green executed.
-  - `report` pins the report path (relative to the root) when the tool cannot take `{report}`.
-  - `env` adds variables (placeholders expand in values); `SKIES_EVIDENCE`, `SKIES_SPEC`, and `SKIES_COVERAGE` are
-    always set.
+  - `setup` runs first in each checkout, red's fresh worktree included (start a database, install packages).
+  - `build` runs once per checkout after `setup`, so `command` can skip compiling (`dotnet test --no-build`); a
+    failing build on red counts as `did-not-build`.
 
 ## The root allowlist
 
