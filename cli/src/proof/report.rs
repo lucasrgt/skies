@@ -66,6 +66,8 @@ pub enum Outcome {
 pub struct Case {
     pub name: String,
     pub outcome: Outcome,
+    /// What a failed case reported (the assertion message, the start of the stack), when the report says.
+    pub message: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -120,9 +122,17 @@ fn junit_cases(root: roxmltree::Node) -> Vec<Case> {
             } else {
                 Outcome::Passed
             };
+            let message = node
+                .children()
+                .find(|child| child.has_tag_name("failure") || child.has_tag_name("error"))
+                .and_then(|failure| {
+                    let text = failure.text().map(str::trim).filter(|text| !text.is_empty());
+                    text.or(failure.attribute("message")).map(String::from)
+                });
             Case {
                 name: node.attribute("name").unwrap_or_default().to_string(),
                 outcome,
+                message,
             }
         })
         .collect()
@@ -139,9 +149,21 @@ fn trx_cases(root: roxmltree::Node) -> Vec<Case> {
                 "Failed" | "Error" | "Timeout" | "Aborted" => Outcome::Failed,
                 _ => Outcome::Skipped,
             };
+            let message = node
+                .descendants()
+                .find(|child| child.tag_name().name() == "ErrorInfo")
+                .map(|info| {
+                    info.children()
+                        .filter(|part| matches!(part.tag_name().name(), "Message" | "StackTrace"))
+                        .filter_map(|part| part.text().map(str::trim))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                })
+                .filter(|text| !text.is_empty());
             Case {
                 name: node.attribute("testName").unwrap_or_default().to_string(),
                 outcome,
+                message,
             }
         })
         .collect()
@@ -291,7 +313,35 @@ mod tests {
         Case {
             name: name.into(),
             outcome,
+            message: None,
         }
+    }
+
+    #[test]
+    fn keeps_what_a_failed_case_said() {
+        let junit = parse(
+            r#"<testsuite>
+              <testcase name="FM-1: a"><failure message="expected 422">AssertionError: expected 422, got 200</failure></testcase>
+              <testcase name="FM-2: b"><error message="boom"/></testcase>
+              <testcase name="FM-3: c"/>
+            </testsuite>"#,
+        )
+        .unwrap();
+        let messages: Vec<Option<&str>> = junit.cases.iter().map(|case| case.message.as_deref()).collect();
+        assert_eq!(
+            messages,
+            [Some("AssertionError: expected 422, got 200"), Some("boom"), None]
+        );
+        let trx = parse(
+            "<TestRun><Results><UnitTestResult testName=\"FM-1: a\" outcome=\"Failed\"><Output><ErrorInfo>\
+             <Message>Assert.Equal() Failure</Message><StackTrace>at Specs.S0001</StackTrace></ErrorInfo></Output>\
+             </UnitTestResult></Results></TestRun>",
+        )
+        .unwrap();
+        assert_eq!(
+            trx.cases[0].message.as_deref(),
+            Some("Assert.Equal() Failure\nat Specs.S0001")
+        );
     }
 
     #[test]
