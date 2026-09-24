@@ -1,0 +1,41 @@
+{
+  "spec": "0002-withdraw",
+  "runner": "api",
+  "red": {
+    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "patch": {
+      "file": "red.patch",
+      "hash": "blake3:244639ea66c85c8fd6153a8fa7d837e02044f50472dc5035a3bad94634afc0ee"
+    },
+    "cases": {
+      "FM-1": "fail",
+      "FM-2": "fail",
+      "FM-3": "fail",
+      "FM-4": "fail",
+      "FM-5": "fail"
+    },
+    "report": "evidence/red.trx"
+  },
+  "green": {
+    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "dirty": false,
+    "cases": {
+      "FM-1": "pass",
+      "FM-2": "pass",
+      "FM-3": "pass",
+      "FM-4": "pass",
+      "FM-5": "pass"
+    },
+    "report": "evidence/green.trx"
+  },
+  "footprint": {
+    "backend/Sample.Api/BuildingBlocks/Money.cs": "blake3:746bb641ce503821d81ffc6f84bf498b75c9d591e519afb9247ec2618a992823",
+    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": "blake3:d0c1902518b8c886fb8e4aa23d916679c35ae5ff044ed0cb7c6887e84fde86e5",
+    "backend/Sample.Api/Modules/Wallets/Wallet.cs": "blake3:525682962aa385e8d24d4811c93aebc1464f304670f40cc0fad2bf13cfac09aa",
+    "backend/Sample.Api/Platform.Idempotency.cs": "blake3:0d6785d4534506b9d17d3241a53f0b9aaac333440aa4be639504e06b3fb4b99a"
+  },
+  "inputs": {
+    ".specs/0002-withdraw/e2e/WithdrawSpec.cs": "blake3:865ee663e5b94ff0acb96c87da6a115d6ba0d949483f13f7276524ef6a6207bb",
+    ".specs/0002-withdraw/spec.md": "blake3:4a79971992118114025c6affba5f54abf438be0d037d0acd754881cbef6c6f11"
+  }
+}

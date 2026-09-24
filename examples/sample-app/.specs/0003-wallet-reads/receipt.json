@@ -1,0 +1,40 @@
+{
+  "spec": "0003-wallet-reads",
+  "runner": "api",
+  "red": {
+    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "patch": {
+      "file": "red.patch",
+      "hash": "blake3:8136cd158b0db3a000a3751b35222d877b06d8d6650a7a37dc63d0ca10e34f45"
+    },
+    "cases": {
+      "FM-1": "fail",
+      "FM-2": "fail",
+      "FM-3": "fail",
+      "FM-4": "fail",
+      "FM-5": "fail"
+    },
+    "report": "evidence/red.trx"
+  },
+  "green": {
+    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "dirty": false,
+    "cases": {
+      "FM-1": "pass",
+      "FM-2": "pass",
+      "FM-3": "pass",
+      "FM-4": "pass",
+      "FM-5": "pass"
+    },
+    "report": "evidence/green.trx"
+  },
+  "footprint": {
+    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": "blake3:f8ac77a4260eea442ea7db39068d3f91367f395be382d2b82531f2f404dba747",
+    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": "blake3:f9444e82971a6dbed78ead832ed14b8d953bb880ef18718dadd795dbb37b7da9",
+    "backend/Sample.Api/Modules/Wallets/Wallet.cs": "blake3:525682962aa385e8d24d4811c93aebc1464f304670f40cc0fad2bf13cfac09aa"
+  },
+  "inputs": {
+    ".specs/0003-wallet-reads/e2e/WalletReadsSpec.cs": "blake3:300a20fcd885eda2f17caea5b7cd6a8773d9b2c31497559626265e73422c8fb1",
+    ".specs/0003-wallet-reads/spec.md": "blake3:8457fd006b04d19b66fd27e166cbb15e287883564af388eb82c7b69310a243d5"
+  }
+}

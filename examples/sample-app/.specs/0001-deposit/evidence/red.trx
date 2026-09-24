@@ -1,0 +1,252 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="16ea5f11-4fb3-4060-bab2-10521ea4325d" name="@omarchy 2026-09-23 22:21:06" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-23T22:21:06.8615052-03:00" queuing="2026-09-23T22:21:06.8615052-03:00" start="2026-09-23T22:21:05.4793722-03:00" finish="2026-09-23T22:21:06.8667348-03:00" />
+  <TestSettings name="default" id="069667ec-bab0-43d8-9698-d718073cfae0">
+    <Deployment runDeploymentRoot="_omarchy_2026-09-23_22_21_06" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="e654be6e-b992-4bda-bc33-cbdecd0e92c7" testId="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1" testName="FM-1: a deposit is reflected by the next balance read" computerName="omarchy" duration="00:00:00.0305707" startTime="2026-09-23T22:21:06.7461128-03:00" endTime="2026-09-23T22:21:06.7581383-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e654be6e-b992-4bda-bc33-cbdecd0e92c7">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 30
+Actual:   0</Message>
+          <StackTrace>   at Specs.S0001.DepositSpec.Deposit_is_reflected_by_the_balance() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 21
+   at Specs.S0001.DepositSpec.Deposit_is_reflected_by_the_balance() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 22
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e1bc4a2d-35b2-43ac-9a39-aa8c9715ac8b" testId="00b01ed6-e9a2-cf13-ebaa-6b1834353dba" testName="FM-4: a missing wallet answers 404" computerName="omarchy" duration="00:00:00.0139347" startTime="2026-09-23T22:21:06.6814049-03:00" endTime="2026-09-23T22:21:06.6949734-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e1bc4a2d-35b2-43ac-9a39-aa8c9715ac8b">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: NotFound
+Actual:   OK</Message>
+          <StackTrace>   at Specs.S0001.DepositSpec.Missing_wallet_is_not_found() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 60
+   at Specs.S0001.DepositSpec.Missing_wallet_is_not_found() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 60
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5cf20da7-fa39-458e-8a19-96569c996997" testId="b4eaa1be-3b23-2d60-48aa-2943e0b6fffb" testName="FM-6: a new Idempotency-Key credits again" computerName="omarchy" duration="00:00:00.6314491" startTime="2026-09-23T22:21:05.9843605-03:00" endTime="2026-09-23T22:21:06.6306112-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5cf20da7-fa39-458e-8a19-96569c996997">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 20
+Actual:   0</Message>
+          <StackTrace>   at Specs.S0001.DepositSpec.New_key_credits_again() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 87
+   at Specs.S0001.DepositSpec.New_key_credits_again() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 87
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="0879e932-9266-4146-9c90-917c349db4b4" testId="1be71c20-8270-b493-2dfc-5dccd1d0ff2d" testName="FM-3: every invalid field is reported at once" computerName="omarchy" duration="00:00:00.0477914" startTime="2026-09-23T22:21:06.6438449-03:00" endTime="2026-09-23T22:21:06.6803259-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0879e932-9266-4146-9c90-917c349db4b4">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: BadRequest
+Actual:   OK</Message>
+          <StackTrace>   at Specs.S0001.DepositSpec.Every_invalid_field_is_reported() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 46
+   at Specs.S0001.DepositSpec.Every_invalid_field_is_reported() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 49
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="f71d447c-78bb-4795-acc9-5c70e8a46953" testId="787a3ac5-fe72-fd17-382e-bddc7280cf45" testName="FM-5: a retry with the same Idempotency-Key credits once" computerName="omarchy" duration="00:00:00.0154259" startTime="2026-09-23T22:21:06.7115991-03:00" endTime="2026-09-23T22:21:06.7284185-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f71d447c-78bb-4795-acc9-5c70e8a46953">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 10
+Actual:   0</Message>
+          <StackTrace>   at Specs.S0001.DepositSpec.Same_key_credits_once() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 74
+   at Specs.S0001.DepositSpec.Same_key_credits_once() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 75
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="831b5736-1022-4ba3-84bc-79849ba4c598" testId="ba2e4f64-ab4e-93ae-caa8-a11912d3a16d" testName="FM-2: a negative amount is rejected and the balance is untouched" computerName="omarchy" duration="00:00:00.0155523" startTime="2026-09-23T22:21:06.6955490-03:00" endTime="2026-09-23T22:21:06.7110356-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="831b5736-1022-4ba3-84bc-79849ba4c598">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: BadRequest
+Actual:   OK</Message>
+          <StackTrace>   at Specs.S0001.DepositSpec.Negative_amount_is_rejected() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 34
+   at Specs.S0001.DepositSpec.Negative_amount_is_rejected() in /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs:line 35
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="FM-4: a missing wallet answers 404" storage="/tmp/skies-red-eztdmw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="00b01ed6-e9a2-cf13-ebaa-6b1834353dba">
+      <Execution id="e1bc4a2d-35b2-43ac-9a39-aa8c9715ac8b" />
+      <TestMethod codeBase="/tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Missing_wallet_is_not_found" />
+    </UnitTest>
+    <UnitTest name="FM-5: a retry with the same Idempotency-Key credits once" storage="/tmp/skies-red-eztdmw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="787a3ac5-fe72-fd17-382e-bddc7280cf45">
+      <Execution id="f71d447c-78bb-4795-acc9-5c70e8a46953" />
+      <TestMethod codeBase="/tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Same_key_credits_once" />
+    </UnitTest>
+    <UnitTest name="FM-3: every invalid field is reported at once" storage="/tmp/skies-red-eztdmw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="1be71c20-8270-b493-2dfc-5dccd1d0ff2d">
+      <Execution id="0879e932-9266-4146-9c90-917c349db4b4" />
+      <TestMethod codeBase="/tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Every_invalid_field_is_reported" />
+    </UnitTest>
+    <UnitTest name="FM-1: a deposit is reflected by the next balance read" storage="/tmp/skies-red-eztdmw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1">
+      <Execution id="e654be6e-b992-4bda-bc33-cbdecd0e92c7" />
+      <TestMethod codeBase="/tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Deposit_is_reflected_by_the_balance" />
+    </UnitTest>
+    <UnitTest name="FM-6: a new Idempotency-Key credits again" storage="/tmp/skies-red-eztdmw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b4eaa1be-3b23-2d60-48aa-2943e0b6fffb">
+      <Execution id="5cf20da7-fa39-458e-8a19-96569c996997" />
+      <TestMethod codeBase="/tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="New_key_credits_again" />
+    </UnitTest>
+    <UnitTest name="FM-2: a negative amount is rejected and the balance is untouched" storage="/tmp/skies-red-eztdmw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="ba2e4f64-ab4e-93ae-caa8-a11912d3a16d">
+      <Execution id="831b5736-1022-4ba3-84bc-79849ba4c598" />
+      <TestMethod codeBase="/tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Negative_amount_is_rejected" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1" executionId="e654be6e-b992-4bda-bc33-cbdecd0e92c7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="00b01ed6-e9a2-cf13-ebaa-6b1834353dba" executionId="e1bc4a2d-35b2-43ac-9a39-aa8c9715ac8b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b4eaa1be-3b23-2d60-48aa-2943e0b6fffb" executionId="5cf20da7-fa39-458e-8a19-96569c996997" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1be71c20-8270-b493-2dfc-5dccd1d0ff2d" executionId="0879e932-9266-4146-9c90-917c349db4b4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="787a3ac5-fe72-fd17-382e-bddc7280cf45" executionId="f71d447c-78bb-4795-acc9-5c70e8a46953" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ba2e4f64-ab4e-93ae-caa8-a11912d3a16d" executionId="831b5736-1022-4ba3-84bc-79849ba4c598" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="6" executed="6" passed="0" failed="6" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.06]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.09]   Discovered:  Sample.Tests
+[xUnit.net 00:00:00.11]   Starting:    Sample.Tests
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.78]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.78]       Expected: 20
+[xUnit.net 00:00:00.78]       Actual:   0
+[xUnit.net 00:00:00.78]       Stack Trace:
+[xUnit.net 00:00:00.78]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(87,0): at Specs.S0001.DepositSpec.New_key_credits_again()
+[xUnit.net 00:00:00.78]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(87,0): at Specs.S0001.DepositSpec.New_key_credits_again()
+[xUnit.net 00:00:00.78]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.83]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.83]       Expected: BadRequest
+[xUnit.net 00:00:00.83]       Actual:   OK
+[xUnit.net 00:00:00.83]       Stack Trace:
+[xUnit.net 00:00:00.83]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(46,0): at Specs.S0001.DepositSpec.Every_invalid_field_is_reported()
+[xUnit.net 00:00:00.83]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(49,0): at Specs.S0001.DepositSpec.Every_invalid_field_is_reported()
+[xUnit.net 00:00:00.83]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.84]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.84]       Expected: NotFound
+[xUnit.net 00:00:00.84]       Actual:   OK
+[xUnit.net 00:00:00.84]       Stack Trace:
+[xUnit.net 00:00:00.84]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(60,0): at Specs.S0001.DepositSpec.Missing_wallet_is_not_found()
+[xUnit.net 00:00:00.84]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(60,0): at Specs.S0001.DepositSpec.Missing_wallet_is_not_found()
+[xUnit.net 00:00:00.84]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.86]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.86]       Expected: BadRequest
+[xUnit.net 00:00:00.86]       Actual:   OK
+[xUnit.net 00:00:00.86]       Stack Trace:
+[xUnit.net 00:00:00.86]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(34,0): at Specs.S0001.DepositSpec.Negative_amount_is_rejected()
+[xUnit.net 00:00:00.86]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(35,0): at Specs.S0001.DepositSpec.Negative_amount_is_rejected()
+[xUnit.net 00:00:00.86]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.87]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.87]       Expected: 10
+[xUnit.net 00:00:00.87]       Actual:   0
+[xUnit.net 00:00:00.87]       Stack Trace:
+[xUnit.net 00:00:00.87]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(74,0): at Specs.S0001.DepositSpec.Same_key_credits_once()
+[xUnit.net 00:00:00.87]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(75,0): at Specs.S0001.DepositSpec.Same_key_credits_once()
+[xUnit.net 00:00:00.87]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-EztDMw/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.90]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.90]       Expected: 30
+[xUnit.net 00:00:00.90]       Actual:   0
+[xUnit.net 00:00:00.90]       Stack Trace:
+[xUnit.net 00:00:00.90]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(21,0): at Specs.S0001.DepositSpec.Deposit_is_reflected_by_the_balance()
+[xUnit.net 00:00:00.90]         /tmp/skies-red-EztDMw/checkout/examples/sample-app/.specs/0001-deposit/e2e/DepositSpec.cs(22,0): at Specs.S0001.DepositSpec.Deposit_is_reflected_by_the_balance()
+[xUnit.net 00:00:00.90]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.91]   Finished:    Sample.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:06.6332174-03:00">
+        <Text>[xUnit.net 00:00:00.78]     FM-6: a new Idempotency-Key credits again [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:06.6807593-03:00">
+        <Text>[xUnit.net 00:00:00.83]     FM-3: every invalid field is reported at once [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:06.6958233-03:00">
+        <Text>[xUnit.net 00:00:00.84]     FM-4: a missing wallet answers 404 [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:06.7113818-03:00">
+        <Text>[xUnit.net 00:00:00.86]     FM-2: a negative amount is rejected and the balance is untouched [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:06.7315210-03:00">
+        <Text>[xUnit.net 00:00:00.87]     FM-5: a retry with the same Idempotency-Key credits once [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:06.7584747-03:00">
+        <Text>[xUnit.net 00:00:00.90]     FM-1: a deposit is reflected by the next balance read [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>
