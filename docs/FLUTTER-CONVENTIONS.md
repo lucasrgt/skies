@@ -20,8 +20,9 @@ The two laws remain absolute:
   using `built_value`; Dio is the transport.
 - Flutter `Form`/`TextFormField`; `submitOrReveal` forces the invalid path.
 - Flutter `gen_l10n` from ARB catalogs assembled from co-located feature catalogs (`skies i18n`).
-- Flutter's official [`integration_test`](https://docs.flutter.dev/testing/integration-tests) for spec E2E;
-  `flutter_test` for isolated units whose failure modes were written first.
+- Flutter's official [`integration_test`](https://docs.flutter.dev/testing/integration-tests) for on-device spec
+  cases and `flutter_test` for headless ones. Every case lives in a spec (`SKYFL036`); an isolated unit gets its own
+  spec, with its failure modes written first.
 
 This follows Flutter's [application architecture guide](https://docs.flutter.dev/app-architecture/guide): View and
 ViewModel are paired, UI state and commands live in the ViewModel, and dependencies enter through constructors.
@@ -152,10 +153,31 @@ locale parity. Error-code coverage derives the closed `ErrorBody.code` enum from
 ## Specs and E2E
 
 Flutter features are accepted like every other Skies feature: a spec folder under `.specs/` with its failure modes,
-black-box E2E in `e2e/`, and a receipt from `skies proof record` (see
-[CONVENTIONS.md](CONVENTIONS.md#specs-and-proofs)). The E2E engine is Flutter's own `integration_test` (or
-Maestro). Declare a runner in `Skies.toml` that runs one spec folder and writes a JUnit report, and name each case
-after the failure mode it covers (`testWidgets('FM-2: an expired session lands on sign-in', …)`).
+cases in `e2e/`, and a receipt from `skies proof record` (see
+[CONVENTIONS.md](CONVENTIONS.md#specs-and-proofs)). The engine is Flutter's own `flutter_test` and
+`integration_test` (or Maestro). Declare a runner in `Skies.toml` that runs one spec folder and writes a JUnit report,
+and name each case after the failure mode it covers (`testWidgets('FM-2: an expired session lands on sign-in', …)`).
+
+**Every test lives in a spec** (`SKYFL036`): a package's own `test/` and `integration_test/` hold no cases, and an
+isolated unit (a ViewModel, a formatter) gets its own spec. A Dart case imports the app as `package:<app>/...`,
+which only resolves inside the package, so the spec's `e2e/` stays at the repository root and the runner **copies**
+it into a hidden folder of the package before running it. The copy is regenerated per run; `skies g flutter-app`
+adds `.skies_spec/` to the package's `.gitignore`, and the doctor never walks hidden folders.
+
+`flutter test` has no JUnit reporter, so the runner writes Dart's JSON report (`--file-reporter json:<path>`) and
+converts it with [`junitreport`](https://pub.dev/packages/junitreport). For a package at `app/`, headless cases
+(`test`, `testWidgets` in the VM, no device):
+
+```toml
+[runners.flutter]
+setup = "flutter pub global activate junitreport"
+command = "rm -rf app/test/.skies_spec && mkdir -p app/test/.skies_spec && cp -R {dir}/. app/test/.skies_spec/ && cd app && flutter test test/.skies_spec --file-reporter json:.dart_tool/skies_spec.json; flutter pub global run junitreport:tojunit --input .dart_tool/skies_spec.json --output {report}"
+```
+
+The `;` before the conversion is deliberate: a red run fails its tests, and its report must still be written. For
+on-device cases (`IntegrationTestWidgetsFlutterBinding`), copy into `app/integration_test/.skies_spec/` instead and
+pass the device (`flutter test integration_test/.skies_spec -d <device> …`). `skies proof record` runs red in a fresh
+git worktree; `flutter test` resolves the package there on its own.
 
 Styling, the widget kit, tokens, and layout are the application's. Accessibility is too; Flutter's
 `meetsGuideline` matchers are a good failure-mode check for a spec, not a framework rule.
@@ -192,8 +214,10 @@ enforces architecture only.
 | `SKYFL030` | Navigation targets do not escape typed routes through dynamic/Object casts. |
 | `SKYFL031` | Form submit carries an explicit invalid path. |
 | `SKYFL032` | App form fields surface validator/error state. |
+| `SKYFL036` | Tests live in a spec: a top-level `test(`, `testWidgets(`, or `group(` in a file importing `package:test`, `package:flutter_test`, or `package:integration_test` is flagged outside `.specs/` (once per file). |
 
-`skies doctor` runs these rules natively over every Flutter package declared in `Skies.toml`;
+`skies doctor` runs these rules natively over every Flutter package declared in `Skies.toml` (its `lib/`, `test/`,
+and `integration_test/`, skipping hidden folders);
 `skies doctor --package .` runs them over one package, which is what a package's own `lint` script calls. `SKYFL028`, `031`,
 and `032` are warnings; every other finding is an error. The numbers keep the corresponding `SKYFE` slots, so gaps
 are the React rules that were removed in Skies 5.

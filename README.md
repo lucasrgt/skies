@@ -161,7 +161,7 @@ A feature is accepted by evidence in its spec folder:
 ```text
 .specs/0012-cancel-reservation/
   spec.md          behavior + failure modes (FM-1..n), written before the code
-  e2e/             black-box tests; a case named "FM-2: …" covers FM-2
+  e2e/             the spec's cases; a case named "FM-2: …" covers FM-2
   receipt.json     red (every FM fails before the change) and green (every FM passes after)
   evidence/        the test report and small artifacts
 ```
@@ -174,7 +174,11 @@ skies proof verify --stale             # rerun them when it matters
 ```
 
 Runners live in `Skies.toml`: any command that runs one spec's `e2e/` folder and writes a JUnit or TRX report.
-The engine does not care whether that is xUnit, Playwright, Maestro, or `integration_test`.
+The engine does not care whether that is xUnit, Playwright, Vitest, Maestro, or `integration_test`.
+
+Every test lives in a spec. There is no other home for one: an isolated system (a value object, a parser) gets its
+own spec whose `e2e/` holds isolated cases, and the doctors flag a test anywhere else (`SKY0029`, `SKYFE036`,
+`SKYFL036`).
 
 ---
 

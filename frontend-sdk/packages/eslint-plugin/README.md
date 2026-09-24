@@ -31,6 +31,7 @@ still builds; you only lose the warnings.
 | `no-cast-navigation` | SKYFE030 | No `as never`/`as any`/`as unknown` on a navigation target (keeps typed routes on). |
 | `submit-handles-invalid` | SKYFE031 | `handleSubmit` carries its invalid path (`submitOrReveal` or a second argument). |
 | `controller-field-state` | SKYFE032 | A `<Controller>` render reads and surfaces `fieldState`. |
+| `tests-live-in-specs` | SKYFE036 | A test (`test`/`it`/`describe` from a runner) lives under `.specs/<id>-<slug>/e2e/`. |
 
 SKYFE015–019 recognize both expo-router and TanStack Router idioms; they police a shape, not a router runtime. The
 `SessionState`, `safeBack` and `submitOrReveal` helpers they steer toward live in `@skiesjs/react`.

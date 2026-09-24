@@ -12,8 +12,8 @@ Hard rules:
 - A module writes only its own entities; reference other modules by id, never an EF foreign key.
 - Error codes are `*ErrorCodes` constants; user-facing copy lives in the frontend i18n catalogs.
 - Views never touch data; only ViewModels consume the generated client.
-- Never write unit tests after the code. Prove features with the spec's E2E. Unit-test an isolated system only
-  after writing down how it can fail.
+- Every test lives in a spec (`.specs/<id>-<slug>/e2e/`, titled `FM-n: …`), nowhere else. Never write tests after
+  the code to cover it. An isolated system gets its own spec with isolated cases, failure modes written first.
 - `skies doctor` findings are fixed in the code, never suppressed.
 
 Nothing runs automatically: there is no gate and no required hook. `skies proof status` shows receipts whose files

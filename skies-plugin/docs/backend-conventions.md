@@ -9,7 +9,7 @@ matching Use/Map — nothing else), `AppDb.cs` (ONE DbContext), `Platform/` (app
 one partial per concern: Persistence, Security, Observability, Web), `Modules.cs` (explicit
 registry, no reflection), `Modules/<Module>/` (bounded contexts: entities + `Slices/` +
 `<Module>.ctx.md`), `BuildingBlocks/` (shared VOs), `tests/<App>.Tests/` (the runner: compiles
-`.specs/*/e2e` and any co-located `*.Tests.cs`), `.specs/<id>-<slug>/` (one folder per feature).
+`.specs/*/e2e` and nothing else), `.specs/<id>-<slug>/` (one folder per feature).
 
 ## Slices
 
@@ -54,8 +54,9 @@ Features are proven by their spec: `.specs/<id>-<slug>/spec.md` lists failure mo
 `e2e/` holds black-box tests titled `FM-n: …` (namespace `Specs.S<id>`), and `skies proof record` writes a
 receipt (every FM fails on red, passes on green). Host: `SkiesWebTest<TProgram>` boots the real app;
 `SwapStores(IServiceCollection)` reconfigures stores — in-memory (`UseIsolatedInMemory<Db>()`) or real Postgres
-(`Skies.Framework.Testing.Postgres`, a Testcontainers template clone per test; dispose the lease). Unit tests only
-for isolated systems, failure modes first, co-located as `<Name>.Tests.cs`. No gate runs them; `skies proof
+(`Skies.Framework.Testing.Postgres`, a Testcontainers template clone per test; dispose the lease). Every test lives
+in a spec (SKY0029): an isolated system (a value object, a calculation) gets its own spec whose `e2e/` holds
+isolated cases, failure modes first, with a `red.patch` that breaks the invariant. No gate runs them; `skies proof
 status` shows which receipts went stale.
 
 ## ctx.md (per module — the business "why")

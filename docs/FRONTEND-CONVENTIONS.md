@@ -48,12 +48,13 @@ less (Rails-in-RN):
 - **zod** + **react-hook-form** — input schemas + form state.
 - **TypeScript strict** — `tsc` is part of the doctor; it is what makes "wired" decidable.
 - **Vitest** (jsdom) — the test runner for the **platform-agnostic core**: ViewModels (render-agnostic hooks,
-  tested with `@testing-library/react`'s `renderHook` — no RN runtime), the generated client, types, schemas.
+  exercised with `@testing-library/react`'s `renderHook` — no RN runtime), the generated client, types, schemas.
   *Not* jest-expo: rendering RN components is out of scope (the View is thin by convention), and Vitest is
-  faster, one runner, and the same tests cover a future web client.
+  faster, one runner, and the same cases cover a future web client. Its cases live in specs, never beside the
+  code (see [Specs](#specs--every-test-lives-in-one)).
 
 expo-router (the route tree) and the feature triple compose: a route file under `app/` is a thin shell that
-renders one feature's `*.view.tsx`; the feature folder holds the view/model/test. Navigation is the router's
+renders one feature's `*.view.tsx`; the feature folder holds the view and its model (its cases live in a spec). Navigation is the router's
 job; data is the ViewModel's. Two seams, never crossed.
 
 ### The shared core — the View is the only platform-specific layer
@@ -72,8 +73,8 @@ then); the discipline holds from day one.
 
 ## The MVVM convention — one feature, one shape
 
-One screen = a co-located triple. The suffixes are the analyzer anchor, the way `.Tests.cs` and
-`.ctx.md` are on the backend:
+One screen = a co-located pair (its cases live in a spec). The suffixes are the analyzer anchor, the way
+`.ctx.md` is on the backend:
 
 ```
 features/<zone>/<name>/
@@ -601,6 +602,7 @@ by construction, and completeness is the compiler. Every rule is born from obser
 | `SKYFE029` | **Refresh one-door** — the refresh hook/operation (and any hand-rolled `POST` to a refresh route) is consumed only inside the rotation doors (`lib/skies-client`, `lib/session`); anywhere else is a second rotation path. Type-only imports stay free | **shipped** | pauta near-miss: a session-seam refresh bootstrap and a client 401 interceptor landed the same week from different branches — two cold-load rotations would have tripped the backend's theft detection and burned the session family |
 | `SKYFE030` | **No cast on a navigation target** — no `as never`/`as any`/`as unknown` on the argument of `router.push`/`replace`/`navigate` (or a `useNavigate()` call), nor on the `href`/`to` of `<Redirect>`/`<Navigate>`/`<Link>`. The cast exists to silence typed routes; silenced, a drifted route literal compiles clean and 404s in prod. Pass a typed literal or the `{ pathname, params }` object. **Config pair**: typed routes ON (expo-router `experiments.typedRoutes` / TanStack's route tree) — without it the removed cast merely degrades to `string`. Error-tier, routing family | **shipped** | hostpoint: ~8 call sites cast `router.push(x as never)`; when the backend minted two routes that didn't exist (the sibling convention), the muted router compiled them clean → prod 404 |
 | `SKYFE031` | **Submit handles the invalid path** — in a `*.viewModel.ts`, a one-argument `handleSubmit(onValid)` is flagged: a validation failure runs no code (it happens *before* the mutation, so `SKYFE013`/`SKYFE027` never see it). Use the spine's `submitOrReveal(form.handleSubmit, onValid, { onInvalid })` — it forces the surface and resolves the first invalid field for the shell to navigate to — or pass `onInvalid` by hand. Warn-tier on entry (a single-screen form with visible inline errors is legitimate); promotes with `SKYFE032` | **shipped** | hostpoint: a 9-tab property editor's Save went completely mute when a hidden tab's field failed — no mutation, no toast, no error ("não está salvando a propriedade", in prod) |
+| `SKYFE036` | **Tests live in a spec** — a call to `test`/`it`/`describe` (or a member such as `test.describe`, `it.each([…])(…)`, `describe.skip`) imported from `vitest`, `@playwright/test`, `@jest/globals`, or `bun:test`, or used as a global, is flagged in any file whose path has no `.specs/` segment. Reported once per file. A local function that merely shares the name is not a test. It asks where a test lives, never that one exists | **shipped** | tests written as coverage after the code guarded nothing and proved nothing; the spec is the only place a test is tied to a failure mode and a red-then-green receipt |
 | `SKYFE032` | **Controller surfaces its fieldState** — a `<Controller>` whose inline `render` never reads `fieldState` (destructured or accessed) leaves that field's validation error with no surface; pass `error={fieldState.error?.message}` to the field component. Near-zero false positives (`error` on an unvalidated field is inert); a deliberately non-inline surface must still expose the same error state explicitly. Warn-tier, promoted together with `SKYFE031` — the pair makes "a validation error always shows" hold by construction | **shipped** | hostpoint: the Description input destructured only `{ field }` — its validation failure had no surface at all (same incident as SKYFE031) |
 
 The two directions are asymmetric, and that sets the severity: **front→back** (the UI calls an
@@ -615,14 +617,31 @@ generated code is committed, so a stale mirror shows up as a diff in review and 
 
 ---
 
-## Specs — E2E with a receipt
+## Specs — every test lives in one
 
 Frontend features are accepted the same way as backend ones: a spec folder under `.specs/` with its failure
-modes, black-box E2E in `e2e/`, and a receipt from `skies proof record` (see [CONVENTIONS.md](CONVENTIONS.md#specs-and-proofs)).
-The E2E engine is the app's: Playwright on web, Maestro or `integration_test` on native. Declare a runner in
-`Skies.toml` that runs one spec folder and writes a JUnit report, and name each case after the failure mode it
-covers (`test("FM-3: an expired session lands on sign-in")`). Nothing in the ViewModel, the View, or a JSON
-manifest points at the spec.
+modes, cases in `e2e/`, and a receipt from `skies proof record` (see [CONVENTIONS.md](CONVENTIONS.md#specs-and-proofs)).
+The engine is the app's: Playwright on web, Vitest for a screen's View + ViewModel in jsdom, Maestro or
+`integration_test` on native. Declare a runner in `Skies.toml` that runs one spec folder and writes a JUnit report,
+and name each case after the failure mode it covers (`test("FM-3: an expired session lands on sign-in")`). Nothing in
+the ViewModel, the View, or a JSON manifest points at the spec.
+
+**A spec is the only home for a test** (`SKYFE036`). There is no `Foo.test.tsx` beside `Foo.viewModel.ts`: a test
+written as coverage guards nothing it names and never proved it can fail. An isolated system (a formatter, a
+reducer, a UI kit) gets its own spec whose `e2e/` holds isolated cases; the folder name means "the spec's cases",
+not strictly end-to-end. Cases import the code they exercise by a relative path or an alias. The sample runs its
+web specs with Vitest's JUnit reporter, the spec folder as the filter:
+
+```toml
+[runners.web]
+setup = "test -d ../../frontend-sdk/node_modules || npm --prefix ../../frontend-sdk ci --prefer-offline"
+command = "node ../../frontend-sdk/node_modules/vitest/vitest.mjs run --config ../../frontend-sdk/vitest.config.ts --reporter=junit --outputFile={report} {dir}"
+```
+
+The `setup` matters: `skies proof record` runs red in a fresh git worktree, which has no `node_modules`. In an app,
+point the paths at the package (`npm --prefix clients/web ci`, `clients/web/node_modules/vitest/vitest.mjs`) and
+include `.specs/*/e2e/**/*.test.{ts,tsx}` in the Vitest config, the tsconfig the cases compile under, and the
+ESLint `files`.
 
 ---
 

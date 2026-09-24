@@ -25,6 +25,9 @@ Architecture only. Never suppress: a firing rule means the shape is wrong; fix t
 - SKY0024 raw SQL never absorbs runtime values as text (FromSql/ExecuteSql parameterized)
 - SKY0025 held Result<T> checked before .Value/.Error
 - SKY0026 every persisted write declares concurrency posture (warning tier)
+- SKY0027 (warn) no unbounded materialization in a slice (Take/ToPageAsync; parent-scoped exempt)
+- SKY0028 (warn) a paged order ends on the primary key
+- SKY0029 tests live in a spec: a [Fact]/[Theory]/[Test]/[TestMethod]… outside `.specs/` is flagged
 
 Self-harness (framework dev only): SKYSELF001 ≤500 lines · SKYSELF002 no TODO/FIXME/HACK ·
 CS1591 public members documented.
@@ -56,8 +59,10 @@ CS1591 public members documented.
 - SKYFE030 no cast on navigation targets
 - SKYFE031 submit handles the invalid form path
 - SKYFE032 Controller surfaces fieldState validation errors
+- SKYFE036 tests live in a spec: test/it/describe (vitest, playwright, jest, bun, or globals) outside `.specs/`
 
 ## Flutter (native in `skies doctor`)
 
 SKYFL### rules mirror the SKYFE numbers for the same concern; see `docs/FLUTTER-CONVENTIONS.md` in the
-framework repository.
+framework repository. SKYFL036: a `test(`/`testWidgets(`/`group(` from flutter_test/test/integration_test outside
+`.specs/` is flagged (the runner's hidden `.skies_spec/` copy is skipped).

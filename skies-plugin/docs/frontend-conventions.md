@@ -59,9 +59,11 @@ Styling, components, and tokens are the app's choice. A11y: jsx-a11y (web) / rea
 
 ## Specs
 
-Features are proven by `.specs/<id>-<slug>/`: failure modes first, then black-box E2E (Playwright on web, Maestro
-on native) titled `FM-n: …`, then `skies proof record`. Drive the real UI against the real API; nothing in the
-ViewModel or View points at the spec.
+Features are proven by `.specs/<id>-<slug>/`: failure modes first, then cases (Playwright or Vitest on web, Maestro
+or `integration_test` on native) titled `FM-n: …`, then `skies proof record`. Drive the real UI against the real API;
+nothing in the ViewModel or View points at the spec. Every test lives in a spec (SKYFE036, SKYFL036): no
+`*.test.tsx` beside the code, no package `test/` folder; an isolated unit gets its own spec. Flutter cases import
+`package:<app>/...`, so the runner copies the spec's `e2e/` into the package's hidden `.skies_spec/` to run them.
 
 ## Comments
 

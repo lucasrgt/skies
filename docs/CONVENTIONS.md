@@ -320,7 +320,7 @@ src/<App>.Api/
     <Entity>.cs                   #   entities live at the module root — domain, not operations
     Slices/<Name>.cs              #   one slice = one operation (Input/Output/Handle/Map)
   BuildingBlocks/                  # shared value objects (Money, Cpf) — generic, owned by no module
-tests/<App>.Tests/                 # thin runner: compiles .specs/*/e2e and any co-located *.Tests.cs, provides TestApp
+tests/<App>.Tests/                 # thin runner: compiles .specs/*/e2e (and nothing else), provides TestApp
 .specs/<id>-<slug>/                # one feature: spec.md (failure modes) + e2e/ + receipt.json — see "Specs and proofs"
 ```
 
@@ -411,6 +411,10 @@ A feature is accepted by **evidence in its spec folder**, not by annotations spr
   evidence/        the test report and small artifacts (screenshots, HTTP logs)
 ```
 
+- **Every test lives in a spec** (`SKY0029`, `SKYFE036`, `SKYFL036`). There is no other home for a test: no
+  co-located `*.Tests.cs`, no `test/` folder of coverage. A test written after the code to cover it guards nothing it
+  names and never proved it can fail. An isolated system (a value object, a calculation, a parser) gets its own spec
+  whose `e2e/` holds isolated cases; the folder name means "the spec's cases", not strictly end-to-end.
 - **Failure modes come before code.** `spec.md` lists how the feature can fail, one `- FM-n <text>` line each.
   The human reviews that list; it is the point of control.
 - **The test title is the only link.** A case whose name or display name starts with `FM-n` covers that
@@ -433,7 +437,9 @@ A feature is accepted by **evidence in its spec folder**, not by annotations spr
   ```
 
   .NET spec tests use the namespace `Specs.S<id>` so the filter selects exactly one spec. The test project
-  compiles them with `<Compile Include="..\..\.specs\*\e2e\**\*.cs" />`.
+  compiles them with `<Compile Include="..\..\.specs\*\e2e\**\*.cs" />` and nothing else, and references the doctor
+  so `SKY0029` sees any test compiled from elsewhere. Declare it as the product's `tests` in `Skies.toml`:
+  `skies doctor` then builds it (and the backend through it) instead of the backend alone.
 
 ## Testing — hosts and isolation
 
@@ -454,10 +460,11 @@ A feature is accepted by **evidence in its spec folder**, not by annotations spr
 - **When a flow cannot be driven purely over HTTP** (an SMS or email code never crosses the wire), layer a
   capturing provider over the booted app through `SwapStores` / `WithWebHostBuilder` — the same seam, with zero
   production change.
-- **Unit tests are for isolated systems only, and failure modes come first.** A value object, a pricing
-  calculation, a parser: write down how it can fail, then write the code. Such tests sit next to the code as
-  `<Name>.Tests.cs` and are ordinary tests, outside the receipt system. Never write unit tests after the code to
-  cover it.
+- **Every test lives in a spec; an isolated system gets its own.** A value object, a pricing calculation, a
+  parser: open a spec, write down how it can fail, write one isolated case per failure mode in its `e2e/` (they call
+  the type directly, no host), then write the code, and record the receipt like any other spec (a `red.patch` that
+  breaks the invariant proves each case bites). Never write tests after the code to cover it. The sample's `Money`
+  is `.specs/0004-money`.
 - **Assertions and mocking are the app's free choice** — the kit ships and mandates none.
 
 ---
@@ -494,6 +501,8 @@ satisfy the checker instead of proving behavior, and were removed in 5.0.)
 | `SKY0026` | **Every tracked update/delete declares its concurrency posture**: a slice whose `Handle` mutates or explicitly updates/removes an entity with no visible token (`[Timestamp]`, `[ConcurrencyCheck]`, or `RowVersion`) is flagged. Insert-only rows and entities merely read beside a different write are excluded. Warning-tier because fluent-only configuration is invisible to the analyzer | **shipped** | the sample's own `Deposit` raced: two concurrent deposits, one balance silently lost |
 | `SKY0027` | **A slice must not materialize an unbounded set**: a `ToListAsync`/`ToList` (or the array twins) ending a `DbSet`-rooted chain — directly or through a queryable local — with no `Take`/`ToPageAsync` on the way is flagged. **Parent-scoped queries are exempt**: a `Where` equating (or `Contains`-matching) a `*Id` member (`s => s.JobId == id` — the steps of ONE job) is bounded by the aggregate's cardinality, and a synthetic `Take(n)` there would document a bound that isn't the real rule; `OrgId`/`TenantId` equality is the tenant scope itself and stays flagged. Warning-tier: legitimately small sets exist, and the fix documents the decision — `.Take(n)` writes the bound down, `ToPageAsync` pages it behind a stable order | **shipped** | hostpoint: list slices served whole tables that paged fine at dev-data scale; pauta's 0.3.0 adoption surfaced ~16 parent-scoped loads (steps of one job, sessions of one user) where the v1 rule over-fired — the exemption is that lesson |
 | `SKY0028` | **A paged order needs a unique tiebreaker**: the ordering chain feeding `ToPageAsync` must contain the entity's primary key — a member named `Id`, or the EF-conventional `{Entity}Id` on the queried entity itself (a foreign `*Id` such as `CustomerId` is many-rows-shared and does not count) — else the final sort key is flagged. Warning-tier; a pre-ordered local the analyzer cannot read stays silent | **shipped** | hostpoint: `ListPublicPointReviews` ordered `OrderByDescending(CreatedAt)` with no tiebreaker past a green doctor — rows repeated and vanished between pages once timestamps tied; pauta: 0/34 migrated slices had a tiebreaker before the wave |
+
+| `SKY0029` | **Tests live in a spec**: a method carrying a test attribute (xUnit `[Fact]`/`[Theory]`, NUnit `[Test]`/`[TestCase]`/`[TestCaseSource]`/`[Theory]`, MSTest `[TestMethod]`/`[DataTestMethod]`, and attributes derived from them such as `[SkippableFact]`) declared in a file with no `.specs` directory segment is flagged. When the test framework does not resolve, the written name decides (`Fact`, `*Fact`, `*Theory`, …). It asks where a test lives, never that one exists. The tests project references the doctor too, which is where it fires; a stray `*.Tests.cs` in the API fails its build outright (no xUnit there) | **shipped** | unit tests written after the code as coverage: no failure mode named, no red run, a suite nobody trusts. The owner's rule: a spec is the only home for a test |
 
 The doctor catches **structural drift**, not logic correctness. Correctness is the spec's
 E2E + review. Expect it to reclaim the *structural* fraction of drift, not 100%.
