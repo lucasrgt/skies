@@ -12,18 +12,21 @@ still builds; you only lose the enforcement.
 | `view-purity` | SKYFE001 | A `*.view.tsx` renders only — no generated client / axios / react-query import (contract **types** are fine). |
 | `data-door` | SKYFE002 | The generated client is imported only by a `*.viewModel.ts` or the auth/routing infra (`lib/session`, `lib/guards`); re-exporting it elsewhere is flagged too. |
 | `no-mock` | SKYFE003 | No mock/fixture/MSW import in production code (only under `*.test.*`). |
+| `viewmodel-render-agnostic` | SKYFE004 | A `*.viewModel.ts` renders no JSX and imports no `react-dom`. |
+| `mandatory-state` | SKYFE007 | A ViewModel exposing a generated query's data exposes its states (`toAsyncState`/`combineAsyncStates`, or the pending and error flags). |
 | `state-completeness` | SKYFE010 | A View routes loading/error/empty through `<Resource>` — no raw `isPending`/`isError`/… |
 | `i18n-completeness` | SKYFE011 | Every locale catalog in a `*.i18n.ts` (locale-named siblings, or one locale-keyed object) declares the same (flattened) keys. |
 | `mutation-error-handled` | SKYFE013 | A ViewModel mutation surfaces its failure (`onError`, a read `.isError`, or a caught/propagated `mutateAsync`); an empty `onError` is flagged. `{ globalSurface: true }` trusts the QueryClient defaults. |
 | `no-hardcoded-copy` | SKYFE014 | No hardcoded user-facing text in a View — JSX text and copy props go through `t()`. |
 | `no-router-replace-in-effect` | SKYFE015 | Redirect declaratively (`<Navigate>`), never `router.navigate`/`navigate()` inside `useEffect`. |
-| `session-one-door` | SKYFE016 | The session token is written only through `lib/session` (setter import or token-ish storage write elsewhere is flagged). |
-| `guard-tristate` | SKYFE017 | A guard redirects on a tri-state `SessionState`, never a raw `isAuthenticated` boolean. |
+| `session-one-door` | SKYFE016 | The session token is written only through `lib/session` (a setter import, or a storage write whose key has a `token`/`jwt`/`session`/`auth` word, elsewhere is flagged; `authorName` is not). |
+| `guard-tristate` | SKYFE017 | A guard's redirect (`<Navigate>`, `return`/`throw redirect(…)`) is decided on a tri-state `SessionState`, never a raw `isAuthenticated` boolean. |
 | `route-param-guard` | SKYFE018 | A route reading a required id param through a loose `useParams()` guards its absence with a declarative redirect. |
 | `safe-back` | SKYFE019 | No bare `history.back()`/`navigate(-1)` — use `safeBack`/`useGoBack` with a fallback. |
 | `no-hardcoded-base-url` | SKYFE020 | The API base URL comes from configuration, not a literal host in the client's construction. |
 | `no-raw-html` | SKYFE021 | No `dangerouslySetInnerHTML` outside the one sanitizing seam (`lib/html`). |
 | `no-open-redirect` | SKYFE022 | Never navigate to a value read from the URL without mapping it through an allowlist. |
+| `no-placeholder` | SKYFE023 | No `TODO`/`FIXME`/`HACK`/`XXX`/"wire later" comment, `@ts-expect-error`/`@ts-ignore`, or "not implemented" stub in production code. |
 | `query-client-defaults` | SKYFE027 | A production `QueryClient` carries the mutation defaults (`MutationCache` with `onSuccess` invalidation and `onError` feedback). |
 | `no-manual-refetch-ritual` | SKYFE028 | No `onSuccess` whose only job is to refetch/invalidate what the defaults already invalidate. |
 | `refresh-one-door` | SKYFE029 | Token refresh is consumed only by the client/session rotation seam. |
@@ -52,10 +55,11 @@ export default [
 ];
 ```
 
-`recommended` sets every architecture rule to `error` and the three polish rules to `warn`:
-`skies/no-manual-refetch-ritual` (SKYFE028), `skies/submit-handles-invalid` (SKYFE031), and
-`skies/controller-field-state` (SKYFE032). Promote those in a later config object once your forms use
-`submitOrReveal` everywhere.
+`recommended` sets every architecture and security rule to `error` and the four taste rules to `warn`:
+`skies/no-placeholder` (SKYFE023), `skies/no-manual-refetch-ritual` (SKYFE028), `skies/submit-handles-invalid`
+(SKYFE031), and `skies/controller-field-state` (SKYFE032). Promote those in a later config object once your forms use
+`submitOrReveal` everywhere. To suppress one finding, write the rule and the reason on the line above:
+`// eslint-disable-next-line skies/<rule> -- <reason>`.
 
 ## Accessibility floor
 

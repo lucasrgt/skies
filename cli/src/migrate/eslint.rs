@@ -15,6 +15,7 @@ const KEPT_RULES: &[&str] = &[
     "data-door",
     "guard-tristate",
     "i18n-completeness",
+    "mandatory-state",
     "mutation-error-handled",
     "no-cast-navigation",
     "no-hardcoded-base-url",
@@ -22,6 +23,7 @@ const KEPT_RULES: &[&str] = &[
     "no-manual-refetch-ritual",
     "no-mock",
     "no-open-redirect",
+    "no-placeholder",
     "no-raw-html",
     "no-router-replace-in-effect",
     "query-client-defaults",
@@ -33,6 +35,7 @@ const KEPT_RULES: &[&str] = &[
     "submit-handles-invalid",
     "tests-live-in-specs",
     "view-purity",
+    "viewmodel-render-agnostic",
 ];
 
 /// A rule setting that opens its line: `"skies/x": …`, `'skies/x': …`, or YAML's `skies/x: …`.

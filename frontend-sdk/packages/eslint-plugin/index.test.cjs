@@ -19,6 +19,8 @@ const RULE_IDS = [
   "view-purity",
   "data-door",
   "no-mock",
+  "viewmodel-render-agnostic",
+  "mandatory-state",
   "state-completeness",
   "i18n-completeness",
   "mutation-error-handled",
@@ -31,6 +33,7 @@ const RULE_IDS = [
   "no-hardcoded-base-url",
   "no-raw-html",
   "no-open-redirect",
+  "no-placeholder",
   "query-client-defaults",
   "no-manual-refetch-ritual",
   "refresh-one-door",
@@ -53,8 +56,8 @@ assert.deepEqual(
   RULE_IDS.map((id) => `skies/${id}`).sort(),
   "recommended enables every rule",
 );
-// Architecture is error; only the polish rules (SKYFE028, SKYFE031, SKYFE032) stay warnings.
-const WARN_TIER = ["no-manual-refetch-ritual", "submit-handles-invalid", "controller-field-state"];
+// Architecture and security are error; only the taste rules (SKYFE023, SKYFE028, SKYFE031, SKYFE032) stay warnings.
+const WARN_TIER = ["no-placeholder", "no-manual-refetch-ritual", "submit-handles-invalid", "controller-field-state"];
 for (const id of RULE_IDS) {
   const expected = WARN_TIER.includes(id) ? "warn" : "error";
   assert.equal(plugin.configs.recommended.rules[`skies/${id}`], expected, `skies/${id} is ${expected} in recommended`);
@@ -460,6 +463,8 @@ ruleTester.run("tests-live-in-specs", plugin.rules["tests-live-in-specs"], {
 
 // The routing, session, and security rules live in their own file.
 require("./routing.test.cjs");
+// The ViewModel rules (SKYFE004, SKYFE007), the placeholder rule (SKYFE023), and the audit's precision fixes.
+require("./viewmodel.test.cjs");
 // The accessibility floor recommended carries (jsx-a11y at error).
 require("./a11y.test.cjs");
 // False positives found calibrating on real apps, and the TanStack/React Router route layouts.

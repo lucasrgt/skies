@@ -1,6 +1,6 @@
 "use strict";
 
-const { isTest, isInfraDataDoor } = require("../lib/shared.cjs");
+const { isTest, isInfraDataDoor, isSessionKey } = require("../lib/shared.cjs");
 
 // SKYFE016 — the session is written through ONE seam (lib/session). The bug: token writes scattered across
 // viewModels (login, signup, impersonate), each of which must REMEMBER to reset the `me` cache — and the one that
@@ -25,8 +25,8 @@ module.exports = {
     const f = context.filename.replace(/\\/g, "/");
     if (isInfraDataDoor(f) || isTest(f)) return {}; // the seam (lib/session) legitimately writes; tests seed freely
     // A storage write keyed by a token-ish name is the same scattered session write as importing the setter —
-    // the name-pattern door closes, the localStorage/sessionStorage door must close with it.
-    const TOKEN_KEY = /token|session|jwt|auth/i;
+    // the name-pattern door closes, the localStorage/sessionStorage door must close with it. Token-ish is a whole
+    // word of the key (`accessToken`, `auth_token`, `session`, `jwt`), so `authorName` or `authority` is not.
     const STORAGE = /^(localStorage|sessionStorage)$/;
     return {
       ImportDeclaration(node) {
@@ -48,7 +48,7 @@ module.exports = {
               : null;
         if (!root || !STORAGE.test(root)) return;
         const key = node.arguments[0];
-        if (key && key.type === "Literal" && typeof key.value === "string" && TOKEN_KEY.test(key.value))
+        if (key && key.type === "Literal" && typeof key.value === "string" && isSessionKey(key.value))
           context.report({
             node,
             messageId: "storage",
