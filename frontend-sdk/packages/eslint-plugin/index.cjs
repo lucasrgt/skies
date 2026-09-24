@@ -51,6 +51,9 @@ const a11yRules = Object.fromEntries(
   Object.entries(jsxA11y.flatConfigs.recommended.rules).map(([rule, setting]) => [rule, promote(setting)]),
 );
 a11yRules["jsx-a11y/aria-role"] = ["error", { ignoreNonDOM: true }];
+// A label's text is looked for three levels deep, not jsx-a11y's default two: `<label><input/><span><strong>{name}`
+// is an accessible card-style option that the default depth reports as text-less (seen calibrating on a real app).
+a11yRules["jsx-a11y/label-has-associated-control"] = ["error", { depth: 3 }];
 
 /** Raises a "warn" setting to "error", keeping "off" and the rule's options. */
 function promote(setting) {

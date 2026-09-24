@@ -1,14 +1,16 @@
 "use strict";
 
-const { isView, isRoute, walk } = require("../lib/shared.cjs");
+const { isView, isRoute } = require("../lib/shared.cjs");
 
 // SKYFE022 — never navigate to a value that arrived in the URL. `navigate({ to: returnTo })` /
 // `window.location.href = next` where the target derives from a route/search param is an open redirect: a
 // crafted link sends the user (and their session-carrying browser) anywhere the attacker chose — the phishing
 // primitive. The fix is an allowlist: map the param to a KNOWN in-app route (`const to = routes[returnTo] ??
 // "/home"`) and navigate to the mapped value, never the raw param. The rule tracks the identifiers bound from
-// useSearchParams (React Router) / useSearch (TanStack Router) and flags any navigation whose argument references
-// one: `router.navigate(…)`, a `useNavigate()` binding, `location.assign/replace(…)`, or `location.href = …`.
+// useSearchParams (React Router) / useSearch or `Route.useSearch()` (TanStack Router) and flags any navigation whose
+// TARGET references one: `router.navigate(…)`, a `useNavigate()` binding, `<Navigate to>`, `location.assign/replace(…)`,
+// or `location.href = …`. Only the target counts (the first argument, or its `to`/`href`); a lookup key or a
+// conditional's test is the allowlist at work, not a leak.
 module.exports = {
   meta: {
     type: "problem",
@@ -29,24 +31,60 @@ module.exports = {
     const PARAM_HOOKS = /^(useSearchParams|useSearch)$/;
     // Identifiers bound from `useNavigate()`, so `navigate({ to: next })` is a navigation too.
     const navigators = new Set();
+    // The URL-supplied name that flows into a navigation TARGET, or null. A lookup key (`ROUTES[next]`) is the
+    // allowlist itself, and a conditional's test only picks between its branches, so neither taints the result.
     const taintedIn = (expr) => {
-      let hit = null;
-      walk(expr, (n) => {
-        if (n.type === "Identifier" && tainted.has(n.name)) {
-          hit = n.name;
-          return true;
-        }
-        return false;
-      });
-      return hit;
+      if (!expr) return null;
+      switch (expr.type) {
+        case "Identifier":
+          return tainted.has(expr.name) ? expr.name : null;
+        case "MemberExpression":
+          return taintedIn(expr.object);
+        case "ConditionalExpression":
+          return taintedIn(expr.consequent) ?? taintedIn(expr.alternate);
+        case "TSAsExpression":
+        case "TSNonNullExpression":
+        case "TSSatisfiesExpression":
+          return taintedIn(expr.expression);
+        default:
+          for (const key of Object.keys(expr)) {
+            if (key === "parent") continue;
+            const children = Array.isArray(expr[key]) ? expr[key] : [expr[key]];
+            for (const child of children) {
+              const hit = child && typeof child.type === "string" ? taintedIn(child) : null;
+              if (hit) return hit;
+            }
+          }
+          return null;
+      }
+    };
+    // Where a navigation goes: the first argument, or its `to` / `href` when it is an options object. The rest of the
+    // call (`search`, `params`, `state`, `replace`) rides along to an in-app route and is not the target: forwarding
+    // `?redirect=` from login to register is how the allowlisted hop survives, not an open redirect.
+    const targetOf = (call) => {
+      const first = call.arguments[0];
+      if (!first || first.type !== "ObjectExpression") return first ?? null;
+      const to = first.properties.find(
+        (p) => p.type === "Property" && !p.computed && p.key.type === "Identifier" && /^(to|href)$/.test(p.key.name),
+      );
+      return to ? to.value : null;
     };
     const report = (node, call, name) =>
       context.report({ node, messageId: "openRedirect", data: { call, name } });
     return {
       VariableDeclarator(node) {
-        if (!node.init || node.init.type !== "CallExpression" || node.init.callee.type !== "Identifier") return;
-        if (node.init.callee.name === "useNavigate" && node.id.type === "Identifier") navigators.add(node.id.name);
-        if (!PARAM_HOOKS.test(node.init.callee.name)) return;
+        if (!node.init || node.init.type !== "CallExpression") return;
+        // `useSearch()` and TanStack's file-route `Route.useSearch()` are the same read.
+        const callee = node.init.callee;
+        const hook =
+          callee.type === "Identifier"
+            ? callee.name
+            : callee.type === "MemberExpression" && !callee.computed && callee.property.type === "Identifier"
+              ? callee.property.name
+              : null;
+        if (!hook) return;
+        if (hook === "useNavigate" && node.id.type === "Identifier") navigators.add(node.id.name);
+        if (!PARAM_HOOKS.test(hook)) return;
         if (node.id.type === "Identifier") tainted.add(node.id.name);
         if (node.id.type === "ObjectPattern")
           for (const p of node.id.properties)
@@ -57,10 +95,8 @@ module.exports = {
       CallExpression(node) {
         const callee = node.callee;
         if (callee.type === "Identifier" && navigators.has(callee.name)) {
-          for (const arg of node.arguments) {
-            const name = taintedIn(arg);
-            if (name) return report(node, `${callee.name}(…)`, name);
-          }
+          const name = taintedIn(targetOf(node));
+          if (name) report(node, `${callee.name}(…)`, name);
           return;
         }
         if (callee.type !== "MemberExpression" || callee.computed) return;
@@ -77,10 +113,16 @@ module.exports = {
               callee.object.property.type === "Identifier" &&
               callee.object.property.name === "location"));
         if (!isRouterNav && !isLocationNav) return;
-        for (const arg of node.arguments) {
-          const name = taintedIn(arg);
-          if (name) return report(node, `${isRouterNav ? "router" : "location"}.${method}(…)`, name);
-        }
+        const name = taintedIn(isRouterNav ? targetOf(node) : node.arguments[0]);
+        if (name) report(node, `${isRouterNav ? "router" : "location"}.${method}(…)`, name);
+      },
+      // The declarative twin: `<Navigate to={search.next} />`.
+      JSXOpeningElement(node) {
+        if (node.name.type !== "JSXIdentifier" || node.name.name !== "Navigate") return;
+        const to = node.attributes.find((a) => a.type === "JSXAttribute" && a.name.name === "to");
+        if (!to || !to.value || to.value.type !== "JSXExpressionContainer") return;
+        const name = taintedIn(to.value.expression);
+        if (name) report(node, "<Navigate to={…}>", name);
       },
       AssignmentExpression(node) {
         // window.location.href = <param> / location.href = <param>

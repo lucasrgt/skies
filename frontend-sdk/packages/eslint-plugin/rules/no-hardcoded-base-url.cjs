@@ -2,6 +2,8 @@
 
 const { isTest } = require("../lib/shared.cjs");
 
+const TOOL_CONFIG = /(^|\/)(playwright|vite|vitest|cypress|webpack|rspack|next|astro)[^/]*\.config\.[cm]?[jt]s$/;
+
 // SKYFE020 — the API base URL comes from CONFIGURATION, never a hardcoded host baked into the client's construction
 // (`axios.create({ baseURL: "http://localhost:8080" })`). A baked literal can't follow dev/prod or a different
 // port, so it silently 404s when the backend runs elsewhere — the pilot's "front says :8080, API runs on :5000"
@@ -23,7 +25,9 @@ module.exports = {
   },
   create(context) {
     const f = context.filename.replace(/\\/g, "/");
-    if (isTest(f)) return {};
+    // A test, or a tool's own config (Playwright's `use.baseURL`, a Vite/Vitest/Cypress server origin), names where the
+    // tool points, not where the app's client does — calibration found every Playwright config tripping the rule.
+    if (isTest(f) || TOOL_CONFIG.test(f)) return {};
     return {
       Property(node) {
         if (node.computed) return;

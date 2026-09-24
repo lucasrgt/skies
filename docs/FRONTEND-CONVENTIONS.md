@@ -18,9 +18,9 @@ It exists to kill one failure: **the AI says "done" and ships a screen rendering
 ## The stack
 
 - **React + TypeScript strict**: `tsc` is part of the doctor; it makes "wired" decidable.
-- **A router with typed routes**: TanStack Router (route tree) or React Router (route types). Route files under
-  `app/` are thin shells rendering exactly one feature's `*.view.tsx`. Navigation is the router's job, data the
-  ViewModel's: two seams, never crossed.
+- **A router with typed routes**: TanStack Router (route tree) or React Router (route types). Route files (under
+  `app/`, TanStack Router's file-based `src/routes/**`, or React Router's `routes/`) are thin shells rendering exactly
+  one feature's `*.view.tsx`. Navigation is the router's job, data the ViewModel's: two seams, never crossed.
 - **TanStack Query** holds all server state: it is the Model. **orval** (target `react-query`) generates typed
   slice-hooks from the API's OpenAPI (`/openapi/v1.json`). **zod** + **react-hook-form** for forms.
 - **Vitest** (jsdom) runs a ViewModel (`renderHook`) and View; Playwright drives the browser when a failure mode
@@ -291,27 +291,30 @@ owns its output, clobbers edits, and hides behavior in the generator. `skies g f
 
 `@skiesjs/eslint-plugin`, run by `npm run lint` and `skies doctor`. With MVVM the policed surface is the ViewModel:
 the View is mock-free by construction and completeness is the compiler. Every rule comes from drift observed in a
-real application. The routing rules (`SKYFE015`–`019`, `022`, `030`) recognize TanStack Router and React Router idioms.
+real application. The routing rules (`SKYFE015`–`019`, `022`, `030`) recognize TanStack Router and React Router idioms
+and route files in any of their layouts: `app/`, `src/routes/**`, `routes/` (the generated `routeTree.gen.ts` and
+tests are not routes). Each rule was calibrated on real apps
+([decision](decisions/skies-5-rule-calibration.md)).
 
 | Rule | Enforces | Why |
 |------|----------|-----|
 | `SKYFE001` | View purity: a `*.view.tsx` imports no data layer (generated hooks, the client, `fetch`/`axios`); type-only contract imports exempt | keeps the View mock-free |
-| `SKYFE002` | Only `*.viewModel.ts` (plus the `lib/session`/`lib/guards` seams) consume generated operations; re-exporting them (`export … from "client.gen"`) elsewhere is flagged; contract types and generated enums stay free | one data path, one policed surface |
+| `SKYFE002` | Only `*.viewModel.ts` (plus the `lib/session`/`lib/guards` seams) consume generated operations; re-exporting them (`export … from "client.gen"`) elsewhere is flagged; contract types and generated enums stay free, and so do tests and spec cases (they exercise the door) | one data path, one policed surface |
 | `SKYFE003` | No import from `**/__mocks__`/`**/fixtures`/MSW outside `*.test.*` | fixtures shipped as data |
 | `SKYFE004` | (planned) A `*.viewModel.ts` imports no JSX/`react-dom` | ViewModel testable without rendering |
 | `SKYFE007` | (planned) A ViewModel exposing server data exposes `loading` + `error` + `empty` | failures need an explicit state |
 | `SKYFE010` | A `*.view.tsx` routes loading/error/empty through `<Resource>`, not raw `isPending`/`isError` | no async state forgotten |
-| `SKYFE011` | Every locale object in a `*.i18n.ts` declares the same keys, compared as flattened paths (`empty.title`) | no string ships untranslated |
+| `SKYFE011` | Every locale catalog in a `*.i18n.ts` declares the same keys, compared as flattened paths (`empty.title`). A catalog is named like a locale: sibling objects (`ptBR`, `en_US`, `en`) or the children of one locale-keyed object (`{ "pt-BR": {…}, "en-US": {…} }`); lookup maps beside them are not compared | no string ships untranslated |
 | `SKYFE013` | A `.mutate()`/`.mutateAsync()` in a ViewModel routes its failure somewhere (`onError`, a read `.isError`, try/catch or `.catch()`, a propagated return); an empty `onError: () => {}` is flagged. With `{ globalSurface: true }` (the SKYFE027 defaults wired), a bare `.mutate()` passes and only the empty handler is flagged | no silent failure, no `onError` theater |
 | `SKYFE014` | User-facing JSX text and copy props (`placeholder`, `label`, `title`, `aria-label`, `alt`…) in a View go through `t()` | feeds the catalog SKYFE011 keeps complete |
 | `SKYFE015` | No `router.navigate`/`useNavigate()` call inside `useEffect`; redirect-on-state is declarative (`return <Navigate … />`). Navigation on a user action stays allowed. Views and routes only | effect redirects flash and loop |
 | `SKYFE016` | A `*.viewModel`/`*.view` never imports the token setter (`setAccessToken`…) or writes a token-ish key to `localStorage`/`sessionStorage`; the write goes through `lib/session`, paired with the `me` reset | a scattered write forgets the reset |
 | `SKYFE017` | A route guard redirects on a `SessionState` (`loading \| authenticated \| anonymous`), never a raw `isAuthenticated` boolean | a boolean reads "loading" as "signed out" |
-| `SKYFE018` | A route reading a required id through a loose `useParams()` (React Router bare, TanStack `{ strict: false }`) guards its absence with a declarative redirect: `requiredParam()` (`if (id.status === "missing") return <Navigate/>`) or `!id`. Strict TanStack reads are exempt | a param-less hit renders a ghost screen |
+| `SKYFE018` | A route reading a required id through a loose `useParams()` (React Router bare, TanStack `{ strict: false }`) guards its absence with a declarative redirect: `requiredParam()` (`if (id.status === "missing") return <Navigate/>`) or `!id`; a `throw` on that test (`throw notFound()`) or `invariant(id)` also guards, `return null` does not. Strict TanStack reads are exempt | a param-less hit renders a ghost screen |
 | `SKYFE019` | No bare `history.back()` (`window.history` or TanStack's `router.history`) or `navigate(-1)`; use `safeBack` / an app `useGoBack` that falls back to a parent | a dead Back button on deep links |
-| `SKYFE020` | The API base URL comes from configuration (`VITE_API_URL`, a relative base, an injected default), never a host in `axios.create({ baseURL: "http://…" })`; the backend pins its dev port in `launchSettings` | front and API ports drift apart |
+| `SKYFE020` | The API base URL comes from configuration (`VITE_API_URL`, a relative base, an injected default), never a host in `axios.create({ baseURL: "http://…" })`; the backend pins its dev port in `launchSettings`. A tool's own config (`playwright.config.ts`'s `use.baseURL`) is not the client | front and API ports drift apart |
 | `SKYFE021` | No `dangerouslySetInnerHTML` outside the audited `lib/html` seam, where any sanitizer lives | raw HTML is the XSS door |
-| `SKYFE022` | Never navigate to a URL-derived value (`navigate({ to: returnTo })`, `location.href = next` off `useSearch`/`useSearchParams`) without mapping it through an allowlist of in-app routes | open redirect, the phishing primitive |
+| `SKYFE022` | Never navigate to a URL-derived value (`navigate({ to: returnTo })`, `<Navigate to={next}>`, `location.href = next` off `useSearch`/`Route.useSearch()`/`useSearchParams`) without mapping it through an allowlist of in-app routes. Only the target counts: a value forwarded in `search`/`params`, a lookup key (`ROUTES[next]`), or a conditional's test is not flagged | open redirect, the phishing primitive |
 | `SKYFE023` | (planned) No orphan placeholder: `// wire later`, `TODO`/`FIXME`, `WAR-*`, or `@ts-expect-error` on a data call | "almost done" is not done |
 | `SKYFE027` | Every production `new QueryClient(...)` wires `mutationCache: new MutationCache({ onSuccess, onError })`: success invalidates and posts the note (`meta.silent` opts out), failure goes through the feedback seam. Tests and `test/`/`test-utils/` build bare clients freely. Scaffolded as `lib/query.ts` | stale lists after a write, no toast |
 | `SKYFE028` | Warning. An `onSuccess` whose whole body is refetch/invalidate calls (inline, named, or `useCallback`-wrapped) duplicates SKYFE027; delete it. Handlers doing more (navigate, reset, hand off an id) are never flagged | a cargo-culted ritual |
@@ -319,7 +322,7 @@ real application. The routing rules (`SKYFE015`–`019`, `022`, `030`) recognize
 | `SKYFE030` | No `as never`/`as any`/`as unknown` on a `router.navigate`/`useNavigate()` argument or a `<Navigate>`/`<Link>` `to`. Pass a typed literal or `{ to, params }`. Config pair: typed routes on | a cast lets a drifted route 404 in production |
 | `SKYFE031` | Warning. In a `*.viewModel.ts`, a one-argument `handleSubmit(onValid)` is flagged; use `submitOrReveal(form.handleSubmit, onValid, { onInvalid })` or pass `onInvalid`. Promotes with SKYFE032 | Save goes mute on a hidden invalid field |
 | `SKYFE032` | Warning. A `<Controller>` whose inline `render` never reads `fieldState` is flagged; pass `error={fieldState.error?.message}`. A non-inline surface must still expose the error explicitly | a field's error has no surface |
-| `SKYFE036` | A `test`/`it`/`describe` call (or member: `test.describe`, `it.each([…])(…)`, `describe.skip`) from `vitest`, `@playwright/test`, `@jest/globals`, `bun:test`, or a global, in a file with no `.specs/` path segment is flagged, once per file. A local function of the same name is not a test. It asks where a test lives, never that one exists | tests as coverage prove nothing |
+| `SKYFE036` | A `test`/`it`/`describe` call (or a declaring member: `test.describe`, `it.each([…])(…)`, `describe.skip`) from `vitest`, `@playwright/test`, `@jest/globals`, `bun:test`, `node:test`, a global, or the app's re-export of an extended runner (called with a title and a body), in a file with no `.specs/` path segment is flagged, once per file. A local function of the same name is not a test, nor is a fixture file (`test.extend`, `test.step`, hooks). It asks where a test lives, never that one exists | tests as coverage prove nothing |
 
 Numbering gaps are removed rules (the latest, `SKYFE009`, kept ViewModels free of React Native imports). Beside
 these, `recommended` carries the [accessibility floor](#accessibility--the-a11y-floor-on-by-default) (third-party
@@ -382,6 +385,8 @@ polices `alt`, `aria-*`, `role`, and `href`.
   `eslint-plugin-jsx-a11y` is a dependency of `@skiesjs/eslint-plugin`, so the app installs nothing. Do not register
   `jsx-a11y` again in the same config: ESLint rejects a plugin name bound to two objects.
 - **`aria-role` checks the DOM only** (`ignoreNonDOM: true`): a design-system `<Text role="…">` prop is not ARIA.
+- **`label-has-associated-control` looks three levels deep** (`depth: 3`) for a label's text, so a card-style option
+  (`<label><input/><span><strong>{name}`) is not reported as text-less.
 - **Relax one rule** in a later config object, scoped as narrowly as the reason, for a real case, never a backlog:
 
   ```js

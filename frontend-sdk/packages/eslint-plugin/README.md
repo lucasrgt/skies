@@ -13,7 +13,7 @@ still builds; you only lose the warnings.
 | `data-door` | SKYFE002 | The generated client is imported only by a `*.viewModel.ts` or the auth/routing infra (`lib/session`, `lib/guards`); re-exporting it elsewhere is flagged too. |
 | `no-mock` | SKYFE003 | No mock/fixture/MSW import in production code (only under `*.test.*`). |
 | `state-completeness` | SKYFE010 | A View routes loading/error/empty through `<Resource>` — no raw `isPending`/`isError`/… |
-| `i18n-completeness` | SKYFE011 | Every locale in a `*.i18n.ts` declares the same (flattened) keys. |
+| `i18n-completeness` | SKYFE011 | Every locale catalog in a `*.i18n.ts` (locale-named siblings, or one locale-keyed object) declares the same (flattened) keys. |
 | `mutation-error-handled` | SKYFE013 | A ViewModel mutation surfaces its failure (`onError`, a read `.isError`, or a caught/propagated `mutateAsync`); an empty `onError` is flagged. `{ globalSurface: true }` trusts the QueryClient defaults. |
 | `no-hardcoded-copy` | SKYFE014 | No hardcoded user-facing text in a View — JSX text and copy props go through `t()`. |
 | `no-router-replace-in-effect` | SKYFE015 | Redirect declaratively (`<Navigate>`), never `router.navigate`/`navigate()` inside `useEffect`. |
@@ -32,7 +32,8 @@ still builds; you only lose the warnings.
 | `controller-field-state` | SKYFE032 | A `<Controller>` render reads and surfaces `fieldState`. |
 | `tests-live-in-specs` | SKYFE036 | A test (`test`/`it`/`describe` from a runner) lives under `.specs/<id>-<slug>/e2e/`. |
 
-SKYFE015–019 recognize TanStack Router and React Router idioms; they police a shape, not a router runtime. The
+SKYFE015–019 and 022 recognize TanStack Router and React Router idioms; they police a shape, not a router runtime.
+Route files are those under `app/`, TanStack Router's file-based `src/routes/**`, or React Router's `routes/`. The
 `SessionState`, `safeBack` and `submitOrReveal` helpers they steer toward live in `@skiesjs/react`.
 
 ## Layout
