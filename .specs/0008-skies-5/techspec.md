@@ -277,3 +277,11 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   (`viewmodel-platform-agnostic`, que só mantinha ViewModels livres de react-native/expo) sai do plugin e o
   `migrate` remove a configuração dela; as regras de roteamento reconhecem só TanStack Router e React Router; o
   session seam do `@skiesjs/react` perde o `RefreshTokenStore` (na web o refresh é cookie httpOnly).
+- **Acessibilidade vira piso ligado por padrão**, no espírito do piso CA* de segurança (só regras estáticas, nunca
+  exige teste; §4.5 removeu o A11Y-*obrigatório* de prova, não a leitura estática). Web: o `recommended` do
+  `@skiesjs/eslint-plugin` carrega o conjunto recomendado do `eslint-plugin-jsx-a11y` em error (dependência do
+  plugin, `aria-role` com `ignoreNonDOM`); a app relaxa uma regra explicitamente num objeto de config posterior, e o
+  `migrate` não mexe em ids `jsx-a11y/*`. Flutter: SKYFL037 (`IconButton` sem `tooltip`) e SKYFL038 (imagem sem
+  `semanticLabel` nem `excludeFromSemantics`) em error; SKYFL039 (alvo de toque só com ícone, sem rótulo) e SKYFL040
+  (campo de texto sem `labelText`/`label`/`hintText`) em warning. Sem gêmeo SKYFE; calibradas nos pacotes Flutter
+  do hostpoint sem falso positivo visível.
