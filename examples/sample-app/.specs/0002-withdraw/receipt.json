@@ -23,7 +23,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
+    "commit": "3f4dba25d6c32f829b7c2fe4963b5b5e64a7a30a",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -41,18 +41,54 @@
     "report": "evidence/green.trx"
   },
   "footprint": {
-    "backend/Sample.Api/AppDb.cs": "blake3:ab9df24eef15dbe04005af78ca07d96492a5e6c5de47cf1f6e59dedb9b1d2b50",
-    "backend/Sample.Api/BuildingBlocks/Money.cs": "blake3:746bb641ce503821d81ffc6f84bf498b75c9d591e519afb9247ec2618a992823",
-    "backend/Sample.Api/Modules/Modules.cs": "blake3:58702aa394e61cf58229aa208af36cfe6d7beb5b40b88b9126a3dc3075ca94e8",
-    "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": "blake3:c70ccfc1ea1d031a7104cdd925856c01095e4acc53a037b8ec8e5fea233837cd",
-    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": "blake3:f8ac77a4260eea442ea7db39068d3f91367f395be382d2b82531f2f404dba747",
-    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": "blake3:f9444e82971a6dbed78ead832ed14b8d953bb880ef18718dadd795dbb37b7da9",
-    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": "blake3:d0c1902518b8c886fb8e4aa23d916679c35ae5ff044ed0cb7c6887e84fde86e5",
-    "backend/Sample.Api/Modules/Wallets/Wallet.cs": "blake3:525682962aa385e8d24d4811c93aebc1464f304670f40cc0fad2bf13cfac09aa",
-    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": "blake3:3ca71c2c3906dffa3d75b7b8e50281f3953c5b30b7c826a4ea98a049cda4e87a",
-    "backend/Sample.Api/Platform.Idempotency.cs": "blake3:0d6785d4534506b9d17d3241a53f0b9aaac333440aa4be639504e06b3fb4b99a",
-    "backend/Sample.Api/Platform.cs": "blake3:1f8b78ea166f048d8e9d58ea28d0548f9f0a7910fbff7491ab530e4e9d35a0d0",
-    "backend/Sample.Api/Program.cs": "blake3:8e8b672056e6d89b7567e99796aa2489c4b09abaa92dee49bc19ff5030493868"
+    "backend/Sample.Api/AppDb.cs": {
+      "lines": "15,17,23-26",
+      "hash": "blake3:620fcd12b532415bfd0d08d8235a7a8b343a8916b908dcc9a346a2488178f72c"
+    },
+    "backend/Sample.Api/BuildingBlocks/Money.cs": {
+      "lines": "18,20,22,26-28,30,37,39",
+      "hash": "blake3:403487d451d544d6114d777beb5e5281f9e3bb76eb2f603d8167d16da84f75c0"
+    },
+    "backend/Sample.Api/Modules/Modules.cs": {
+      "lines": "12-15,18-20",
+      "hash": "blake3:4c43d71566ba0ec6ec7be446d6a1075b36ed1194de33509308d6dd2f3d5b094f"
+    },
+    "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": {
+      "lines": "17,19,23,26-30,35,38-39,44-45,48,51-52,55-58",
+      "hash": "blake3:d0376c76697c13e8a24e0eeda3f5ab04ff49a27feaa01ccbb296913e118bc2f6"
+    },
+    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": {
+      "lines": "9,11,14-19,22-25",
+      "hash": "blake3:eaecaf293454f2e8ba29a96de91715d1d59a36926f553d2c74cfcdd57a32b81a"
+    },
+    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": {
+      "lines": "31,33",
+      "hash": "blake3:351a9697c54c83b4920259b26158ed7284480a7493f5775dde79d2018a9e8f88"
+    },
+    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
+      "lines": "17,19,23-29,33-34,36-38,42-44,46,49-50,52-53,56-59",
+      "hash": "blake3:ed849eb93a4a1ff59bcc5f0fb5ac6f2cbe1278de915642bdf022452147de23c3"
+    },
+    "backend/Sample.Api/Modules/Wallets/Wallet.cs": {
+      "lines": "14,17,21,33,41,48-51,59-63,65-67,73-77,79-80",
+      "hash": "blake3:cd48b5a5a9288b92dfda706ee161ecc5abb6663fbe4c6814b6d5a6e98f6a3d69"
+    },
+    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
+      "lines": "17,23-24,26-28,31,34,36-40",
+      "hash": "blake3:4ab9097b0a9c69bd1392e4cf11c074f648ef8c71b7d3bf577c558aa33b5fbb16"
+    },
+    "backend/Sample.Api/Platform.Idempotency.cs": {
+      "lines": "22,25,28,35-38",
+      "hash": "blake3:05bdb336051092fd4666dd1d0093e2182857ad4e337e8a1b077530073ce359c1"
+    },
+    "backend/Sample.Api/Platform.cs": {
+      "lines": "15-19",
+      "hash": "blake3:20632c396a9bff0e900ddf527810bc1f5a4f36b9f667f1812b0bcee8048a8253"
+    },
+    "backend/Sample.Api/Program.cs": {
+      "lines": "6-9,11,13-14,19,21",
+      "hash": "blake3:d76e1d7f4e22d2be5155d469fcbeeb9b6890b732720982a9a022b56d41296d20"
+    }
   },
   "footprint_source": "coverage",
   "footprint_changed": [
@@ -63,8 +99,8 @@
     ".specs/0002-withdraw/spec.md": "blake3:774e0b5572151877ecbb8fc8307ff4b8804c82f1349d7ab3a9a652cb45288225"
   },
   "evidence": {
-    "evidence/avp-FM-5.json": "blake3:1432e18203b8f42d4595cb1b811bf6cd028d3d0efd3c09e642b8b1e62cb48ccb",
-    "evidence/green.trx": "blake3:725c59b5e1d6ab0727b23c33daab980b686017f212bc59696870d158ad7328f3",
+    "evidence/avp-FM-5.json": "blake3:7d987681d50d538d55a5687580bbd7f6f8ff0e7e5426a5305bd391593d4ee2ae",
+    "evidence/green.trx": "blake3:9b80cc3e5a468e5ae9ca611009302c6baf6c7db99883f7084fd31319dce29223",
     "evidence/red.avp-FM-5.json": "blake3:6b544bc741cb6a161d44e7c74c9be016f0a928eb118098f8a9f8d7850e8bc67c",
     "evidence/red.trx": "blake3:5d1c3da029c30fcc189c7ef000be7cad72bddc55bd6da5a550cf7ab6e2a0240a"
   }

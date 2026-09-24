@@ -1,44 +1,44 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TestRun id="00000000-0000-0000-0000-000000000001" name="{run}" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2026-09-24T04:18:20.1153024-03:00" queuing="2026-09-24T04:18:20.1153024-03:00" start="2026-09-24T04:18:18.5220253-03:00" finish="2026-09-24T04:18:20.1201786-03:00" />
+  <Times creation="2026-09-24T04:27:32.9962836-03:00" queuing="2026-09-24T04:27:32.9962836-03:00" start="2026-09-24T04:27:30.5934510-03:00" finish="2026-09-24T04:27:33.0029497-03:00" />
   <TestSettings name="default" id="00000000-0000-0000-0000-000000000002">
     <Deployment runDeploymentRoot="{run}" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="b7f02797-4f97-a4a6-e52a-c47bd922f3fe" testName="FM-2: a balance read for a missing wallet answers 404" computerName="{machine}" duration="00:00:00.0394045" startTime="2026-09-24T04:18:19.7619125-03:00" endTime="2026-09-24T04:18:19.7940345-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="1d64df9c-9bca-97b1-5588-6cfd9667c3d6" testName="FM-4: hostile paging input is clamped server-side" computerName="{machine}" duration="00:00:00.0128877" startTime="2026-09-24T04:18:19.8103320-03:00" endTime="2026-09-24T04:18:19.8230534-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="ce9d2cae-80ac-7577-6d63-65b2cfc35262" testName="FM-5: consecutive pages neither overlap nor skip" computerName="{machine}" duration="00:00:00.0267552" startTime="2026-09-24T04:18:19.8235114-03:00" endTime="2026-09-24T04:18:19.8500698-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="69a0ef7f-8e1b-f74c-dc04-e15c39a6b1a5" testName="FM-1: the balance read returns the stored balance" computerName="{machine}" duration="00:00:00.0156584" startTime="2026-09-24T04:18:19.7949690-03:00" endTime="2026-09-24T04:18:19.8099357-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000007" testId="7de1929c-d6ed-aea6-fa9e-65cd9c86f859" testName="FM-3: a page carries its items and the count of the whole set" computerName="{machine}" duration="00:00:00.4499450" startTime="2026-09-24T04:18:19.3076126-03:00" endTime="2026-09-24T04:18:19.7534465-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000007" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="7de1929c-d6ed-aea6-fa9e-65cd9c86f859" testName="FM-3: a page carries its items and the count of the whole set" computerName="{machine}" duration="00:00:00.5850428" startTime="2026-09-24T04:27:31.9561251-03:00" endTime="2026-09-24T04:27:32.5278926-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="b7f02797-4f97-a4a6-e52a-c47bd922f3fe" testName="FM-2: a balance read for a missing wallet answers 404" computerName="{machine}" duration="00:00:00.0538503" startTime="2026-09-24T04:27:32.5384373-03:00" endTime="2026-09-24T04:27:32.5828558-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="1d64df9c-9bca-97b1-5588-6cfd9667c3d6" testName="FM-4: hostile paging input is clamped server-side" computerName="{machine}" duration="00:00:00.0187267" startTime="2026-09-24T04:27:32.6036674-03:00" endTime="2026-09-24T04:27:32.6220475-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="ce9d2cae-80ac-7577-6d63-65b2cfc35262" testName="FM-5: consecutive pages neither overlap nor skip" computerName="{machine}" duration="00:00:00.0357878" startTime="2026-09-24T04:27:32.6226089-03:00" endTime="2026-09-24T04:27:32.6581514-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000007" testId="69a0ef7f-8e1b-f74c-dc04-e15c39a6b1a5" testName="FM-1: the balance read returns the stored balance" computerName="{machine}" duration="00:00:00.0199161" startTime="2026-09-24T04:27:32.5840316-03:00" endTime="2026-09-24T04:27:32.6030501-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000007" />
   </Results>
   <TestDefinitions>
     <UnitTest name="FM-5: consecutive pages neither overlap nor skip" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="ce9d2cae-80ac-7577-6d63-65b2cfc35262">
-      <Execution id="00000000-0000-0000-0000-000000000005" />
+      <Execution id="00000000-0000-0000-0000-000000000006" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Pages_partition_the_set" />
     </UnitTest>
     <UnitTest name="FM-1: the balance read returns the stored balance" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="69a0ef7f-8e1b-f74c-dc04-e15c39a6b1a5">
-      <Execution id="00000000-0000-0000-0000-000000000006" />
+      <Execution id="00000000-0000-0000-0000-000000000007" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Balance_reflects_the_store" />
     </UnitTest>
     <UnitTest name="FM-4: hostile paging input is clamped server-side" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="1d64df9c-9bca-97b1-5588-6cfd9667c3d6">
-      <Execution id="00000000-0000-0000-0000-000000000004" />
+      <Execution id="00000000-0000-0000-0000-000000000005" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Hostile_paging_is_clamped" />
     </UnitTest>
     <UnitTest name="FM-3: a page carries its items and the count of the whole set" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="7de1929c-d6ed-aea6-fa9e-65cd9c86f859">
-      <Execution id="00000000-0000-0000-0000-000000000007" />
+      <Execution id="00000000-0000-0000-0000-000000000003" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Page_carries_items_and_total" />
     </UnitTest>
     <UnitTest name="FM-2: a balance read for a missing wallet answers 404" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b7f02797-4f97-a4a6-e52a-c47bd922f3fe">
-      <Execution id="00000000-0000-0000-0000-000000000003" />
+      <Execution id="00000000-0000-0000-0000-000000000004" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Missing_wallet_is_not_found" />
     </UnitTest>
   </TestDefinitions>
   <TestEntries>
-    <TestEntry testId="b7f02797-4f97-a4a6-e52a-c47bd922f3fe" executionId="00000000-0000-0000-0000-000000000003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="1d64df9c-9bca-97b1-5588-6cfd9667c3d6" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="ce9d2cae-80ac-7577-6d63-65b2cfc35262" executionId="00000000-0000-0000-0000-000000000005" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="69a0ef7f-8e1b-f74c-dc04-e15c39a6b1a5" executionId="00000000-0000-0000-0000-000000000006" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="7de1929c-d6ed-aea6-fa9e-65cd9c86f859" executionId="00000000-0000-0000-0000-000000000007" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7de1929c-d6ed-aea6-fa9e-65cd9c86f859" executionId="00000000-0000-0000-0000-000000000003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b7f02797-4f97-a4a6-e52a-c47bd922f3fe" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1d64df9c-9bca-97b1-5588-6cfd9667c3d6" executionId="00000000-0000-0000-0000-000000000005" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ce9d2cae-80ac-7577-6d63-65b2cfc35262" executionId="00000000-0000-0000-0000-000000000006" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="69a0ef7f-8e1b-f74c-dc04-e15c39a6b1a5" executionId="00000000-0000-0000-0000-000000000007" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
     <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
@@ -48,9 +48,9 @@
     <Counters total="5" executed="5" passed="5" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
     <Output>
       <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
-[xUnit.net 00:00:00.04]   Discovering: Sample.Tests
-[xUnit.net 00:00:00.06]   Discovered:  Sample.Tests
-[xUnit.net 00:00:00.07]   Starting:    Sample.Tests
+[xUnit.net 00:00:00.07]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.11]   Discovered:  Sample.Tests
+[xUnit.net 00:00:00.13]   Starting:    Sample.Tests
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
@@ -109,7 +109,7 @@ info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 6 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
-[xUnit.net 00:00:00.64]   Finished:    Sample.Tests
+[xUnit.net 00:00:00.87]   Finished:    Sample.Tests
 </StdOut>
     </Output>
   </ResultSummary>

@@ -16,7 +16,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
+    "commit": "3f4dba25d6c32f829b7c2fe4963b5b5e64a7a30a",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -27,7 +27,10 @@
     "report": "evidence/green.trx"
   },
   "footprint": {
-    "backend/Sample.Api/BuildingBlocks/Money.cs": "blake3:746bb641ce503821d81ffc6f84bf498b75c9d591e519afb9247ec2618a992823"
+    "backend/Sample.Api/BuildingBlocks/Money.cs": {
+      "lines": "18,20,22,26-28,30",
+      "hash": "blake3:681bab6bfd9e129b10a978fa13a12a4cca3da66e3e8b6c79c3a22df19f576a22"
+    }
   },
   "footprint_source": "coverage",
   "footprint_changed": [
@@ -38,7 +41,7 @@
     ".specs/0004-money/spec.md": "blake3:16359828112304b5c9e9411806ed9dce2245955b89f5af1026a625ff2f42a7be"
   },
   "evidence": {
-    "evidence/green.trx": "blake3:10d9603f22d2b6f31c5b2ffc6fae3b20d85b01096603414cf80880bf17bd868f",
+    "evidence/green.trx": "blake3:444ce3d6720dc9b264b3f77afe0673d5d5b0103117943ecc9e42d5c95f125f8c",
     "evidence/red.trx": "blake3:a7ed71fdb70558dc4c2b719a56dc7ed3de2bb0be4b950ee1ca6f06f12ff5b00b"
   }
 }
