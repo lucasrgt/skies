@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 
@@ -48,23 +49,30 @@ impl std::fmt::Display for NoReport {
 
 impl std::error::Error for NoReport {}
 
-/// A finished run: the parsed report and the file it came from, which the caller copies into evidence verbatim, and
-/// where the run's coverage landed, if it wrote any.
+/// A finished run: the parsed report and the file it came from, which the caller copies into evidence verbatim,
+/// where the run's coverage landed, if it wrote any, and the runner's captured output and exit status.
 pub struct Run {
     pub report: Report,
     pub file: PathBuf,
     pub coverage: Location,
+    pub log: PathBuf,
+    /// Whether the command exited 0. Never decides a failure mode (the report does), but a red run whose report
+    /// names no failure mode and whose command failed did not get far enough to run the cases.
+    pub success: bool,
+    pub elapsed: Duration,
 }
 
-/// Remembers which setups already ran, so `setup` runs once per runner and checkout in a single invocation even
-/// when `verify` exercises many specs.
+/// Remembers which setups and builds already ran, so each runs once per runner and checkout in a single
+/// invocation even when `verify` exercises many specs.
 #[derive(Default)]
 pub struct Session {
     done: BTreeSet<(String, PathBuf)>,
+    built: BTreeSet<(String, PathBuf)>,
 }
 
 impl Session {
     pub fn run(&mut self, job: &Job) -> Result<Run> {
+        let started = Instant::now();
         let values = placeholders(job)?;
         let mut env = automatic_env(&values);
         env.extend(
@@ -110,7 +118,28 @@ impl Session {
         std::fs::create_dir_all(job.evidence)?;
 
         let log = job.scratch.join(format!("{}.log", job.label));
-        shell(&expand(&job.runner.command, &values), job.root, &env, &log)?;
+        if let Some(build) = &job.runner.build
+            && self.built.insert((job.runner_name.to_string(), job.root.to_path_buf()))
+        {
+            let build_log = job.scratch.join(format!("{}-build.log", job.label));
+            if !shell(&expand(build, &values), job.root, &env, &build_log)? {
+                // Unbuilt, so the next spec on this checkout builds again rather than running stale binaries.
+                self.built
+                    .remove(&(job.runner_name.to_string(), job.root.to_path_buf()));
+                std::fs::copy(&build_log, &log)?;
+                return Err(NoReport {
+                    message: format!(
+                        "runner '{}' build failed on {}. Last output:\n{}",
+                        job.runner_name,
+                        job.label,
+                        tail(&log)
+                    ),
+                    log,
+                }
+                .into());
+            }
+        }
+        let success = shell(&expand(&job.runner.command, &values), job.root, &env, &log)?;
         let Ok(text) = std::fs::read_to_string(&report_path) else {
             return Err(NoReport {
                 message: format!(
@@ -130,6 +159,9 @@ impl Session {
             report,
             file: report_path,
             coverage,
+            log,
+            success,
+            elapsed: started.elapsed(),
         })
     }
 }
@@ -223,8 +255,13 @@ fn shell(command: &str, cwd: &Path, env: &BTreeMap<String, String>, log: &Path) 
     Ok(status.success())
 }
 
+/// `12.3 s`, for the line that reports a run.
+pub fn seconds(elapsed: Duration) -> String {
+    format!("{:.1} s", elapsed.as_secs_f64())
+}
+
 /// The last lines of a log, enough to see a build error without flooding the terminal.
-fn tail(log: &Path) -> String {
+pub fn tail(log: &Path) -> String {
     const LINES: usize = 30;
     let text = std::fs::read_to_string(log).unwrap_or_default();
     let lines: Vec<&str> = text.lines().collect();

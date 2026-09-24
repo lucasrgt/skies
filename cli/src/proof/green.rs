@@ -1,19 +1,20 @@
 //! Green: running a spec on the working tree, and publishing what it proved into the spec's evidence/.
 //!
-//! Shared by `record` (after red) and `verify` (green alone). A failure mode passes green when every case naming it
-//! passes and, if spec.md tags it `[avp: …]`, the Assay verdict its case saved reports every tagged criterion as
-//! passing. Evidence is staged outside the spec folder until the run is known to be good, so a failing run never
-//! overwrites the evidence of the last good one.
+//! Shared by `record` (after red), `verify` (green alone), and `run` (green, judged and printed, nothing kept). A
+//! failure mode passes green when every case naming it passes and, if spec.md tags it `[avp: …]`, the Assay verdict
+//! its case saved reports every tagged criterion as passing. Evidence is staged outside the spec folder until the
+//! run is known to be good, so a failing run never overwrites the evidence of the last good one.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 
 use super::hash::{self, Hashes};
 use super::receipt::{Entry, GreenCase};
-use super::report::{self, FmId};
-use super::runner::{Job, Session};
+use super::report::{self, FmId, Inconsistency};
+use super::runner::{Job, Run, Session, tail};
 use super::scrub::Scrub;
 use super::spec::{EVIDENCE_DIR, SpecDir, SpecDoc};
 use super::{avp, coverage};
@@ -33,23 +34,49 @@ pub struct ProvenGreen {
     /// The coverage location as a project path when the runner writes it inside the project, so the report itself
     /// never counts as a changed file.
     pub coverage_artifact: Option<String>,
+    pub elapsed: Duration,
 }
 
 pub enum GreenOutcome {
     Proven(ProvenGreen),
-    /// The run finished but does not prove the spec; the message says why.
+    /// The run finished but does not prove the spec; the message says why, with the run's last output.
     Refuted(String),
 }
 
-/// Runs the spec on the working tree and decides whether it proves every failure mode.
-pub fn run_green(
+/// How one failure mode fared in a run.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Mode {
+    Pass,
+    /// A case naming it failed or was skipped.
+    CasesFailed,
+    /// Its cases passed but its Assay verdict does not prove it; the message says why.
+    Unproven(String),
+}
+
+/// A spec run on the working tree, judged mode by mode but not yet accepted.
+pub struct Checked {
+    pub run: Run,
+    pub staged: PathBuf,
+    /// Every failure mode's result, or why the run's cases and spec.md do not agree at all.
+    pub modes: Result<BTreeMap<FmId, Mode>, Inconsistency>,
+}
+
+impl Checked {
+    /// The runner's last lines of output, indented, for a message.
+    pub fn output(&self) -> String {
+        format!("last output:\n{}", tail(&self.run.log))
+    }
+}
+
+/// Runs the spec on the working tree and judges each failure mode.
+pub fn check(
     root: &Path,
     spec: &SpecDir,
     doc: &SpecDoc,
     project: &Project,
     session: &mut Session,
     scratch: &Path,
-) -> Result<GreenOutcome> {
+) -> Result<Checked> {
     let runner_name = doc.runner(spec)?;
     let staged = scratch.join(format!("{}-evidence", spec.name));
     let run = session.run(&Job {
@@ -61,26 +88,47 @@ pub fn run_green(
         scratch,
         label: "green",
     })?;
-    let evaluation = match report::evaluate(&doc.failure_modes, &run.report.cases) {
-        Ok(evaluation) => evaluation,
+    let modes = report::evaluate(&doc.failure_modes, &run.report.cases).map(|evaluation| {
+        evaluation
+            .passed
+            .iter()
+            .map(|(id, passed)| {
+                // A verdict is only worth reading for a mode whose cases passed; a failing case already says enough.
+                let mode = match (*passed, avp::check(doc, *id, &staged)) {
+                    (false, _) => Mode::CasesFailed,
+                    (true, Ok(())) => Mode::Pass,
+                    (true, Err(why)) => Mode::Unproven(why),
+                };
+                (*id, mode)
+            })
+            .collect()
+    });
+    Ok(Checked { run, staged, modes })
+}
+
+/// Runs the spec on the working tree and decides whether it proves every failure mode.
+pub fn run_green(
+    root: &Path,
+    spec: &SpecDir,
+    doc: &SpecDoc,
+    project: &Project,
+    session: &mut Session,
+    scratch: &Path,
+) -> Result<GreenOutcome> {
+    let checked = check(root, spec, doc, project, session, scratch)?;
+    let modes = match &checked.modes {
+        Ok(modes) => modes,
         Err(problems) => {
             return Ok(GreenOutcome::Refuted(format!(
-                "the green run does not match spec.md:\n{problems}"
+                "the green run does not match spec.md:\n{problems}\n{}",
+                checked.output()
             )));
         }
     };
-    let failing: Vec<FmId> = evaluation
-        .passed
+    let failing: Vec<FmId> = modes
         .iter()
-        .filter(|(_, passed)| !**passed)
+        .filter(|(_, mode)| **mode == Mode::CasesFailed)
         .map(|(id, _)| *id)
-        .collect();
-    // A verdict is only worth reading for a mode whose cases passed; a failing case already says enough.
-    let unproven: Vec<String> = evaluation
-        .passed
-        .iter()
-        .filter(|(_, passed)| **passed)
-        .filter_map(|(id, _)| avp::check(doc, *id, &staged).err())
         .collect();
     let mut problems = Vec::new();
     if !failing.is_empty() {
@@ -89,18 +137,25 @@ pub fn run_green(
             join(&failing)
         ));
     }
-    problems.extend(unproven);
+    problems.extend(modes.values().filter_map(|mode| match mode {
+        Mode::Unproven(why) => Some(why.clone()),
+        _ => None,
+    }));
     if !problems.is_empty() {
+        if !failing.is_empty() {
+            problems.push(checked.output());
+        }
         return Ok(GreenOutcome::Refuted(problems.join("\n")));
     }
-    let cases = evaluation
-        .passed
+    let cases = modes
         .keys()
         .map(|id| {
             let verdict = format!("{EVIDENCE_DIR}/{}", avp::verdict_file(*id));
             (*id, Entry::new(GreenCase::Pass, doc.avp(*id), Some(verdict)))
         })
         .collect();
+    let Checked { run, staged, .. } = checked;
+    let runner_name = doc.runner(spec)?;
     // An unreadable coverage file costs the footprint its precision, never the proof.
     let covered = coverage::collect(&run.coverage, runner_name, root, &[root])
         .unwrap_or_else(|error| coverage::Outcome::Missing(format!("could not read coverage: {error:#}")));
@@ -116,6 +171,7 @@ pub fn run_green(
         staged,
         coverage: covered,
         coverage_artifact,
+        elapsed: run.elapsed,
     }))
 }
 

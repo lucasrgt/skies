@@ -1,10 +1,11 @@
-//! Specs and receipts: `skies spec new`, `skies proof record|status|verify|impact`.
+//! Specs and receipts: `skies spec new`, `skies proof record|run|status|verify|impact`.
 //!
 //! A feature is delivered with a receipt in its spec folder: its failure modes failed on a revision without the
 //! feature (red) and pass on the working tree (green). The receipt is a record, not a turnstile; nothing here runs
 //! in a hook or blocks anything by default.
 
 mod avp;
+mod base;
 mod coverage;
 mod ctx;
 mod footprint;
@@ -15,7 +16,9 @@ mod impact;
 mod lines;
 mod receipt;
 mod record;
+mod red;
 mod report;
+mod run;
 mod runner;
 mod scrub;
 mod spec;
@@ -28,6 +31,7 @@ use receipt::Freshness;
 
 pub use impact::impact;
 pub use record::{Options as RecordOptions, record};
+pub use run::run;
 pub use verify::verify;
 
 pub fn spec_new(slug: &str, runner: Option<&str>) -> Result<u8> {
@@ -89,7 +93,7 @@ pub fn status() -> Result<u8> {
     let mut unreadable = false;
     for (spec, receipt) in specs.iter().zip(receipts) {
         let (line, readable) =
-            describe(receipt.and_then(|receipt| receipt::freshness_with(root, spec, receipt, &known)));
+            describe(receipt.and_then(|receipt| receipt::freshness_with(&project, spec, receipt, &known)));
         unreadable |= !readable;
         println!("{:<width$}  {line}", spec.name);
     }
@@ -97,13 +101,13 @@ pub fn status() -> Result<u8> {
 }
 
 /// A receipt's standing in one phrase, and whether it could be read at all.
-fn freshness_line(root: &std::path::Path, spec: &spec::SpecDir) -> (String, bool) {
-    describe(receipt::freshness(root, spec))
+fn freshness_line(project: &Project, spec: &spec::SpecDir) -> (String, bool) {
+    describe(receipt::freshness(project, spec))
 }
 
 fn describe(freshness: Result<Freshness>) -> (String, bool) {
     match freshness {
-        Ok(Freshness::Missing) => ("no receipt".to_string(), true),
+        Ok(Freshness::Missing) => ("unrecorded (no receipt)".to_string(), true),
         Ok(Freshness::Current) => ("current".to_string(), true),
         Ok(Freshness::Stale(changed)) => (changed_line("stale", "changed", &changed), true),
         Ok(Freshness::Tampered(edited)) => (changed_line("tampered", "edited since recording", &edited), true),

@@ -130,15 +130,24 @@ fn edited_evidence_is_tampered_not_stale() {
         "tampering is reported ahead of staleness"
     );
 
-    // Verify re-proves green and rewrites its evidence, so the receipt is whole again.
-    let verified = repo.skies(&["proof", "verify", "1"]);
+    // A plain verify does not paper over tampering; `--refresh` re-proves green and rewrites its evidence, so the
+    // receipt is whole again.
+    let refused = repo.skies(&["proof", "verify", "1"]);
+    assert_eq!(refused.status.code(), Some(1), "{}", text(&refused));
+    assert!(
+        text(&refused).contains("evidence edited since recording"),
+        "{}",
+        text(&refused)
+    );
+    assert!(text(&refused).contains("--refresh"), "{}", text(&refused));
+    let verified = repo.skies(&["proof", "verify", "1", "--refresh"]);
     assert!(verified.status.success(), "{}", text(&verified));
     assert_eq!(status(&repo), "0001-toggle  current\n");
 
     // Red is never rerun, so an edit to red evidence survives verify: its recorded hash is kept.
     repo.write(&format!("{SPEC}/evidence/red.xml"), "<testsuites/>");
     repo.write(&format!("{SPEC}/evidence/extra.png"), "planted");
-    let verified = repo.skies(&["proof", "verify", "1"]);
+    let verified = repo.skies(&["proof", "verify", "1", "--refresh"]);
     assert!(verified.status.success(), "{}", text(&verified));
     assert_eq!(
         status(&repo),

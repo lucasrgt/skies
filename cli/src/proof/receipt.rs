@@ -9,11 +9,12 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-use super::footprint::Source;
+use super::footprint::{self, Source};
 use super::hash::{self, Hashes};
 use super::lines::{self, Prints, Snapshot};
 use super::report::FmId;
 use super::spec::{RECEIPT_FILE, SpecDir, SpecDoc};
+use crate::manifest::Project;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Receipt {
@@ -167,15 +168,20 @@ pub enum Freshness {
 }
 
 /// Rehashes the evidence, the recorded footprint, and today's inputs (spec.md, e2e files, lockfiles, and anything new
-/// that matches `touches`). Filesystem only, so it stays in milliseconds.
-pub fn freshness(root: &Path, spec: &SpecDir) -> Result<Freshness> {
-    freshness_with(root, spec, Receipt::load(spec)?, &Snapshot::default())
+/// that matches `touches` within the runner's scope). Filesystem only, so it stays in milliseconds.
+pub fn freshness(project: &Project, spec: &SpecDir) -> Result<Freshness> {
+    freshness_with(project, spec, Receipt::load(spec)?, &Snapshot::default())
 }
 
 /// [`freshness`] for an already loaded receipt, reading today's files from `known` where it has them. Coverage
 /// footprints of sibling specs share most of their files (the host wiring, the entities), so `status` reads each
 /// file once.
-pub fn freshness_with(root: &Path, spec: &SpecDir, receipt: Option<Receipt>, known: &Snapshot) -> Result<Freshness> {
+pub fn freshness_with(
+    project: &Project,
+    spec: &SpecDir,
+    receipt: Option<Receipt>,
+    known: &Snapshot,
+) -> Result<Freshness> {
     let Some(receipt) = receipt else {
         return Ok(Freshness::Missing);
     };
@@ -185,8 +191,9 @@ pub fn freshness_with(root: &Path, spec: &SpecDir, receipt: Option<Receipt>, kno
             return Ok(Freshness::Tampered(tampered));
         }
     }
+    let root = project.root.as_path();
     let doc = SpecDoc::load(spec)?;
-    let touched = hash::touched_paths(root, &doc.touches)?;
+    let touched = footprint::touched(root, &doc, footprint::runner_of(project, &doc))?;
     let inputs = hash::input_paths(root, spec)?;
 
     let mut changed = footprint_changed(root, &receipt.footprint, &touched, known);

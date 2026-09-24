@@ -100,10 +100,20 @@ fn verify_refreshes_the_executed_files_and_keeps_the_changed_ones() {
     // The code evolves: green no longer runs shared.txt nor feature.txt itself, but a new helper instead.
     repo.write("src/helper.txt", "helper\n");
     repo.write("covers.txt", "src/helper.txt\n");
-    let verified = repo.skies(&["proof", "verify", "1"]);
+    // The receipt is still current (nothing it pins changed), so a plain verify leaves it be and --refresh
+    // re-anchors it.
+    let unchanged = repo.skies(&["proof", "verify", "1"]);
+    assert!(unchanged.status.success(), "{}", text(&unchanged));
+    assert!(
+        text(&unchanged).contains("verified (current, unchanged)"),
+        "{}",
+        text(&unchanged)
+    );
+    let verified = repo.skies(&["proof", "verify", "1", "--refresh"]);
     assert!(verified.status.success(), "{}", text(&verified));
     assert!(
-        text(&verified).contains("verified  2/2 FMs pass (footprint 2 files, coverage, 1 by executed lines)"),
+        text(&verified)
+            .contains("verified  2/2 FMs pass (refreshed; footprint 2 files, coverage, 1 by executed lines)"),
         "{}",
         text(&verified)
     );
@@ -263,7 +273,7 @@ fn a_covered_file_is_pinned_by_the_lines_green_executed() {
 
     // verify re-pins from its own run: green now executes line 3 instead.
     repo.write("covers.txt", "src/feature.txt\nsrc/app.txt 3\n");
-    let verified = repo.skies(&["proof", "verify", "1"]);
+    let verified = repo.skies(&["proof", "verify", "1", "--refresh"]);
     assert!(verified.status.success(), "{}", text(&verified));
     assert_eq!(
         repo.json(&format!("{SPEC}/receipt.json"))["footprint"]["src/app.txt"]["lines"],

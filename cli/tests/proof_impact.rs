@@ -51,7 +51,7 @@ fn impact_lists_the_specs_a_path_reaches_with_their_failure_modes() {
 
     let by_glob = text(&repo.skies(&["proof", "impact", "src/unrelated.txt", "src/nowhere.txt"]));
     assert!(
-        by_glob.starts_with("0003-other  no receipt\n  via src/unrelated.txt\n"),
+        by_glob.starts_with("0003-other  unrecorded (no receipt)\n  via src/unrelated.txt\n"),
         "{by_glob}"
     );
     assert!(by_glob.contains("1 path in no spec: src/nowhere.txt"), "{by_glob}");
@@ -67,7 +67,7 @@ fn impact_lists_the_specs_a_path_reaches_with_their_failure_modes() {
     // Without paths, the files changed on the branch (committed, uncommitted, untracked) are the input.
     let by_diff = text(&repo.skies(&["proof", "impact"]));
     assert!(by_diff.contains("0001-toggle  stale"), "{by_diff}");
-    assert!(by_diff.contains("0002-twin  no receipt"), "{by_diff}");
+    assert!(by_diff.contains("0002-twin  unrecorded"), "{by_diff}");
     let none = text(&repo.skies(&["proof", "impact", "--diff", "HEAD", "src/nowhere.txt"]));
     assert!(
         none.contains("0001-toggle"),
@@ -89,12 +89,29 @@ fn record_with_impacted_reproves_overlapping_specs() {
             .is_none()
     );
 
+    // A spec that covers the same file but was never recorded has nothing to re-prove and breaks nothing.
+    repo.write(
+        ".specs/0003-draft/spec.md",
+        "---\nid: \"0003\"\nrunner: fake\ntouches: [src/feature.txt]\n---\n## Failure modes\n- FM-1 draft\n",
+    );
+    let toggle_before = repo.read(&format!("{SPEC}/receipt.json"));
     let with = repo.skies(&["proof", "record", "2", "--with-impacted"]);
     assert!(with.status.success(), "{}", text(&with));
     assert!(
-        text(&with).contains("0001-toggle  verified  2/2 FMs pass"),
+        text(&with).contains("0001-toggle  verified (current, unchanged)  2/2 FMs pass"),
         "{}",
         text(&with)
+    );
+    assert!(
+        text(&with).contains("0003-draft   unrecorded  no receipt yet"),
+        "{}",
+        text(&with)
+    );
+    assert!(!text(&with).contains("breaks"), "{}", text(&with));
+    assert_eq!(
+        repo.read(&format!("{SPEC}/receipt.json")),
+        toggle_before,
+        "a current receipt that still passes is not rewritten"
     );
     let receipt = repo.json(&format!("{TWIN}/receipt.json"));
     let toggle_receipt = std::fs::read(repo.path(&format!("{SPEC}/receipt.json"))).unwrap();
@@ -103,6 +120,7 @@ fn record_with_impacted_reproves_overlapping_specs() {
         format!("blake3:{}", blake3::hash(&toggle_receipt).to_hex()),
         "names the exact receipt that was re-proven"
     );
+    assert!(receipt["verified_with"].get("0003-draft").is_none());
 }
 
 #[test]
@@ -118,7 +136,7 @@ fn an_impacted_spec_that_fails_is_reported_and_left_out() {
 
     assert_eq!(with.status.code(), Some(1), "{}", text(&with));
     let output = text(&with);
-    assert!(output.contains("0001-toggle  failed    FM-1 not passing"), "{output}");
+    assert!(output.contains("0001-toggle  failed  FM-1 not passing"), "{output}");
     assert!(
         output.contains("0002-twin: recorded, but this change breaks impacted spec 0001-toggle"),
         "{output}"

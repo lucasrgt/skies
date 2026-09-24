@@ -151,19 +151,28 @@ pub enum Proof {
     Record {
         /// The spec id or folder name.
         spec: String,
-        /// The revision the failure modes must fail on. Defaults to the merge-base with the default branch.
+        /// The revision the failure modes must fail on. Defaults to HEAD plus the spec's red.patch when it has one,
+        /// else the merge-base of HEAD with `[workspace] default_branch` from Skies.toml, else with the current
+        /// branch's upstream (when it is another branch), else with origin/HEAD. The choice is printed.
         #[arg(long)]
         red: Option<String>,
         /// A patch applied to the red checkout before running, for specs written after the code.
         #[arg(long)]
         red_patch: Option<PathBuf>,
         /// After recording, rerun green for every other spec whose footprint overlaps this one's and name the ones
-        /// that pass in the receipt's `verified_with`. Exits 1 if any of them fails.
+        /// that pass in the receipt's `verified_with`. Exits 1 if any of them fails; a spec without a receipt is
+        /// reported as unrecorded and does not count.
         #[arg(long)]
         with_impacted: bool,
     },
-    /// List receipts that are current, stale (their files changed), or tampered (their evidence was edited).
-    /// Hashes only; runs nothing.
+    /// Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the
+    /// failing cases reported. Writes nothing: no receipt, no evidence. Exits 1 unless every mode passes.
+    Run {
+        /// The spec id or folder name.
+        spec: String,
+    },
+    /// List receipts that are current, stale (their files changed), tampered (their evidence was edited), or
+    /// unrecorded (no receipt yet). Hashes only; runs nothing.
     Status,
     /// Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its
     /// failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no
@@ -176,7 +185,8 @@ pub enum Proof {
         #[arg(long, value_name = "REV", num_args = 0..=1, default_missing_value = "")]
         diff: Option<String>,
     },
-    /// Rerun specs and refresh their green evidence.
+    /// Rerun specs' green. A receipt that is current and still passes is left untouched ("verified (current,
+    /// unchanged)"); a stale one gets fresh green evidence and footprint. Red is never rerun.
     Verify {
         /// Spec ids or folder names.
         specs: Vec<String>,
@@ -186,6 +196,10 @@ pub enum Proof {
         /// Rerun every spec.
         #[arg(long)]
         all: bool,
+        /// Rewrite the green evidence and footprint of current receipts too (and of tampered ones, whose red
+        /// evidence keeps its recorded hashes).
+        #[arg(long)]
+        refresh: bool,
     },
 }
 
@@ -210,9 +224,15 @@ fn main() -> ExitCode {
                 with_impacted,
             },
         ),
+        Command::Proof(Proof::Run { spec }) => proof::run(&spec),
         Command::Proof(Proof::Status) => proof::status(),
         Command::Proof(Proof::Impact { paths, diff }) => proof::impact(&paths, diff.as_deref()),
-        Command::Proof(Proof::Verify { specs, stale, all }) => proof::verify(&specs, stale, all),
+        Command::Proof(Proof::Verify {
+            specs,
+            stale,
+            all,
+            refresh,
+        }) => proof::verify(&specs, stale, all, refresh),
         Command::Migrate { version, dry_run } => migrate::run(version, dry_run),
     };
     match result {

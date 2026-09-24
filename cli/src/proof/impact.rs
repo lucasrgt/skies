@@ -12,6 +12,7 @@ use std::path::{Component, Path, PathBuf};
 use anyhow::{Context, Result};
 use globset::{Glob, GlobSet, GlobSetBuilder};
 
+use super::base::Base;
 use super::ctx;
 use super::git::Repo;
 use super::receipt::Receipt;
@@ -75,11 +76,16 @@ pub fn impact(paths: &[PathBuf], diff: Option<&str>) -> Result<u8> {
     let root = project.root.as_path();
     let changed: Vec<String> = if paths.is_empty() || diff.is_some() {
         let repo = Repo::open(root)?;
-        let rev = match diff.filter(|rev| !rev.is_empty()) {
-            Some(rev) => repo.resolve(rev)?,
-            None => repo.fork_point()?,
+        let base = match diff.filter(|rev| !rev.is_empty()) {
+            Some(rev) => Base::explicit(&repo, rev, "--diff")?,
+            None => Base::default(&repo, project.manifest.workspace.default_branch.as_deref())?,
         };
-        let mut changed = repo.changed_since(&rev)?;
+        let (line, warning) = base.describe(&repo);
+        println!("changes since {line}");
+        if let Some(warning) = warning {
+            eprintln!("{warning}");
+        }
+        let mut changed = repo.changed_since(&base.commit)?;
         let cwd = std::env::current_dir()?;
         changed.extend(paths.iter().map(|path| project_path(root, &cwd, path)));
         changed
@@ -111,7 +117,11 @@ pub fn impact(paths: &[PathBuf], diff: Option<&str>) -> Result<u8> {
     hits.retain(|(_, via)| !via.is_empty());
 
     for (entry, via) in &hits {
-        println!("{}  {}", entry.spec.name, super::freshness_line(root, &entry.spec).0);
+        println!(
+            "{}  {}",
+            entry.spec.name,
+            super::freshness_line(&project, &entry.spec).0
+        );
         println!("  via {}", abbreviate(via));
         for id in &entry.doc.failure_modes {
             let mode = &entry.doc.modes[id];

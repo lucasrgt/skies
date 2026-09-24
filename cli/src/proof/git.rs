@@ -1,7 +1,7 @@
-//! The few git operations `record` and `verify` need, through the git CLI.
+//! The few git operations `record`, `verify`, and `impact` need, through the git CLI.
 //!
 //! Shelling out keeps the binary free of libgit2 and behaves exactly like the git the author already uses
-//! (config, worktrees, sparse checkouts). Only `record` and `verify` call it; `status` never does.
+//! (config, worktrees, sparse checkouts). `status` and `run` never call it.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -45,21 +45,34 @@ impl Repo {
         self.resolve("HEAD")
     }
 
-    /// The revision a feature branch forked from: `merge-base HEAD <default branch>`, where the default branch is
-    /// `origin/HEAD`, else `main`, else `master`.
-    pub fn fork_point(&self) -> Result<String> {
-        let default = self
-            .run(&["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"])
+    /// The branch HEAD is on, or `None` when detached.
+    pub fn current_branch(&self) -> Option<String> {
+        self.run(&["symbolic-ref", "--quiet", "--short", "HEAD"]).ok()
+    }
+
+    /// The current branch's upstream as git abbreviates it (`origin/v5`), if it has one.
+    pub fn upstream(&self) -> Option<String> {
+        self.run(&["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])
             .ok()
-            .or_else(|| {
-                ["main", "master"]
-                    .into_iter()
-                    .find(|name| self.resolve(name).is_ok())
-                    .map(String::from)
-            })
-            .context("no default branch to fork from (no origin/HEAD, main, or master); pass --red <rev>")?;
-        self.run(&["merge-base", "HEAD", &default])
-            .with_context(|| format!("HEAD shares no history with {default}; pass --red <rev>"))
+            .filter(|name| !name.is_empty())
+    }
+
+    /// The remote's default branch (`origin/main`), from `origin/HEAD`.
+    pub fn origin_head(&self) -> Option<String> {
+        self.run(&["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"])
+            .ok()
+    }
+
+    pub fn merge_base(&self, a: &str, b: &str) -> Result<String> {
+        self.run(&["merge-base", a, b])
+            .with_context(|| format!("{a} shares no history with {b}"))
+    }
+
+    /// How many commits `to` has that `from` does not (`git rev-list --count from..to`).
+    pub fn count(&self, from: &str, to: &str) -> Result<usize> {
+        let text = self.run(&["rev-list", "--count", &format!("{from}..{to}")])?;
+        text.parse()
+            .with_context(|| format!("git rev-list --count printed '{text}'"))
     }
 
     /// Files that differ between `rev` and the working tree, plus untracked files, relative to the project root.
