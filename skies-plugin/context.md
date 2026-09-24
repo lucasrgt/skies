@@ -20,5 +20,8 @@ Nothing runs automatically: there is no gate and no required hook. `skies proof 
 changed; rerun them with `skies proof verify` when the change could affect them. `skies proof impact <paths>` lists
 the specs a change reaches, with their failure modes, before you make it.
 
-Reference: `docs/backend-conventions.md`, `docs/frontend-conventions.md`, `docs/doctor-rules.md`, `docs/cli.md`,
-`docs/decisions.md` in this plugin.
+Reference, in this plugin (ground every convention fact there, never memory):
+- `docs/CONVENTIONS.md`: backend conventions, specs and proofs, and the SKY#### rule catalog.
+- `docs/FRONTEND-CONVENTIONS.md`: React web conventions and the SKYFE### rule catalog.
+- `docs/FLUTTER-CONVENTIONS.md`: Flutter conventions and the SKYFL### rule catalog.
+- `docs/cli.md`: every `skies` command and flag, from `skies <command> --help`.

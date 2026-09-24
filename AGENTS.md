@@ -29,7 +29,7 @@ frontend-sdk/packages/             @skiesjs/react (spine) and @skiesjs/eslint-pl
 flutter-sdk/packages/skies_flutter/  The Flutter spine: Flutter for mobile, and for the web too.
 examples/sample-app/               The reference app: Wallets backend, React web package, and .specs/ with receipts.
 docs/                              Conventions (backend, frontend, Flutter), monorepo, migration, decisions.
-skies-plugin/                      The agent plugin shipped to applications: the skies-sdd skill and context.
+skies-plugin/                      The agent plugin: the skies-sdd skill, context, and docs/ synced from docs/.
 .specs/                            This repository's own specs (the Skies 5 plan lives in 0008).
 ```
 
@@ -57,6 +57,7 @@ dotnet build Skies.Framework.slnx && dotnet test Skies.Framework.slnx
 npm --prefix frontend-sdk run check                       # typecheck, lint, tests
 (cd flutter-sdk/packages/skies_flutter && flutter analyze && flutter test)
 tools/auth-smoke.sh                                       # render auth into a new app, build doctor-clean, run its specs
+tools/sync-plugin-docs.sh                                 # after editing docs/*CONVENTIONS.md or the CLI help
 ```
 
 Run what your change touches. Leave every affected workspace green.

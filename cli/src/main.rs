@@ -82,8 +82,10 @@ pub enum Generate {
     Hub { module: String, name: String },
     /// The auth module: register, login, refresh, logout, me, sessions.
     Auth {
+        /// Leave out multi-tenant scoping (the Tenancy/ files and the request tenant).
         #[arg(long)]
         skip_tenancy: bool,
+        /// Leave out web-cookie refresh delivery; the refresh token travels in the response body only.
         #[arg(long)]
         skip_cookies: bool,
     },

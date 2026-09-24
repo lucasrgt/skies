@@ -1,43 +1,396 @@
-# Skies — Markers & CLI
+# Skies — CLI reference
 
-## Backend markers (pure attributes; inert if the doctor is removed)
+Generated from `skies <command> --help` by `cli/tests/plugin_docs.rs`; resync with
+`tools/sync-plugin-docs.sh` instead of editing.
 
-- `[Slice]` — nested `Input`/`Output` records, `Handle(...) → Task<Result<Output>>`, `Map(IEndpointRouteBuilder)`, in order.
-- `[Module]` — static class with `AddServices(IServiceCollection, IConfiguration)` + `Map(IEndpointRouteBuilder)`.
-- `[ValueObject]` — immutable, no public ctor/setter, smart constructor returning `Result<T>`.
-- `[Entity]` — private ctor, private setters, private `EnsureValid() → Result<T>` funnel.
-- `[JsonConverter(typeof(ScalarJsonConverter<TVo, TPrim>))]` — a scalar VO crosses the wire as its primitive.
-- `.WithEndpointKind(EndpointKind.X)` on a slice's `Map` — endpoint nature: default `App` (no call); `Asset`,
-  `Webhook`, or `Internal` leave the generated client.
+## skies
 
-## Frontend markers (file conventions)
+```text
+Scaffold, check, and prove Skies applications.
 
-- `<Name>.view.tsx` / `<name>_view.dart` — pure render, exactly one ViewModel.
-- `<Name>.viewModel.ts` / `<name>_view_model.dart` — render-agnostic (the Dart one also reaches no device plugin).
-- `<name>.i18n.ts` / ARB catalogs — per-feature copy.
+Usage: skies <COMMAND>
 
-## CLI (`skies`)
+Commands:
+  new      Create a new Skies application in ./<Name>
+  g        Generate code that follows the Skies conventions
+  i18n     Assemble per-feature i18n catalogs into the package's locale files
+  doctor   Run the architecture doctors: dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*)
+  spec     Work with feature specs under .specs/
+  proof    Record and check the evidence that a spec's failure modes are handled
+  migrate  Migrate an application to a new Skies major version
+  help     Print this message or the help of the given subcommand(s)
 
-- `skies new <Name>` — a new app: Skies.toml, `src/<App>.Api`, a Health module, tests project, `.specs/`.
-- `skies g module|slice|entity|vo|crud|hub <…>` — backend shapes, doctor-clean, no generated tests.
-- `skies g crud <Module> <Entity>` — for an `ITenantScoped` `[Entity]` (as `g entity` scaffolds it, plus its
-  `{ get; private set; }` fields): writes `Open(id, fields…)`, `Update(fields…)`, and a `RowVersion` into the entity
-  (keeping any the author wrote), then List/Lookup/Create/Update/Delete slices that call them, mapped under the
-  module's route group (declared fail-closed when the module has none).
-- `skies g auth [--skip-tenancy] [--skip-cookies]`, `g auth:otp|auth:oauth|auth:email` — auth blueprints, each with
-  its own spec folder and E2E.
-- `skies g client [--package <dir>]` — typed client (orval for a React web package, dart-dio for Flutter).
-- `skies g feature <Name> [--package <dir>]` — a ViewModel + View + i18n feature (React web or Flutter).
-- `skies g flutter-app <Name> [--path <dir>]` — wire a Flutter app to the spine.
-- `skies i18n [--package <dir>]` — assemble per-feature catalogs.
-- `skies doctor [build args]` — dotnet build (SKY*), eslint (SKYFE*), Flutter rules (SKYFL*), in parallel.
-- `skies spec new <slug> [--runner <name>]` — create `.specs/<id>-<slug>/`.
-- `skies proof record <id> [--red <rev>] [--red-patch <file>] [--with-impacted]` — red then green; writes
-  `receipt.json`. `--with-impacted` then reruns green for every other spec whose footprint overlaps and records the
-  ones that passed in `verified_with` (exit 1 if any fails).
-- `skies proof status` — which receipts are current, stale (files changed), or tampered (evidence edited); hashes only.
-- `skies proof impact [<paths>…] [--diff [<rev>]]` — the specs a change reaches, from receipt footprints and
-  `touches`, with their failure modes (and `[avp: …]` tags) and receipt state. No paths: files changed since the
-  merge-base, plus uncommitted and untracked ones.
-- `skies proof verify <ids…> | --stale | --all` — rerun and refresh green evidence.
-- `skies migrate 5 [--dry-run]` — move a 4.x app onto Skies 5.
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
+## skies new
+
+```text
+Create a new Skies application in ./<Name>
+
+Usage: skies new <NAME>
+
+Arguments:
+  <NAME>  The application name; it becomes the solution and root namespace
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g
+
+```text
+Generate code that follows the Skies conventions
+
+Usage: skies g <COMMAND>
+
+Commands:
+  module       A module: <Name>Module.cs, error codes, ctx.md, wired into the module registry
+  slice        A slice inside a module
+  entity       A rich [Entity] with an EnsureValid invariant funnel
+  vo           An always-valid [ValueObject] in BuildingBlocks
+  crud         List/lookup/create/update/delete slices for a tenant-scoped [Entity], plus the Open/Update they call
+  hub          A SignalR hub for real-time fan-out
+  auth         The auth module: register, login, refresh, logout, me, sessions
+  auth:otp     Phone verification by SMS code
+  auth:oauth   Google sign-up and sign-in
+  auth:email   Email verification and password reset
+  feature      A frontend feature (ViewModel + View + i18n) in a React web or Flutter package
+  client       The typed API client for a React web or Flutter package, from the backend's OpenAPI contract
+  flutter-app  A Flutter application package wired to the Skies spine
+  help         Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g module
+
+```text
+A module: <Name>Module.cs, error codes, ctx.md, wired into the module registry
+
+Usage: skies g module <NAME>
+
+Arguments:
+  <NAME>
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g slice
+
+```text
+A slice inside a module
+
+Usage: skies g slice <MODULE> <NAME>
+
+Arguments:
+  <MODULE>
+  <NAME>
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g entity
+
+```text
+A rich [Entity] with an EnsureValid invariant funnel
+
+Usage: skies g entity <MODULE> <NAME>
+
+Arguments:
+  <MODULE>
+  <NAME>
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g vo
+
+```text
+An always-valid [ValueObject] in BuildingBlocks
+
+Usage: skies g vo <NAME>
+
+Arguments:
+  <NAME>
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g crud
+
+```text
+List/lookup/create/update/delete slices for a tenant-scoped [Entity], plus the Open/Update they call
+
+Usage: skies g crud <MODULE> <ENTITY>
+
+Arguments:
+  <MODULE>
+  <ENTITY>
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g hub
+
+```text
+A SignalR hub for real-time fan-out
+
+Usage: skies g hub <MODULE> <NAME>
+
+Arguments:
+  <MODULE>
+  <NAME>
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g auth
+
+```text
+The auth module: register, login, refresh, logout, me, sessions
+
+Usage: skies g auth [OPTIONS]
+
+Options:
+      --skip-tenancy  Leave out multi-tenant scoping (the Tenancy/ files and the request tenant)
+      --skip-cookies  Leave out web-cookie refresh delivery; the refresh token travels in the response body only
+  -h, --help          Print help
+```
+
+## skies g auth:otp
+
+```text
+Phone verification by SMS code
+
+Usage: skies g auth:otp
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g auth:oauth
+
+```text
+Google sign-up and sign-in
+
+Usage: skies g auth:oauth
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g auth:email
+
+```text
+Email verification and password reset
+
+Usage: skies g auth:email
+
+Options:
+  -h, --help  Print help
+```
+
+## skies g feature
+
+```text
+A frontend feature (ViewModel + View + i18n) in a React web or Flutter package
+
+Usage: skies g feature [OPTIONS] <NAME>
+
+Arguments:
+  <NAME>
+
+Options:
+      --package <PACKAGE>  The frontend package directory (defaults to the current directory)
+  -h, --help               Print help
+```
+
+## skies g client
+
+```text
+The typed API client for a React web or Flutter package, from the backend's OpenAPI contract
+
+Usage: skies g client [OPTIONS]
+
+Options:
+      --package <PACKAGE>  The frontend package directory (defaults to the current directory)
+      --input <INPUT>      Flutter: the OpenAPI document (defaults to the backend contract `Skies.toml` points at)
+      --output <OUTPUT>    Flutter: the generated package directory (defaults to packages/<name>)
+      --name <NAME>        Flutter: the generated Dart package name (defaults to <backend>_api)
+      --version <VERSION>  Flutter: the generated package's pub version (defaults to 0.1.0)
+  -h, --help               Print help
+```
+
+## skies g flutter-app
+
+```text
+A Flutter application package wired to the Skies spine
+
+Usage: skies g flutter-app [OPTIONS] <NAME>
+
+Arguments:
+  <NAME>
+
+Options:
+      --path <PATH>  Where to create the package (defaults to ./<name>)
+  -h, --help         Print help
+```
+
+## skies i18n
+
+```text
+Assemble per-feature i18n catalogs into the package's locale files
+
+Usage: skies i18n [OPTIONS]
+
+Options:
+      --package <PACKAGE>  The frontend package directory (defaults to the current directory)
+  -h, --help               Print help
+```
+
+## skies doctor
+
+```text
+Run the architecture doctors: dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*)
+
+Usage: skies doctor [OPTIONS] [BUILD_ARGS]...
+
+Arguments:
+  [BUILD_ARGS]...  Extra arguments forwarded to `dotnet build`
+
+Options:
+      --package <PACKAGE>  Check only this package directory (a Flutter or React package, or a .NET project or its folder), so a package's own `lint` script can call the doctor
+  -h, --help               Print help
+```
+
+## skies spec
+
+```text
+Work with feature specs under .specs/
+
+Usage: skies spec <COMMAND>
+
+Commands:
+  new   Create .specs/<id>-<slug>/ with a spec.md to fill in
+  help  Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+## skies spec new
+
+```text
+Create .specs/<id>-<slug>/ with a spec.md to fill in
+
+Usage: skies spec new [OPTIONS] <SLUG>
+
+Arguments:
+  <SLUG>
+
+Options:
+      --runner <RUNNER>  The runner from Skies.toml that executes this spec's e2e/ folder
+  -h, --help             Print help
+```
+
+## skies proof
+
+```text
+Record and check the evidence that a spec's failure modes are handled
+
+Usage: skies proof <COMMAND>
+
+Commands:
+  record  Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json
+  status  List receipts that are current, stale (their files changed), or tampered (their evidence was edited). Hashes only; runs nothing
+  impact  Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current. With no paths, uses the files changed on this branch
+  verify  Rerun specs and refresh their green evidence
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+## skies proof record
+
+```text
+Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json
+
+Usage: skies proof record [OPTIONS] <SPEC>
+
+Arguments:
+  <SPEC>  The spec id or folder name
+
+Options:
+      --red <RED>              The revision the failure modes must fail on. Defaults to the merge-base with the default branch
+      --red-patch <RED_PATCH>  A patch applied to the red checkout before running, for specs written after the code
+      --with-impacted          After recording, rerun green for every other spec whose footprint overlaps this one's and name the ones that pass in the receipt's `verified_with`. Exits 1 if any of them fails
+  -h, --help                   Print help
+```
+
+## skies proof status
+
+```text
+List receipts that are current, stale (their files changed), or tampered (their evidence was edited). Hashes only; runs nothing
+
+Usage: skies proof status
+
+Options:
+  -h, --help  Print help
+```
+
+## skies proof impact
+
+```text
+Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current. With no paths, uses the files changed on this branch
+
+Usage: skies proof impact [OPTIONS] [PATHS]...
+
+Arguments:
+  [PATHS]...  Files or directories to look up, relative to the current directory
+
+Options:
+      --diff [<REV>]  Also look up the files changed since <rev> (default: the merge-base with the default branch), including uncommitted and untracked files
+  -h, --help          Print help
+```
+
+## skies proof verify
+
+```text
+Rerun specs and refresh their green evidence
+
+Usage: skies proof verify [OPTIONS] [SPECS]...
+
+Arguments:
+  [SPECS]...  Spec ids or folder names
+
+Options:
+      --stale  Rerun every spec whose receipt is stale
+      --all    Rerun every spec
+  -h, --help   Print help
+```
+
+## skies migrate
+
+```text
+Migrate an application to a new Skies major version
+
+Usage: skies migrate [OPTIONS] <VERSION>
+
+Arguments:
+  <VERSION>  The target major version. Only 5 is supported
+
+Options:
+      --dry-run  Show what would change without writing
+  -h, --help     Print help
+```
