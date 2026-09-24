@@ -1,0 +1,45 @@
+{
+  "spec": "0005-openapi-contract",
+  "runner": "api",
+  "red": {
+    "commit": "44b83982a975bf5cc09778843e8f5d6e6982de09",
+    "patch": {
+      "file": "red.patch",
+      "hash": "blake3:dbf6b140d39d9c279dd98424e3e3fc58f985c3740b99a374254b35908e5a12df"
+    },
+    "cases": {
+      "FM-1": "fail",
+      "FM-2": "fail",
+      "FM-3": "fail",
+      "FM-4": "fail",
+      "FM-5": "fail",
+      "FM-6": "fail",
+      "FM-7": "fail"
+    },
+    "report": "evidence/red.trx"
+  },
+  "green": {
+    "commit": "44b83982a975bf5cc09778843e8f5d6e6982de09",
+    "dirty": false,
+    "cases": {
+      "FM-1": "pass",
+      "FM-2": "pass",
+      "FM-3": "pass",
+      "FM-4": "pass",
+      "FM-5": "pass",
+      "FM-6": "pass",
+      "FM-7": "pass"
+    },
+    "report": "evidence/green.trx"
+  },
+  "footprint": {
+    "backend/Sample.Api/Platform.cs": "blake3:1f8b78ea166f048d8e9d58ea28d0548f9f0a7910fbff7491ab530e4e9d35a0d0",
+    "backend/Sample.Api/Program.cs": "blake3:e70efd5a7b530f1aad1771b01b9c38b713f361d8cf6f722a38bc11e8dff5332d",
+    "backend/Sample.Api/Sample.Api.csproj": "blake3:ca72ab40666c6583bd8c3770f3fdb47b886bffd81efee3365d47a6bb1dc17467"
+  },
+  "inputs": {
+    ".specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs": "blake3:73806a752bb83eed284575dc57477089fd666afe94fccc49600af7cc63ee5c84",
+    ".specs/0005-openapi-contract/e2e/SchemaContractSpec.cs": "blake3:149fed11b33b145ffab2d99066b7845c992e42c1d5cf9079fcf109d2ca1526b8",
+    ".specs/0005-openapi-contract/spec.md": "blake3:ea2bdf9821350d311c22cd4edd80d65b74f078e647b70916e530acb95ae6eb1b"
+  }
+}

@@ -1,0 +1,297 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="5339cc63-31b1-43b0-854e-35d7aabe0b8c" name="@omarchy 2026-09-24 02:15:43" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-24T02:15:43.7541967-03:00" queuing="2026-09-24T02:15:43.7541967-03:00" start="2026-09-24T02:15:42.7988881-03:00" finish="2026-09-24T02:15:43.7581300-03:00" />
+  <TestSettings name="default" id="1a868d00-46b0-4d84-a6e2-d3d4cf833e72">
+    <Deployment runDeploymentRoot="_omarchy_2026-09-24_02_15_43" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b349472d-260e-40d6-8d4f-635ded1a7148" testId="cc8369cb-8341-4613-c613-2c95bc629f24" testName="FM-6: the page's four members are required, plain array and integers" computerName="omarchy" duration="00:00:00.0258179" startTime="2026-09-24T02:15:43.6514499-03:00" endTime="2026-09-24T02:15:43.6772292-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b349472d-260e-40d6-8d4f-635ded1a7148">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.</Message>
+          <StackTrace>   at System.Text.Json.JsonElement.GetProperty(String propertyName)
+   at Specs.S0005.SchemaContractSpec.Schema(JsonDocument document, String name) in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs:line 92
+   at Specs.S0005.SchemaContractSpec.The_page_schema_is_required_and_plainly_typed() in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs:line 63
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="6b9d061a-7144-4c4f-bfd5-a47d9cd37dfe" testId="6f2fdeda-946d-34f8-1a69-a20141d0e032" testName="FM-2: a dependency loaded in the process does not widen the contract" computerName="omarchy" duration="00:00:00.0506169" startTime="2026-09-24T02:15:43.5758522-03:00" endTime="2026-09-24T02:15:43.6114836-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6b9d061a-7144-4c4f-bfd5-a47d9cd37dfe">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.</Message>
+          <StackTrace>   at System.Text.Json.JsonElement.GetProperty(String propertyName)
+   at Specs.S0005.ErrorCodeContractSpec.ErrorCodes(WebApplicationFactory`1 app) in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs:line 59
+   at Specs.S0005.ErrorCodeContractSpec.A_loaded_dependency_does_not_widen_the_contract() in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs:line 34
+   at Specs.S0005.ErrorCodeContractSpec.A_loaded_dependency_does_not_widen_the_contract() in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs:line 37
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="fe61c742-db21-47ab-a943-bf5fd6c5462c" testId="3b424cf8-b5b0-e09a-f50a-55abe842c748" testName="FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes" computerName="omarchy" duration="00:00:00.0332328" startTime="2026-09-24T02:15:43.6121318-03:00" endTime="2026-09-24T02:15:43.6452161-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fe61c742-db21-47ab-a943-bf5fd6c5462c" />
+    <UnitTestResult executionId="97cd6383-9ced-40f7-9ba1-38f091f2fa5c" testId="4072c344-28f8-451f-a2d4-ad532f7c2861" testName="FM-4: a scalar value object reached only through a nullable property mirrors its primitive" computerName="omarchy" duration="00:00:00.0505629" startTime="2026-09-24T02:15:43.5758346-03:00" endTime="2026-09-24T02:15:43.6117925-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="97cd6383-9ced-40f7-9ba1-38f091f2fa5c">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.</Message>
+          <StackTrace>   at System.Text.Json.JsonElement.GetProperty(String propertyName)
+   at Specs.S0005.SchemaContractSpec.Schema(JsonDocument document, String name) in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs:line 92
+   at Specs.S0005.SchemaContractSpec.A_nullable_only_scalar_value_object_mirrors_its_primitive() in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs:line 31
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="9f8d81d8-9060-49c0-bf26-b41dbfba05b7" testId="269e1e8c-d94a-bc52-2899-95723aeed0c0" testName="FM-3: a numeric body property is a plain number" computerName="omarchy" duration="00:00:00.4335949" startTime="2026-09-24T02:15:43.1178569-03:00" endTime="2026-09-24T02:15:43.5715558-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9f8d81d8-9060-49c0-bf26-b41dbfba05b7">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.</Message>
+          <StackTrace>   at System.Text.Json.JsonElement.GetProperty(String propertyName)
+   at Specs.S0005.SchemaContractSpec.Schema(JsonDocument document, String name) in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs:line 92
+   at Specs.S0005.SchemaContractSpec.A_numeric_body_property_is_plainly_typed() in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs:line 17
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="31d3f27e-16e3-4f32-b894-2b0961e6ce44" testId="b422ae4a-9e62-cecc-9d59-f7972d9302fe" testName="FM-5: a numeric query parameter accepts no strings" computerName="omarchy" duration="00:00:00.0197309" startTime="2026-09-24T02:15:43.6311466-03:00" endTime="2026-09-24T02:15:43.6510390-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="31d3f27e-16e3-4f32-b894-2b0961e6ce44">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.DoesNotContain() Failure: Item found in collection
+                        ↓ (pos 1)
+Collection: ["integer", "string"]
+Found:      "string"</Message>
+          <StackTrace>   at Specs.S0005.SchemaContractSpec.A_numeric_query_parameter_is_plainly_typed() in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs:line 55
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="dce25313-76b2-4577-b8cd-42dbb0d82f1a" testId="c534da32-25c5-d8df-0546-d03b5af946a3" testName="FM-1: ErrorBody.code enumerates the app's registry codes" computerName="omarchy" duration="00:00:00.4335844" startTime="2026-09-24T02:15:43.1170411-03:00" endTime="2026-09-24T02:15:43.5597916-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dce25313-76b2-4577-b8cd-42dbb0d82f1a">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.</Message>
+          <StackTrace>   at System.Text.Json.JsonElement.GetProperty(String propertyName)
+   at Specs.S0005.ErrorCodeContractSpec.ErrorCodes(WebApplicationFactory`1 app) in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs:line 59
+   at Specs.S0005.ErrorCodeContractSpec.ErrorBody_code_enumerates_the_registries() in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs:line 20
+   at Specs.S0005.ErrorCodeContractSpec.ErrorBody_code_enumerates_the_registries() in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs:line 26
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="6af59f4e-9e52-4c00-a77a-e5ccac043fc8" testId="8090b0c6-e1bb-4cec-d38e-ae5396e91e7a" testName="FM-7: a slice's output references its own slice-qualified page" computerName="omarchy" duration="00:00:00.0187253" startTime="2026-09-24T02:15:43.6121153-03:00" endTime="2026-09-24T02:15:43.6305614-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6af59f4e-9e52-4c00-a77a-e5ccac043fc8">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.</Message>
+          <StackTrace>   at System.Text.Json.JsonElement.GetProperty(String propertyName)
+   at Specs.S0005.SchemaContractSpec.Schema(JsonDocument document, String name) in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs:line 92
+   at Specs.S0005.SchemaContractSpec.The_slice_output_references_its_qualified_page() in /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs:line 79
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="FM-2: a dependency loaded in the process does not widen the contract" storage="/tmp/skies-red-wgcn2i/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="6f2fdeda-946d-34f8-1a69-a20141d0e032">
+      <Execution id="6b9d061a-7144-4c4f-bfd5-a47d9cd37dfe" />
+      <TestMethod codeBase="/tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.ErrorCodeContractSpec" name="A_loaded_dependency_does_not_widen_the_contract" />
+    </UnitTest>
+    <UnitTest name="FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes" storage="/tmp/skies-red-wgcn2i/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="3b424cf8-b5b0-e09a-f50a-55abe842c748">
+      <Execution id="fe61c742-db21-47ab-a943-bf5fd6c5462c" />
+      <TestMethod codeBase="/tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.ErrorCodeContractSpec" name="An_explicitly_registered_assembly_is_enumerated_once" />
+    </UnitTest>
+    <UnitTest name="FM-4: a scalar value object reached only through a nullable property mirrors its primitive" storage="/tmp/skies-red-wgcn2i/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="4072c344-28f8-451f-a2d4-ad532f7c2861">
+      <Execution id="97cd6383-9ced-40f7-9ba1-38f091f2fa5c" />
+      <TestMethod codeBase="/tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="A_nullable_only_scalar_value_object_mirrors_its_primitive" />
+    </UnitTest>
+    <UnitTest name="FM-6: the page's four members are required, plain array and integers" storage="/tmp/skies-red-wgcn2i/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="cc8369cb-8341-4613-c613-2c95bc629f24">
+      <Execution id="b349472d-260e-40d6-8d4f-635ded1a7148" />
+      <TestMethod codeBase="/tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="The_page_schema_is_required_and_plainly_typed" />
+    </UnitTest>
+    <UnitTest name="FM-5: a numeric query parameter accepts no strings" storage="/tmp/skies-red-wgcn2i/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b422ae4a-9e62-cecc-9d59-f7972d9302fe">
+      <Execution id="31d3f27e-16e3-4f32-b894-2b0961e6ce44" />
+      <TestMethod codeBase="/tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="A_numeric_query_parameter_is_plainly_typed" />
+    </UnitTest>
+    <UnitTest name="FM-3: a numeric body property is a plain number" storage="/tmp/skies-red-wgcn2i/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="269e1e8c-d94a-bc52-2899-95723aeed0c0">
+      <Execution id="9f8d81d8-9060-49c0-bf26-b41dbfba05b7" />
+      <TestMethod codeBase="/tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="A_numeric_body_property_is_plainly_typed" />
+    </UnitTest>
+    <UnitTest name="FM-7: a slice's output references its own slice-qualified page" storage="/tmp/skies-red-wgcn2i/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="8090b0c6-e1bb-4cec-d38e-ae5396e91e7a">
+      <Execution id="6af59f4e-9e52-4c00-a77a-e5ccac043fc8" />
+      <TestMethod codeBase="/tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="The_slice_output_references_its_qualified_page" />
+    </UnitTest>
+    <UnitTest name="FM-1: ErrorBody.code enumerates the app's registry codes" storage="/tmp/skies-red-wgcn2i/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="c534da32-25c5-d8df-0546-d03b5af946a3">
+      <Execution id="dce25313-76b2-4577-b8cd-42dbb0d82f1a" />
+      <TestMethod codeBase="/tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.ErrorCodeContractSpec" name="ErrorBody_code_enumerates_the_registries" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="cc8369cb-8341-4613-c613-2c95bc629f24" executionId="b349472d-260e-40d6-8d4f-635ded1a7148" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6f2fdeda-946d-34f8-1a69-a20141d0e032" executionId="6b9d061a-7144-4c4f-bfd5-a47d9cd37dfe" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3b424cf8-b5b0-e09a-f50a-55abe842c748" executionId="fe61c742-db21-47ab-a943-bf5fd6c5462c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4072c344-28f8-451f-a2d4-ad532f7c2861" executionId="97cd6383-9ced-40f7-9ba1-38f091f2fa5c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="269e1e8c-d94a-bc52-2899-95723aeed0c0" executionId="9f8d81d8-9060-49c0-bf26-b41dbfba05b7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b422ae4a-9e62-cecc-9d59-f7972d9302fe" executionId="31d3f27e-16e3-4f32-b894-2b0961e6ce44" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c534da32-25c5-d8df-0546-d03b5af946a3" executionId="dce25313-76b2-4577-b8cd-42dbb0d82f1a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8090b0c6-e1bb-4cec-d38e-ae5396e91e7a" executionId="6af59f4e-9e52-4c00-a77a-e5ccac043fc8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="8" executed="8" passed="1" failed="7" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.04]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.06]   Discovered:  Sample.Tests
+[xUnit.net 00:00:00.08]   Starting:    Sample.Tests
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.53]       System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.
+[xUnit.net 00:00:00.53]       Stack Trace:
+[xUnit.net 00:00:00.53]            at System.Text.Json.JsonElement.GetProperty(String propertyName)
+[xUnit.net 00:00:00.53]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs(59,0): at Specs.S0005.ErrorCodeContractSpec.ErrorCodes(WebApplicationFactory`1 app)
+[xUnit.net 00:00:00.53]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs(20,0): at Specs.S0005.ErrorCodeContractSpec.ErrorBody_code_enumerates_the_registries()
+[xUnit.net 00:00:00.53]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs(26,0): at Specs.S0005.ErrorCodeContractSpec.ErrorBody_code_enumerates_the_registries()
+[xUnit.net 00:00:00.53]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.54]       System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.
+[xUnit.net 00:00:00.54]       Stack Trace:
+[xUnit.net 00:00:00.54]            at System.Text.Json.JsonElement.GetProperty(String propertyName)
+[xUnit.net 00:00:00.54]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs(92,0): at Specs.S0005.SchemaContractSpec.Schema(JsonDocument document, String name)
+[xUnit.net 00:00:00.54]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs(17,0): at Specs.S0005.SchemaContractSpec.A_numeric_body_property_is_plainly_typed()
+[xUnit.net 00:00:00.54]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.58]       System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.
+[xUnit.net 00:00:00.58]       Stack Trace:
+[xUnit.net 00:00:00.58]            at System.Text.Json.JsonElement.GetProperty(String propertyName)
+[xUnit.net 00:00:00.58]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs(59,0): at Specs.S0005.ErrorCodeContractSpec.ErrorCodes(WebApplicationFactory`1 app)
+[xUnit.net 00:00:00.58]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs(34,0): at Specs.S0005.ErrorCodeContractSpec.A_loaded_dependency_does_not_widen_the_contract()
+[xUnit.net 00:00:00.58]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs(37,0): at Specs.S0005.ErrorCodeContractSpec.A_loaded_dependency_does_not_widen_the_contract()
+[xUnit.net 00:00:00.58]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.58]       System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.
+[xUnit.net 00:00:00.58]       Stack Trace:
+[xUnit.net 00:00:00.58]            at System.Text.Json.JsonElement.GetProperty(String propertyName)
+[xUnit.net 00:00:00.58]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs(92,0): at Specs.S0005.SchemaContractSpec.Schema(JsonDocument document, String name)
+[xUnit.net 00:00:00.58]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs(31,0): at Specs.S0005.SchemaContractSpec.A_nullable_only_scalar_value_object_mirrors_its_primitive()
+[xUnit.net 00:00:00.58]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.60]       System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.
+[xUnit.net 00:00:00.60]       Stack Trace:
+[xUnit.net 00:00:00.60]            at System.Text.Json.JsonElement.GetProperty(String propertyName)
+[xUnit.net 00:00:00.60]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs(92,0): at Specs.S0005.SchemaContractSpec.Schema(JsonDocument document, String name)
+[xUnit.net 00:00:00.60]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs(79,0): at Specs.S0005.SchemaContractSpec.The_slice_output_references_its_qualified_page()
+[xUnit.net 00:00:00.60]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.62]       Assert.DoesNotContain() Failure: Item found in collection
+[xUnit.net 00:00:00.62]                               ↓ (pos 1)
+[xUnit.net 00:00:00.62]       Collection: ["integer", "string"]
+[xUnit.net 00:00:00.62]       Found:      "string"
+[xUnit.net 00:00:00.62]       Stack Trace:
+[xUnit.net 00:00:00.62]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs(55,0): at Specs.S0005.SchemaContractSpec.A_numeric_query_parameter_is_plainly_typed()
+[xUnit.net 00:00:00.62]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-WGCn2I/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.65]       System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary.
+[xUnit.net 00:00:00.65]       Stack Trace:
+[xUnit.net 00:00:00.65]            at System.Text.Json.JsonElement.GetProperty(String propertyName)
+[xUnit.net 00:00:00.65]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs(92,0): at Specs.S0005.SchemaContractSpec.Schema(JsonDocument document, String name)
+[xUnit.net 00:00:00.65]         /tmp/skies-red-WGCn2I/checkout/examples/sample-app/.specs/0005-openapi-contract/e2e/SchemaContractSpec.cs(63,0): at Specs.S0005.SchemaContractSpec.The_page_schema_is_required_and_plainly_typed()
+[xUnit.net 00:00:00.65]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.65]   Finished:    Sample.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:43.5614700-03:00">
+        <Text>[xUnit.net 00:00:00.53]     FM-1: ErrorBody.code enumerates the app's registry codes [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:43.5718655-03:00">
+        <Text>[xUnit.net 00:00:00.54]     FM-3: a numeric body property is a plain number [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:43.6117711-03:00">
+        <Text>[xUnit.net 00:00:00.58]     FM-2: a dependency loaded in the process does not widen the contract [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:43.6118690-03:00">
+        <Text>[xUnit.net 00:00:00.58]     FM-4: a scalar value object reached only through a nullable property mirrors its primitive [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:43.6308709-03:00">
+        <Text>[xUnit.net 00:00:00.60]     FM-7: a slice's output references its own slice-qualified page [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:43.6513541-03:00">
+        <Text>[xUnit.net 00:00:00.62]     FM-5: a numeric query parameter accepts no strings [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:43.6775032-03:00">
+        <Text>[xUnit.net 00:00:00.65]     FM-6: the page's four members are required, plain array and integers [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

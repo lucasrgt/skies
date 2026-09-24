@@ -1,0 +1,36 @@
+{
+  "spec": "0004-money",
+  "runner": "api",
+  "red": {
+    "commit": "44b83982a975bf5cc09778843e8f5d6e6982de09",
+    "patch": {
+      "file": "red.patch",
+      "hash": "blake3:9bd366ecc6ae53d8a7def06d8e345edd39f4059f882d9ccbaedb85e9dbf3567b"
+    },
+    "cases": {
+      "FM-1": "fail",
+      "FM-2": "fail",
+      "FM-3": "fail",
+      "FM-4": "fail"
+    },
+    "report": "evidence/red.trx"
+  },
+  "green": {
+    "commit": "44b83982a975bf5cc09778843e8f5d6e6982de09",
+    "dirty": false,
+    "cases": {
+      "FM-1": "pass",
+      "FM-2": "pass",
+      "FM-3": "pass",
+      "FM-4": "pass"
+    },
+    "report": "evidence/green.trx"
+  },
+  "footprint": {
+    "backend/Sample.Api/BuildingBlocks/Money.cs": "blake3:746bb641ce503821d81ffc6f84bf498b75c9d591e519afb9247ec2618a992823"
+  },
+  "inputs": {
+    ".specs/0004-money/e2e/MoneySpec.cs": "blake3:df31b33ffa9cc108b3627c10b349e30df822dd870257ab7cd0b08906e5b9a502",
+    ".specs/0004-money/spec.md": "blake3:16359828112304b5c9e9411806ed9dce2245955b89f5af1026a625ff2f42a7be"
+  }
+}
