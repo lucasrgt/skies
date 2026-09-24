@@ -46,6 +46,7 @@ for the reasons.
    | ESLint | removes settings for `skies/*` rules the 5.x plugin no longer ships (`test-colocated`, `view-integration-test`, `design-tokens`, `ui-door`, `scale-only`, `semantic-colors`, `verify-has-avp-proof`, `no-disabled-tests`, `feature-has-e2e-flow`, …) from `eslint.config.*` and `.eslintrc*` |
    | Flutter | sets a hosted `skies_flutter` dependency to the binary's version (path and git dependencies stay) |
    | Test helpers | copies the removed Playwright fixtures, backend ledger, and Assay adapter (`@skiesjs/frontend-sdk/playwright*`, `…/product-verification`) and the Dio ledger (`skies_flutter_testing.dart`) into the app and points the imports at the copies |
+   | Auth | never rewrites a generated Account module (the code is the app's, possibly changed); when a Skies 4 `Modules/Account/Slices/Refresh.cs` still carries its own rotation, notes that the mechanics now live in `Skies.Framework.Auth` (see CONVENTIONS.md, Auth): regenerate with `skies g auth` in a branch and compare |
    | CI | removes workflow steps that run the gate (only the gate lines of a `run: \|` block), and `dotnet tool restore` when the tool manifest was deleted |
 
 2. Work through "Finish by hand". Typical items: run `npm install` and `flutter pub get` to refresh lockfiles, run

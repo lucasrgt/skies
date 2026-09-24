@@ -352,3 +352,19 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   próprio `skies doctor`), e `skies migrate 5` declara as entradas atuais e pede para podar. No Hostpoint
   (`hostpoint-skies5`, clone raso): 41 entradas declaradas, entre elas `doctor-rollout.log`, `favicon.png`,
   `.aerofortress/`, `.cursor/`, `.jevd/`, `jevd*.json`, `taskfleet.toml` e `lefthook.yml` para o dono decidir.
+- **A mecânica de auth vira pacote.** O `g auth` (e `auth:otp`/`auth:oauth`/`auth:email`) copiava para cada app o
+  hash de senha, a rotação do refresh com queima da família no reuso, a revogação, a entrega por cookie, o timing do
+  login, a emissão/verificação de tokens de email e códigos de SMS; uma correção no template nunca chegava a um app
+  já gerado. Agora é o `Skies.Framework.Auth`: `IPasswordHasher` (argon2id, mesmo formato do Skies 4),
+  `OpaqueTokens` (comparação em tempo constante), `RefreshSessions`, `VerificationTokens`, `RefreshCookie.Deliver`,
+  registrados por uma chamada explícita (`AddSkiesAuth<UserSessionStore>` no `AccountSetup`, mais
+  `AddVerificationTokens<VerificationTokenStore>` com um fluxo de telefone/email); o `Identity` ganhou a porta
+  assíncrona `IExternalIdentityVerifier` e o `OidcIdTokenVerifier` (JWKS, issuer, audience, validade, email
+  verificado; só algoritmos assimétricos). O app mantém entidades e tabelas (`User`, `UserSession`, um
+  `VerificationToken` no lugar de `PhoneOtp`/`EmailVerificationToken`/`PasswordResetToken`) atrás de dois stores
+  pequenos (`IRefreshSessionStore`, `IVerificationStore`), sem classe base, sem DbContext do framework, sem geração;
+  as slices mantêm Input/Output/Handle/Map, os códigos de erro (mapeados dos enums de resultado) e a postura de auth.
+  Os 38 casos dos quatro specs passam com edições mecânicas só em três arquivos do `0001-auth` (assinaturas de
+  `Handle` e `SessionToken.*` → `RefreshSessionOptions.Default.*`). Código gerado: Full 1610 → 1373 linhas de C# na
+  API (slices 753 → 652), Single 781 → 678; nenhuma decisão de segurança fica no app (0 linhas de cripto, rotação ou
+  contagem de tentativas). O `migrate 5` não reescreve auth: aponta um `Refresh.cs` do Skies 4 com uma nota.
