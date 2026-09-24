@@ -69,7 +69,8 @@ jobs:
         run: |
           cd dist
           for dir in skies-*; do tar -czf "$dir.tar.gz" -C "$dir" .; done
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes *.tar.gz || \
+          pre=; case "$GITHUB_REF_NAME" in *-*) pre=--prerelease ;; esac
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes $pre *.tar.gz || \
             gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber *.tar.gz
 
   npm-cli:
@@ -95,12 +96,12 @@ jobs:
           publish() { name=$(node -p "require('./$1/package.json').name"); ver=$(node -p "require('./$1/package.json').version")
             # npm refuses a prerelease on the default dist-tag; release candidates go to `next`.
             tag=latest; case "$ver" in *-*) tag=next ;; esac
-            if npm view "$name@$ver" version >/dev/null 2>&1; then echo "$name@$ver already published"; else npm publish "$1" --access public --provenance --tag "$tag"; fi; }
+            if npm view "$name@$ver" version >/dev/null 2>&1; then echo "$name@$ver already published"; else npm publish "./$1" --access public --provenance --tag "$tag"; fi; }
           for dir in dist/skies-*; do
             platform=${dir#dist/skies-}
             exe=$(ls "$dir")
             node cli/npm/pack-platform.mjs "${platform%-*}" "${platform##*-}" "$dir/$exe" "out/$platform"
-            publish "out/$platform"
+            publish "out/$platform"   # a bare "out/x" would read as a GitHub repository, hence ./ inside publish
           done
           publish cli/npm
 
