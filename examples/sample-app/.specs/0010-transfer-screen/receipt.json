@@ -2,26 +2,45 @@
   "spec": "0010-transfer-screen",
   "runner": "web",
   "red": {
-    "commit": "dd9185ad21f6389f03c606b0e3633d5a486cb74c",
+    "commit": "cf41f844bde190370e008e0fb40ddfeeaea824b6",
+    "patch": {
+      "file": "red.patch",
+      "hash": "blake3:b7a5292140823af80ada0c825c08020c9cd8f54ab21085b02ec323325e86cb47"
+    },
     "cases": {
       "FM-1": {
-        "result": "did-not-build"
+        "result": "fail",
+        "cases": [
+          "Transfer screen > FM-1: an empty submit is blocked with three field errors inside the Field anatomy"
+        ],
+        "message": "TestingLibraryElementError: Unable to find role=\"alert\"\nIgnored nodes: comments, script, style\n<body>\n<div>"
       },
       "FM-2": {
-        "result": "did-not-build"
+        "result": "fail",
+        "cases": [
+          "Transfer screen > FM-2: the same wallet on both sides is reported on the destination and never sent"
+        ],
+        "message": "TestingLibraryElementError: Unable to find an element with the text: Choose a different wallet to send to.. This could be because the text is broken up by multiple elements. In this case, you can pro…\nIgnored nodes: comments, script, style\n<body>\n<div>"
       },
       "FM-3": {
-        "result": "did-not-build"
+        "result": "fail",
+        "cases": [
+          "Transfer screen > FM-3: a valid submit announces while pending, then reaches the success surface"
+        ],
+        "message": "TestingLibraryElementError: Unable to find role=\"button\"\nIgnored nodes: comments, script, style\n<body>\n<div>"
       },
       "FM-4": {
-        "result": "did-not-build"
+        "result": "fail",
+        "cases": [
+          "Transfer screen > FM-4: a refused transfer surfaces as a role=alert block and keeps the form"
+        ],
+        "message": "TestingLibraryElementError: Unable to find an element with the text: We couldn't complete the transfer. Check the balance and try again.. This could be because the text is broken up by multiple eleme…\nIgnored nodes: comments, script, style\n<body>\n<div>"
       }
     },
     "report": {
-      "file": "evidence/raw/red.log",
-      "hash": "blake3:bac890eca9eb65569fc4bc52ad17d1298a2cd162608f8e7f21ec739db9dac8ff"
-    },
-    "output": "MISSING DEPENDENCY  Cannot find dependency '@vitest/coverage-v8'"
+      "file": "evidence/raw/red.xml",
+      "hash": "blake3:6879488f0a81e6980334233f92df2f9a6ab5d08eb74f49d571886ada98777e6a"
+    }
   },
   "green": {
     "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",

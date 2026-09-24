@@ -1,0 +1,28 @@
+diff --git i/frontend/web/src/transfer/Transfer.viewModel.ts w/frontend/web/src/transfer/Transfer.viewModel.ts
+index 5e4087e..d70e321 100644
+--- i/frontend/web/src/transfer/Transfer.viewModel.ts
++++ w/frontend/web/src/transfer/Transfer.viewModel.ts
+@@ -58,11 +58,19 @@ export function useTransferModel(): TransferModel {
+     { onInvalid: (first) => form.setFocus(first), order: ["fromWalletId", "toWalletId", "amount"] },
+   );
+ 
++  // Red: the ViewModel sends the raw form values and hands the View none of the mutation's state.
++  void submit;
+   return {
+     control: form.control,
+-    submit: () => void submit(),
+-    submitting: mutation.isPending,
+-    submitError: mutation.isError ? i18n.t("transfer:errors.submit") : null,
+-    completed: mutation.isSuccess ? mutation.data : null,
++    submit: () => {
++      const values = form.getValues();
++      mutation.mutate({
++        data: { fromWalletId: values.fromWalletId, toWalletId: values.toWalletId, amount: Number(values.amount) },
++        idempotencyKey,
++      });
++    },
++    submitting: false,
++    submitError: null,
++    completed: mutation.data ?? null,
+   };
+ }
