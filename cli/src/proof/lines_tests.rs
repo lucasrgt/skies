@@ -49,12 +49,62 @@ fn ranges_parse_back_what_they_write_and_nothing_else() {
 #[test]
 fn a_print_serializes_compactly_and_whole_hashes_still_read() {
     let json = serde_json::to_string(&recorded()).unwrap();
-    assert!(json.starts_with(r#"{"lines":"2,4-5","hash":"blake3:"#), "{json}");
+    assert!(json.starts_with(r#"{"lines":"2,4-5","ranges":""#), "{json}");
+    let Print::Lines(LinePrint {
+        hash: LineHash::PerRange(hashes),
+        ..
+    }) = recorded()
+    else {
+        panic!("a line print");
+    };
+    assert_eq!(hashes.len(), 2, "one hash per run of executed lines");
     let back: Print = serde_json::from_str(&json).unwrap();
     assert_eq!(back, recorded());
     let whole: Print = serde_json::from_str(r#""blake3:00""#).unwrap();
     assert_eq!(whole, Print::Whole("blake3:00".into()));
-    assert!(serde_json::from_str::<Print>(r#"{"lines":"3,2","hash":"blake3:00"}"#).is_err());
+    for bad in [
+        r#"{"lines":"3,2","hash":"blake3:00"}"#,
+        r#"{"lines":"2,4-5","ranges":"0123456789abcdef"}"#,
+        r#"{"lines":"2","ranges":"0123"}"#,
+        r#"{"lines":"2","ranges":"0123456789abcdef","hash":"blake3:00"}"#,
+        r#"{"lines":"2"}"#,
+    ] {
+        assert!(serde_json::from_str::<Print>(bad).is_err(), "{bad} must not parse");
+    }
+}
+
+/// The print a receipt written before per-range hashes holds: one joined hash over every executed line.
+fn legacy() -> Print {
+    let lines: Ranges = "2,4-5".parse().unwrap();
+    let hash = content(FILE).line_hash(&lines).unwrap();
+    let json = format!(r#"{{"lines":"2,4-5","hash":"{hash}"}}"#);
+    serde_json::from_str(&json).unwrap()
+}
+
+#[test]
+fn a_receipt_from_before_per_range_hashes_reads_by_position() {
+    assert!(matches!(
+        &legacy(),
+        Print::Lines(LinePrint {
+            hash: LineHash::Joined(_),
+            ..
+        })
+    ));
+    assert!(matches(&legacy(), Some(&content(FILE))));
+    assert!(matches(
+        &legacy(),
+        Some(&content(&FILE.replace("class Deposit", "sealed class Deposit")))
+    ));
+    assert!(!matches(&legacy(), Some(&content(&FILE.replace("a + b", "a - b")))));
+    assert!(
+        !matches(&legacy(), Some(&content(&format!("using System;\n{FILE}")))),
+        "a shift stays stale for the old format, as it was"
+    );
+    let json = serde_json::to_string(&legacy()).unwrap();
+    assert!(
+        json.contains(r#""hash":"blake3:"#),
+        "an old print is written back as it was read: {json}"
+    );
 }
 
 #[test]
@@ -88,11 +138,54 @@ fn line_endings_do_not_count() {
 }
 
 #[test]
-fn a_line_inserted_above_executed_lines_shifts_them_and_is_stale() {
-    let inserted = format!("using System;\n{FILE}");
-    assert!(!matches(&recorded(), Some(&content(&inserted))));
+fn lines_inserted_or_deleted_around_executed_runs_only_move_them() {
+    let inserted = format!("using System;\nusing System.Linq;\n{FILE}");
+    assert!(matches(&recorded(), Some(&content(&inserted))), "two lines above");
     let deleted = FILE.replacen("class Deposit\n", "", 1);
-    assert!(!matches(&recorded(), Some(&content(&deleted))));
+    assert!(matches(&recorded(), Some(&content(&deleted))), "a line above deleted");
+    let between = FILE.replacen("{\n", "{\n  // why the total\n\n", 1);
+    assert!(matches(&recorded(), Some(&content(&between))), "lines between two runs");
+    let both = format!("// header\n{}", between.replacen("}\n", "}\n\nclass Other {}\n", 1));
+    assert!(matches(&recorded(), Some(&content(&both))));
+}
+
+#[test]
+fn a_moved_file_is_still_stale_when_an_executed_run_changed() {
+    let inserted = format!("using System;\n{}", FILE.replace("a + b", "a - b"));
+    assert!(!matches(&recorded(), Some(&content(&inserted))));
+    let inside = FILE.replace("  var total = a + b;\n", "  var total = a + b;\n  log(total);\n");
+    assert!(
+        !matches(&recorded(), Some(&content(&inside))),
+        "a line inserted inside an executed run changes that run"
+    );
+}
+
+#[test]
+fn executed_runs_out_of_their_order_are_stale() {
+    // Run 1 is `  Map();` (line 2), run 2 the body (lines 4-5). Moving `Map();` below the body keeps every run's
+    // text but not their order.
+    let reordered = "class Deposit\n{\n  var total = a + b;\n  return total;\n  Map();\n}\n";
+    assert!(!matches(&recorded(), Some(&content(reordered))));
+    let dropped = "class Deposit\n{\n  var total = a + b;\n  return total;\n}\n";
+    assert!(!matches(&recorded(), Some(&content(dropped))), "a run that is gone");
+}
+
+#[test]
+fn checking_a_long_shifted_file_stays_fast() {
+    let body: String = (0..2000).map(|line| format!("  statement_{line}();\n")).collect();
+    let file = content(&body);
+    let executed: BTreeSet<u32> = (1..=2000).filter(|line| line % 3 != 0).collect();
+    let print = print(Some(&file), Some(&executed));
+    let shifted = content(&format!("// a\n// b\n{body}"));
+    let started = std::time::Instant::now();
+    assert!(matches(&print, Some(&shifted)));
+    let edited = content(&format!("// a\n{}", body.replace("statement_1999();", "changed();")));
+    assert!(!matches(&print, Some(&edited)));
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(2),
+        "{:?}",
+        started.elapsed()
+    );
 }
 
 #[test]

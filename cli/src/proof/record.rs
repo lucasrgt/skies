@@ -6,19 +6,21 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
 
+use super::base::Base;
 use super::git::Repo;
 use super::green::{self, GreenOutcome, join};
 use super::hash;
 use super::receipt::{Entry, Green, Patch, Receipt, Red, RedCase};
-use super::report::{self, FmId, Report};
-use super::runner::{Job, NoReport, Session};
-use super::scrub::Scrub;
-use super::spec::{self, E2E_DIR, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
+use super::red::{self, Revision};
+use super::report::FmId;
+use super::runner::{Session, seconds};
+use super::spec::{self, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
 use super::{avp, ctx, footprint, impact, lines, verify};
-use crate::manifest::Project;
+use crate::manifest::{Project, Runner};
 
 /// What `skies proof record` was asked to do.
 pub struct Options<'a> {
@@ -39,18 +41,26 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
 
     let patch = red_patch(&spec, options.red, options.red_patch)?;
     let head = repo.head()?;
-    let red_commit = match (options.red, &patch) {
-        (Some(rev), _) => repo.resolve(rev)?,
-        (None, Some(_)) => head.clone(),
-        (None, None) => repo.fork_point()?,
+    // --red, then the spec's red.patch on HEAD, then the merge-base with the branch features fork from.
+    let base = match (options.red, &patch) {
+        (Some(rev), _) => Base::explicit(&repo, rev, "--red")?,
+        (None, Some(_)) => Base {
+            commit: head.clone(),
+            how: format!("HEAD + {RED_PATCH_FILE}"),
+            explicit: true,
+        },
+        (None, None) => Base::default(&repo, project.manifest.workspace.default_branch.as_deref())?,
     };
+    let red_commit = base.commit.clone();
     if red_commit == head && patch.is_none() {
         bail!(
-            "the red revision is HEAD ({}), where the feature already exists, so red would prove nothing. Either\n  \
-             - commit the feature on a branch and record from there (red defaults to the merge-base with the default branch),\n  \
+            "the red revision is HEAD ({}; {}), where the feature already exists, so red would prove nothing. Either\n  \
+             - commit the feature on a branch and record from there (red defaults to the merge-base with the branch \
+             features fork from: `default_branch` in Skies.toml, else the upstream, else origin/HEAD),\n  \
              - pass --red <rev> for a revision without the feature, or\n  \
              - pass --red-patch <file> with a patch that removes the feature (kept as {}/{RED_PATCH_FILE})",
             short(&head),
+            base.how,
             spec.rel()
         );
     }
@@ -63,82 +73,32 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
         String::new()
     };
     println!("record {} (runner {runner_name})", spec.name);
-    println!("  red    {}{patch_note}", short(&red_commit));
+    let (line, warning) = base.describe(&repo);
+    println!("  red    {line}");
+    if let Some(warning) = warning {
+        eprintln!("{warning}");
+    }
 
-    // Red, in a worktree that is gone again before green starts. Its `{evidence}` lives in scratch, so an Assay
-    // verdict a red case saved survives the worktree.
-    let red_evidence = scratch.path().join("red-evidence");
-    let (red_run, scrub) = {
-        let worktree = repo.temp_worktree(&red_commit)?;
-        // Built while the worktree exists, so its canonical path can be resolved: red and green paths both become
-        // `{root}` in the evidence.
-        let scrub = Scrub::new(&[&repo.top, &worktree.path]);
-        let red_root = worktree.path.join(&repo.prefix);
-        let red_spec = SpecDir {
-            path: red_root.join(spec.rel()),
-            ..spec.clone()
-        };
-        copy_spec_sources(&spec, &red_spec)?;
-        if let Some(patch) = &patch {
-            repo.apply(&worktree.path, patch)?;
-        }
-        let run = session.run(&Job {
-            runner_name,
-            runner,
-            spec: &red_spec,
-            root: &red_root,
-            evidence: &red_evidence,
-            scratch: scratch.path(),
-            label: "red",
-        });
-        // A configured report path lives inside the worktree; keep the report (or the build log) past its removal.
-        let red_run = match run {
-            Ok(run) => {
-                let kept = scratch.path().join("red.report");
-                std::fs::copy(&run.file, &kept)?;
-                RedRun::Report(run.report, kept)
-            }
-            Err(error) => match error.downcast_ref::<NoReport>() {
-                Some(no_report) => {
-                    let kept = scratch.path().join("red.build.log");
-                    std::fs::copy(&no_report.log, &kept)?;
-                    RedRun::DidNotBuild(kept)
-                }
-                None => return Err(error),
-            },
-        };
-        (red_run, scrub)
+    let revision = Revision {
+        commit: &red_commit,
+        patch: patch.as_deref(),
     };
-    let (red_cases, red_file, red_report): (BTreeMap<FmId, Entry<RedCase>>, PathBuf, String) = match red_run {
-        RedRun::DidNotBuild(log) => {
-            println!(
-                "  red did not build at {}: every failure mode counts as failing (build output in {EVIDENCE_DIR}/red.log)",
-                short(&red_commit)
-            );
-            let cases = doc
-                .failure_modes
-                .iter()
-                .map(|id| (*id, Entry::new(RedCase::DidNotBuild, doc.avp(*id), None)))
-                .collect();
-            (cases, log, format!("{EVIDENCE_DIR}/red.log"))
-        }
-        RedRun::Report(report, file) => {
-            let red_eval = match report::evaluate(&doc.failure_modes, &report.cases) {
-                Ok(evaluation) => evaluation,
-                Err(problems) => {
-                    eprintln!("{}: the red run does not match spec.md:\n{problems}", spec.name);
-                    return Ok(1);
-                }
-            };
-            let cases = red_eval
-                .passed
-                .iter()
-                .map(|(id, passed)| (*id, red_entry(&doc, *id, *passed, &red_evidence)))
-                .collect();
-            (cases, file, format!("{EVIDENCE_DIR}/red.{}", report.format.extension()))
-        }
+    let red_started = Instant::now();
+    let Some(red_run) = red::run(
+        &repo,
+        &spec,
+        &doc,
+        (runner_name, runner),
+        &revision,
+        &mut session,
+        scratch.path(),
+    )?
+    else {
+        return Ok(1);
     };
-    let unjustified: Vec<FmId> = red_cases
+    let red_elapsed = red_started.elapsed();
+    let unjustified: Vec<FmId> = red_run
+        .cases
         .iter()
         .filter(|(id, case)| case.result() == RedCase::NonDiscriminating && !doc.justified.contains(id))
         .map(|(id, _)| *id)
@@ -170,32 +130,37 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
             return Ok(1);
         }
     };
-    print_cases(&red_cases);
+    println!(
+        "  time   red {} (checkout and run), green {}",
+        seconds(red_elapsed),
+        seconds(proven.elapsed)
+    );
+    print_cases(&red_run.cases);
 
     let mut files = vec![
-        (red_file, red_report.clone()),
+        (red_run.file.clone(), red_run.report.clone()),
         (proven.file.clone(), proven.report.clone()),
     ];
     for id in &doc.failure_modes {
         let name = avp::verdict_file(*id);
-        if !doc.avp(*id).is_empty() && red_evidence.join(&name).is_file() {
-            files.push((red_evidence.join(&name), format!("{EVIDENCE_DIR}/red.{name}")));
+        if !doc.avp(*id).is_empty() && red_run.evidence.join(&name).is_file() {
+            files.push((red_run.evidence.join(&name), format!("{EVIDENCE_DIR}/red.{name}")));
         }
     }
-    green::publish_evidence(&spec, &proven.staged, &files, false, &scrub)?;
+    green::publish_evidence(&spec, &proven.staged, &files, false, &red_run.scrub)?;
 
     let changed = match patch.as_deref() {
         Some(patch) => repo.patch_footprint(patch)?,
         None => repo.changed_since(&red_commit)?,
     };
-    let footprint = footprint::build(root, &doc, &changed, &proven)?;
+    let footprint = footprint::build(root, &doc, runner, &changed, &proven)?;
     let prints = lines::print_all(root, &footprint.paths, &footprint.executed);
     println!(
         "  {}",
         footprint::describe(&footprint, &proven, lines::by_lines(&prints))
     );
     let footprint_paths = footprint.paths;
-    let ctx_revised = revised_ctx(&repo, &changed, patch.is_some().then_some(head.as_str()))?;
+    let ctx_revised = revised_ctx(&repo, runner, &changed, patch.is_some().then_some(head.as_str()))?;
     let mut receipt = Receipt {
         spec: spec.name.clone(),
         runner: runner_name.to_string(),
@@ -205,8 +170,8 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
                 file: RED_PATCH_FILE.to_string(),
                 hash: hash::hash_file(file).unwrap_or_else(|| hash::ABSENT.to_string()),
             }),
-            cases: red_cases,
-            report: red_report,
+            cases: red_run.cases,
+            report: red_run.report,
         },
         green: Green {
             commit: head,
@@ -231,11 +196,12 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
         footprint::files(receipt.evidence.as_ref().map_or(0, |evidence| evidence.len()))
     );
     note_unrevised_ctx(root, &spec, &footprint_paths, &receipt.ctx_revised);
-    impacted(&project, &spec, &mut receipt, options.with_impacted)
+    impacted(&project, &spec, &mut receipt, options.with_impacted, &mut session)
 }
 
 /// A spec that touched a module whose ctx.md stayed as it was gets a note, never a failure: the change may well
-/// have left every invariant intact, and only the author can tell.
+/// have left every invariant intact, and only the author can tell. The footprint is already limited to the
+/// runner's scope, so a screen's spec never hears about a backend module's notes.
 fn note_unrevised_ctx(root: &Path, spec: &SpecDir, footprint: &BTreeSet<String>, revised: &[String]) {
     for file in ctx::touched(root, footprint) {
         if !revised.contains(&file) {
@@ -248,20 +214,28 @@ fn note_unrevised_ctx(root: &Path, spec: &SpecDir, footprint: &BTreeSet<String>,
     }
 }
 
-/// The ctx files revised in this change: those in the red..working-tree diff and, when red is HEAD plus a
-/// red.patch (which removes the feature and rarely touches prose), those edited in the working tree since HEAD.
-fn revised_ctx(repo: &Repo, changed: &[String], patched_head: Option<&str>) -> Result<Vec<String>> {
+/// The ctx files in the runner's scope revised in this change: those in the red..working-tree diff and, when red
+/// is HEAD plus a red.patch (which removes the feature and rarely touches prose), those edited in the working tree
+/// since HEAD.
+fn revised_ctx(repo: &Repo, runner: &Runner, changed: &[String], patched_head: Option<&str>) -> Result<Vec<String>> {
     let mut revised: BTreeSet<String> = changed.iter().filter(|path| ctx::is_ctx(path)).cloned().collect();
     if let Some(head) = patched_head {
         revised.extend(repo.changed_since(head)?.into_iter().filter(|path| ctx::is_ctx(path)));
     }
-    Ok(revised.into_iter().collect())
+    Ok(revised.into_iter().filter(|path| runner.in_scope(path)).collect())
 }
 
 /// Lists the other specs this receipt's footprint reaches and, with `--with-impacted`, re-proves them green. The
 /// new receipt is already written; `verified_with` is added only for specs that passed, and any failure makes the
-/// exit code 1 so the author sees that the change broke a neighbor.
-fn impacted(project: &Project, spec: &SpecDir, receipt: &mut Receipt, rerun: bool) -> Result<u8> {
+/// exit code 1 so the author sees that the change broke a neighbor. A spec with no receipt yet is `unrecorded`:
+/// there is nothing to re-prove, and it breaks nothing.
+fn impacted(
+    project: &Project,
+    spec: &SpecDir,
+    receipt: &mut Receipt,
+    rerun: bool,
+    session: &mut Session,
+) -> Result<u8> {
     let index = impact::index(&project.root)?;
     let paths: BTreeSet<String> = receipt.footprint.keys().cloned().collect();
     let specs: Vec<SpecDir> = impact::impacted_by(&index, &spec.name, &paths)
@@ -282,16 +256,17 @@ fn impacted(project: &Project, spec: &SpecDir, receipt: &mut Receipt, rerun: boo
         return Ok(0);
     }
     println!("verify impacted: {}", names.join(", "));
-    let outcomes = verify::verify_specs(project, &specs)?;
+    // The same session as green, so the runner does not set up or build the working tree a second time.
+    let outcomes = verify::verify_specs(project, &specs, false, session)?;
     verify::print_outcomes(&outcomes);
     receipt.verified_with = outcomes
         .iter()
-        .filter_map(|outcome| Some((outcome.name.clone(), outcome.result.as_ref().ok()?.receipt.clone())))
+        .filter_map(|outcome| Some((outcome.name.clone(), outcome.receipt()?.to_string())))
         .collect();
     receipt.save(spec)?;
     let failed: Vec<&str> = outcomes
         .iter()
-        .filter(|outcome| outcome.result.is_err())
+        .filter(|outcome| outcome.failed())
         .map(|outcome| outcome.name.as_str())
         .collect();
     if failed.is_empty() {
@@ -304,28 +279,6 @@ fn impacted(project: &Project, spec: &SpecDir, receipt: &mut Receipt, rerun: boo
         failed.join(", ")
     );
     Ok(1)
-}
-
-/// A failure mode passes red, and so bites nothing, only as green would count it passing: every case passed and,
-/// for a tagged mode, the verdict passed too. A missing verdict on red is simply a failure.
-fn red_entry(doc: &SpecDoc, id: FmId, cases_passed: bool, evidence: &Path) -> Entry<RedCase> {
-    let result = if cases_passed && avp::check(doc, id, evidence).is_ok() {
-        RedCase::NonDiscriminating
-    } else {
-        RedCase::Fail
-    };
-    let name = avp::verdict_file(id);
-    let verdict = evidence
-        .join(&name)
-        .is_file()
-        .then(|| format!("{EVIDENCE_DIR}/red.{name}"));
-    Entry::new(result, doc.avp(id), verdict)
-}
-
-/// What the red revision produced: a report to evaluate, or a build that never got that far.
-enum RedRun {
-    Report(Report, PathBuf),
-    DidNotBuild(PathBuf),
 }
 
 /// Picks the patch that turns the red revision into "feature not implemented": `--red-patch` (stored as the spec's
@@ -347,20 +300,6 @@ fn red_patch(spec: &SpecDir, red_flag: Option<&str>, given: Option<&Path>) -> Re
         None if red_flag.is_none() && stored.is_file() => Ok(Some(stored)),
         None => Ok(None),
     }
-}
-
-/// The spec usually does not exist at the red revision, so its spec.md and e2e/ come from the working tree.
-fn copy_spec_sources(from: &SpecDir, to: &SpecDir) -> Result<()> {
-    let e2e = to.file(E2E_DIR);
-    if e2e.exists() {
-        std::fs::remove_dir_all(&e2e)?;
-    }
-    std::fs::create_dir_all(&to.path)?;
-    std::fs::copy(from.file(SPEC_FILE), to.file(SPEC_FILE))?;
-    if from.file(E2E_DIR).is_dir() {
-        green::copy_dir(&from.file(E2E_DIR), &e2e)?;
-    }
-    Ok(())
 }
 
 /// Red outcome per failure mode; green is only printed on success, where every one of them passed.

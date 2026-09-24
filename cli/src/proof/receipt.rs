@@ -9,11 +9,12 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-use super::footprint::Source;
+use super::footprint::{self, Source};
 use super::hash::{self, Hashes};
 use super::lines::{self, Prints, Snapshot};
 use super::report::FmId;
 use super::spec::{RECEIPT_FILE, SpecDir, SpecDoc};
+use crate::manifest::Project;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Receipt {
@@ -22,8 +23,9 @@ pub struct Receipt {
     pub red: Red,
     pub green: Green,
     /// Source files the receipt depends on, relative to the project root. A file the green run executed is pinned by
-    /// its executed lines (`{"lines": "12-18,40", "hash": "blake3:…"}`), any other by its whole-file hash. If a
-    /// pinned line's text or a whole file changes, the receipt is stale.
+    /// its executed lines, one hash per run of them (`{"lines": "12-18,40", "ranges": "9f…,03…"}`), any other by its
+    /// whole-file hash. If an executed run's text changes or is no longer found in order, or a whole file changes,
+    /// the receipt is stale.
     pub footprint: Prints,
     /// `coverage` when the footprint is the files the green run executed (plus the diff and `touches`), `diff` when
     /// it is only the files changed since red plus `touches`. Receipts written before coverage read as `diff`.
@@ -166,15 +168,20 @@ pub enum Freshness {
 }
 
 /// Rehashes the evidence, the recorded footprint, and today's inputs (spec.md, e2e files, lockfiles, and anything new
-/// that matches `touches`). Filesystem only, so it stays in milliseconds.
-pub fn freshness(root: &Path, spec: &SpecDir) -> Result<Freshness> {
-    freshness_with(root, spec, Receipt::load(spec)?, &Snapshot::default())
+/// that matches `touches` within the runner's scope). Filesystem only, so it stays in milliseconds.
+pub fn freshness(project: &Project, spec: &SpecDir) -> Result<Freshness> {
+    freshness_with(project, spec, Receipt::load(spec)?, &Snapshot::default())
 }
 
 /// [`freshness`] for an already loaded receipt, reading today's files from `known` where it has them. Coverage
 /// footprints of sibling specs share most of their files (the host wiring, the entities), so `status` reads each
 /// file once.
-pub fn freshness_with(root: &Path, spec: &SpecDir, receipt: Option<Receipt>, known: &Snapshot) -> Result<Freshness> {
+pub fn freshness_with(
+    project: &Project,
+    spec: &SpecDir,
+    receipt: Option<Receipt>,
+    known: &Snapshot,
+) -> Result<Freshness> {
     let Some(receipt) = receipt else {
         return Ok(Freshness::Missing);
     };
@@ -184,8 +191,9 @@ pub fn freshness_with(root: &Path, spec: &SpecDir, receipt: Option<Receipt>, kno
             return Ok(Freshness::Tampered(tampered));
         }
     }
+    let root = project.root.as_path();
     let doc = SpecDoc::load(spec)?;
-    let touched = hash::touched_paths(root, &doc.touches)?;
+    let touched = footprint::touched(root, &doc, footprint::runner_of(project, &doc))?;
     let inputs = hash::input_paths(root, spec)?;
 
     let mut changed = footprint_changed(root, &receipt.footprint, &touched, known);
@@ -257,7 +265,7 @@ mod tests {
                     "src/B.cs".into(),
                     Print::Lines(lines::LinePrint {
                         lines: "3-5,9".parse().unwrap(),
-                        hash: "blake3:02".into(),
+                        hash: lines::LineHash::PerRange(vec!["0123456789abcdef".into(), "fedcba9876543210".into()]),
                     }),
                 ),
             ]
@@ -272,7 +280,7 @@ mod tests {
         let json = serde_json::to_string(&receipt).unwrap();
         assert_eq!(
             json,
-            r#"{"spec":"0001-a","runner":"api","red":{"commit":"abc","cases":{"FM-1":"fail","FM-2":"non-discriminating","FM-3":{"result":"fail","avp":["idempotency-key-honored"]}},"report":"evidence/red.xml"},"green":{"commit":"def","dirty":false,"cases":{"FM-1":"pass","FM-2":"pass","FM-3":{"result":"pass","avp":["idempotency-key-honored"],"verdict":"evidence/avp-FM-3.json"}},"report":"evidence/green.xml"},"footprint":{"src/A.cs":"blake3:00","src/B.cs":{"lines":"3-5,9","hash":"blake3:02"}},"footprint_source":"coverage","footprint_changed":["src/A.cs"],"inputs":{},"evidence":{"evidence/green.xml":"blake3:01"}}"#
+            r#"{"spec":"0001-a","runner":"api","red":{"commit":"abc","cases":{"FM-1":"fail","FM-2":"non-discriminating","FM-3":{"result":"fail","avp":["idempotency-key-honored"]}},"report":"evidence/red.xml"},"green":{"commit":"def","dirty":false,"cases":{"FM-1":"pass","FM-2":"pass","FM-3":{"result":"pass","avp":["idempotency-key-honored"],"verdict":"evidence/avp-FM-3.json"}},"report":"evidence/green.xml"},"footprint":{"src/A.cs":"blake3:00","src/B.cs":{"lines":"3-5,9","ranges":"0123456789abcdef,fedcba9876543210"}},"footprint_source":"coverage","footprint_changed":["src/A.cs"],"inputs":{},"evidence":{"evidence/green.xml":"blake3:01"}}"#
         );
         let back: Receipt = serde_json::from_str(&json).unwrap();
         assert_eq!(back.red.cases[&FmId(2)].result(), RedCase::NonDiscriminating);

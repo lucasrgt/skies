@@ -17,6 +17,7 @@ use super::coverage::Outcome;
 use super::hash;
 use super::spec::SpecDoc;
 use super::{ctx, green::ProvenGreen};
+use crate::manifest::{Project, Runner};
 
 /// Where a receipt's footprint came from.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,11 +42,20 @@ pub struct Footprint {
     pub executed: BTreeMap<String, BTreeSet<u32>>,
 }
 
-/// Builds the footprint from the diff (`changed`), `touches`, and the green run's coverage when it has any.
-pub fn build(root: &Path, doc: &SpecDoc, changed: &[String], proven: &ProvenGreen) -> Result<Footprint> {
+/// Builds the footprint from the diff (`changed`), `touches`, and the green run's coverage when it has any, each
+/// limited to the runner's `scope`.
+pub fn build(
+    root: &Path,
+    doc: &SpecDoc,
+    runner: &Runner,
+    changed: &[String],
+    proven: &ProvenGreen,
+) -> Result<Footprint> {
     let artifact = proven.coverage_artifact.as_deref();
     let keep = |path: &String| {
-        !hash::is_spec_path(path) && !artifact.is_some_and(|dir| path == dir || path.starts_with(&format!("{dir}/")))
+        !hash::is_spec_path(path)
+            && runner.in_scope(path)
+            && !artifact.is_some_and(|dir| path == dir || path.starts_with(&format!("{dir}/")))
     };
     let changed: Vec<String> = changed
         .iter()
@@ -55,7 +65,7 @@ pub fn build(root: &Path, doc: &SpecDoc, changed: &[String], proven: &ProvenGree
         .into_iter()
         .collect();
     let mut paths: BTreeSet<String> = changed.iter().cloned().collect();
-    let touched = hash::touched_paths(root, &doc.touches)?;
+    let touched = touched(root, doc, runner)?;
     paths.extend(touched.iter().cloned());
     let mut executed = BTreeMap::new();
     let (source, covered) = match &proven.coverage {
@@ -83,6 +93,23 @@ pub fn build(root: &Path, doc: &SpecDoc, changed: &[String], proven: &ProvenGree
         covered,
         executed,
     })
+}
+
+/// The files matching the spec's `touches` today, within the runner's scope.
+pub fn touched(root: &Path, doc: &SpecDoc, runner: &Runner) -> Result<BTreeSet<String>> {
+    let mut touched = hash::touched_paths(root, &doc.touches)?;
+    touched.retain(|path| runner.in_scope(path));
+    Ok(touched)
+}
+
+/// The runner a spec names today, or one with no scope when it names none or an undeclared one: the footprint
+/// then keeps every file, as before scopes existed, and the run itself reports the missing runner.
+pub fn runner_of<'a>(project: &'a Project, doc: &SpecDoc) -> &'a Runner {
+    static UNSCOPED: std::sync::LazyLock<Runner> = std::sync::LazyLock::new(Runner::default);
+    doc.runner
+        .as_deref()
+        .and_then(|name| project.manifest.runners.get(name))
+        .unwrap_or(&UNSCOPED)
 }
 
 /// One line on how the footprint was found, so a fallback is never silent. `by_lines` is how many of its files

@@ -2,11 +2,13 @@
 //!
 //! A whole-file hash of a covered file goes stale on any edit, and every spec that boots a host executes every
 //! slice's route mapping and every service registration, so editing one handler's body would mark every such spec
-//! stale. A covered file is therefore recorded as the lines the run executed and a hash of their text: an edit
-//! confined to lines the spec never ran leaves it current. Inserting or deleting lines above executed ones shifts
-//! the text under the recorded numbers, which reads as stale; that is conservative and correct, since the receipt
-//! can no longer say which code it ran. Files with no line data (the diff, `touches`, a summary-only LCOV record)
-//! keep a whole-file hash, and a receipt whose covered files hold whole-file hashes reads exactly as before.
+//! stale. A covered file is therefore recorded as the lines the run executed, one hash per contiguous run of them:
+//! an edit confined to lines the spec never ran leaves it current. Lines inserted or deleted outside the executed
+//! runs only move them, so each run that is not at its recorded place is looked for further on, in order: the
+//! receipt stays current as long as every run's text is still there, in the same order, without overlapping. It is
+//! stale when some run's text changed or can no longer be found after the one before it. Files with no line data
+//! (the diff, `touches`, a summary-only LCOV record) keep a whole-file hash. Receipts written before per-run hashes
+//! (one `hash` over every executed line) still read, by position, as they did then.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -30,11 +32,71 @@ pub enum Print {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "RawLinePrint", into = "RawLinePrint")]
 pub struct LinePrint {
     /// 1-based line numbers, compressed into ranges: `"12-18,40,55-60"`.
     pub lines: Ranges,
-    /// blake3 over each recorded line's text (line ending dropped, inner whitespace kept) plus `\n`, in order.
-    pub hash: String,
+    pub hash: LineHash,
+}
+
+/// How a line print's text is hashed. Each hash is blake3 over the lines' text (line ending dropped, inner
+/// whitespace kept), each followed by `\n`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LineHash {
+    /// One hash per range, in order: the first 64 bits of blake3, as 16 hex digits. Matched shift-tolerantly.
+    PerRange(Vec<String>),
+    /// One `blake3:<hex>` over every recorded line, the format before per-range hashes. Matched by position.
+    Joined(String),
+}
+
+/// The JSON shape: `{"lines": "12-18,40", "ranges": "9f…,03…"}`, or `{"lines": …, "hash": "blake3:…"}` as written
+/// before per-range hashes.
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawLinePrint {
+    lines: Ranges,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    ranges: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    hash: Option<String>,
+}
+
+impl TryFrom<RawLinePrint> for LinePrint {
+    type Error = anyhow::Error;
+    fn try_from(raw: RawLinePrint) -> Result<LinePrint> {
+        let hash = match (raw.ranges, raw.hash) {
+            (Some(ranges), None) => {
+                let hashes: Vec<String> = ranges.split(',').map(String::from).collect();
+                let well_formed = hashes.iter().all(|hash| {
+                    hash.len() == 16 && hash.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                });
+                if !well_formed || hashes.len() != raw.lines.0.len() {
+                    bail!(
+                        "range hashes '{ranges}' are not one 16-digit hex hash per range of '{}'",
+                        raw.lines
+                    );
+                }
+                LineHash::PerRange(hashes)
+            }
+            (None, Some(hash)) => LineHash::Joined(hash),
+            _ => bail!("a line print has either `ranges` or `hash`"),
+        };
+        Ok(LinePrint { lines: raw.lines, hash })
+    }
+}
+
+impl From<LinePrint> for RawLinePrint {
+    fn from(print: LinePrint) -> RawLinePrint {
+        let (ranges, hash) = match print.hash {
+            LineHash::PerRange(hashes) => (Some(hashes.join(",")), None),
+            LineHash::Joined(hash) => (None, Some(hash)),
+        };
+        RawLinePrint {
+            lines: print.lines,
+            ranges,
+            hash,
+        }
+    }
 }
 
 /// Path (relative to the root, forward slashes) → how the receipt pins it.
@@ -67,6 +129,13 @@ impl Ranges {
     /// The highest line number: the file must still have at least this many lines.
     pub fn last(&self) -> u32 {
         self.0.last().map_or(0, |(_, end)| *end)
+    }
+
+    /// Each run as its 0-based first line and its length.
+    fn runs(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        self.0
+            .iter()
+            .map(|(start, end)| (*start as usize - 1, (end - start) as usize + 1))
     }
 }
 
@@ -164,18 +233,54 @@ impl Content {
         }
     }
 
-    /// The hash of the given lines' text, or `None` when the file has fewer lines than the highest of them.
+    /// The joined hash of the given lines' text (the format before per-range hashes), or `None` when the file has
+    /// fewer lines than the highest of them.
     fn line_hash(&self, ranges: &Ranges) -> Option<String> {
         if ranges.last() as usize > self.lines.len() {
             return None;
         }
         let mut hasher = blake3::Hasher::new();
         for line in ranges.iter() {
-            let (start, end) = self.lines[line as usize - 1];
-            hasher.update(&self.bytes[start..end]);
-            hasher.update(b"\n");
+            self.feed(&mut hasher, line as usize - 1);
         }
         Some(format!("blake3:{}", hasher.finalize().to_hex()))
+    }
+
+    /// The per-range hash of `count` lines from the 0-based line `first`, which must exist.
+    fn run_hash(&self, first: usize, count: usize) -> String {
+        let mut hasher = blake3::Hasher::new();
+        for line in first..first + count {
+            self.feed(&mut hasher, line);
+        }
+        hasher.finalize().to_hex()[..16].to_string()
+    }
+
+    fn feed(&self, hasher: &mut blake3::Hasher, line: usize) {
+        let (start, end) = self.lines[line];
+        hasher.update(&self.bytes[start..end]);
+        hasher.update(b"\n");
+    }
+
+    /// Whether every run's text is found in order, without overlap: at its recorded place moved by however far the
+    /// run before it moved, or else at the first place after the run before it. Unchanged files check each run once.
+    fn runs_in_order(&self, ranges: &Ranges, hashes: &[String]) -> bool {
+        let total = self.lines.len();
+        let mut next = 0;
+        let mut shift: isize = 0;
+        for ((first, count), hash) in ranges.runs().zip(hashes) {
+            let expected = first as isize + shift;
+            let fits = |at: usize| at + count <= total && self.run_hash(at, count) == *hash;
+            let found = usize::try_from(expected)
+                .ok()
+                .filter(|at| *at >= next && fits(*at))
+                .or_else(|| (next..total.saturating_sub(count) + 1).find(|at| fits(*at)));
+            let Some(at) = found else {
+                return false;
+            };
+            shift = at as isize - first as isize;
+            next = at + count;
+        }
+        true
     }
 }
 
@@ -187,21 +292,30 @@ pub fn print(content: Option<&Content>, executed: Option<&BTreeSet<u32>>) -> Pri
     };
     executed
         .and_then(Ranges::from_set)
-        .and_then(|lines| {
-            let hash = content.line_hash(&lines)?;
-            Some(Print::Lines(LinePrint { lines, hash }))
+        .filter(|lines| lines.last() as usize <= content.lines.len())
+        .map(|lines| {
+            let hashes = lines
+                .runs()
+                .map(|(first, count)| content.run_hash(first, count))
+                .collect();
+            Print::Lines(LinePrint {
+                lines,
+                hash: LineHash::PerRange(hashes),
+            })
         })
         .unwrap_or_else(|| Print::Whole(content.hash.clone()))
 }
 
-/// Whether today's file still matches what was recorded. A line print is stale when any recorded line's text
-/// changed or the file no longer has that many lines; lines it does not name may change freely.
+/// Whether today's file still matches what was recorded. A line print is stale when some executed run's text
+/// changed or can no longer be found in order (a print from before per-range hashes: when any recorded line's text
+/// changed or moved); lines it does not name may change freely.
 pub fn matches(recorded: &Print, content: Option<&Content>) -> bool {
     match recorded {
         Print::Whole(hash) => content.map_or(ABSENT, |content| content.hash.as_str()) == hash,
-        Print::Lines(print) => {
-            content.and_then(|content| content.line_hash(&print.lines)).as_ref() == Some(&print.hash)
-        }
+        Print::Lines(print) => content.is_some_and(|content| match &print.hash {
+            LineHash::PerRange(hashes) => content.runs_in_order(&print.lines, hashes),
+            LineHash::Joined(hash) => content.line_hash(&print.lines).as_ref() == Some(hash),
+        }),
     }
 }
 

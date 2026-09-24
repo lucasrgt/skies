@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="14" failures="0" errors="0" time="0.106278146">
-    <testsuite name="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" timestamp="2026-09-24T06:29:33.127Z" hostname="{machine}" tests="14" failures="0" errors="0" skipped="0" time="0.106278146">
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-1: the label is the accessible name and a press fires the action" time="0.061000835">
+<testsuites name="vitest tests" tests="14" failures="0" errors="0" time="0.112785956">
+    <testsuite name="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" timestamp="2026-09-24T08:08:08.151Z" hostname="{machine}" tests="14" failures="0" errors="0" skipped="0" time="0.112785956">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-1: the label is the accessible name and a press fires the action" time="0.067163201">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a loading button blocks the action and announces itself" time="0.005012743">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a loading button blocks the action and announces itself" time="0.005593865">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a disabled button blocks the action" time="0.005506009">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a disabled button blocks the action" time="0.003836166">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-3: focus shows the focus ring and blur drops it, never outline:none alone" time="0.004860384">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-3: focus shows the focus ring and blur drops it, never outline:none alone" time="0.005068549">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: the label is associated and describedby points at the hint" time="0.004959373">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: the label is associated and describedby points at the hint" time="0.005166268">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: an error replaces the hint as a role=alert and flips the control invalid" time="0.004400737">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: an error replaces the hint as a role=alert and flips the control invalid" time="0.007610523">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-5: the input hands the View a string through onChangeText, not an event" time="0.002476752">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-5: the input hands the View a string through onChangeText, not an event" time="0.002812122">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a role maps to its type scale and the document outline" time="0.00144716">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a role maps to its type scale and the document outline" time="0.001546491">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a tone maps to its semantic color role" time="0.00134951">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a tone maps to its semantic color role" time="0.001175762">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: the alert flag announces the text, the command-error surface" time="0.002660251">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: the alert flag announces the text, the command-error surface" time="0.002368865">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Stack, rhythm from the scale &gt; FM-7: children are spaced by the gap scale and carry no margin" time="0.001777837">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Stack, rhythm from the scale &gt; FM-7: children are spaced by the gap scale and carry no margin" time="0.00155059">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the empty state renders its title and description" time="0.001711317">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the empty state renders its title and description" time="0.001379112">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the error state offers its retry action" time="0.006155324">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the error state offers its retry action" time="0.004555081">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="FM-9: the prop surface stays closed, with no className or style passthrough" time="0.000347947">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="FM-9: the prop surface stays closed, with no className or style passthrough" time="0.000320538">
         </testcase>
     </testsuite>
 </testsuites>

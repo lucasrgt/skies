@@ -323,9 +323,10 @@ Usage: skies proof <COMMAND>
 
 Commands:
   record  Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json. Notes (never fails) a touched module whose ctx.md was not revised in the same change
-  status  List receipts that are current, stale (their files changed), or tampered (their evidence was edited). Hashes only; runs nothing
+  run     Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes nothing: no receipt, no evidence. Exits 1 unless every mode passes
+  status  List receipts that are current, stale (their files changed), tampered (their evidence was edited), or unrecorded (no receipt yet). Hashes only; runs nothing
   impact  Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no paths, uses the files changed on this branch
-  verify  Rerun specs and refresh their green evidence
+  verify  Rerun specs' green. A receipt that is current and still passes is left untouched ("verified (current, unchanged)"); a stale one gets fresh green evidence and footprint. Red is never rerun
   help    Print this message or the help of the given subcommand(s)
 
 Options:
@@ -343,16 +344,30 @@ Arguments:
   <SPEC>  The spec id or folder name
 
 Options:
-      --red <RED>              The revision the failure modes must fail on. Defaults to the merge-base with the default branch
+      --red <RED>              The revision the failure modes must fail on. Defaults to HEAD plus the spec's red.patch when it has one, else the merge-base of HEAD with `[workspace] default_branch` from Skies.toml, else with the current branch's upstream (when it is another branch), else with origin/HEAD. The choice is printed
       --red-patch <RED_PATCH>  A patch applied to the red checkout before running, for specs written after the code
-      --with-impacted          After recording, rerun green for every other spec whose footprint overlaps this one's and name the ones that pass in the receipt's `verified_with`. Exits 1 if any of them fails
+      --with-impacted          After recording, rerun green for every other spec whose footprint overlaps this one's and name the ones that pass in the receipt's `verified_with`. Exits 1 if any of them fails; a spec without a receipt is reported as unrecorded and does not count
   -h, --help                   Print help
+```
+
+## skies proof run
+
+```text
+Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes nothing: no receipt, no evidence. Exits 1 unless every mode passes
+
+Usage: skies proof run <SPEC>
+
+Arguments:
+  <SPEC>  The spec id or folder name
+
+Options:
+  -h, --help  Print help
 ```
 
 ## skies proof status
 
 ```text
-List receipts that are current, stale (their files changed), or tampered (their evidence was edited). Hashes only; runs nothing
+List receipts that are current, stale (their files changed), tampered (their evidence was edited), or unrecorded (no receipt yet). Hashes only; runs nothing
 
 Usage: skies proof status
 
@@ -378,7 +393,7 @@ Options:
 ## skies proof verify
 
 ```text
-Rerun specs and refresh their green evidence
+Rerun specs' green. A receipt that is current and still passes is left untouched ("verified (current, unchanged)"); a stale one gets fresh green evidence and footprint. Red is never rerun
 
 Usage: skies proof verify [OPTIONS] [SPECS]...
 
@@ -386,9 +401,10 @@ Arguments:
   [SPECS]...  Spec ids or folder names
 
 Options:
-      --stale  Rerun every spec whose receipt is stale
-      --all    Rerun every spec
-  -h, --help   Print help
+      --stale    Rerun every spec whose receipt is stale
+      --all      Rerun every spec
+      --refresh  Rewrite the green evidence and footprint of current receipts too (and of tampered ones, whose red evidence keeps its recorded hashes)
+  -h, --help     Print help
 ```
 
 ## skies migrate

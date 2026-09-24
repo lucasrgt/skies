@@ -3,6 +3,7 @@
 //! ```toml
 //! [workspace]
 //! name = "Hostpoint"
+//! default_branch = "develop"   # optional: where features branch from, for red and `proof impact`
 //!
 //! [products.app]
 //! backend = "src/Hostpoint.Api"
@@ -10,9 +11,11 @@
 //! frontend = ["clients/web", "clients/hosts"]
 //!
 //! [runners.api]
+//! scope = ["src/"]
 //! command = "dotnet test tests/Hostpoint.Tests --filter FullyQualifiedName~Specs.S{id}. --logger trx;LogFileName={report} --collect \"XPlat Code Coverage\" --results-directory {coverage} -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura"
 //!
 //! [runners.web]
+//! scope = ["clients/web/"]
 //! command = "npx vitest run {dir} --reporter=junit --outputFile={report} --coverage.enabled --coverage.reporter=lcov --coverage.reportsDirectory={coverage}"
 //! ```
 
@@ -38,6 +41,10 @@ pub struct Manifest {
 #[serde(deny_unknown_fields)]
 pub struct Workspace {
     pub name: String,
+    /// The branch features fork from. `proof record` takes red as the merge-base of HEAD with it, and `proof impact`
+    /// diffs from there, ahead of the current branch's upstream and `origin/HEAD`. Set it when work happens on a
+    /// long-lived branch other than the remote's default (a `develop`, a major-version branch).
+    pub default_branch: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -80,7 +87,7 @@ impl Paths {
 /// (an absolute folder for screenshots and logs that end up in the spec's evidence/). The command runs through the
 /// platform shell with the checkout's project root as its working directory; its exit code is not interpreted,
 /// only the report is.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Runner {
     pub command: String,
@@ -92,6 +99,14 @@ pub struct Runner {
     pub coverage: Option<String>,
     /// Run once before the first spec that uses this runner, e.g. to start a database.
     pub setup: Option<String>,
+    /// Compiles the tests once per checkout, before the first spec that uses this runner (after `setup`), so
+    /// `command` can skip building (`dotnet test --no-build`) and the specs one invocation reruns build once. A
+    /// failing build means the tests did not build: on red every failure mode counts as failing.
+    pub build: Option<String>,
+    /// The paths (relative to the root; folders or files) this runner's specs exercise. Only files under them count
+    /// for its specs: the diff part of a footprint, `touches` matches, coverage, and ctx notes. Without it, every
+    /// file in the project does.
+    pub scope: Option<Vec<String>>,
     #[serde(default)]
     pub env: BTreeMap<String, String>,
 }
@@ -100,6 +115,18 @@ pub struct Runner {
 pub struct Project {
     pub root: PathBuf,
     pub manifest: Manifest,
+}
+
+impl Runner {
+    /// Whether `path` (relative to the root, forward slashes) belongs to this runner's specs.
+    pub fn in_scope(&self, path: &str) -> bool {
+        self.scope.as_ref().is_none_or(|scope| {
+            scope.iter().any(|entry| {
+                let entry = entry.trim_start_matches("./").trim_end_matches('/');
+                entry.is_empty() || path == entry || path.strip_prefix(entry).is_some_and(|rest| rest.starts_with('/'))
+            })
+        })
+    }
 }
 
 impl Project {
@@ -169,6 +196,36 @@ mod tests {
             ["clients/web", "clients/mobile"]
         );
         assert!(manifest.runners["api"].report.is_none());
+        assert!(manifest.workspace.default_branch.is_none());
+        assert!(manifest.runners["api"].in_scope("anything/at/all.cs"));
+    }
+
+    #[test]
+    fn reads_the_default_branch_and_a_runner_scope() {
+        let manifest: Manifest = toml::from_str(
+            r#"
+            [workspace]
+            name = "Demo"
+            default_branch = "v5"
+
+            [runners.web]
+            command = "npx vitest run {dir}"
+            build = "npx tsc -b"
+            scope = ["frontend/", "./shared/Contracts.ts"]
+            "#,
+        )
+        .unwrap();
+        assert_eq!(manifest.workspace.default_branch.as_deref(), Some("v5"));
+        let web = &manifest.runners["web"];
+        assert_eq!(web.build.as_deref(), Some("npx tsc -b"));
+        assert!(web.in_scope("frontend/web/src/App.tsx"));
+        assert!(web.in_scope("shared/Contracts.ts"));
+        assert!(
+            !web.in_scope("frontend-sdk/index.ts"),
+            "an entry is a path, not a string prefix"
+        );
+        assert!(!web.in_scope("backend/Api/Transfer.cs"));
+        assert!(!web.in_scope("shared/Contracts.tsx"));
     }
 
     #[test]

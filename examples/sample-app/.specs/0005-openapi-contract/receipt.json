@@ -19,7 +19,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "5d058c10525a99c1e682111cda41b484b8449d8b",
+    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -35,55 +35,55 @@
   "footprint": {
     "backend/Sample.Api/AppDb.cs": {
       "lines": "15,17,23-26",
-      "hash": "blake3:620fcd12b532415bfd0d08d8235a7a8b343a8916b908dcc9a346a2488178f72c"
+      "ranges": "6e8ca5900c191b2c,3f94eb4e8d4981cc,629dbdcabc73b461"
     },
     "backend/Sample.Api/BuildingBlocks/Money.cs": {
       "lines": "18,20,22,42",
-      "hash": "blake3:0f814d298df628b99905be25e454d1c586da973ac1ea2647886df758c771921b"
+      "ranges": "b072c937ab399de8,23ee0ce58c8a090b,afe0d5adc472bc23,996328427c395fa3"
     },
     "backend/Sample.Api/Modules/Modules.cs": {
       "lines": "12-15,18-20",
-      "hash": "blake3:4c43d71566ba0ec6ec7be446d6a1075b36ed1194de33509308d6dd2f3d5b094f"
+      "ranges": "39c90c551fd01601,faf02a17522bd7cb"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": {
       "lines": "55-56,58",
-      "hash": "blake3:2d0198ddf4dd9fcae0102bb03ab5ead5640847832dc910907cc4d47c06835019"
+      "ranges": "544dee0f83e3d915,c1c1c1eb204aa662"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": {
       "lines": "22-23,25",
-      "hash": "blake3:aa4abacfa8704060b3e3cc5fae7403fc2b62758f441b04c77ed9e4d71b37ddd7"
+      "ranges": "d6c48b48f7769f5d,ae55871a8f7daa01"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": {
       "lines": "31,33",
-      "hash": "blake3:351a9697c54c83b4920259b26158ed7284480a7493f5775dde79d2018a9e8f88"
+      "ranges": "ec467c8f39a9a03f,eea47aa387380f50"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": {
       "lines": "61-62,64",
-      "hash": "blake3:b40e54fb4dc4d4efdd3d0d04413d3844da282f78f92eaf96ad36e5c8ab572b44"
+      "ranges": "574ee97db5b496e3,b03741f346d82720"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
       "lines": "56-57,59",
-      "hash": "blake3:7dbcea8230e02c05ab7ef3186405c088d2e9d1d8c822161b4632131c83c99d8d"
+      "ranges": "569c2fe1fd0f82ce,98680c866dfa14a4"
     },
     "backend/Sample.Api/Modules/Wallets/Wallet.cs": {
       "lines": "14,17,33,41,73-77,79-80",
-      "hash": "blake3:4317a405b3dd6c3fcd3a626048582f1dd4eee1d04f33e334c48e9c7f2548299b"
+      "ranges": "9f08426259a265fa,dc7695cbc38c7606,da3ea91cdb6ee61b,c7207d944e55f9a8,8610860abea0b31a,08d1cb2a47a7e329"
     },
     "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
       "lines": "17,23-24,26-28,31,34,36-41",
-      "hash": "blake3:220adb826e8f98b057b280561e282b00ac41f702f9c85c5bb5e375c31d7a2f42"
+      "ranges": "54d96c8f9de199b8,40c07d166d4c4c2e,e47dff6c35460042,fcd3f1784143c361,f6e4fd77d893c6c5,73936a9eb2147f2f"
     },
     "backend/Sample.Api/Platform.Idempotency.cs": {
       "lines": "62-65",
-      "hash": "blake3:91e47adb76a62e2fca6f578e5b706a6b813215c23422c0ac5a187608bb71b105"
+      "ranges": "91e47adb76a62e2f"
     },
     "backend/Sample.Api/Platform.cs": {
       "lines": "15-19",
-      "hash": "blake3:20632c396a9bff0e900ddf527810bc1f5a4f36b9f667f1812b0bcee8048a8253"
+      "ranges": "20632c396a9bff0e"
     },
     "backend/Sample.Api/Program.cs": {
       "lines": "6-9,11,13-14,19,21",
-      "hash": "blake3:d76e1d7f4e22d2be5155d469fcbeeb9b6890b732720982a9a022b56d41296d20"
+      "ranges": "b7e10816881d8d19,52322576e1410c84,b60a31ef4c4ae920,6a64c9fb150fc8cb,ee79f7afb223c356"
     },
     "backend/Sample.Api/Sample.Api.csproj": "blake3:d321e56bcf423af630bfcd8788438498f3b28a181cf4fd0c06ff4bf814241f56"
   },
@@ -99,7 +99,7 @@
     ".specs/0005-openapi-contract/spec.md": "blake3:ea2bdf9821350d311c22cd4edd80d65b74f078e647b70916e530acb95ae6eb1b"
   },
   "evidence": {
-    "evidence/green.trx": "blake3:88d6c3259f1e692534e4bf07fc5826906989ba8f5c3870b94c180868c61469a9",
+    "evidence/green.trx": "blake3:ec52f5bb27c66a842d7ff68ec786bc8de18f8cad0820d933f523bf9432d22a44",
     "evidence/red.trx": "blake3:58b8483c783f2291dd7e56bc5b2278493878b52d2d1f5105a1792d5144f51ad1"
   }
 }

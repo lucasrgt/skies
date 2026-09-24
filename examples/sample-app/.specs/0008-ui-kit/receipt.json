@@ -21,7 +21,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
+    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -46,12 +46,13 @@
     "frontend/web/src/ui/states.tsx": "blake3:a6490651b2384d01c30a5a9b5938d5aa7ed7ae238b620734eef685ffb20e50d1",
     "frontend/web/src/ui/theme.ts": "blake3:1015317fe0f61dfefa1cfb688bdbc9b3ada56f4e31fa740a0e4302a3beb70a13"
   },
+  "footprint_source": "diff",
   "inputs": {
     ".specs/0008-ui-kit/e2e/UiKit.test.tsx": "blake3:5a7f25bcba0041b0c735dbe20f2df54d2bd3f073023f32a90baff42c60b0abc5",
     ".specs/0008-ui-kit/spec.md": "blake3:e11309936199987b09add39b88e1a3b7dfaf16289c4fb58f7c60551aaf1bc20b"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:a8e4c71acd4f7396bb1907d91115b635cee0fcda3c1f6923b23129c3f917bd2a",
+    "evidence/green.xml": "blake3:69a836db4b40c5e1c68839fd534b0822e43977e96d0c7de119e91ccab92a777a",
     "evidence/red.xml": "blake3:3bfa4d670a959ee4c1f0549cb897afaf7248362fd38bcb1567d41a618c6de4ca"
   }
 }

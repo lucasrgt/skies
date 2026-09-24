@@ -12,7 +12,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "5d058c10525a99c1e682111cda41b484b8449d8b",
+    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -23,10 +23,6 @@
     "report": "evidence/green.xml"
   },
   "footprint": {
-    "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": "blake3:1bf67829e267101de2e26b12ee0b4b2afe41911c88981151129ab33eede854f5",
-    "backend/Sample.Api/Modules/Wallets/WalletsErrorCodes.cs": "blake3:7e50218d4ca32d873ae7b77b4a084d4d0c5cd0e7922bccf5b1629276efa70162",
-    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": "blake3:ce5db2b51de87c9f5e9ebb9c95377d475fd4b6a8313015f4459c67376ab9dd69",
-    "backend/Sample.Api/Platform.Idempotency.cs": "blake3:3572b463927e519252ebc3fa10fe3618c0c122bf311f91cc45d5ceead98c9a1f",
     "frontend/web/src/client.gen/sample.ts": "blake3:47ac67b9b715bbbc66940037d2f3795290db4061748dc37873c72583f19819ce",
     "frontend/web/src/i18n.ts": "blake3:be327133bc485f18a2b4e10a937c0a5cfed534c3aba1e13c1d1cd6b06e84c9d3",
     "frontend/web/src/i18n/resources.generated.ts": "blake3:57f8aad5fa7eb7df5eec66ab8c453f509a168de29580894fb5dba3179e95d734",
@@ -40,7 +36,7 @@
     ".specs/0010-transfer-screen/spec.md": "blake3:be0edef9ea5153785836eab35e94ae6d18df8b57895144b42792c92887c068e1"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:5502a98b775e601e8ef4b9e226a9dd2cc2dcc6d7029dec1be79bc46a977423bc",
+    "evidence/green.xml": "blake3:a2f22f2297023a7406b304dccdc7d3e7fa88545eb113ba5d6526075e44b0c438",
     "evidence/red.xml": "blake3:36f7f3ffc1fc149b56d53f22180357c110751fb4e6eb69ba012c767227f34c1c"
   },
   "ctx_revised": [
