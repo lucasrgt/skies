@@ -49,7 +49,7 @@ describe("Transfer screen", () => {
     const alerts = await screen.findAllByRole("alert");
     expect(alerts).toHaveLength(3);
     expect(screen.getByRole("heading", { name: "Transfer" })).toBeTruthy();
-    expect(wire).not.toHaveBeenCalled();
+    expect(wire.mock.calls).toHaveLength(0);
   });
 
   it("FM-2: the same wallet on both sides is reported on the destination and never sent", async () => {
@@ -58,7 +58,7 @@ describe("Transfer screen", () => {
     fill(SOURCE, SOURCE, "10");
     submit();
     expect(await screen.findByText("Choose a different wallet to send to.")).toBeTruthy();
-    expect(wire).not.toHaveBeenCalled();
+    expect(wire.mock.calls).toHaveLength(0);
   });
 
   it("FM-3: a valid submit announces while pending, then reaches the success surface", async () => {
