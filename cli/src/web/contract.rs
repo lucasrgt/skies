@@ -23,22 +23,35 @@ pub struct Contract {
 /// The product that lists the package as a frontend wins. A single-product workspace also serves a package it
 /// does not list, which keeps `skies g client` usable while a new frontend is not yet declared.
 pub fn for_package(package: &Path) -> Result<Contract> {
-    let project = Project::discover(package)?;
-    let backend = backend_for(&project, package)?;
-    let dir = if backend.extension().is_some_and(|ext| ext == "csproj") {
-        backend.parent().map(Path::to_path_buf).unwrap_or_default()
-    } else {
-        backend.clone()
-    };
-    let project_name = dir
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default();
+    let dir = backend_dir(package)?;
+    let project_name = project_name(&dir);
     let path = contract_file(&dir.join("contract"), &project_name)?;
     Ok(Contract {
         path,
         name: client_name(&project_name),
     })
+}
+
+/// The client name `skies g client` gives `package` (`sample` for a `Sample.Api` backend), without needing the
+/// contract to be built yet: the feature scaffold imports from `@/client.gen/<name>` before the client exists.
+pub fn client_name_for(package: &Path) -> Result<String> {
+    Ok(client_name(&project_name(&backend_dir(package)?)))
+}
+
+fn backend_dir(package: &Path) -> Result<PathBuf> {
+    let project = Project::discover(package)?;
+    let backend = backend_for(&project, package)?;
+    Ok(if backend.extension().is_some_and(|ext| ext == "csproj") {
+        backend.parent().map(Path::to_path_buf).unwrap_or_default()
+    } else {
+        backend
+    })
+}
+
+fn project_name(dir: &Path) -> String {
+    dir.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
 
 fn backend_for(project: &Project, package: &Path) -> Result<PathBuf> {
@@ -129,6 +142,14 @@ mod tests {
 
         assert_eq!(contract.name, "shop");
         assert!(contract.path.ends_with("api/Shop.Api/contract/Shop.Api.json"));
+    }
+
+    #[test]
+    fn names_the_client_before_the_contract_exists() {
+        let dir = workspace("[workspace]\nname = \"s\"\n[products.x]\nbackend = \"api/Missing.Api\"\n");
+        let package = dir.path().join("web").canonicalize().unwrap();
+
+        assert_eq!(client_name_for(&package).unwrap(), "missing");
     }
 
     #[test]

@@ -149,6 +149,10 @@ pub enum Generate {
     /// A frontend feature (ViewModel + View + i18n) in a React web or Flutter package.
     Feature {
         name: String,
+        /// `list`: a read screen over the `List<Name>` query. `form`: a command screen that submits the `<Name>`
+        /// mutation, with validation, pending, error, and success states.
+        #[arg(long, value_enum, default_value_t = web::FeatureKind::List)]
+        kind: web::FeatureKind,
         /// The frontend package directory (defaults to the current directory).
         #[arg(long)]
         package: Option<PathBuf>,
@@ -274,9 +278,13 @@ fn main() -> ExitCode {
 
 fn generate_command(generate: Generate) -> anyhow::Result<u8> {
     match generate {
-        Generate::Feature { name, package } => frontend_package(package.as_deref(), |kind, dir| match kind {
-            FrontendKind::React => web::feature(dir, &name),
-            FrontendKind::Flutter => flutter::feature(dir, &name),
+        Generate::Feature {
+            name,
+            kind: feature_kind,
+            package,
+        } => frontend_package(package.as_deref(), |kind, dir| match kind {
+            FrontendKind::React => web::feature(dir, &name, feature_kind),
+            FrontendKind::Flutter => flutter::feature(dir, &name, feature_kind),
         }),
         Generate::Client {
             package,

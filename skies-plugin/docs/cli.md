@@ -221,6 +221,7 @@ Arguments:
   <NAME>
 
 Options:
+      --kind <KIND>        `list`: a read screen over the `List<Name>` query. `form`: a command screen that submits the `<Name>` mutation, with validation, pending, error, and success states [default: list] [possible values: list, form]
       --package <PACKAGE>  The frontend package directory (defaults to the current directory)
   -h, --help               Print help
 ```

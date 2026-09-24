@@ -14,8 +14,10 @@ use std::path::Path;
 
 use anyhow::Result;
 
-pub fn feature(package: &Path, name: &str) -> Result<u8> {
-    feature::scaffold(&scaffold::package_dir(Some(package))?, name)
+pub use feature::FeatureKind;
+
+pub fn feature(package: &Path, name: &str, kind: FeatureKind) -> Result<u8> {
+    feature::scaffold(&scaffold::package_dir(Some(package))?, name, kind)
 }
 
 pub fn client(package: &Path) -> Result<u8> {

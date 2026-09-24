@@ -1,6 +1,7 @@
 import { toAsyncState, type AsyncState } from "@skiesjs/react";
-// The orval-generated typed hook for the `list_{{ lower }}` slice — the ONLY data the door touches.
-import { useList{{ plural }} } from "@/client.gen/{{ lower }}";
+// The orval-generated read hook of the `List{{ plural }}` slice (`.WithName(nameof(List{{ plural }}))`) — the ONLY data
+// the door touches.
+import { useList{{ plural }} } from "@/client.gen/{{ client }}";
 import i18n from "@/i18n";
 
 // FEATURE UNIT — the ViewModel (the "data door", the front-side of a backend [Slice]). Only place that touches the

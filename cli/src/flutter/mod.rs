@@ -14,8 +14,8 @@ use anyhow::Result;
 
 use crate::web::scaffold::package_dir;
 
-pub fn feature(package: &Path, name: &str) -> Result<u8> {
-    feature::scaffold(&package_dir(Some(package))?, name)
+pub fn feature(package: &Path, name: &str, kind: crate::web::FeatureKind) -> Result<u8> {
+    feature::scaffold(&package_dir(Some(package))?, name, kind)
 }
 
 pub use client::ClientOptions;
