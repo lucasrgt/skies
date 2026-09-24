@@ -94,6 +94,11 @@ mod tests {
         let manifest = crate::manifest::load(&root.join("Skies.toml")).unwrap();
         assert_eq!(manifest.workspace.name, "Acme");
         assert_eq!(manifest.products["app"].backend.as_deref(), Some("src/Acme.Api"));
+        // Every test lives in a spec: the tests project compiles nothing beside the spec cases, runs the doctor, and
+        // is what `skies doctor` builds.
+        assert!(!csproj.contains("*.Tests.cs"));
+        assert!(csproj.contains(r#"<PackageReference Include="Skies.Framework.Doctor""#));
+        assert_eq!(manifest.products["app"].tests.as_deref(), Some("tests/Acme.Tests"));
 
         assert_eq!(
             new_app(dir.path(), "Acme").unwrap(),
