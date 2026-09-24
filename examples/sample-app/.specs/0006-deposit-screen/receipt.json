@@ -2,10 +2,10 @@
   "spec": "0006-deposit-screen",
   "runner": "web",
   "red": {
-    "commit": "2c71ec2b129ac7dbb59a9a479834630e7222f073",
+    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
     "patch": {
       "file": "red.patch",
-      "hash": "blake3:fe80747f0cbb0a35aba224bdcbdd0e42591de89e8711aeee755128e83c81569e"
+      "hash": "blake3:d4d2a52a41484886fb7db3764eb4e2193cabcca737f9e6a93db761475de401d1"
     },
     "cases": {
       "FM-1": "fail",
@@ -15,7 +15,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "2c71ec2b129ac7dbb59a9a479834630e7222f073",
+    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -25,16 +25,16 @@
     "report": "evidence/green.xml"
   },
   "footprint": {
-    "frontend/core/src/deposit/Deposit.view.tsx": "blake3:0c7b58cf0bccfe2c4f732700d1122217495422ad43e9f442e51ccc17903c78f8",
-    "frontend/core/src/deposit/Deposit.viewModel.ts": "blake3:1a1fa311b6416a98142d30eb72f72a225b3b4898439f34f853c8979605e81956",
-    "frontend/core/src/deposit/deposit.i18n.ts": "blake3:f5de3851f031c9124b9766753841f805f78d5769eae876a37ea3615e947755fc"
+    "frontend/web/src/deposit/Deposit.view.tsx": "blake3:e46d7e36fb1528faaa1dba7436548afa292a130d801721873e0e6751c75d7553",
+    "frontend/web/src/deposit/Deposit.viewModel.ts": "blake3:66ce60dd2ae8917635839241585cac7359e8e7c9c76670d19214dbd772707ed8",
+    "frontend/web/src/deposit/deposit.i18n.ts": "blake3:f5de3851f031c9124b9766753841f805f78d5769eae876a37ea3615e947755fc"
   },
   "inputs": {
-    ".specs/0006-deposit-screen/e2e/Deposit.test.tsx": "blake3:bcec90b75bc22c136653bd1b9c964b523f8a8c0ac808ed6127aafa0977cc8e4e",
-    ".specs/0006-deposit-screen/spec.md": "blake3:9910ee32928168a74aaf354aeebd93825ec1abe6d3b8db2302db3c55024ee65f"
+    ".specs/0006-deposit-screen/e2e/Deposit.test.tsx": "blake3:07b7f7f9c9a586ff77a2a27d0c625999f3ac6b78dce30e62b82fa5bcfe8f4b4e",
+    ".specs/0006-deposit-screen/spec.md": "blake3:a8484742b8a4f393e41da8308b91e33f21652e44c47f82e17af4fbbbdc4c9c2f"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:a4c3c4704faf34bd8baf923ac68423ec4734b10a9ab09879a3e97aa795f94c36",
-    "evidence/red.xml": "blake3:ce3e939ff8ea00d7f418efec7a740240d798bd7f70374842f1f639d5a86c1337"
+    "evidence/green.xml": "blake3:ba422165c87333297bf2fc0f2feec343b91dc52abc58b956a0865bbbef4a8a0f",
+    "evidence/red.xml": "blake3:810169145f2ab1f45aa62a92c24d973882ab0ebb0c8b74a33480c15be9c3b357"
   }
 }

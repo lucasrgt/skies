@@ -2,10 +2,10 @@
   "spec": "0007-items-screen",
   "runner": "web",
   "red": {
-    "commit": "2c71ec2b129ac7dbb59a9a479834630e7222f073",
+    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
     "patch": {
       "file": "red.patch",
-      "hash": "blake3:3fb1f08d4ea6a902be27101ab804e4aec0d7e70b6d0f20967e290a472a4837c5"
+      "hash": "blake3:d32e89557f50cc8326f1986d7584aadc9229feb7538e06be5dd41082ad7f57ae"
     },
     "cases": {
       "FM-1": "fail",
@@ -14,7 +14,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "2c71ec2b129ac7dbb59a9a479834630e7222f073",
+    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -23,16 +23,16 @@
     "report": "evidence/green.xml"
   },
   "footprint": {
-    "frontend/core/src/items/Items.view.tsx": "blake3:ffae31797877832a477f6ae729f8bac12c299c744665a8e3ad8d66e9d42675db",
-    "frontend/core/src/items/Items.viewModel.ts": "blake3:31dc6ae857d79250acf6e33df4587dc028b455665c19f098247d81078eaefcde",
-    "frontend/core/src/items/items.i18n.ts": "blake3:ae8aa8e9779fe21ffbb8a1390cb0cea439096dd0124b99c21c242b069b62f1f1"
+    "frontend/web/src/items/Items.view.tsx": "blake3:ffae31797877832a477f6ae729f8bac12c299c744665a8e3ad8d66e9d42675db",
+    "frontend/web/src/items/Items.viewModel.ts": "blake3:5e87165dfafbcb696edba0171b4383c9c3ba3d6f2dbe1712ce88f18481cade66",
+    "frontend/web/src/items/items.i18n.ts": "blake3:ae8aa8e9779fe21ffbb8a1390cb0cea439096dd0124b99c21c242b069b62f1f1"
   },
   "inputs": {
-    ".specs/0007-items-screen/e2e/Items.test.tsx": "blake3:4ada4b6fab2e49dfbf3205c5946fb15a57251e362d491063467a9cbccb1a7043",
-    ".specs/0007-items-screen/spec.md": "blake3:2b144d9e5032191fa927d6236cb45fb46d5446c1bd10fce1ad3f0fb2d760e91d"
+    ".specs/0007-items-screen/e2e/Items.test.tsx": "blake3:7a7adcdd0177d1735ad92f50b07dc4456a705ce790c3a7fad087cb022db8193e",
+    ".specs/0007-items-screen/spec.md": "blake3:7d1fa990f1ec2bcf2796cfc2c99c6b4b7de648c38d6146265f4e9f7afc420ae1"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:34938fe0a346d4f5fffd63b5cca7e5fddcf64dec8c8d231a676fa7f4076e5c26",
-    "evidence/red.xml": "blake3:b7bb79eaf708873c548adf0013bab907469f8478dd3f07854b5f05658881f7b2"
+    "evidence/green.xml": "blake3:ac624005ab1cfac69eba464e8429866a6ba709ba7a1c55f75c2efcdbf1cbd33e",
+    "evidence/red.xml": "blake3:2455920a678c357d63b99012ca1af9b6af4bad7a81859caf46eb839fe3bef2df"
   }
 }

@@ -2,7 +2,7 @@
   "spec": "0008-ui-kit",
   "runner": "web",
   "red": {
-    "commit": "2c71ec2b129ac7dbb59a9a479834630e7222f073",
+    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:e21a028aaa6e4f8f4423be6cc8f499bf75ba3895ced2d66d0a16fb4118305ae4"
@@ -21,7 +21,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "2c71ec2b129ac7dbb59a9a479834630e7222f073",
+    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -37,9 +37,9 @@
     "report": "evidence/green.xml"
   },
   "footprint": {
-    "frontend/web/src/ui/Button.tsx": "blake3:701796d9213a72d2ae039a5e333442dac1624eaad2bbc4e9ae5cf4e7a767e019",
-    "frontend/web/src/ui/Field.tsx": "blake3:50baa5a7ff60bc480caf60c83184384eb8ddcd38820acf8660e68abfbb43674f",
-    "frontend/web/src/ui/Input.tsx": "blake3:3ce096f259ebcac85902d6b780700f39072326ec483f14a77cbcf965356564fd",
+    "frontend/web/src/ui/Button.tsx": "blake3:c50fcdadeb6e55c7dc10031fa18d2d30e246cde2da5354e36f007434753abada",
+    "frontend/web/src/ui/Field.tsx": "blake3:f9650272b0d6a5c76e8270f02d12b51a7be1e51be5dfa91792cf8bfc10a2dc3f",
+    "frontend/web/src/ui/Input.tsx": "blake3:b30cb5d7fadfbcd35eccc61901a9d661cac1a5ae7771cdef463c6472360e6d7d",
     "frontend/web/src/ui/Stack.tsx": "blake3:6848148f963e8d440542f37abf6966e3110029e1f8844f0ee12d1173407cacae",
     "frontend/web/src/ui/Text.tsx": "blake3:f86e6e9f28afd165d0f67ebf8339035a233efe18abe65d42d9101d96eb12fe52",
     "frontend/web/src/ui/index.ts": "blake3:52291a3fee7c9a6796c0062564896c9967aa165f039d45d15699f0b90cfa6be0",
@@ -48,10 +48,10 @@
   },
   "inputs": {
     ".specs/0008-ui-kit/e2e/UiKit.test.tsx": "blake3:5a7f25bcba0041b0c735dbe20f2df54d2bd3f073023f32a90baff42c60b0abc5",
-    ".specs/0008-ui-kit/spec.md": "blake3:5a8f9d63d7da069e2c0e84244c5041aba66b11e5787a4ccff68b5c796f6a9f7f"
+    ".specs/0008-ui-kit/spec.md": "blake3:e11309936199987b09add39b88e1a3b7dfaf16289c4fb58f7c60551aaf1bc20b"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:e99f22ab59924732d6fa2c3e7f377b2e0a5894885509b393c6c5a5711e72fd0d",
-    "evidence/red.xml": "blake3:804800618cfdac3867675a585e00b3b65b9d07d21879972d190faa9d7aba4fc3"
+    "evidence/green.xml": "blake3:e37e5965c3cf34df4f66b5fca23c9f0c47049d2e23fae2c0303fb295975e9d27",
+    "evidence/red.xml": "blake3:190c236f875b1b2bac3106cfd6af044a296dc9ca299eac383518d8afe9efeff7"
   }
 }
