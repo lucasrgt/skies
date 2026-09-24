@@ -1,0 +1,25 @@
+diff --git a/frontend/core/src/deposit/Deposit.viewModel.ts b/frontend/core/src/deposit/Deposit.viewModel.ts
+index 788dc8f..83c8f54 100644
+--- a/frontend/core/src/deposit/Deposit.viewModel.ts
++++ b/frontend/core/src/deposit/Deposit.viewModel.ts
+@@ -48,11 +48,16 @@ export function useDepositModel(): DepositModel {
+     { onInvalid: (first) => form.setFocus(first), order: ["walletId", "amount"] },
+   );
+ 
++  // Red: the ViewModel sends the raw form values and hands the View none of the mutation's state.
++  void submit;
+   return {
+     control: form.control,
+-    submit: () => void submit(),
+-    submitting: mutation.isPending,
+-    submitError: mutation.isError ? i18n.t("deposit:errors.submit") : null,
+-    completed: mutation.isSuccess ? mutation.data : null,
++    submit: () => {
++      const values = form.getValues();
++      mutation.mutate({ walletId: values.walletId, amount: Number(values.amount) });
++    },
++    submitting: false,
++    submitError: null,
++    completed: mutation.data ?? null,
+   };
+ }
