@@ -1,5 +1,5 @@
 {
-  "subject": "Deposit",
+  "subject": "Transfer",
   "archetype": "request-idempotency",
   "results": [
     {
@@ -7,7 +7,7 @@
       "status": "Pass",
       "reason": "A mutation carrying an idempotency key is applied at most once: two requests with the SAME key yield one resource (the original, replayed), and a request with a DIFFERENT key yields a distinct resource. Persist the key and replay on a repeat \u2014 never re-create, never dedup regardless of the key.",
       "evidence": null,
-      "durationMs": 431.5962
+      "durationMs": 9.7953
     }
   ],
   "archetypeVersion": "0.1.0",
@@ -18,5 +18,5 @@
   "notApplicable": 0,
   "outcome": "Pass",
   "acceptanceScore": 1,
-  "durationMs": 431.8014
+  "durationMs": 10.1526
 }

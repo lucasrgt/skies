@@ -23,7 +23,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "3f4dba25d6c32f829b7c2fe4963b5b5e64a7a30a",
+    "commit": "5d058c10525a99c1e682111cda41b484b8449d8b",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -65,6 +65,10 @@
       "lines": "31,33",
       "hash": "blake3:351a9697c54c83b4920259b26158ed7284480a7493f5775dde79d2018a9e8f88"
     },
+    "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": {
+      "lines": "61-62,64",
+      "hash": "blake3:b40e54fb4dc4d4efdd3d0d04413d3844da282f78f92eaf96ad36e5c8ab572b44"
+    },
     "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
       "lines": "17,19,23-29,33-34,36-38,42-44,46,49-50,52-53,56-59",
       "hash": "blake3:ed849eb93a4a1ff59bcc5f0fb5ac6f2cbe1278de915642bdf022452147de23c3"
@@ -74,12 +78,12 @@
       "hash": "blake3:cd48b5a5a9288b92dfda706ee161ecc5abb6663fbe4c6814b6d5a6e98f6a3d69"
     },
     "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
-      "lines": "17,23-24,26-28,31,34,36-40",
-      "hash": "blake3:4ab9097b0a9c69bd1392e4cf11c074f648ef8c71b7d3bf577c558aa33b5fbb16"
+      "lines": "17,23-24,26-28,31,34,36-41",
+      "hash": "blake3:220adb826e8f98b057b280561e282b00ac41f702f9c85c5bb5e375c31d7a2f42"
     },
     "backend/Sample.Api/Platform.Idempotency.cs": {
-      "lines": "22,25,28,35-38",
-      "hash": "blake3:05bdb336051092fd4666dd1d0093e2182857ad4e337e8a1b077530073ce359c1"
+      "lines": "30,33,36,39,62-65",
+      "hash": "blake3:e4c492839b20ab33bebbb659879eeebfbbde3e725c8f7e9f128739ed4d801f4e"
     },
     "backend/Sample.Api/Platform.cs": {
       "lines": "15-19",
@@ -99,8 +103,8 @@
     ".specs/0002-withdraw/spec.md": "blake3:774e0b5572151877ecbb8fc8307ff4b8804c82f1349d7ab3a9a652cb45288225"
   },
   "evidence": {
-    "evidence/avp-FM-5.json": "blake3:7d987681d50d538d55a5687580bbd7f6f8ff0e7e5426a5305bd391593d4ee2ae",
-    "evidence/green.trx": "blake3:9b80cc3e5a468e5ae9ca611009302c6baf6c7db99883f7084fd31319dce29223",
+    "evidence/avp-FM-5.json": "blake3:61f5c42a07a8c7952c191af31758b0598d5756fcea6073e2c89a0be609c5984d",
+    "evidence/green.trx": "blake3:4f46dfd7cc75dda2d2c77a4e208e1865a282f36f1f9b0f82fc6d7bb455d09bf4",
     "evidence/red.avp-FM-5.json": "blake3:6b544bc741cb6a161d44e7c74c9be016f0a928eb118098f8a9f8d7850e8bc67c",
     "evidence/red.trx": "blake3:5d1c3da029c30fcc189c7ef000be7cad72bddc55bd6da5a550cf7ab6e2a0240a"
   }

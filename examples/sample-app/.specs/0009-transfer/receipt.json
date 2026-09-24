@@ -1,0 +1,136 @@
+{
+  "spec": "0009-transfer",
+  "runner": "api",
+  "red": {
+    "commit": "dd9185ad21f6389f03c606b0e3633d5a486cb74c",
+    "cases": {
+      "FM-1": "fail",
+      "FM-2": "fail",
+      "FM-3": "fail",
+      "FM-4": "fail",
+      "FM-5": "fail",
+      "FM-6": {
+        "result": "fail",
+        "avp": [
+          "idempotency-key-honored"
+        ],
+        "verdict": "evidence/red.avp-FM-6.json"
+      }
+    },
+    "report": "evidence/red.trx"
+  },
+  "green": {
+    "commit": "5d058c10525a99c1e682111cda41b484b8449d8b",
+    "dirty": false,
+    "cases": {
+      "FM-1": "pass",
+      "FM-2": "pass",
+      "FM-3": "pass",
+      "FM-4": "pass",
+      "FM-5": "pass",
+      "FM-6": {
+        "result": "pass",
+        "avp": [
+          "idempotency-key-honored"
+        ],
+        "verdict": "evidence/avp-FM-6.json"
+      }
+    },
+    "report": "evidence/green.trx"
+  },
+  "footprint": {
+    "backend/Sample.Api/AppDb.cs": {
+      "lines": "15,17,23-26",
+      "hash": "blake3:620fcd12b532415bfd0d08d8235a7a8b343a8916b908dcc9a346a2488178f72c"
+    },
+    "backend/Sample.Api/BuildingBlocks/Money.cs": {
+      "lines": "18,20,22,26-28,30,37,39",
+      "hash": "blake3:403487d451d544d6114d777beb5e5281f9e3bb76eb2f603d8167d16da84f75c0"
+    },
+    "backend/Sample.Api/Modules/Modules.cs": {
+      "lines": "12-15,18-20",
+      "hash": "blake3:4c43d71566ba0ec6ec7be446d6a1075b36ed1194de33509308d6dd2f3d5b094f"
+    },
+    "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": {
+      "lines": "17,19,23,26-30,35,38-39,44-45,48,51-52,55-58",
+      "hash": "blake3:d0376c76697c13e8a24e0eeda3f5ab04ff49a27feaa01ccbb296913e118bc2f6"
+    },
+    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": {
+      "lines": "9,11,14-19,22-25",
+      "hash": "blake3:eaecaf293454f2e8ba29a96de91715d1d59a36926f553d2c74cfcdd57a32b81a"
+    },
+    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": {
+      "lines": "31,33",
+      "hash": "blake3:351a9697c54c83b4920259b26158ed7284480a7493f5775dde79d2018a9e8f88"
+    },
+    "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": {
+      "lines": "15,17,21,23-29,32-34,36-37,39-44,47-50,52,54-58,61-64",
+      "hash": "blake3:8ec2084b645d6a7f27a383beada0ba14d87d1cfe45101957d1d0d64c34d45a1a"
+    },
+    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
+      "lines": "56-57,59",
+      "hash": "blake3:7dbcea8230e02c05ab7ef3186405c088d2e9d1d8c822161b4632131c83c99d8d"
+    },
+    "backend/Sample.Api/Modules/Wallets/Wallet.cs": {
+      "lines": "14,17,21,33,41,48-51,59-63,65-67,73-77,79-80",
+      "hash": "blake3:cd48b5a5a9288b92dfda706ee161ecc5abb6663fbe4c6814b6d5a6e98f6a3d69"
+    },
+    "backend/Sample.Api/Modules/Wallets/WalletsErrorCodes.cs": "blake3:7e50218d4ca32d873ae7b77b4a084d4d0c5cd0e7922bccf5b1629276efa70162",
+    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
+      "lines": "17,23-24,26-28,31,34,36-41",
+      "hash": "blake3:220adb826e8f98b057b280561e282b00ac41f702f9c85c5bb5e375c31d7a2f42"
+    },
+    "backend/Sample.Api/Platform.Idempotency.cs": {
+      "lines": "30,33,43-47,50-52,55,62-65",
+      "hash": "blake3:e45b7de8a2ac4aae02f653e2567f135b4fe3fb09557617dbe43d4ceace08fe3a"
+    },
+    "backend/Sample.Api/Platform.cs": {
+      "lines": "15-19",
+      "hash": "blake3:20632c396a9bff0e900ddf527810bc1f5a4f36b9f667f1812b0bcee8048a8253"
+    },
+    "backend/Sample.Api/Program.cs": {
+      "lines": "6-9,11,13-14,19,21",
+      "hash": "blake3:d76e1d7f4e22d2be5155d469fcbeeb9b6890b732720982a9a022b56d41296d20"
+    },
+    "frontend/web/src/client.gen/sample.ts": "blake3:47ac67b9b715bbbc66940037d2f3795290db4061748dc37873c72583f19819ce",
+    "frontend/web/src/i18n.ts": "blake3:be327133bc485f18a2b4e10a937c0a5cfed534c3aba1e13c1d1cd6b06e84c9d3",
+    "frontend/web/src/i18n/resources.generated.ts": "blake3:57f8aad5fa7eb7df5eec66ab8c453f509a168de29580894fb5dba3179e95d734",
+    "frontend/web/src/transfer/Transfer.view.tsx": "blake3:c0a5f7667e1a3af882ffaf6403cacbdd81d1b1a900182328f6decee6089cc613",
+    "frontend/web/src/transfer/Transfer.viewModel.ts": "blake3:f997017f5a45a0d49e3a1f3629ac62552b24baaf08761684e15d7dbc799d9848",
+    "frontend/web/src/transfer/transfer.i18n.ts": "blake3:d0db27679c498f52e0599551a96a1e4f5bac500e7f3d9696033c484c05c1d564"
+  },
+  "footprint_source": "coverage",
+  "footprint_changed": [
+    "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs",
+    "backend/Sample.Api/Modules/Wallets/WalletsErrorCodes.cs",
+    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs",
+    "backend/Sample.Api/Platform.Idempotency.cs",
+    "frontend/web/src/client.gen/sample.ts",
+    "frontend/web/src/i18n.ts",
+    "frontend/web/src/i18n/resources.generated.ts",
+    "frontend/web/src/transfer/Transfer.view.tsx",
+    "frontend/web/src/transfer/Transfer.viewModel.ts",
+    "frontend/web/src/transfer/transfer.i18n.ts"
+  ],
+  "inputs": {
+    ".specs/0009-transfer/e2e/TransferSpec.cs": "blake3:e48128cbd01921e8c122f91c542e0f216748927fac63f3ba01ec4c0ba50edad9",
+    ".specs/0009-transfer/spec.md": "blake3:ae2bf007a142f97afd20180711b91c617f66cade8342d38628f1c1fd3863b5cf"
+  },
+  "evidence": {
+    "evidence/avp-FM-6.json": "blake3:c39de94593b5418a5e8642239ac2f32193bd77d55ce98868c25fc8d05a89cd49",
+    "evidence/green.trx": "blake3:a34898c1ff2ea8e70d86de5c5a3e4d50ad3e942aba0c34b7ad8286c8087d2327",
+    "evidence/red.avp-FM-6.json": "blake3:fad3583c1c256dc67a9184ce09e72879cb9642274043bb581dd550c65274f8ad",
+    "evidence/red.trx": "blake3:d853d710494c283123c0899668d196b84a989c0a2dd7b1c4bb88bd8108436b34"
+  },
+  "ctx_revised": [
+    "backend/Sample.Api/Modules/Wallets/Wallets.ctx.md"
+  ],
+  "verified_with": {
+    "0001-deposit": "blake3:2edef6d4bfd95635014a2db54ec1a166638d26ef29deab6cee424b93f0d7e899",
+    "0002-withdraw": "blake3:192320f91abce0aee3b9fba74d926eb9dbd9aec83047ef338b875a9cb5fcf271",
+    "0003-wallet-reads": "blake3:ce436ced7da71214a49ba4bf76053efea258f5a8adcbb07046301d1e8dc98ea2",
+    "0004-money": "blake3:36cbf6d541eec03a4b301bea704dcb4e9918c331edc748cd7cdc57ed25e06bca",
+    "0005-openapi-contract": "blake3:a7ce285b616adb15a8e18c1024325ea888ab6bb43b64bb969897a11b720a3bd3",
+    "0010-transfer-screen": "blake3:aec71e32de17defde2d08bab288c61618663c1bc3d5dc1f9359795ef7e6179ba"
+  }
+}

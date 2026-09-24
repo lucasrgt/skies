@@ -17,7 +17,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "3f4dba25d6c32f829b7c2fe4963b5b5e64a7a30a",
+    "commit": "5d058c10525a99c1e682111cda41b484b8449d8b",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -53,6 +53,10 @@
       "lines": "13,17,19,24-28,31-33",
       "hash": "blake3:826935ce00aa241283be7b4916533ffd13c19260e0a906103a8b2dfb9a43e00b"
     },
+    "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": {
+      "lines": "61-62,64",
+      "hash": "blake3:b40e54fb4dc4d4efdd3d0d04413d3844da282f78f92eaf96ad36e5c8ab572b44"
+    },
     "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
       "lines": "56-57,59",
       "hash": "blake3:7dbcea8230e02c05ab7ef3186405c088d2e9d1d8c822161b4632131c83c99d8d"
@@ -62,11 +66,11 @@
       "hash": "blake3:dbcb239cb1a85f2c69e10c18b26f3f82a9399c7b0c5dc12776c0e61bc1780c04"
     },
     "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
-      "lines": "17,23-24,26-28,31,34,36-40",
-      "hash": "blake3:4ab9097b0a9c69bd1392e4cf11c074f648ef8c71b7d3bf577c558aa33b5fbb16"
+      "lines": "17,23-24,26-28,31,34,36-41",
+      "hash": "blake3:220adb826e8f98b057b280561e282b00ac41f702f9c85c5bb5e375c31d7a2f42"
     },
     "backend/Sample.Api/Platform.Idempotency.cs": {
-      "lines": "35-38",
+      "lines": "62-65",
       "hash": "blake3:91e47adb76a62e2fca6f578e5b706a6b813215c23422c0ac5a187608bb71b105"
     },
     "backend/Sample.Api/Platform.cs": {
@@ -88,7 +92,7 @@
     ".specs/0003-wallet-reads/spec.md": "blake3:accb7cda395cbcf62464610fb3c2813005d505075ce676a1a1c8d7e99895f3e4"
   },
   "evidence": {
-    "evidence/green.trx": "blake3:b15d185402f9c4682481af9db1296b5a4369e0f4a66a1cb04a748e441807d8cf",
+    "evidence/green.trx": "blake3:b005cdb7bde76566f252364d8dc6cc68128385bc5857b67b66445a042ccd5033",
     "evidence/red.trx": "blake3:c0abf0cd12cfe738fcad177cd0aec320fee0f26cc958babf1c53c6f645b5e17d"
   }
 }

@@ -30,7 +30,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "3f4dba25d6c32f829b7c2fe4963b5b5e64a7a30a",
+    "commit": "5d058c10525a99c1e682111cda41b484b8449d8b",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -79,6 +79,10 @@
       "lines": "31,33",
       "hash": "blake3:351a9697c54c83b4920259b26158ed7284480a7493f5775dde79d2018a9e8f88"
     },
+    "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": {
+      "lines": "61-62,64",
+      "hash": "blake3:b40e54fb4dc4d4efdd3d0d04413d3844da282f78f92eaf96ad36e5c8ab572b44"
+    },
     "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
       "lines": "56-57,59",
       "hash": "blake3:7dbcea8230e02c05ab7ef3186405c088d2e9d1d8c822161b4632131c83c99d8d"
@@ -88,12 +92,12 @@
       "hash": "blake3:dbcb239cb1a85f2c69e10c18b26f3f82a9399c7b0c5dc12776c0e61bc1780c04"
     },
     "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
-      "lines": "17,23-24,26-28,31,34,36-40",
-      "hash": "blake3:4ab9097b0a9c69bd1392e4cf11c074f648ef8c71b7d3bf577c558aa33b5fbb16"
+      "lines": "17,23-24,26-28,31,34,36-41",
+      "hash": "blake3:220adb826e8f98b057b280561e282b00ac41f702f9c85c5bb5e375c31d7a2f42"
     },
     "backend/Sample.Api/Platform.Idempotency.cs": {
-      "lines": "22,25,28,35-38",
-      "hash": "blake3:05bdb336051092fd4666dd1d0093e2182857ad4e337e8a1b077530073ce359c1"
+      "lines": "30,33,36,39,62-65",
+      "hash": "blake3:e4c492839b20ab33bebbb659879eeebfbbde3e725c8f7e9f128739ed4d801f4e"
     },
     "backend/Sample.Api/Platform.cs": {
       "lines": "15-19",
@@ -113,9 +117,9 @@
     ".specs/0001-deposit/spec.md": "blake3:77077ab78bdf6c14030d4bb85f18695865257c67c109a3cd500848db8d4de78a"
   },
   "evidence": {
-    "evidence/avp-FM-5.json": "blake3:593203e62197f4021e2fa2faab45f720e69c62765683e0b239a1f109d9a5af4f",
-    "evidence/avp-FM-6.json": "blake3:a6017d6c148d10d43b5827b97c65b585967f144b94cb8f41ed18b9c8e74cdc09",
-    "evidence/green.trx": "blake3:a572c9f6b51ed4c51b951f9b163612b2ca0f5f7ff132378d3a57c54359163a65",
+    "evidence/avp-FM-5.json": "blake3:f69517802c31e3bf211e59e5d64b095c16b7c9944b49baf2d75f77098b43b06f",
+    "evidence/avp-FM-6.json": "blake3:77487a50d195a433a8e688677a51954ca708cc8419a54303283f002aa502c537",
+    "evidence/green.trx": "blake3:354426cc14af12ae6ea6b418c039138657163c2e1443d9967f3c94ea4d94f75f",
     "evidence/red.avp-FM-5.json": "blake3:e4fa69c56cdc0562128cd359ef79e80589f3cf9a9f5c0b02adeeaa5e92260f27",
     "evidence/red.avp-FM-6.json": "blake3:318125fa6807f8fccb0dcf38330b0536877981d536bd44b4b1cf1a0f822193eb",
     "evidence/red.trx": "blake3:d611104d873c29e33fdd5a3cc927c35147094f0bcf80f1c9557f95e8fcf3defe"

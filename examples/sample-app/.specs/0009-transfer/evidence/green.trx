@@ -1,0 +1,174 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="00000000-0000-0000-0000-000000000001" name="{run}" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-24T04:42:41.4590689-03:00" queuing="2026-09-24T04:42:41.4590689-03:00" start="2026-09-24T04:42:39.0904300-03:00" finish="2026-09-24T04:42:41.4653381-03:00" />
+  <TestSettings name="default" id="00000000-0000-0000-0000-000000000002">
+    <Deployment runDeploymentRoot="{run}" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="78421f21-5afc-1bdf-275a-266e7da47381" testName="FM-5: every invalid field is reported at once" computerName="{machine}" duration="00:00:00.0193985" startTime="2026-09-24T04:42:41.0802515-03:00" endTime="2026-09-24T04:42:41.0988460-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="46f7b49c-2e7e-a3de-1841-2462c421c92a" testName="FM-2: overdrawing the source answers 422 and moves neither balance" computerName="{machine}" duration="00:00:00.0185291" startTime="2026-09-24T04:42:41.0266215-03:00" endTime="2026-09-24T04:42:41.0448543-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="609e8bb6-a2d4-04c5-326a-a6731554dfcd" testName="FM-6: a retry with the same Idempotency-Key moves the money once" computerName="{machine}" duration="00:00:00.0759794" startTime="2026-09-24T04:42:40.9625824-03:00" endTime="2026-09-24T04:42:41.0254520-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="ea619da1-82d5-f211-43cf-e8ce575c15c1" testName="FM-1: a transfer debits the source and credits the destination" computerName="{machine}" duration="00:00:00.0204222" startTime="2026-09-24T04:42:41.1170547-03:00" endTime="2026-09-24T04:42:41.1372215-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000007" testId="d7444c3c-e261-b918-7930-7213ad7ed482" testName="FM-3: a transfer from a wallet to itself answers 422 and leaves it untouched" computerName="{machine}" duration="00:00:00.0173567" startTime="2026-09-24T04:42:41.0994575-03:00" endTime="2026-09-24T04:42:41.1165232-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000007" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000008" testId="7bf2ecc3-9f8a-5e6c-5b6e-4d5134e97f61" testName="FM-4: a missing destination answers 404 and the source keeps its money" computerName="{machine}" duration="00:00:00.6100905" startTime="2026-09-24T04:42:40.3481173-03:00" endTime="2026-09-24T04:42:40.9485139-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000008" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000009" testId="cfe133ac-4c18-c177-5913-2f225e5322bc" testName="FM-4: a missing source answers 404 and the destination is not credited" computerName="{machine}" duration="00:00:00.0339585" startTime="2026-09-24T04:42:41.0454898-03:00" endTime="2026-09-24T04:42:41.0796897-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000009" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="FM-6: a retry with the same Idempotency-Key moves the money once" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="609e8bb6-a2d4-04c5-326a-a6731554dfcd">
+      <Execution id="00000000-0000-0000-0000-000000000005" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0009.TransferSpec" name="Same_key_moves_once" />
+    </UnitTest>
+    <UnitTest name="FM-3: a transfer from a wallet to itself answers 422 and leaves it untouched" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="d7444c3c-e261-b918-7930-7213ad7ed482">
+      <Execution id="00000000-0000-0000-0000-000000000007" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0009.TransferSpec" name="Same_wallet_is_refused" />
+    </UnitTest>
+    <UnitTest name="FM-4: a missing source answers 404 and the destination is not credited" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="cfe133ac-4c18-c177-5913-2f225e5322bc">
+      <Execution id="00000000-0000-0000-0000-000000000009" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0009.TransferSpec" name="Missing_source_is_not_found" />
+    </UnitTest>
+    <UnitTest name="FM-1: a transfer debits the source and credits the destination" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="ea619da1-82d5-f211-43cf-e8ce575c15c1">
+      <Execution id="00000000-0000-0000-0000-000000000006" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0009.TransferSpec" name="Transfer_moves_the_amount" />
+    </UnitTest>
+    <UnitTest name="FM-4: a missing destination answers 404 and the source keeps its money" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="7bf2ecc3-9f8a-5e6c-5b6e-4d5134e97f61">
+      <Execution id="00000000-0000-0000-0000-000000000008" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0009.TransferSpec" name="Missing_destination_is_not_found" />
+    </UnitTest>
+    <UnitTest name="FM-2: overdrawing the source answers 422 and moves neither balance" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="46f7b49c-2e7e-a3de-1841-2462c421c92a">
+      <Execution id="00000000-0000-0000-0000-000000000004" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0009.TransferSpec" name="Overdraw_is_refused" />
+    </UnitTest>
+    <UnitTest name="FM-5: every invalid field is reported at once" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="78421f21-5afc-1bdf-275a-266e7da47381">
+      <Execution id="00000000-0000-0000-0000-000000000003" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0009.TransferSpec" name="Every_invalid_field_is_reported" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="78421f21-5afc-1bdf-275a-266e7da47381" executionId="00000000-0000-0000-0000-000000000003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="46f7b49c-2e7e-a3de-1841-2462c421c92a" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="609e8bb6-a2d4-04c5-326a-a6731554dfcd" executionId="00000000-0000-0000-0000-000000000005" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ea619da1-82d5-f211-43cf-e8ce575c15c1" executionId="00000000-0000-0000-0000-000000000006" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d7444c3c-e261-b918-7930-7213ad7ed482" executionId="00000000-0000-0000-0000-000000000007" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7bf2ecc3-9f8a-5e6c-5b6e-4d5134e97f61" executionId="00000000-0000-0000-0000-000000000008" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cfe133ac-4c18-c177-5913-2f225e5322bc" executionId="00000000-0000-0000-0000-000000000009" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="7" executed="7" passed="7" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.06]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.09]   Discovered:  Sample.Tests
+[xUnit.net 00:00:00.11]   Starting:    Sample.Tests
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 2 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 2 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 2 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.93]   Finished:    Sample.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>
