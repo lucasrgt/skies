@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- AVP verifiers for failure modes tagged [avp: ...] in spec.md; the spec E2E save their verdicts as evidence. -->
+    <PackageReference Include="Assay.Net" Version="0.4.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
