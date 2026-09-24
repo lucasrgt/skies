@@ -1,31 +1,44 @@
 #!/usr/bin/env bash
-# auth-smoke — render apps with the `skies` binary, point them at this working tree's Skies.Framework.* projects,
-# and prove the generated code builds doctor-clean and its spec E2E pass. This is the guard that catches a template
-# regression (a generated app that does not compile, trips a SKY rule, or ships a red spec) before a release does.
+# auth-smoke — render apps with the `skies` binary, restore them against this working tree's Skies.Framework.*
+# packages, and prove the generated code builds doctor-clean and its spec E2E pass. This is the guard that catches a
+# template regression (a generated app that does not compile, trips a SKY rule, or ships a red spec) before a release
+# does.
+#
+# It tests what adopters install: the framework is `dotnet pack`ed at the working-tree version into a local feed, and
+# the generated apps restore Skies.Framework.* from that feed through a temporary NuGet.config (every other package
+# from nuget.org), into a dedicated packages folder whose entries for that version are purged first. So a package that
+# lacks a type the templates use (an API that only exists as source) fails here, as it would for an adopter.
 #
 # Three apps, each rendered with `skies new`:
 #   Full   — g auth + auth:otp + auth:oauth + auth:email, plus module/slice/entity/vo/hub and a slice under an
 #            anonymous module group.
 #   Single — g auth --skip-tenancy --skip-cookies.
-#   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, with no edit after crud.
+#   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, and an app-wide entity with its own crud,
+#            with no edit to the generated code after crud.
+# The owner's part is done by hand, as an author would: each generated module's ctx gets real boundaries and design
+# notes (the doctor refuses the skeleton), and each crud entity gets its domain state before crud reads it.
 #
 # Legs per app:
 #   PACKAGE — the generated API holds no auth mechanics of its own (no crypto primitive, no argon2 package): hashing,
 #            token minting, rotation, and code checks are Skies.Framework.Auth's, so a fix there reaches every app.
 #   DOCTOR — run `skies doctor` in the app: the workspace leg (every root entry declared in Skies.toml, SKYWS*) and
 #            the tests project's build (and through it the API's) with the SKY* analyzers ON. Every leg must be clean
-#            (errors and warnings alike, for every app), so the generated spec cases are held to SKY0029 (every test
-#            lives in a spec) and the generators to the declared root, with the rest.
+#            (errors and warnings alike, for every app).
 #   SPECS  — build and run the tests project (analyzers off), which compiles .specs/*/e2e; every case must pass
 #            and the count of passed tests must equal the number of FM cases in the specs.
 #
 # Headless and Docker-free: the in-memory provider backs the tests. Needs cargo and the .NET 10 SDK on PATH (e.g.
-# `mise exec rust@latest dotnet@10 -- tools/auth-smoke.sh`). Set SKIES to reuse a prebuilt binary.
+# `mise exec rust@latest dotnet@10 -- tools/auth-smoke.sh`). Set SKIES to reuse a prebuilt binary, and
+# SKIES_SMOKE_PACKAGES to move the packages folder (default ~/.cache/skies/smoke-packages).
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
+FEED="$WORK/feed"
+PACKAGES="${SKIES_SMOKE_PACKAGES:-$HOME/.cache/skies/smoke-packages}"
+VERSION="$(sed -nE 's#.*<Version>([^<]+)</Version>.*#\1#p' "$REPO/build/Skies.Framework.Library.props" | head -1)"
+[ -n "$VERSION" ] || { echo "FAIL: no <Version> in build/Skies.Framework.Library.props" >&2; exit 1; }
 
 if [ -z "${SKIES:-}" ]; then
   echo "==> building the skies binary"
@@ -33,21 +46,43 @@ if [ -z "${SKIES:-}" ]; then
   SKIES="$REPO/target/debug/skies"
 fi
 
-# Swap every Skies.Framework.* PackageReference for a ProjectReference into this checkout, so the smoke tests the
-# working tree rather than whatever is on the package feed. The doctor becomes an analyzer-only reference.
-use_working_tree() {
-  local csproj="$1"
-  sed -E -i \
-    -e "s#<PackageReference Include=\"Skies\.Framework\.Doctor\" Version=\"[^\"]*\" PrivateAssets=\"all\" />#<ProjectReference Include=\"$REPO/analyzers/Skies.Framework.Doctor/Skies.Framework.Doctor.csproj\" OutputItemType=\"Analyzer\" ReferenceOutputAssembly=\"false\" />#" \
-    -e "s#<PackageReference Include=\"(Skies\.Framework\.[A-Za-z.]+)\" Version=\"[^\"]*\" />#<ProjectReference Include=\"$REPO/src/\1/\1.csproj\" />#" \
-    "$csproj"
-  if grep -q 'PackageReference Include="Skies\.' "$csproj"; then
-    echo "FAIL: $csproj still references a Skies package from the feed" >&2
-    exit 1
-  fi
-}
+echo "==> packing Skies.Framework.* $VERSION into a local feed"
+mkdir -p "$FEED"
+for project in "$REPO"/src/*/*.csproj "$REPO/analyzers/Skies.Framework.Doctor/Skies.Framework.Doctor.csproj"; do
+  dotnet pack "$project" -c Release -o "$FEED" -p:ContinuousIntegrationBuild=true --nologo -v quiet >/dev/null \
+    || { echo "FAIL: dotnet pack $project" >&2; exit 1; }
+done
+ls "$FEED"/Skies.Framework.Auth."$VERSION".nupkg >/dev/null
 
-# new <App> — render an app into $WORK/<App> and print its API directory.
+# Hermetic restore: Skies.Framework.* only from the feed (source mapping), everything else from nuget.org, into a
+# packages folder of its own. A cached copy of this version (the published package, or an older pack) is purged so
+# the restore takes the working tree's.
+mkdir -p "$PACKAGES"
+rm -rf "$PACKAGES"/skies.framework*/"$VERSION"
+cat > "$WORK/NuGet.config" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="skies-working-tree" value="$FEED" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+  </packageSources>
+  <packageSourceMapping>
+    <packageSource key="skies-working-tree">
+      <package pattern="Skies.Framework" />
+      <package pattern="Skies.Framework.*" />
+    </packageSource>
+    <packageSource key="nuget.org">
+      <package pattern="*" />
+    </packageSource>
+  </packageSourceMapping>
+  <config>
+    <add key="globalPackagesFolder" value="$PACKAGES" />
+  </config>
+</configuration>
+EOF
+
+# new <App> — render an app into $WORK/<App> (under the feed's NuGet.config) and print its API directory.
 new_app() {
   (cd "$WORK" && "$SKIES" new "$1" >/dev/null)
   echo "$WORK/$1/src/$1.Api"
@@ -55,13 +90,45 @@ new_app() {
 
 g() { (cd "$API" && "$SKIES" g "$@" >/dev/null); }
 
+# ctx <Module> <inside> <outside> <design note> — the author's part of `g module`: the module's own boundaries and
+# design notes, replacing the skeleton's commented hints.
+ctx() {
+  local file="$API/Modules/$1/$1.ctx.md"
+  grep -q '^<!-- ' "$file" || { echo "FAIL: $file is not the g module skeleton" >&2; exit 1; }
+  cat > "$file" <<EOF
+# $(echo "$1" | tr '[:upper:]' '[:lower:]')
+
+The $1 module of the smoke app.
+
+## Boundaries
+
+- **Inside**: $2
+- **Outside**: $3
+
+## Design notes
+
+$4
+EOF
+}
+
+# uses_packages <App> — every Skies.Framework reference is a package at the working-tree version, never a project.
+uses_packages() {
+  local app="$1" csproj
+  for csproj in "$WORK/$app/src/$app.Api/$app.Api.csproj" "$WORK/$app/tests/$app.Tests/$app.Tests.csproj"; do
+    if grep -q 'ProjectReference Include="[^"]*Skies\.Framework' "$csproj" \
+      || grep -E 'PackageReference Include="Skies\.Framework[^"]*"' "$csproj" | grep -vq "Version=\"$VERSION\""; then
+      echo "FAIL: $csproj does not reference Skies.Framework.* $VERSION as packages" >&2
+      exit 1
+    fi
+  done
+}
+
 # doctor <App> — run `skies doctor` in the app: the workspace leg, then the tests project's build (it references the
 # API) with the analyzers on. Every leg in its table must read `clean`: any finding, error or warning, fails.
 doctor() {
   local app="$1" out ok=1 unclean
-  echo "==> [$app] DOCTOR: skies doctor (declared root + build with the SKY* analyzers on)"
-  use_working_tree "$WORK/$app/src/$app.Api/$app.Api.csproj"
-  use_working_tree "$WORK/$app/tests/$app.Tests/$app.Tests.csproj"
+  echo "==> [$app] DOCTOR: skies doctor (declared root + build with the SKY* analyzers on, packages $VERSION)"
+  uses_packages "$app"
   out="$(cd "$WORK/$app" && "$SKIES" doctor 2>&1)" || ok=0
   # The table's rows sit between its `leg` header and its `total` line.
   unclean="$(echo "$out" | awk '/^leg /{t=1;next} /^total /{t=0} t && $0 !~ / clean +0 /')"
@@ -70,7 +137,11 @@ doctor() {
     echo "FAIL: [$app] must be doctor-clean. Reported:"; echo "$out" | head -60
     exit 1
   fi
-  echo "ok: [$app] skies doctor is clean: the root is declared and the build has zero SKY diagnostics"
+  if [ ! -f "$PACKAGES/skies.framework.abstractions/$VERSION/skies.framework.abstractions.$VERSION.nupkg" ]; then
+    echo "FAIL: [$app] did not restore Skies.Framework.Abstractions $VERSION from the feed" >&2
+    exit 1
+  fi
+  echo "ok: [$app] skies doctor is clean against the packed packages: the root is declared, zero SKY diagnostics"
 }
 
 # package <App> — fail when the generated API re-implements a mechanism the package owns.
@@ -110,25 +181,33 @@ API="$(new_app Full)"
 g auth; g auth:otp; g auth:oauth; g auth:email
 g module Billing; g slice Billing CreateInvoice; g slice Billing GetInvoice; g entity Billing Invoice
 g vo Money; g hub Billing Payments
-# A module whose group is anonymous on purpose: the slice inherits the group's decision (SKY0022) and states none of
-# its own, so it never asks for an auth scheme the group waived.
+ctx Billing "invoices and their lifecycle, which only this module writes." \
+  "payments settle through a provider the Payments hub reports on; accounts are referenced by id." \
+  "An invoice is immutable once issued: a correction is a new invoice, so a paid amount never changes under a payer."
+# A module whose group is anonymous on purpose: the slice inherits the group's decision and states none of its own,
+# so it never asks for an auth scheme the group waived.
 g module Status
-sed -i 's#^        //   <Slice>.Map(status);$#&\n        var status = app.MapGroup("/status").AllowAnonymous();#' "$API/Modules/Status/StatusModule.cs"
+sed -i '/^    public static void Map(IEndpointRouteBuilder app)$/{n;s#$#\n        var status = app.MapGroup("/status").AllowAnonymous();#}' \
+  "$API/Modules/Status/StatusModule.cs"
+grep -q '^        var status = app.MapGroup("/status").AllowAnonymous();$' "$API/Modules/Status/StatusModule.cs" \
+  || { echo "FAIL: the g module scaffold changed shape; the smoke could not declare an anonymous group" >&2; exit 1; }
 g slice Status Uptime
 grep -q '        Uptime.Map(status);' "$API/Modules/Status/StatusModule.cs" \
   && ! grep -q 'RequireAuthorization' "$API/Modules/Status/Slices/Uptime.cs" \
   || { echo "FAIL: g slice did not map Uptime under the anonymous group without a posture of its own" >&2; exit 1; }
+ctx Status "the public uptime probe status pages poll." "health of dependencies, which belongs to real monitoring." \
+  "Status is anonymous as a whole because a status page must answer for signed-out visitors."
 
 echo "==> rendering Single: auth --skip-tenancy --skip-cookies"
 API="$(new_app Single)"
 g auth --skip-tenancy --skip-cookies
 
-echo "==> rendering Crud: auth + module + entity + crud"
+echo "==> rendering Crud: auth + module + entity + crud, tenant-scoped and app-wide"
 API="$(new_app Crud)"
-g auth; g module Catalog; g entity Catalog Product
-# The owner's side, before `g crud` and only there: give the scaffolded entity its tenancy and its domain state
-# (encapsulated, as `g entity` leaves it), and register its DbSet. crud then writes Open/Update/RowVersion into the
-# entity, the slices, and the module's route group; nothing is edited after it.
+g auth; g module Catalog; g entity Catalog Product; g entity Catalog Tag
+# The owner's side, before `g crud` and only there: give the scaffolded entities their domain state (encapsulated, as
+# `g entity` leaves it) and Product its tenancy. crud then registers each DbSet in AppDb and writes Open/Update/
+# RowVersion into the entity, its view record, the slices, and the module's route group; nothing is edited after it.
 ENTITY="$API/Modules/Catalog/Product.cs"
 sed -i '1i using Crud.Api.Tenancy;\n' "$ENTITY"
 sed -i 's#^public class Product$#public class Product : ITenantScoped#' "$ENTITY"
@@ -152,10 +231,20 @@ EOF
 sed -i "/^    public Guid Id { get; private set; }\$/r $WORK/product-fields.cs" "$ENTITY"
 grep -q 'public class Product : ITenantScoped' "$ENTITY" && grep -q 'public decimal Price' "$ENTITY" \
   || { echo "FAIL: the g entity scaffold changed shape; the smoke's owner edit no longer applies" >&2; exit 1; }
-sed -i 's#^    public DbSet<UserSession> UserSessions => Set<UserSession>();#&\n\n    public DbSet<Crud.Api.Modules.Catalog.Product> Products => Set<Crud.Api.Modules.Catalog.Product>();#' "$API/AppDb.cs"
-grep -q 'DbSet<Crud.Api.Modules.Catalog.Product>' "$API/AppDb.cs" \
-  || { echo "FAIL: AppDb.cs changed shape; the smoke could not register the DbSet" >&2; exit 1; }
+cat > "$WORK/tag-fields.cs" <<'EOF'
+
+    /// <summary>The label every org shares.</summary>
+    public string Label { get; private set; } = "";
+EOF
+sed -i "/^    public Guid Id { get; private set; }\$/r $WORK/tag-fields.cs" "$API/Modules/Catalog/Tag.cs"
 g crud Catalog Product
+g crud Catalog Tag
+grep -q 'public DbSet<Product> Products => Set<Product>();' "$API/AppDb.cs" \
+  && grep -q 'public DbSet<Tag> Tags => Set<Tag>();' "$API/AppDb.cs" \
+  || { echo "FAIL: g crud did not register the DbSets in AppDb.cs" >&2; exit 1; }
+ctx Catalog "the products an org sells and the tags every org shares." \
+  "pricing rules and stock, which belong to their own modules." \
+  "Products are scoped to their org by the DbContext's tenant filter; tags are app-wide, so any org may read them."
 
 package Full
 doctor Full
