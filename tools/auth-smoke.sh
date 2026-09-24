@@ -10,9 +10,10 @@
 #   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, with no edit after crud.
 #
 # Legs per app:
-#   DOCTOR — build the tests project (and through it the API) with the SKY* analyzers ON, as `skies doctor` does;
-#            the build must succeed with zero SKY diagnostics (errors and warnings alike, for every app), so the
-#            generated spec cases are held to SKY0029 (every test lives in a spec) with the rest.
+#   DOCTOR — run `skies doctor` in the app: the workspace leg (every root entry declared in Skies.toml, SKYWS*) and
+#            the tests project's build (and through it the API's) with the SKY* analyzers ON. Every leg must be clean
+#            (errors and warnings alike, for every app), so the generated spec cases are held to SKY0029 (every test
+#            lives in a spec) and the generators to the declared root, with the rest.
 #   SPECS  — build and run the tests project (analyzers off), which compiles .specs/*/e2e; every case must pass
 #            and the count of passed tests must equal the number of FM cases in the specs.
 #
@@ -52,21 +53,22 @@ new_app() {
 
 g() { (cd "$API" && "$SKIES" g "$@" >/dev/null); }
 
-# doctor <App> — build the tests project (it references the API) with the analyzers on; any SKY finding, error or
-# warning, fails.
+# doctor <App> — run `skies doctor` in the app: the workspace leg, then the tests project's build (it references the
+# API) with the analyzers on. Every leg in its table must read `clean`: any finding, error or warning, fails.
 doctor() {
-  local app="$1" out ok=1 findings
-  echo "==> [$app] DOCTOR: build with the SKY* analyzers on"
+  local app="$1" out ok=1 unclean
+  echo "==> [$app] DOCTOR: skies doctor (declared root + build with the SKY* analyzers on)"
   use_working_tree "$WORK/$app/src/$app.Api/$app.Api.csproj"
   use_working_tree "$WORK/$app/tests/$app.Tests/$app.Tests.csproj"
-  out="$(dotnet build "$WORK/$app/tests/$app.Tests/$app.Tests.csproj" -c Debug 2>&1)" || ok=0
-  findings="$(echo "$out" | grep -oE "(error|warning) SKY[0-9]+" | sort | uniq -c | sort -rn || true)"
-  if [ "$ok" -ne 1 ] || [ -n "$findings" ]; then
-    echo "FAIL: [$app] must build doctor-clean. Reported:"; echo "${findings:-<no SKY findings; the build failed>}"
-    echo "$out" | grep -E "error|warning SKY" | sort -u | head -40
+  out="$(cd "$WORK/$app" && "$SKIES" doctor 2>&1)" || ok=0
+  # The table's rows sit between its `leg` header and its `total` line.
+  unclean="$(echo "$out" | awk '/^leg /{t=1;next} /^total /{t=0} t && $0 !~ / clean +0 /')"
+  echo "$out" | grep -qE '^workspace +clean ' || unclean="${unclean:-the workspace leg did not run}"
+  if [ "$ok" -ne 1 ] || [ -n "$unclean" ]; then
+    echo "FAIL: [$app] must be doctor-clean. Reported:"; echo "$out" | head -60
     exit 1
   fi
-  echo "ok: [$app] builds with zero SKY diagnostics"
+  echo "ok: [$app] skies doctor is clean: the root is declared and the build has zero SKY diagnostics"
 }
 
 # specs <App> — run the tests project (it compiles .specs/*/e2e) and check every FM case ran and passed.

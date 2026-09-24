@@ -143,6 +143,20 @@ mod tests {
     }
 
     #[test]
+    fn a_new_app_declares_exactly_its_root() {
+        let dir = tempfile::tempdir().unwrap();
+        new_app(dir.path(), "Acme").unwrap();
+        let root = dir.path().join("Acme");
+        let manifest = crate::manifest::load(&root.join("Skies.toml")).unwrap();
+        let declared = manifest.workspace.root.expect("the template declares its root");
+
+        let (status, findings) = crate::doctor::workspace::check(&root, Some(&declared));
+
+        assert_eq!(status, crate::doctor::Status::Ran);
+        assert!(findings.is_empty(), "{findings:#?}");
+    }
+
+    #[test]
     fn rejects_names_that_are_not_namespaces() {
         let dir = tempfile::tempdir().unwrap();
         for bad in ["", "my-app", "1app", "a..b", "a/b"] {

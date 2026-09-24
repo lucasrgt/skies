@@ -62,6 +62,8 @@ test file beside the code. An isolated system (a value object, a calculation, a 
   spec cases under `.specs/*/e2e`, and nothing else.
 - **Specs** `.specs/` — one folder per feature.
 - `Skies.toml` — the topology `skies doctor` checks and the runners `skies proof` uses.
+- **The root is an allowlist** (`[workspace] root` in `Skies.toml`, `SKYWS001`): put a new file under an existing
+  folder; declare a new root entry in `Skies.toml` only for a new top-level concern. Never leave logs or images there.
 
 ---
 

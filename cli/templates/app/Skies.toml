@@ -3,6 +3,22 @@
 
 [workspace]
 name = "Skies.Framework.Starter"
+# Everything allowed at the repository root; `skies doctor` flags anything else (SKYWS001). A trailing / names a
+# folder, no slash a file, and globs work (*.slnx). A new file belongs under an existing folder; add a line here only
+# for a new top-level concern (e.g. "clients/" with your first frontend). Skies.toml and .git are always allowed.
+root = [
+  ".claude/",
+  ".github/",
+  ".specs/",
+  "src/",
+  "tests/",
+  ".editorconfig",
+  ".gitignore",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "Directory.Build.props",
+  "*.slnx",
+]
 
 [products.app]
 backend = "src/Skies.Framework.Starter.Api"   # .NET vertical slices; the SKY* analyzers run in its build
