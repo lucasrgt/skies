@@ -1,5 +1,5 @@
 import { TextInput } from "react-native";
-import { color, radius, space, text } from "./tokens-bridge";
+import { color, radius, space, text } from "./theme";
 import { useFieldWiring } from "./Field";
 
 export function Input({

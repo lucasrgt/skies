@@ -1,8 +1,8 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig, configDefaults } from "vitest/config";
+import { defineConfig } from "vitest/config";
 
-// Verifies the framework's spine/tools AND the canonical example (examples/sample-app) — wired, not mocked. The
-// example's agnostic core (the ViewModel + the design-system-driven View) renders against the WEB `@/ui` impl in
+// Runs the spine (@skiesjs/react) tests AND the canonical example (examples/sample-app). The example's agnostic
+// core (the ViewModel + the View) renders against the WEB `@/ui` components in
 // jsdom; the spine + the generated client + i18n resolve to source. Root is the repo so the example (a sibling of
 // frontend/) is in scope; the include globs keep the run to the real test files.
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
@@ -14,13 +14,8 @@ export default defineConfig({
     root: r(".."),
     environment: "jsdom",
     setupFiles: [r("./vitest.setup.ts")],
-    // __fixtures__ holds textual ESLint RuleTester fixtures (including SKYFE033's fake Assay calls),
-    // not runnable suites — keep them out of the run (+ Vitest's own defaults).
-    exclude: [...configDefaults.exclude, "**/__fixtures__/**"],
     include: [
       "frontend-sdk/packages/**/*.test.{ts,tsx}",
-      "frontend-sdk/tools/**/*.test.{ts,tsx}",
-      "frontend-sdk/tests/**/*.test.{ts,tsx}",
       "examples/sample-app/frontend/core/**/*.test.{ts,tsx}",
       "examples/sample-app/frontend/web/**/*.test.{ts,tsx}",
     ],
@@ -28,13 +23,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@skiesjs/react": r("./packages/skies-react/src/index.ts"),
-      "assay-design": r("./node_modules/assay-design/dist/index.js"),
-      "avp-assay/react/vitest": r("./node_modules/avp-assay/dist/react/vitest.js"),
-      "avp-assay/react": r("./node_modules/avp-assay/dist/react.js"),
-      "avp-assay": r("./node_modules/avp-assay/dist/index.js"),
       "@/client.gen/sample": r("../examples/sample-app/frontend/core/src/client.gen/sample.ts"),
       "@/i18n": r("../examples/sample-app/frontend/core/src/i18n.ts"),
-      "@/design/tokens": r("../examples/sample-app/frontend/core/src/design/tokens.ts"),
       "@/ui": r("../examples/sample-app/frontend/web/src/ui/index.ts"),
       // The example lives at examples/ (a sibling of frontend/), so its direct bare imports can't reach
       // frontend/node_modules by node resolution — alias them to the framework's installed copies (their transitive

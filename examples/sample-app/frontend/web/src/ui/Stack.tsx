@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import { space, type SpaceToken } from "./tokens-bridge";
+import { space, type Space } from "./theme";
 
 const ALIGN = { start: "flex-start", center: "center", end: "flex-end", stretch: "stretch" } as const;
 
 // Layout rhythm lives HERE: gap comes from the spacing scale, children never carry margins
-// (DESIGN-CONVENTIONS.md §Layout — vertical rhythm belongs to the container).
+// (vertical rhythm belongs to the container).
 export function Stack({
   children,
   gap = "md",
@@ -13,14 +13,13 @@ export function Stack({
   padding,
 }: {
   children: ReactNode;
-  gap?: SpaceToken;
+  gap?: Space;
   direction?: "vertical" | "horizontal";
   align?: "start" | "center" | "end" | "stretch";
-  padding?: SpaceToken;
+  padding?: Space;
 }) {
   return (
     <div
-      data-ui="stack"
       style={{
         display: "flex",
         flexDirection: direction === "vertical" ? "column" : "row",

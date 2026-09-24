@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Text as RNText } from "react-native";
-import { color, text, type TextRole } from "./tokens-bridge";
+import { color, text, type TextRole } from "./theme";
 
 export function Text({
   children,

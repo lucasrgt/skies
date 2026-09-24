@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import { space, type SpaceToken } from "./tokens-bridge";
+import { space, type Space } from "./theme";
 
 const ALIGN = { start: "flex-start", center: "center", end: "flex-end", stretch: "stretch" } as const;
 
@@ -12,10 +12,10 @@ export function Stack({
   padding,
 }: {
   children: ReactNode;
-  gap?: SpaceToken;
+  gap?: Space;
   direction?: "vertical" | "horizontal";
   align?: "start" | "center" | "end" | "stretch";
-  padding?: SpaceToken;
+  padding?: Space;
 }) {
   return (
     <View

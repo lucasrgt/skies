@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { color, text, type TextRole } from "./tokens-bridge";
+import { color, text, type TextRole } from "./theme";
 
-// A role maps to the document outline (one title per screen — DESIGN-CONVENTIONS.md §Text hierarchy);
+// A role maps to the document outline (one title per screen);
 // size + line-height + weight travel together so typography is one decision, not three.
 const TAG: Record<TextRole, "h1" | "h2" | "p" | "span"> = {
   display: "h1",
@@ -22,7 +22,7 @@ export function Text({
   role?: TextRole;
   tone?: "default" | "muted" | "danger" | "inverse";
   // Announces the text to assistive tech (role="alert") — the command-error surface a form renders
-  // above its submit (DESIGN-CONVENTIONS.md §Form anatomy).
+  // above its submit.
   alert?: boolean;
 }) {
   const Tag = TAG[role];
@@ -30,8 +30,6 @@ export function Text({
   const TONE = { default: color.text, muted: color.textMuted, danger: color.danger, inverse: color.textInverse };
   return (
     <Tag
-      data-ui="text"
-      data-role={role}
       role={alert ? "alert" : undefined}
       style={{
         // Margins belong to the container (Stack gap), so the element defaults are zeroed.

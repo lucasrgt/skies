@@ -2,8 +2,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Item } from "../items/Items.viewModel";
 import { SAMPLE_API_BASE } from "../api";
 
-// Harness stand-in for the orval-generated typed hook (`@/client.gen/sample`). It uses the real fetch seam so
-// integration tests and AVP force responses at the HTTP boundary instead of accepting an in-memory green.
+// Stand-in for the orval-generated typed hook (`@/client.gen/sample`). It uses the real fetch seam so the
+// tests force responses at the HTTP boundary (MSW) instead of accepting an in-memory green.
 export function useListItems() {
   return useQuery({
     queryKey: ["sample", "list_items"],

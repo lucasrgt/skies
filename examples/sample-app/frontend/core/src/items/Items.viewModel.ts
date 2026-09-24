@@ -17,11 +17,6 @@ export interface ItemsModel {
   state: { items: AsyncState<Item[]> };
 }
 
-/**
- * @verify count-matches-source — the rendered collection contains exactly the rows returned by its source.
- * @e2e items-list-happy
- * @e2e items-list-sad
- */
 export function useItemsModel(): ItemsModel {
   const query = useListItems();
 

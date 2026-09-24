@@ -1,4 +1,4 @@
-// The app's design system, mobile side — same closed API as web/src/ui (the agnostic View renders
+// The sample app's own UI components, mobile side — same API as web/src/ui (the agnostic View renders
 // unchanged on either platform; only these implementations differ).
 export { Screen } from "./Screen";
 export { Stack } from "./Stack";

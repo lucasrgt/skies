@@ -1,5 +1,5 @@
 import { Pressable, Text as RNText } from "react-native";
-import { color, radius, space, text } from "./tokens-bridge";
+import { color, radius, space, text } from "./theme";
 
 type Variant = "primary" | "secondary" | "danger";
 
