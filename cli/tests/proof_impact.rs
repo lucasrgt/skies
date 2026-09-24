@@ -143,7 +143,7 @@ fn an_impacted_spec_that_fails_is_reported_and_left_out() {
     );
     let receipt = repo.json(&format!("{TWIN}/receipt.json"));
     assert_eq!(
-        receipt["green"]["cases"]["FM-1"], "pass",
+        receipt["green"]["cases"]["FM-1"]["result"], "pass",
         "the new receipt is still written"
     );
     assert!(receipt.get("verified_with").is_none());

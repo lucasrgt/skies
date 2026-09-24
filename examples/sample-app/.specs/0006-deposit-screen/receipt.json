@@ -8,21 +8,60 @@
       "hash": "blake3:d4d2a52a41484886fb7db3764eb4e2193cabcca737f9e6a93db761475de401d1"
     },
     "cases": {
-      "FM-1": "fail",
-      "FM-2": "fail",
-      "FM-3": "fail"
+      "FM-1": {
+        "result": "fail",
+        "cases": [
+          "Deposit screen > FM-1: an invalid submit is blocked with field errors inside the Field anatomy"
+        ],
+        "message": "TestingLibraryElementError: Unable to find role=\"alert\"\nIgnored nodes: comments, script, style\n<body>\n<div>"
+      },
+      "FM-2": {
+        "result": "fail",
+        "cases": [
+          "Deposit screen > FM-2: a valid submit announces while pending, then reaches the success surface"
+        ],
+        "message": "AssertionError: expected null to be 'true' // Object.is equality\nIgnored nodes: comments, script, style\n<html>\n<head />"
+      },
+      "FM-3": {
+        "result": "fail",
+        "cases": [
+          "Deposit screen > FM-3: a command failure surfaces as a role=alert block and keeps the form"
+        ],
+        "message": "TestingLibraryElementError: Unable to find an element with the text: We couldn't complete the deposit. Try again.. This could be because the text is broken up by multiple elements. In this case, you…\nIgnored nodes: comments, script, style\n<body>\n<div>"
+      }
     },
-    "report": "evidence/red.xml"
+    "report": {
+      "file": "evidence/raw/red.xml",
+      "hash": "blake3:351a58b6b6901143ba39f9b4a426621d2554045e0affdc56fbc9692e1c18bebd"
+    }
   },
   "green": {
-    "commit": "1f3fc846faae20ba5f7e6cec54cf7ddbfddd74a2",
+    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
     "dirty": false,
     "cases": {
-      "FM-1": "pass",
-      "FM-2": "pass",
-      "FM-3": "pass"
+      "FM-1": {
+        "result": "pass",
+        "cases": [
+          "Deposit screen > FM-1: an invalid submit is blocked with field errors inside the Field anatomy"
+        ]
+      },
+      "FM-2": {
+        "result": "pass",
+        "cases": [
+          "Deposit screen > FM-2: a valid submit announces while pending, then reaches the success surface"
+        ]
+      },
+      "FM-3": {
+        "result": "pass",
+        "cases": [
+          "Deposit screen > FM-3: a command failure surfaces as a role=alert block and keeps the form"
+        ]
+      }
     },
-    "report": "evidence/green.xml"
+    "report": {
+      "file": "evidence/raw/green.xml",
+      "hash": "blake3:723e7a22807e3d0252c9a2150b4eaa64f1e8346f4dcafb2202af4b2928c0ab51"
+    }
   },
   "footprint": {
     "frontend/web/src/api.ts": {
@@ -92,8 +131,5 @@
     ".specs/0006-deposit-screen/e2e/Deposit.test.tsx": "blake3:e8abd6e3120e76fb5fe73228f74727a81c9ceecc4d11f4d99fbeaf44e6247160",
     ".specs/0006-deposit-screen/spec.md": "blake3:a8484742b8a4f393e41da8308b91e33f21652e44c47f82e17af4fbbbdc4c9c2f"
   },
-  "evidence": {
-    "evidence/green.xml": "blake3:32f2a04cbc8bc6889d0423e52a1472ab9f36a0bb49f2e57ecb8e858e7ff887b9",
-    "evidence/red.xml": "blake3:48e74a531e19a5d258e45517277ec3153315f98ea8d20ce327fdec3e02f9c600"
-  }
+  "evidence": {}
 }

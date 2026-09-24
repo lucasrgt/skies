@@ -323,8 +323,8 @@ Usage: skies proof <COMMAND>
 
 Commands:
   record  Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json. Notes (never fails) a touched module whose ctx.md was not revised in the same change
-  run     Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes nothing: no receipt, no evidence. Exits 1 unless every mode passes
-  status  List receipts that are current, stale (their files changed), tampered (their evidence was edited), or unrecorded (no receipt yet). Hashes only; runs nothing
+  run     Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the spec's gitignored evidence/raw/ for inspection. Exits 1 unless every mode passes
+  status  List receipts that are current, stale (their files changed), tampered (their evidence was edited), or unrecorded (no receipt yet), and red-rotted specs (red.patch no longer applies). Hashes only; runs no tests, and git only for a red.patch that changed, or whose files did, since the last check
   impact  Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no paths, uses the files changed on this branch
   verify  Rerun specs' green. A receipt that is current and still passes is left untouched ("verified (current, unchanged)"); a stale one gets fresh green evidence and footprint. Red is never rerun
   help    Print this message or the help of the given subcommand(s)
@@ -347,13 +347,14 @@ Options:
       --red <RED>              The revision the failure modes must fail on. Defaults to HEAD plus the spec's red.patch when it has one, else the merge-base of HEAD with `[workspace] default_branch` from Skies.toml, else with the current branch's upstream (when it is another branch), else with origin/HEAD. The choice is printed
       --red-patch <RED_PATCH>  A patch applied to the red checkout before running, for specs written after the code
       --with-impacted          After recording, rerun green for every other spec whose footprint overlaps this one's and name the ones that pass in the receipt's `verified_with`. Exits 1 if any of them fails; a spec without a receipt is reported as unrecorded and does not count
+      --red-only               Rerun red alone (with the spec's red.patch, --red-patch, or --red) and rewrite only the red half of an existing receipt, keeping green, the footprint, and green's evidence: the fix for a `red-rotted` spec
   -h, --help                   Print help
 ```
 
 ## skies proof run
 
 ```text
-Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes nothing: no receipt, no evidence. Exits 1 unless every mode passes
+Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the spec's gitignored evidence/raw/ for inspection. Exits 1 unless every mode passes
 
 Usage: skies proof run <SPEC>
 
@@ -367,7 +368,7 @@ Options:
 ## skies proof status
 
 ```text
-List receipts that are current, stale (their files changed), tampered (their evidence was edited), or unrecorded (no receipt yet). Hashes only; runs nothing
+List receipts that are current, stale (their files changed), tampered (their evidence was edited), or unrecorded (no receipt yet), and red-rotted specs (red.patch no longer applies). Hashes only; runs no tests, and git only for a red.patch that changed, or whose files did, since the last check
 
 Usage: skies proof status
 

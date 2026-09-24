@@ -8,51 +8,115 @@
       "hash": "blake3:0d3afb14bf21674581316804e9666219543752a63c1b16c77f1b429801841034"
     },
     "cases": {
-      "FM-1": "fail",
-      "FM-2": "fail",
-      "FM-3": "fail",
-      "FM-4": "fail",
+      "FM-1": {
+        "result": "fail",
+        "cases": [
+          "FM-1: a deposit is reflected by the next balance read"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: 30\nActual:   0"
+      },
+      "FM-2": {
+        "result": "fail",
+        "cases": [
+          "FM-2: a negative amount is rejected and the balance is untouched"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: BadRequest\nActual:   OK"
+      },
+      "FM-3": {
+        "result": "fail",
+        "cases": [
+          "FM-3: every invalid field is reported at once"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: BadRequest\nActual:   OK"
+      },
+      "FM-4": {
+        "result": "fail",
+        "cases": [
+          "FM-4: a missing wallet answers 404"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: NotFound\nActual:   OK"
+      },
       "FM-5": {
         "result": "fail",
         "avp": [
           "idempotency-key-honored"
         ],
-        "verdict": "evidence/red.avp-FM-5.json"
+        "verdict": "evidence/red.avp-FM-5.json",
+        "cases": [
+          "FM-5: a retry with the same Idempotency-Key credits once"
+        ],
+        "message": "two different idempotency keys collapsed to one 'balance' value ('0') — a distinct key must apply again, not dedup regardless of the key."
       },
       "FM-6": {
         "result": "fail",
         "avp": [
           "idempotency-key-honored"
         ],
-        "verdict": "evidence/red.avp-FM-6.json"
+        "verdict": "evidence/red.avp-FM-6.json",
+        "cases": [
+          "FM-6: a new Idempotency-Key credits again"
+        ],
+        "message": "two different idempotency keys collapsed to one 'balance' value ('0') — a distinct key must apply again, not dedup regardless of the key."
       }
     },
-    "report": "evidence/red.trx"
+    "report": {
+      "file": "evidence/raw/red.trx",
+      "hash": "blake3:9c9d4a5b628d8c219267fc4c4f896593994d62b7d5844cc03da0327b59311467"
+    }
   },
   "green": {
-    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
+    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
     "dirty": false,
     "cases": {
-      "FM-1": "pass",
-      "FM-2": "pass",
-      "FM-3": "pass",
-      "FM-4": "pass",
+      "FM-1": {
+        "result": "pass",
+        "cases": [
+          "FM-1: a deposit is reflected by the next balance read"
+        ]
+      },
+      "FM-2": {
+        "result": "pass",
+        "cases": [
+          "FM-2: a negative amount is rejected and the balance is untouched"
+        ]
+      },
+      "FM-3": {
+        "result": "pass",
+        "cases": [
+          "FM-3: every invalid field is reported at once"
+        ]
+      },
+      "FM-4": {
+        "result": "pass",
+        "cases": [
+          "FM-4: a missing wallet answers 404"
+        ]
+      },
       "FM-5": {
         "result": "pass",
         "avp": [
           "idempotency-key-honored"
         ],
-        "verdict": "evidence/avp-FM-5.json"
+        "verdict": "evidence/avp-FM-5.json",
+        "cases": [
+          "FM-5: a retry with the same Idempotency-Key credits once"
+        ]
       },
       "FM-6": {
         "result": "pass",
         "avp": [
           "idempotency-key-honored"
         ],
-        "verdict": "evidence/avp-FM-6.json"
+        "verdict": "evidence/avp-FM-6.json",
+        "cases": [
+          "FM-6: a new Idempotency-Key credits again"
+        ]
       }
     },
-    "report": "evidence/green.trx"
+    "report": {
+      "file": "evidence/raw/green.trx",
+      "hash": "blake3:902345abed870c9eb8fa1ebc5e3ad0c5939e264bd7d530390969c7e5faf4f94f"
+    }
   },
   "footprint": {
     "backend/Sample.Api/AppDb.cs": {
@@ -119,9 +183,7 @@
   "evidence": {
     "evidence/avp-FM-5.json": "blake3:db1186756417e1a1c27647a23f34ee49abab57a68a80111640ce7168faeeac53",
     "evidence/avp-FM-6.json": "blake3:744ce395f5dfc7d95482b3cba1db34dafb700d74a9770d4ce8b29be274c10020",
-    "evidence/green.trx": "blake3:4de5a4a5fb7920c2fcda8bf6fa3b7b76a345496f5654199564b9ad24d676cacc",
     "evidence/red.avp-FM-5.json": "blake3:e4fa69c56cdc0562128cd359ef79e80589f3cf9a9f5c0b02adeeaa5e92260f27",
-    "evidence/red.avp-FM-6.json": "blake3:318125fa6807f8fccb0dcf38330b0536877981d536bd44b4b1cf1a0f822193eb",
-    "evidence/red.trx": "blake3:d611104d873c29e33fdd5a3cc927c35147094f0bcf80f1c9557f95e8fcf3defe"
+    "evidence/red.avp-FM-6.json": "blake3:318125fa6807f8fccb0dcf38330b0536877981d536bd44b4b1cf1a0f822193eb"
   }
 }

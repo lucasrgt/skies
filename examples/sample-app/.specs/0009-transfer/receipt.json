@@ -4,39 +4,109 @@
   "red": {
     "commit": "dd9185ad21f6389f03c606b0e3633d5a486cb74c",
     "cases": {
-      "FM-1": "fail",
-      "FM-2": "fail",
-      "FM-3": "fail",
-      "FM-4": "fail",
-      "FM-5": "fail",
+      "FM-1": {
+        "result": "fail",
+        "cases": [
+          "FM-1: a transfer debits the source and credits the destination"
+        ],
+        "message": "System.Net.Http.HttpRequestException : Response status code does not indicate success: 404 (Not Found)."
+      },
+      "FM-2": {
+        "result": "fail",
+        "cases": [
+          "FM-2: overdrawing the source answers 422 and moves neither balance"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: UnprocessableEntity\nActual:   NotFound"
+      },
+      "FM-3": {
+        "result": "fail",
+        "cases": [
+          "FM-3: a transfer from a wallet to itself answers 422 and leaves it untouched"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: UnprocessableEntity\nActual:   NotFound"
+      },
+      "FM-4": {
+        "result": "fail",
+        "cases": [
+          "FM-4: a missing destination answers 404 and the source keeps its money",
+          "FM-4: a missing source answers 404 and the destination is not credited"
+        ],
+        "message": "Assert.Contains() Failure: Sub-string not found\nString:    \"\"\nNot found: \"wallets.not_found\""
+      },
+      "FM-5": {
+        "result": "fail",
+        "cases": [
+          "FM-5: every invalid field is reported at once"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: BadRequest\nActual:   NotFound"
+      },
       "FM-6": {
         "result": "fail",
         "avp": [
           "idempotency-key-honored"
         ],
-        "verdict": "evidence/red.avp-FM-6.json"
+        "verdict": "evidence/red.avp-FM-6.json",
+        "cases": [
+          "FM-6: a retry with the same Idempotency-Key moves the money once"
+        ],
+        "message": "first call with the first key: expected acceptance (2xx), got 404."
       }
     },
-    "report": "evidence/red.trx"
+    "report": {
+      "file": "evidence/raw/red.trx",
+      "hash": "blake3:f421c4dcfd2f532e8bdbd23175caee7349bb72c423be282ff71ec66a4870df0c"
+    }
   },
   "green": {
-    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
+    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
     "dirty": false,
     "cases": {
-      "FM-1": "pass",
-      "FM-2": "pass",
-      "FM-3": "pass",
-      "FM-4": "pass",
-      "FM-5": "pass",
+      "FM-1": {
+        "result": "pass",
+        "cases": [
+          "FM-1: a transfer debits the source and credits the destination"
+        ]
+      },
+      "FM-2": {
+        "result": "pass",
+        "cases": [
+          "FM-2: overdrawing the source answers 422 and moves neither balance"
+        ]
+      },
+      "FM-3": {
+        "result": "pass",
+        "cases": [
+          "FM-3: a transfer from a wallet to itself answers 422 and leaves it untouched"
+        ]
+      },
+      "FM-4": {
+        "result": "pass",
+        "cases": [
+          "FM-4: a missing destination answers 404 and the source keeps its money",
+          "FM-4: a missing source answers 404 and the destination is not credited"
+        ]
+      },
+      "FM-5": {
+        "result": "pass",
+        "cases": [
+          "FM-5: every invalid field is reported at once"
+        ]
+      },
       "FM-6": {
         "result": "pass",
         "avp": [
           "idempotency-key-honored"
         ],
-        "verdict": "evidence/avp-FM-6.json"
+        "verdict": "evidence/avp-FM-6.json",
+        "cases": [
+          "FM-6: a retry with the same Idempotency-Key moves the money once"
+        ]
       }
     },
-    "report": "evidence/green.trx"
+    "report": {
+      "file": "evidence/raw/green.trx",
+      "hash": "blake3:e3464f12915ba86871bad9941d96b595bf748242237023a22dda11ffc1fb37d8"
+    }
   },
   "footprint": {
     "backend/Sample.Api/AppDb.cs": {
@@ -106,9 +176,7 @@
   },
   "evidence": {
     "evidence/avp-FM-6.json": "blake3:5f095469db8e370a6d6937b9afedcd67d307d142c9dc213a6e2e0682a0c0f493",
-    "evidence/green.trx": "blake3:491e0bb0ff4bcc19d101c2b89901ad6068a82b572fe39170c342ac22cad12924",
-    "evidence/red.avp-FM-6.json": "blake3:fad3583c1c256dc67a9184ce09e72879cb9642274043bb581dd550c65274f8ad",
-    "evidence/red.trx": "blake3:d853d710494c283123c0899668d196b84a989c0a2dd7b1c4bb88bd8108436b34"
+    "evidence/red.avp-FM-6.json": "blake3:fad3583c1c256dc67a9184ce09e72879cb9642274043bb581dd550c65274f8ad"
   },
   "ctx_revised": [
     "backend/Sample.Api/Modules/Wallets/Wallets.ctx.md"

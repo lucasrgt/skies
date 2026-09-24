@@ -174,6 +174,8 @@ fn trx_cases(root: roxmltree::Node) -> Vec<Case> {
 pub struct Evaluation {
     /// Every failure mode in the spec: `true` when it has at least one case and all of them passed.
     pub passed: BTreeMap<FmId, bool>,
+    /// The cases naming each failure mode, in report order.
+    pub cases: BTreeMap<FmId, Vec<Case>>,
 }
 
 /// Why a run cannot be trusted as evidence at all, independent of pass or fail.
@@ -209,12 +211,12 @@ impl fmt::Display for Inconsistency {
 /// Maps each case to the failure modes it names, checks consistency, and decides pass/fail per failure mode.
 pub fn evaluate(spec_fms: &[FmId], cases: &[Case]) -> Result<Evaluation, Inconsistency> {
     let listed: BTreeSet<FmId> = spec_fms.iter().copied().collect();
-    let mut by_fm: BTreeMap<FmId, Vec<Outcome>> = BTreeMap::new();
+    let mut by_fm: BTreeMap<FmId, Vec<Case>> = BTreeMap::new();
     let mut problems = Inconsistency::default();
     for case in cases {
         for id in fm_ids(&case.name) {
             if listed.contains(&id) {
-                by_fm.entry(id).or_default().push(case.outcome);
+                by_fm.entry(id).or_default().push(case.clone());
             } else {
                 problems.unknown.push((id, case.name.clone()));
             }
@@ -225,10 +227,10 @@ pub fn evaluate(spec_fms: &[FmId], cases: &[Case]) -> Result<Evaluation, Inconsi
         return Err(problems);
     }
     let passed = by_fm
-        .into_iter()
-        .map(|(id, outcomes)| (id, outcomes.iter().all(|outcome| *outcome == Outcome::Passed)))
+        .iter()
+        .map(|(id, cases)| (*id, cases.iter().all(|case| case.outcome == Outcome::Passed)))
         .collect();
-    Ok(Evaluation { passed })
+    Ok(Evaluation { passed, cases: by_fm })
 }
 
 #[cfg(test)]

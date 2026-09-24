@@ -247,8 +247,10 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
 .specs/0012-cancel-reservation/
   spec.md          what the feature does, its failure modes (FM-1..n), what is out of scope
   e2e/             black-box tests, one or more cases per failure mode
-  receipt.json     written by `skies proof record`
-  evidence/        the test report and small artifacts (screenshots, HTTP logs)
+  receipt.json     written by `skies proof record`: per failure mode, red and green, the cases, what failed on red
+  red.patch        for a spec written after the code: the patch that removes the feature
+  evidence/        small artifacts the cases saved (Assay verdicts, screenshots, HTTP logs), committed
+    raw/           the full reports and runner output, local and gitignored
 ```
 
 - **Every test lives in a spec** (`SKY0029`, `SKYFE036`, `SKYFL036`): a test written after the code guards nothing
@@ -258,8 +260,9 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
 - **The test title is the only link.** A case whose name starts with `FM-n` covers that mode
   (`[Fact(DisplayName = "FM-2: double cancel refunds once")]`, `test("FM-2: …")`). No attributes or manifests.
 - **Run the cases while you write them.** `skies proof run <spec>` runs the spec's E2E once on the working tree and
-  prints each failure mode's pass or fail, with what each failing case reported. It writes nothing (no receipt, no
-  evidence), so it is the loop for "the cases fail now" before the code and "they pass now" after it.
+  prints each failure mode's pass or fail, with what each failing case reported. It commits nothing (no receipt, no
+  evidence; its report and output stay in the gitignored `evidence/raw/`), so it is the loop for "the cases fail now"
+  before the code and "they pass now" after it.
 - **A receipt proves red and green.** `skies proof record <spec>` runs the E2E on the red revision, where every mode
   must fail, then on the working tree, where every mode must pass. Red is, in order: `--red <rev>`; `HEAD` plus the
   spec's `red.patch` (for a spec written after the code); the merge-base of `HEAD` with `[workspace] default_branch`
@@ -271,18 +274,47 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
 - **Cases that never ran on red count as failing (`did-not-build`), whatever the runner**: no report at all (.NET E2E
   that reference a type the feature adds), or a report where no case names a failure mode and a case failed or the
   runner exited non-zero (vitest's one file-level failure for an import that does not exist yet, Playwright or Flutter
-  failing to load). The runner's output is the evidence, `evidence/red.log`. The rule is never applied on green. When
-  red does not match `spec.md` otherwise, `record` prints the tail of red's output (kept as `evidence/red.log` while the
-  spec has no receipt), since the usual cause is a red revision that is not the one intended.
-- **A receipt is a record, not a gate.** It pins the code the feature depends on (its footprint) and hashes
-  everything under `evidence/`. `skies proof status` shows `current`, `stale` (footprint code or spec inputs
-  changed), `tampered` (evidence edited), and `unrecorded` (no receipt yet) from the filesystem alone, in
-  milliseconds. Nothing runs in a hook unless the team adds one.
+  failing to load). The receipt's `red.output` keeps the lines of output that say why (`error CS0246: …`); the whole
+  output is `evidence/raw/red.log`. The rule is never applied on green. When red does not match `spec.md` otherwise,
+  `record` prints the tail of red's output (kept as `evidence/raw/red.log`), since the usual cause is a red revision
+  that is not the one intended.
+- **The receipt is the summary; full reports stay local.** Per failure mode, red and green each record the result,
+  the names of the cases that decided it, and on red the start of what the first failing case said (the assertion,
+  not the stack), plus the report's path and hash (`"report": { "file": "evidence/raw/red.trx", "hash":
+  "blake3:…" }`). The hash is over what the report says (each case's name, outcome, and message, sorted), so the same
+  results hash the same whatever the timings or the order a parallel runner wrote them in. The full TRX/JUnit reports
+  and runner output are regenerable, so they go to `evidence/raw/`, which the engine keeps out of git itself (it adds
+  `/*/evidence/raw/` to `.specs/.gitignore` when missing; commit that file); `skies proof run`, `record`, or `verify
+  --refresh` write them again. Committed evidence is what a case chose to save under `$SKIES_EVIDENCE` (Assay
+  verdicts, a terminal-state screenshot, an HTTP log), at most 256 KB per file: `record` and `verify` refuse a larger
+  one unless git ignores it, and say how (save it under `$SKIES_EVIDENCE/raw/`, or add it to `.specs/.gitignore`).
+- **No churn.** A receipt holds no timestamps or durations (the run's times are printed and live in the local
+  report), keys and cases are sorted, and a committed artifact that did not meaningfully change keeps its bytes (an
+  Assay verdict that differs only in `durationMs`). Re-verifying an unchanged spec leaves git clean; refreshing one
+  moves only `green.commit`; re-recording after an unrelated change moves what the proof actually rests on.
+- **A receipt is a record, not a gate.** It pins the code the feature depends on (its footprint) and hashes every
+  committed file under `evidence/` (never `raw/`: a missing or edited local report is not tampering). `skies proof
+  status` shows `current`, `stale` (footprint code or spec inputs changed), `tampered` (committed evidence edited),
+  and `unrecorded` (no receipt yet) from the filesystem alone, in milliseconds. Nothing runs in a hook unless the
+  team adds one.
 - **`verify` reruns green and writes only what changed.** `skies proof verify <ids…> [--stale] [--all]` never reruns
   red. A receipt that is current and still passes is left byte for byte (`verified (current, unchanged)`), so a
   baseline before changing code dirties nothing; a stale one gets fresh green evidence and a re-anchored footprint;
   `--refresh` does that for current ones too, and is the only way to rewrite a `tampered` receipt's green evidence
-  (red evidence keeps its recorded hashes). A spec without a receipt is `unrecorded`: reported, never a failure.
+  (red evidence keeps its recorded hashes). A spec without a receipt is `unrecorded`: reported, never a failure. A
+  receipt from before compact evidence (reports committed under `evidence/`, bare `"pass"` entries) still reads;
+  `status` counts them, and `verify --refresh` (or `record`) summarizes the committed red report into the receipt and
+  moves the reports to `evidence/raw/`.
+- **Red rots; `status` says so.** `verify` never reruns red, so a `red.patch` can silently stop applying once the
+  code under it moves. `skies proof status` checks every `red.patch` with `git apply --check` against the working
+  tree and appends `red-rotted (red.patch no longer applies)`. The result is cached in the git directory
+  (`.git/skies/red-rot.json`, never committed), keyed by the blake3 of the patch and of every file it touches, so a
+  patch is checked again only when it or one of its files changed, and a status with nothing changed runs no git at
+  all. To fix it: stub the feature out again (the handler returns early, the screen renders nothing), save `git diff
+  --relative > .specs/<id>/red.patch`, restore the code, and run `skies proof record <id> --red-only`. It reruns red
+  alone (with the spec's `red.patch`, `--red-patch <file>`, or `--red <rev>`), holds it to `spec.md` like a full
+  record, and rewrites only the receipt's red half and red evidence; green, the footprint, the inputs, and green's
+  evidence keep their recorded values. It is also the fix for a red that proved the wrong thing.
 - **The footprint is the lines green executed.** When the runner writes coverage, the footprint is the executed
   lines of every project file the green run executed (build output, generated code, and `.specs/` left out), plus
   the files changed since red, plus `touches`; the receipt says `"footprint_source": "coverage"`. A covered file is
@@ -310,10 +342,11 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
   every file in the project counts.
 - **Evidence is a frozen, portable artifact.** Runners get `SKIES_EVIDENCE` (the run's evidence folder, absolute)
   and `SKIES_SPEC` (the spec folder name) in their environment, besides the `{evidence}` placeholder. What a test
-  writes there is copied into `evidence/` and hashed. .NET tests use `SpecEvidence.Save("name.json", value)` from
-  `Skies.Framework.Testing` (a no-op outside a proof run). Reports and build logs are normalized as they are copied:
-  checkout, temp, and home paths become `{root}`, `{tmp}`, and `~`, host and run names `{machine}` and `{run}`, and
-  TRX run ids a stable sequence, so committed evidence leaks nothing about the machine and diffs cleanly.
+  writes there is copied into `evidence/` and hashed, except what it writes under `raw/`, which stays local (a trace,
+  a video). .NET tests use `SpecEvidence.Save("name.json", value)` from `Skies.Framework.Testing` (a no-op outside a
+  proof run). Reports and logs kept in `evidence/raw/`, and the messages the receipt quotes, are normalized: checkout,
+  temp, and home paths become `{root}`, `{tmp}`, and `~`, host and run names `{machine}` and `{run}`, and TRX run ids
+  a stable sequence, so nothing committed names the machine.
 - **A failure mode may name an Assay verifier**: `- FM-5 a retry with the same key credits twice
   [avp: idempotency-key-honored]` (several ids comma-separated). The case saves the verdict to
   `$SKIES_EVIDENCE/avp-FM-5.json`, and the mode passes only when its cases pass and every tagged criterion passes.

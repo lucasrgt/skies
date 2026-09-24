@@ -352,3 +352,25 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   próprio `skies doctor`), e `skies migrate 5` declara as entradas atuais e pede para podar. No Hostpoint
   (`hostpoint-skies5`, clone raso): 41 entradas declaradas, entre elas `doctor-rollout.log`, `favicon.png`,
   `.aerofortress/`, `.cursor/`, `.jevd/`, `jevd*.json`, `taskfleet.toml` e `lefthook.yml` para o dono decidir.
+- **Evidência compacta, sem churn, red rot.** Medido no sample e projetado para ~250 specs: cada spec commitava os
+  relatórios TRX/JUnit de red e green (~30 KB por spec, ~9 MB), todo record/refresh os reescrevia (136 edições de
+  evidência em 45 commits num dia) e o `red.patch` de spec retroativo apodrecia sem ninguém ver, porque o `verify`
+  nunca reroda o red. Agora o recibo é o resumo: por FM, em red e green, o resultado, os nomes dos casos que o
+  decidiram e, no red, o começo da mensagem do primeiro caso que falhou (a asserção, sem stack), mais o caminho e o
+  hash do relatório (`"report": {"file": "evidence/raw/red.trx", "hash": "blake3:…"}`); `red.output` diz por que o
+  red não compilou. O hash é sobre o que o relatório diz (nome, resultado e mensagem de cada caso, ordenados), não
+  sobre os bytes: o xUnit termina casos paralelos em qualquer ordem e o TRX muda a cada execução mesmo sem timings.
+  Relatórios e logs vão para `evidence/raw/`, que o próprio motor mantém fora do git (acrescenta `/*/evidence/raw/`
+  ao `.specs/.gitignore`); commitado fica só o que o caso salvou em `$SKIES_EVIDENCE` (vereditos Assay, screenshot,
+  log HTTP), até 256 KB por arquivo (acima disso `record`/`verify` recusam, salvo se o git ignora, e dizem como). O
+  hash de adulteração cobre só a evidência commitada. Sem duração nem timestamp no recibo (o tempo é impresso e fica
+  no relatório local); veredito que só muda em `durationMs` mantém os bytes. No sample: `.specs` commitado de 385 624
+  para 136 160 bytes (evidência de 28 arquivos/275 612 bytes para 8/5 329; recibos de 37 para 58 KB); `verify --all`
+  duas vezes deixa `git diff --stat` vazio, e dois `verify --refresh --all` seguidos são idênticos byte a byte.
+  Recibo antigo continua lendo (`status` avisa) e `verify --refresh`/`record` o migram, resumindo o relatório de red
+  commitado. `proof status` marca `red-rotted (red.patch no longer applies)` com `git apply --check` na working tree,
+  com cache em `.git/skies/red-rot.json` chaveado pelo blake3 do patch e dos arquivos que ele toca (status sem
+  mudança não roda git; sample: 30 ms frio, 14 ms com cache); `skies proof record <id> --red-only` reroda só o red
+  e reescreve só a metade red do recibo, mantendo green, footprint e evidência de green. A migração revelou que o
+  red do 0010 foi `did-not-build` só porque o worktree de red não tinha `@vitest/coverage-v8`; antes isso estava
+  enterrado num `red.log` commitado.

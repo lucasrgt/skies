@@ -1,7 +1,8 @@
 //! `receipt.json`: the record that a spec's failure modes failed before the change and pass after it.
 //!
 //! It is a record, not a turnstile: nothing blocks on it. Keys are written in a fixed order (struct order, then
-//! sorted maps) so a re-recorded receipt diffs cleanly in review.
+//! sorted maps) and nothing in it varies between two runs of the same code (no timestamps, no durations), so
+//! re-verifying an unchanged spec rewrites nothing and a re-recorded receipt diffs only where the proof moved.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -37,9 +38,9 @@ pub struct Receipt {
     pub footprint_changed: Vec<String>,
     /// What the receipt was recorded from: spec.md, the e2e files, and the root lockfiles.
     pub inputs: Hashes,
-    /// Every committed file under evidence/, relative to the spec folder. The evidence is the frozen artifact a
-    /// reviewer replays or reads, so an edit to it after recording is tampering, not staleness. Absent on receipts
-    /// written before evidence was hashed, which are then not checked.
+    /// Every committed file under evidence/ (evidence/raw/ is local and left out), relative to the spec folder. The
+    /// evidence is the frozen artifact a reviewer reads, so an edit to it after recording is tampering, not
+    /// staleness. Absent on receipts written before evidence was hashed, which are then not checked.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evidence: Option<Hashes>,
     /// The module ctx.md files revised in the same change (red..working tree), relative to the project root: the
@@ -59,8 +60,12 @@ pub struct Red {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub patch: Option<Patch>,
     pub cases: BTreeMap<FmId, Entry<RedCase>>,
-    /// The red report, relative to the spec folder.
-    pub report: String,
+    /// The runner's full report (or, when red did not build, its output), kept locally under evidence/raw/.
+    pub report: Report,
+    /// When red did not build: the lines of the runner's output that say why, so the receipt explains itself
+    /// without the local log.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -86,8 +91,8 @@ pub struct Green {
     /// Whether the working tree had uncommitted changes outside the spec folder when green ran.
     pub dirty: bool,
     pub cases: BTreeMap<FmId, Entry<GreenCase>>,
-    /// The green report, relative to the spec folder.
-    pub report: String,
+    /// The runner's full report, kept locally under evidence/raw/.
+    pub report: Report,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -96,45 +101,116 @@ pub enum GreenCase {
     Pass,
 }
 
-/// One failure mode's outcome in a run. A plain `"pass"` for most; an object naming the Assay criteria and the
-/// verdict file for a mode tagged `[avp: …]`, so the reader of the receipt sees which verifier decided it.
+/// Where a run's full report is. The report is regenerable and never committed: the receipt keeps what matters
+/// from it (per mode, the result, the cases, and on red what failed) and its hash, so a report found on disk can be
+/// matched to the run it came from.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Entry<T> {
-    Plain(T),
-    Avp(AvpEntry<T>),
+pub enum Report {
+    Raw(RawReport),
+    /// A receipt written before compact evidence: the path of a report committed under evidence/. Still read;
+    /// `verify` and `record` move the file to evidence/raw/ and rewrite this as [`Report::Raw`].
+    Committed(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AvpEntry<T> {
+pub struct RawReport {
+    /// Relative to the spec folder, under evidence/raw/ (gitignored).
+    pub file: String,
+    /// blake3 of what the report says (each case's name, outcome, and message, sorted), so the same results hash
+    /// the same whatever the timings or the order the runner wrote them in.
+    pub hash: String,
+}
+
+/// One failure mode's outcome in a run: the result, the cases that decided it, and on red the first thing a failing
+/// case said. A mode tagged `[avp: …]` also names its criteria and the verdict file. No durations or timestamps: a
+/// receipt of an unchanged run must be byte for byte the same, and timings live in the local report.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "EntryShape<T>", bound(deserialize = "T: Deserialize<'de>"))]
+pub struct Entry<T> {
     pub result: T,
     /// The criterion ids from the spec.md tag.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub avp: Vec<String>,
-    /// The verdict saved by the case, relative to the spec folder. Always present on green; on red only when the
-    /// case got far enough to write one.
+    /// The verdict saved by the case, relative to the spec folder. Always present on a tagged green; on red only
+    /// when the case got far enough to write one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub verdict: Option<String>,
+    /// The names of the cases naming this mode, sorted.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub cases: Vec<String>,
+    /// On red, the start of what the first failing case reported, trimmed to a few lines.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
+/// What an entry may look like on disk: the full object, or a bare `"pass"` as receipts before compact evidence
+/// wrote an untagged mode.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum EntryShape<T> {
+    Bare(T),
+    Full {
+        result: T,
+        #[serde(default)]
+        avp: Vec<String>,
+        #[serde(default)]
+        verdict: Option<String>,
+        #[serde(default)]
+        cases: Vec<String>,
+        #[serde(default)]
+        message: Option<String>,
+    },
+}
+
+impl<T> From<EntryShape<T>> for Entry<T> {
+    fn from(shape: EntryShape<T>) -> Entry<T> {
+        match shape {
+            EntryShape::Bare(result) => Entry {
+                result,
+                avp: Vec::new(),
+                verdict: None,
+                cases: Vec::new(),
+                message: None,
+            },
+            EntryShape::Full {
+                result,
+                avp,
+                verdict,
+                cases,
+                message,
+            } => Entry {
+                result,
+                avp,
+                verdict,
+                cases,
+                message,
+            },
+        }
+    }
 }
 
 impl<T: Copy> Entry<T> {
-    /// A plain entry for an untagged mode, the detailed one for a tagged mode.
+    /// A mode's entry; `verdict` is kept only for a tagged mode.
     pub fn new(result: T, avp: &[String], verdict: Option<String>) -> Entry<T> {
-        if avp.is_empty() {
-            Entry::Plain(result)
-        } else {
-            Entry::Avp(AvpEntry {
-                result,
-                avp: avp.to_vec(),
-                verdict,
-            })
+        Entry {
+            result,
+            avp: avp.to_vec(),
+            verdict: verdict.filter(|_| !avp.is_empty()),
+            cases: Vec::new(),
+            message: None,
         }
     }
 
+    /// The same entry, naming the cases that decided it and what the first failing one said.
+    pub fn with_cases(mut self, cases: Vec<String>, message: Option<String>) -> Entry<T> {
+        self.cases = cases;
+        self.message = message;
+        self
+    }
+
     pub fn result(&self) -> T {
-        match self {
-            Entry::Plain(result) => *result,
-            Entry::Avp(entry) => entry.result,
-        }
+        self.result
     }
 }
 
@@ -149,11 +225,26 @@ impl Receipt {
         Ok(Some(receipt))
     }
 
+    /// Writes the receipt, leaving the file alone when its bytes would not change, so an unchanged proof never
+    /// touches the file (nor its modification time).
     pub fn save(&self, spec: &SpecDir) -> Result<()> {
         let path = spec.file(RECEIPT_FILE);
+        let text = self.to_text()?;
+        if std::fs::read_to_string(&path).is_ok_and(|current| current == text) {
+            return Ok(());
+        }
+        std::fs::write(&path, text).with_context(|| format!("writing {}", path.display()))
+    }
+
+    pub fn to_text(&self) -> Result<String> {
         let mut text = serde_json::to_string_pretty(self)?;
         text.push('\n');
-        std::fs::write(&path, text).with_context(|| format!("writing {}", path.display()))
+        Ok(text)
+    }
+
+    /// Whether the receipt still points at reports committed under evidence/ (written before compact evidence).
+    pub fn has_committed_reports(&self) -> bool {
+        matches!(self.red.report, Report::Committed(_)) || matches!(self.green.report, Report::Committed(_))
     }
 }
 
@@ -224,78 +315,5 @@ fn footprint_changed(root: &Path, footprint: &Prints, touched: &BTreeSet<String>
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::proof::lines::Print;
-
-    #[test]
-    fn serializes_in_a_stable_readable_shape() {
-        let avp = ["idempotency-key-honored".to_string()];
-        let receipt = Receipt {
-            spec: "0001-a".into(),
-            runner: "api".into(),
-            red: Red {
-                commit: "abc".into(),
-                patch: None,
-                cases: [
-                    (FmId(2), Entry::new(RedCase::NonDiscriminating, &[], None)),
-                    (FmId(1), Entry::new(RedCase::Fail, &[], None)),
-                    (FmId(3), Entry::new(RedCase::Fail, &avp, None)),
-                ]
-                .into(),
-                report: "evidence/red.xml".into(),
-            },
-            green: Green {
-                commit: "def".into(),
-                dirty: false,
-                cases: [
-                    (FmId(1), Entry::new(GreenCase::Pass, &[], None)),
-                    (FmId(2), Entry::new(GreenCase::Pass, &[], None)),
-                    (
-                        FmId(3),
-                        Entry::new(GreenCase::Pass, &avp, Some("evidence/avp-FM-3.json".into())),
-                    ),
-                ]
-                .into(),
-                report: "evidence/green.xml".into(),
-            },
-            footprint: [
-                ("src/A.cs".into(), Print::Whole("blake3:00".into())),
-                (
-                    "src/B.cs".into(),
-                    Print::Lines(lines::LinePrint {
-                        lines: "3-5,9".parse().unwrap(),
-                        hash: lines::LineHash::PerRange(vec!["0123456789abcdef".into(), "fedcba9876543210".into()]),
-                    }),
-                ),
-            ]
-            .into(),
-            footprint_source: Source::Coverage,
-            footprint_changed: vec!["src/A.cs".into()],
-            inputs: Hashes::new(),
-            evidence: Some([("evidence/green.xml".into(), "blake3:01".into())].into()),
-            ctx_revised: Vec::new(),
-            verified_with: BTreeMap::new(),
-        };
-        let json = serde_json::to_string(&receipt).unwrap();
-        assert_eq!(
-            json,
-            r#"{"spec":"0001-a","runner":"api","red":{"commit":"abc","cases":{"FM-1":"fail","FM-2":"non-discriminating","FM-3":{"result":"fail","avp":["idempotency-key-honored"]}},"report":"evidence/red.xml"},"green":{"commit":"def","dirty":false,"cases":{"FM-1":"pass","FM-2":"pass","FM-3":{"result":"pass","avp":["idempotency-key-honored"],"verdict":"evidence/avp-FM-3.json"}},"report":"evidence/green.xml"},"footprint":{"src/A.cs":"blake3:00","src/B.cs":{"lines":"3-5,9","ranges":"0123456789abcdef,fedcba9876543210"}},"footprint_source":"coverage","footprint_changed":["src/A.cs"],"inputs":{},"evidence":{"evidence/green.xml":"blake3:01"}}"#
-        );
-        let back: Receipt = serde_json::from_str(&json).unwrap();
-        assert_eq!(back.red.cases[&FmId(2)].result(), RedCase::NonDiscriminating);
-        assert_eq!(back.green.cases[&FmId(3)].result(), GreenCase::Pass);
-        assert!(matches!(&back.green.cases[&FmId(3)], Entry::Avp(entry) if entry.avp == avp));
-    }
-
-    #[test]
-    fn reads_receipts_written_before_evidence_hashes() {
-        let old = r#"{"spec":"0001-a","runner":"api","red":{"commit":"a","cases":{"FM-1":"fail"},"report":"r"},"green":{"commit":"b","dirty":false,"cases":{"FM-1":"pass"},"report":"g"},"footprint":{},"inputs":{}}"#;
-        let receipt: Receipt = serde_json::from_str(old).unwrap();
-        assert!(receipt.evidence.is_none());
-        assert_eq!(receipt.footprint_source, Source::Diff);
-        assert!(receipt.footprint_changed.is_empty());
-        assert!(receipt.ctx_revised.is_empty());
-        assert!(receipt.verified_with.is_empty());
-    }
-}
+#[path = "receipt_tests.rs"]
+mod tests;

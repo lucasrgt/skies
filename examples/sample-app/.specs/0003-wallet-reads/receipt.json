@@ -8,25 +8,86 @@
       "hash": "blake3:8136cd158b0db3a000a3751b35222d877b06d8d6650a7a37dc63d0ca10e34f45"
     },
     "cases": {
-      "FM-1": "fail",
-      "FM-2": "fail",
-      "FM-3": "fail",
-      "FM-4": "fail",
-      "FM-5": "fail"
+      "FM-1": {
+        "result": "fail",
+        "cases": [
+          "FM-1: the balance read returns the stored balance"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: 42\nActual:   0"
+      },
+      "FM-2": {
+        "result": "fail",
+        "cases": [
+          "FM-2: a balance read for a missing wallet answers 404"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: NotFound\nActual:   OK"
+      },
+      "FM-3": {
+        "result": "fail",
+        "cases": [
+          "FM-3: a page carries its items and the count of the whole set"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: 2\nActual:   0"
+      },
+      "FM-4": {
+        "result": "fail",
+        "cases": [
+          "FM-4: hostile paging input is clamped server-side"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: 1\nActual:   -2"
+      },
+      "FM-5": {
+        "result": "fail",
+        "cases": [
+          "FM-5: consecutive pages neither overlap nor skip"
+        ],
+        "message": "Assert.Equal() Failure: Values differ\nExpected: 7\nActual:   0"
+      }
     },
-    "report": "evidence/red.trx"
+    "report": {
+      "file": "evidence/raw/red.trx",
+      "hash": "blake3:d53411b11b1fd74cf8e234c2a71b2a37eacbccc2428a24e80091b0b065aaa2af"
+    }
   },
   "green": {
-    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
+    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
     "dirty": false,
     "cases": {
-      "FM-1": "pass",
-      "FM-2": "pass",
-      "FM-3": "pass",
-      "FM-4": "pass",
-      "FM-5": "pass"
+      "FM-1": {
+        "result": "pass",
+        "cases": [
+          "FM-1: the balance read returns the stored balance"
+        ]
+      },
+      "FM-2": {
+        "result": "pass",
+        "cases": [
+          "FM-2: a balance read for a missing wallet answers 404"
+        ]
+      },
+      "FM-3": {
+        "result": "pass",
+        "cases": [
+          "FM-3: a page carries its items and the count of the whole set"
+        ]
+      },
+      "FM-4": {
+        "result": "pass",
+        "cases": [
+          "FM-4: hostile paging input is clamped server-side"
+        ]
+      },
+      "FM-5": {
+        "result": "pass",
+        "cases": [
+          "FM-5: consecutive pages neither overlap nor skip"
+        ]
+      }
     },
-    "report": "evidence/green.trx"
+    "report": {
+      "file": "evidence/raw/green.trx",
+      "hash": "blake3:fd3f6523ce46d728e7e8b2c3948628a3ea51604989f45ba553419a17debf99b7"
+    }
   },
   "footprint": {
     "backend/Sample.Api/AppDb.cs": {
@@ -91,8 +152,5 @@
     ".specs/0003-wallet-reads/e2e/WalletReadsSpec.cs": "blake3:300a20fcd885eda2f17caea5b7cd6a8773d9b2c31497559626265e73422c8fb1",
     ".specs/0003-wallet-reads/spec.md": "blake3:accb7cda395cbcf62464610fb3c2813005d505075ce676a1a1c8d7e99895f3e4"
   },
-  "evidence": {
-    "evidence/green.trx": "blake3:e5756035ff99542796cf70ea46c5da4d072b678afb175b618387cc6335fd6a8f",
-    "evidence/red.trx": "blake3:c0abf0cd12cfe738fcad177cd0aec320fee0f26cc958babf1c53c6f645b5e17d"
-  }
+  "evidence": {}
 }
