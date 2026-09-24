@@ -47,6 +47,8 @@ pub struct Patch {
 #[serde(rename_all = "kebab-case")]
 pub enum RedCase {
     Fail,
+    /// The E2E did not build on red (it references code the feature adds), so no case could pass.
+    DidNotBuild,
     /// Passed on red: the case does not bite. Allowed only with a justification in spec.md.
     NonDiscriminating,
 }

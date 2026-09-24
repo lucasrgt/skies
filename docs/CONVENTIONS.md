@@ -418,7 +418,8 @@ A feature is accepted by **evidence in its spec folder**, not by annotations spr
   tags, or manifests in the application code.
 - **A receipt proves red and green.** `skies proof record <spec>` runs the E2E against the red revision (the
   merge-base, or `HEAD` plus the spec's `red.patch` for a spec written after the code), where every failure
-  mode must fail, then against the working tree, where every failure mode must pass. A failure mode that
+  mode must fail, then against the working tree, where every failure mode must pass. E2E that do not build on red
+  (they use types the feature adds) count as failing, with the build output kept as evidence. A failure mode that
   already passes on red is recorded as non-discriminating and needs a written justification in `spec.md`.
 - **A receipt is a record, not a gate.** It stores the hashes of the files the feature touched.
   `skies proof status` lists the receipts whose files changed since (hashes only, milliseconds);

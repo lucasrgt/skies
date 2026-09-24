@@ -79,8 +79,9 @@ skies proof record <id>
 ```
 
 It runs the E2E against the merge-base (every FM must fail) and against the working tree (every FM must pass),
-then writes `receipt.json` and copies the report into `evidence/`. If a failure mode already passes on the
-merge-base, either the test does not discriminate (fix the test) or the behavior already existed (add a
+then writes `receipt.json` and copies the report into `evidence/`. If the E2E cannot even build on the merge-base
+(it uses code the feature adds), every FM counts as failing and the build output is kept as `evidence/red.log`.
+If a failure mode already passes on the merge-base, either the test does not discriminate (fix the test) or the behavior already existed (add a
 `## Non-discriminating` section to `spec.md` explaining why).
 
 For a spec written after the code, add a `red.patch` that removes the behavior (for example, stub the handler)

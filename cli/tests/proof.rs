@@ -272,3 +272,39 @@ fn a_red_patch_turns_head_into_red() {
     assert!(again.status.success(), "{}", text(&again));
     assert!(text(&again).contains("+ red.patch"));
 }
+
+#[test]
+fn e2e_that_does_not_build_on_red_counts_as_failing() {
+    let repo = Repo::new();
+    // A runner that, like `dotnet test` over E2E that reference code the feature adds, writes no report at all
+    // until the feature exists.
+    repo.git(&["checkout", "--quiet", "main"]);
+    repo.write(
+        "run.sh",
+        &RUNNER.replace(
+            "state=$(head -n 1 src/feature.txt)",
+            "state=$(head -n 1 src/feature.txt)\n[ \"$state\" = on ] || { echo 'error CS0246: type not found'; exit 1; }",
+        ),
+    );
+    repo.git(&[
+        "commit",
+        "--quiet",
+        "-am",
+        "runner that cannot build without the feature",
+    ]);
+    repo.git(&["checkout", "--quiet", "-B", "feature"]);
+    new_spec(&repo, "FM-1: toggles\nFM-2: toggles twice\n");
+    repo.implement();
+
+    let recorded = repo.skies(&["proof", "record", "1"]);
+
+    assert!(recorded.status.success(), "{}", text(&recorded));
+    assert!(text(&recorded).contains("red did not build"));
+    let receipt: serde_json::Value = serde_json::from_str(&repo.read(&format!("{SPEC}/receipt.json"))).unwrap();
+    assert_eq!(
+        receipt["red"]["cases"],
+        serde_json::json!({"FM-1": "did-not-build", "FM-2": "did-not-build"})
+    );
+    assert_eq!(receipt["red"]["report"], "evidence/red.log");
+    assert!(repo.read(&format!("{SPEC}/evidence/red.log")).contains("CS0246"));
+}

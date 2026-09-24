@@ -12,8 +12,8 @@ use anyhow::{Context, Result, bail};
 use super::git::Repo;
 use super::hash;
 use super::receipt::{Green, GreenCase, Patch, Receipt, Red, RedCase};
-use super::report::{self, FmId};
-use super::runner::{Job, Session};
+use super::report::{self, FmId, Report};
+use super::runner::{Job, NoReport, Session};
 use super::spec::{self, E2E_DIR, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
 use crate::manifest::Project;
 
@@ -75,37 +75,58 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
             evidence: &evidence,
             scratch: scratch.path(),
             label: "red",
-        })?;
-        // A configured report path lives inside the worktree; keep the report past its removal.
-        let kept = scratch.path().join("red.report");
-        std::fs::copy(&run.file, &kept)?;
-        (run.report, kept)
-    };
-    let red_eval = match report::evaluate(&doc.failure_modes, &red_run.0.cases) {
-        Ok(evaluation) => evaluation,
-        Err(problems) => {
-            eprintln!("{}: the red run does not match spec.md:\n{problems}", spec.name);
-            eprintln!(
-                "If the e2e cannot compile at {}, record against a patch instead: --red-patch <file>.",
-                short(&red_commit)
-            );
-            return Ok(1);
+        });
+        // A configured report path lives inside the worktree; keep the report (or the build log) past its removal.
+        match run {
+            Ok(run) => {
+                let kept = scratch.path().join("red.report");
+                std::fs::copy(&run.file, &kept)?;
+                RedRun::Report(run.report, kept)
+            }
+            Err(error) => match error.downcast_ref::<NoReport>() {
+                Some(no_report) => {
+                    let kept = scratch.path().join("red.build.log");
+                    std::fs::copy(&no_report.log, &kept)?;
+                    RedRun::DidNotBuild(kept)
+                }
+                None => return Err(error),
+            },
         }
     };
-    let red_cases: BTreeMap<FmId, RedCase> = red_eval
-        .passed
-        .iter()
-        .map(|(id, passed)| {
-            (
-                *id,
-                if *passed {
-                    RedCase::NonDiscriminating
-                } else {
-                    RedCase::Fail
-                },
-            )
-        })
-        .collect();
+    let (red_cases, red_file, red_report): (BTreeMap<FmId, RedCase>, PathBuf, String) = match red_run {
+        RedRun::DidNotBuild(log) => {
+            println!(
+                "  red did not build at {}: every failure mode counts as failing (build output in {EVIDENCE_DIR}/red.log)",
+                short(&red_commit)
+            );
+            let cases = doc.failure_modes.iter().map(|id| (*id, RedCase::DidNotBuild)).collect();
+            (cases, log, format!("{EVIDENCE_DIR}/red.log"))
+        }
+        RedRun::Report(report, file) => {
+            let red_eval = match report::evaluate(&doc.failure_modes, &report.cases) {
+                Ok(evaluation) => evaluation,
+                Err(problems) => {
+                    eprintln!("{}: the red run does not match spec.md:\n{problems}", spec.name);
+                    return Ok(1);
+                }
+            };
+            let cases = red_eval
+                .passed
+                .iter()
+                .map(|(id, passed)| {
+                    (
+                        *id,
+                        if *passed {
+                            RedCase::NonDiscriminating
+                        } else {
+                            RedCase::Fail
+                        },
+                    )
+                })
+                .collect();
+            (cases, file, format!("{EVIDENCE_DIR}/red.{}", report.format.extension()))
+        }
+    };
     let unjustified: Vec<FmId> = red_cases
         .iter()
         .filter(|(id, case)| **case == RedCase::NonDiscriminating && !doc.justified.contains(id))
@@ -140,11 +161,10 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
     };
     print_cases(&red_cases);
 
-    let red_report = format!("{EVIDENCE_DIR}/red.{}", red_run.0.format.extension());
     publish_evidence(
         &spec,
         &green.staged,
-        &[(&red_run.1, &red_report), (&green.file, &green.report)],
+        &[(&red_file, &red_report), (&green.file, &green.report)],
         false,
     )?;
 
@@ -178,6 +198,12 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
         receipt.inputs.len()
     );
     Ok(0)
+}
+
+/// What the red revision produced: a report to evaluate, or a build that never got that far.
+enum RedRun {
+    Report(Report, PathBuf),
+    DidNotBuild(PathBuf),
 }
 
 /// Picks the patch that turns the red revision into "feature not implemented": `--red-patch` (stored as the spec's
@@ -342,6 +368,7 @@ fn print_cases(red: &BTreeMap<FmId, RedCase>) {
     for (id, case) in red {
         let red_text = match case {
             RedCase::Fail => "fail",
+            RedCase::DidNotBuild => "did not build",
             RedCase::NonDiscriminating => "non-discriminating",
         };
         println!("  {:<6}{red_text:<20}pass", id.to_string());

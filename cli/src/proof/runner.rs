@@ -30,6 +30,23 @@ pub struct Job<'a> {
     pub label: &'a str,
 }
 
+/// The runner finished without writing a report, which means the tests did not build or did not start. On the
+/// red revision that is the expected state of a feature whose E2E references code that does not exist yet.
+#[derive(Debug)]
+pub struct NoReport {
+    pub message: String,
+    /// The runner's captured output.
+    pub log: PathBuf,
+}
+
+impl std::fmt::Display for NoReport {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for NoReport {}
+
 /// A finished run: the parsed report and the file it came from, which the caller copies into evidence verbatim.
 pub struct Run {
     pub report: Report,
@@ -80,15 +97,19 @@ impl Session {
 
         let log = job.scratch.join(format!("{}.log", job.label));
         shell(&expand(&job.runner.command, &values), job.root, &env, &log)?;
-        let text = std::fs::read_to_string(&report_path).with_context(|| {
-            format!(
-                "runner '{}' wrote no report at {} on {} (did the tests build?). Last output:\n{}",
-                job.runner_name,
-                report_path.display(),
-                job.label,
-                tail(&log)
-            )
-        })?;
+        let Ok(text) = std::fs::read_to_string(&report_path) else {
+            return Err(NoReport {
+                message: format!(
+                    "runner '{}' wrote no report at {} on {} (did the tests build?). Last output:\n{}",
+                    job.runner_name,
+                    report_path.display(),
+                    job.label,
+                    tail(&log)
+                ),
+                log,
+            }
+            .into());
+        };
         let report = report::parse(&text)
             .with_context(|| format!("reading the {} report {}", job.label, report_path.display()))?;
         Ok(Run {
