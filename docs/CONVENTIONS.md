@@ -421,9 +421,24 @@ A feature is accepted by **evidence in its spec folder**, not by annotations spr
   mode must fail, then against the working tree, where every failure mode must pass. E2E that do not build on red
   (they use types the feature adds) count as failing, with the build output kept as evidence. A failure mode that
   already passes on red is recorded as non-discriminating and needs a written justification in `spec.md`.
-- **A receipt is a record, not a gate.** It stores the hashes of the files the feature touched.
-  `skies proof status` lists the receipts whose files changed since (hashes only, milliseconds);
+- **A receipt is a record, not a gate.** It stores the hashes of the files the feature touched and of every
+  committed file under `evidence/`. `skies proof status` lists the receipts whose files changed since as `stale`,
+  and those whose evidence was edited after recording as `tampered` (hashes only, milliseconds);
   `skies proof verify --stale` reruns them. Nothing runs in a hook unless the team chooses to add one.
+- **Evidence is a frozen artifact.** Every runner gets `SKIES_EVIDENCE` (the run's evidence folder, absolute) and
+  `SKIES_SPEC` (the spec folder name) in its environment, besides the `{evidence}` placeholder. Whatever a test
+  writes there (a verdict, a response body, a screenshot) is copied into `evidence/` and hashed by the receipt.
+  .NET tests use `SpecEvidence.Save("name.json", value)` from `Skies.Framework.Testing`, a no-op outside a proof run.
+- **A failure mode may name an Assay verifier.** When an archetype from the AVP catalog decides a failure mode,
+  tag the line with its criterion id: `- FM-5 a retry with the same key credits twice [avp: idempotency-key-honored]`
+  (several ids comma-separated). The case then saves the Assay verdict to `$SKIES_EVIDENCE/avp-FM-5.json`, and the
+  mode passes only when its cases pass and the verdict reports every tagged criterion as passing. The tag is
+  optional: the framework never requires Assay, and an untagged mode is decided by its cases alone.
+- **The receipts are the impact index.** `skies proof impact <paths>` (or `--diff [<rev>]`, the default with no
+  paths) inverts every receipt's footprint and `touches` into path → specs and prints each impacted spec with its
+  failure modes and whether its receipt is current. Read those before changing shared code;
+  `skies proof record <spec> --with-impacted` re-proves them after, and names the ones that passed in the new
+  receipt's `verified_with`.
 - **Runners are declared in `Skies.toml`.** A runner is a shell command that runs one spec's `e2e/` folder and
   writes a JUnit or TRX report; the engine knows nothing about xUnit, Playwright, or Flutter:
 

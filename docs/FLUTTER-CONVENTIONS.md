@@ -157,6 +157,12 @@ black-box E2E in `e2e/`, and a receipt from `skies proof record` (see
 Maestro). Declare a runner in `Skies.toml` that runs one spec folder and writes a JUnit report, and name each case
 after the failure mode it covers (`testWidgets('FM-2: an expired session lands on sign-in', …)`).
 
+Every runner gets `SKIES_EVIDENCE` and `SKIES_SPEC` in its environment. The runner's host process sees them, not
+the device: a host-side test reads `Platform.environment['SKIES_EVIDENCE']`, and an on-device run saves artifacts
+from its host driver (`integration_test_driver`'s `responseDataCallback`). A failure mode an Assay archetype decides
+carries `[avp: <criterion-id>]` on its spec.md line, and its verdict goes to `$SKIES_EVIDENCE/avp-FM-<n>.json`;
+the mode then passes only with a passing verdict. The tag is optional.
+
 Styling, the widget kit, tokens, and layout are the application's. Accessibility is too; Flutter's
 `meetsGuideline` matchers are a good failure-mode check for a spec, not a framework rule.
 

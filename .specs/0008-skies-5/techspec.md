@@ -265,3 +265,10 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
 - **`g crud` gera `Open`/`Update` na entidade** para sair doctor-clean (antes violava SKY0014/SKY0021).
 - **Snapshots dos geradores** (`cli/tests/fixtures/snapshots`) substituem a paridade com o 4.x depois do porte.
 - **Consumidores**: hostpoint e marombas migrados em branches `skies-5` (worktrees), compilando com 0 warnings.
+- **Assay volta acoplado ao spec, opcional por FM.** Uma linha `- FM-n … [avp: <criterion>]` exige, além dos casos,
+  o veredito salvo em `$SKIES_EVIDENCE/avp-FM-n.json` com todos os critérios em pass (formato Assay.Net ou TS). Todo
+  runner recebe `SKIES_EVIDENCE`/`SKIES_SPEC`; o .NET tem `SpecEvidence.Save` em `Skies.Framework.Testing`.
+- **Evidência é artefato congelado.** O recibo guarda `evidence` (blake3 de cada arquivo não ignorado em
+  `evidence/`); `proof status` distingue `tampered` de `stale`, e `verify` preserva os hashes do red.
+- **Os recibos são o índice de impacto.** `proof impact [paths] [--diff [rev]]` inverte footprints + `touches`;
+  `proof record --with-impacted` reprova em green os specs sobrepostos e grava `verified_with`.
