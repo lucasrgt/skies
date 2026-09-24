@@ -1,19 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TestRun id="00000000-0000-0000-0000-000000000001" name="{run}" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2026-09-24T03:29:43.5368742-03:00" queuing="2026-09-24T03:29:43.5368743-03:00" start="2026-09-24T03:29:42.5951630-03:00" finish="2026-09-24T03:29:43.5402185-03:00" />
+  <Times creation="2026-09-24T04:17:00.8266306-03:00" queuing="2026-09-24T04:17:00.8266306-03:00" start="2026-09-24T04:16:57.2715140-03:00" finish="2026-09-24T04:17:00.8329937-03:00" />
   <TestSettings name="default" id="00000000-0000-0000-0000-000000000002">
     <Deployment runDeploymentRoot="{run}" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="445a8336-9eb4-c0e2-8c64-70e1931717f9" testName="FM-1: a withdrawal is reflected by the next balance read" computerName="{machine}" duration="00:00:00.0196901" startTime="2026-09-24T03:29:43.4409003-03:00" endTime="2026-09-24T03:29:43.4606848-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="3c4f35f6-7b88-ebda-db01-74ee23abe957" testName="FM-5: a retry with the same Idempotency-Key debits once" computerName="{machine}" duration="00:00:00.4753970" startTime="2026-09-24T03:29:42.9108022-03:00" endTime="2026-09-24T03:29:43.3909061-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="325f1266-9b16-9cf4-ad6c-df2daf445989" testName="FM-3: a negative amount answers 400 with an amount field error" computerName="{machine}" duration="00:00:00.0102709" startTime="2026-09-24T03:29:43.4173248-03:00" endTime="2026-09-24T03:29:43.4273550-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="d3726388-1d24-a53f-4c55-25759774781f" testName="FM-4: a missing wallet answers 404" computerName="{machine}" duration="00:00:00.0248945" startTime="2026-09-24T03:29:43.3964233-03:00" endTime="2026-09-24T03:29:43.4168619-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000007" testId="e3edbb30-2a95-daf2-47fd-b436b16fda1c" testName="FM-2: overdrawing answers 422 and leaves the balance untouched" computerName="{machine}" duration="00:00:00.0131596" startTime="2026-09-24T03:29:43.4275046-03:00" endTime="2026-09-24T03:29:43.4407532-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000007" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="445a8336-9eb4-c0e2-8c64-70e1931717f9" testName="FM-1: a withdrawal is reflected by the next balance read" computerName="{machine}" duration="00:00:00.0174757" startTime="2026-09-24T04:17:00.4792585-03:00" endTime="2026-09-24T04:17:00.4964998-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="e3edbb30-2a95-daf2-47fd-b436b16fda1c" testName="FM-2: overdrawing answers 422 and leaves the balance untouched" computerName="{machine}" duration="00:00:00.0349230" startTime="2026-09-24T04:17:00.4440999-03:00" endTime="2026-09-24T04:17:00.4787233-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="325f1266-9b16-9cf4-ad6c-df2daf445989" testName="FM-3: a negative amount answers 400 with an amount field error" computerName="{machine}" duration="00:00:00.0161231" startTime="2026-09-24T04:17:00.4286641-03:00" endTime="2026-09-24T04:17:00.4434639-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="d3726388-1d24-a53f-4c55-25759774781f" testName="FM-4: a missing wallet answers 404" computerName="{machine}" duration="00:00:00.0324342" startTime="2026-09-24T04:17:00.4041275-03:00" endTime="2026-09-24T04:17:00.4274214-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000007" testId="3c4f35f6-7b88-ebda-db01-74ee23abe957" testName="FM-5: a retry with the same Idempotency-Key debits once" computerName="{machine}" duration="00:00:01.1320650" startTime="2026-09-24T04:16:59.3100231-03:00" endTime="2026-09-24T04:17:00.3933634-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000007" />
   </Results>
   <TestDefinitions>
     <UnitTest name="FM-2: overdrawing answers 422 and leaves the balance untouched" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="e3edbb30-2a95-daf2-47fd-b436b16fda1c">
-      <Execution id="00000000-0000-0000-0000-000000000007" />
+      <Execution id="00000000-0000-0000-0000-000000000004" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Overdraw_is_refused" />
     </UnitTest>
     <UnitTest name="FM-3: a negative amount answers 400 with an amount field error" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="325f1266-9b16-9cf4-ad6c-df2daf445989">
@@ -25,7 +25,7 @@
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Withdrawal_is_reflected_by_the_balance" />
     </UnitTest>
     <UnitTest name="FM-5: a retry with the same Idempotency-Key debits once" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="3c4f35f6-7b88-ebda-db01-74ee23abe957">
-      <Execution id="00000000-0000-0000-0000-000000000004" />
+      <Execution id="00000000-0000-0000-0000-000000000007" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Same_key_debits_once" />
     </UnitTest>
     <UnitTest name="FM-4: a missing wallet answers 404" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="d3726388-1d24-a53f-4c55-25759774781f">
@@ -35,10 +35,10 @@
   </TestDefinitions>
   <TestEntries>
     <TestEntry testId="445a8336-9eb4-c0e2-8c64-70e1931717f9" executionId="00000000-0000-0000-0000-000000000003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="3c4f35f6-7b88-ebda-db01-74ee23abe957" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e3edbb30-2a95-daf2-47fd-b436b16fda1c" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
     <TestEntry testId="325f1266-9b16-9cf4-ad6c-df2daf445989" executionId="00000000-0000-0000-0000-000000000005" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
     <TestEntry testId="d3726388-1d24-a53f-4c55-25759774781f" executionId="00000000-0000-0000-0000-000000000006" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="e3edbb30-2a95-daf2-47fd-b436b16fda1c" executionId="00000000-0000-0000-0000-000000000007" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3c4f35f6-7b88-ebda-db01-74ee23abe957" executionId="00000000-0000-0000-0000-000000000007" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
     <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
@@ -48,9 +48,9 @@
     <Counters total="5" executed="5" passed="5" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
     <Output>
       <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
-[xUnit.net 00:00:00.04]   Discovering: Sample.Tests
-[xUnit.net 00:00:00.06]   Discovered:  Sample.Tests
-[xUnit.net 00:00:00.08]   Starting:    Sample.Tests
+[xUnit.net 00:00:00.14]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.21]   Discovered:  Sample.Tests
+[xUnit.net 00:00:00.32]   Starting:    Sample.Tests
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
@@ -113,7 +113,7 @@ info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
-[xUnit.net 00:00:00.64]   Finished:    Sample.Tests
+[xUnit.net 00:00:01.60]   Finished:    Sample.Tests
 </StdOut>
     </Output>
   </ResultSummary>

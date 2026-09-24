@@ -2,7 +2,7 @@
   "spec": "0005-openapi-contract",
   "runner": "api",
   "red": {
-    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
+    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:dbf6b140d39d9c279dd98424e3e3fc58f985c3740b99a374254b35908e5a12df"
@@ -19,8 +19,8 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "c563c5881780cbec363290215ab73add4eaeac16",
-    "dirty": true,
+    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
+    "dirty": false,
     "cases": {
       "FM-1": "pass",
       "FM-2": "pass",
@@ -33,17 +33,33 @@
     "report": "evidence/green.trx"
   },
   "footprint": {
+    "backend/Sample.Api/AppDb.cs": "blake3:ab9df24eef15dbe04005af78ca07d96492a5e6c5de47cf1f6e59dedb9b1d2b50",
+    "backend/Sample.Api/BuildingBlocks/Money.cs": "blake3:746bb641ce503821d81ffc6f84bf498b75c9d591e519afb9247ec2618a992823",
+    "backend/Sample.Api/Modules/Modules.cs": "blake3:58702aa394e61cf58229aa208af36cfe6d7beb5b40b88b9126a3dc3075ca94e8",
+    "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": "blake3:c70ccfc1ea1d031a7104cdd925856c01095e4acc53a037b8ec8e5fea233837cd",
+    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": "blake3:f8ac77a4260eea442ea7db39068d3f91367f395be382d2b82531f2f404dba747",
+    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": "blake3:f9444e82971a6dbed78ead832ed14b8d953bb880ef18718dadd795dbb37b7da9",
+    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": "blake3:d0c1902518b8c886fb8e4aa23d916679c35ae5ff044ed0cb7c6887e84fde86e5",
+    "backend/Sample.Api/Modules/Wallets/Wallet.cs": "blake3:525682962aa385e8d24d4811c93aebc1464f304670f40cc0fad2bf13cfac09aa",
+    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": "blake3:3ca71c2c3906dffa3d75b7b8e50281f3953c5b30b7c826a4ea98a049cda4e87a",
+    "backend/Sample.Api/Platform.Idempotency.cs": "blake3:0d6785d4534506b9d17d3241a53f0b9aaac333440aa4be639504e06b3fb4b99a",
     "backend/Sample.Api/Platform.cs": "blake3:1f8b78ea166f048d8e9d58ea28d0548f9f0a7910fbff7491ab530e4e9d35a0d0",
     "backend/Sample.Api/Program.cs": "blake3:8e8b672056e6d89b7567e99796aa2489c4b09abaa92dee49bc19ff5030493868",
     "backend/Sample.Api/Sample.Api.csproj": "blake3:d321e56bcf423af630bfcd8788438498f3b28a181cf4fd0c06ff4bf814241f56"
   },
+  "footprint_source": "coverage",
+  "footprint_changed": [
+    "backend/Sample.Api/Platform.cs",
+    "backend/Sample.Api/Program.cs",
+    "backend/Sample.Api/Sample.Api.csproj"
+  ],
   "inputs": {
     ".specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs": "blake3:73806a752bb83eed284575dc57477089fd666afe94fccc49600af7cc63ee5c84",
     ".specs/0005-openapi-contract/e2e/SchemaContractSpec.cs": "blake3:149fed11b33b145ffab2d99066b7845c992e42c1d5cf9079fcf109d2ca1526b8",
     ".specs/0005-openapi-contract/spec.md": "blake3:ea2bdf9821350d311c22cd4edd80d65b74f078e647b70916e530acb95ae6eb1b"
   },
   "evidence": {
-    "evidence/green.trx": "blake3:74a495368cf7e4b05e86adba960ba29e51b2b1916b165147cd28c00a6801b68c",
-    "evidence/red.trx": "blake3:40a398bd25ca0822a5479248d290967c0c29f2550d36dc624486029e63653e78"
+    "evidence/green.trx": "blake3:6b8bca090831cba83f0279b0ce63a99a2ba90bedef99583e67d05ca07d47b17e",
+    "evidence/red.trx": "blake3:58b8483c783f2291dd7e56bc5b2278493878b52d2d1f5105a1792d5144f51ad1"
   }
 }
