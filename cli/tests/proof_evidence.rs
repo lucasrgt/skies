@@ -56,11 +56,17 @@ fn a_tagged_failure_mode_passes_only_with_a_passing_verdict() {
     let receipt = repo.json(&format!("{SPEC}/receipt.json"));
     assert_eq!(
         receipt["green"]["cases"],
-        json!({"FM-1": "pass", "FM-2": {"result": "pass", "avp": ["key-honored"], "verdict": "evidence/avp-FM-2.json"}})
+        json!({
+            "FM-1": {"result": "pass", "cases": ["FM-1: toggles"]},
+            "FM-2": {"result": "pass", "avp": ["key-honored"], "verdict": "evidence/avp-FM-2.json", "cases": ["FM-2: retries once"]}
+        })
     );
     assert_eq!(
         receipt["red"]["cases"],
-        json!({"FM-1": "fail", "FM-2": {"result": "fail", "avp": ["key-honored"], "verdict": "evidence/red.avp-FM-2.json"}})
+        json!({
+            "FM-1": {"result": "fail", "cases": ["FM-1: toggles"]},
+            "FM-2": {"result": "fail", "avp": ["key-honored"], "verdict": "evidence/red.avp-FM-2.json", "cases": ["FM-2: retries once"]}
+        })
     );
     assert!(
         repo.read(&format!("{SPEC}/evidence/avp-FM-2.json"))
@@ -111,11 +117,10 @@ fn edited_evidence_is_tampered_not_stale() {
         [
             "evidence/avp-FM-2.json",
             "evidence/final.txt",
-            "evidence/green.xml",
             "evidence/red.avp-FM-2.json",
-            "evidence/red.xml",
             "evidence/spec.txt"
-        ]
+        ],
+        "only committed evidence is hashed; the reports under raw/ are local"
     );
     let status = |repo: &Repo| text(&repo.skies(&["proof", "status"]));
     assert_eq!(status(&repo), "0001-toggle  current\n");
@@ -144,14 +149,20 @@ fn edited_evidence_is_tampered_not_stale() {
     assert!(verified.status.success(), "{}", text(&verified));
     assert_eq!(status(&repo), "0001-toggle  current\n");
 
+    // A missing or edited local report is not tampering: raw/ is regenerable and never part of the record.
+    std::fs::remove_file(repo.path(&format!("{SPEC}/evidence/raw/green.xml"))).unwrap();
+    repo.write(&format!("{SPEC}/evidence/raw/red.xml"), "<testsuites/>");
+    assert_eq!(status(&repo), "0001-toggle  current\n");
+
     // Red is never rerun, so an edit to red evidence survives verify: its recorded hash is kept.
-    repo.write(&format!("{SPEC}/evidence/red.xml"), "<testsuites/>");
+    let red_verdict = format!("{SPEC}/evidence/red.avp-FM-2.json");
+    repo.write(&red_verdict, &repo.read(&red_verdict).replace("Fail", "Pass"));
     repo.write(&format!("{SPEC}/evidence/extra.png"), "planted");
     let verified = repo.skies(&["proof", "verify", "1", "--refresh"]);
     assert!(verified.status.success(), "{}", text(&verified));
     assert_eq!(
         status(&repo),
-        "0001-toggle  tampered (1 file edited since recording: evidence/red.xml)\n"
+        "0001-toggle  tampered (1 file edited since recording: evidence/red.avp-FM-2.json)\n"
     );
     assert!(
         !repo.path(&format!("{SPEC}/evidence/extra.png")).exists(),
@@ -175,7 +186,7 @@ fn ignored_evidence_is_not_part_of_the_record() {
 }
 
 #[test]
-fn committed_reports_name_neither_the_machine_nor_its_paths() {
+fn local_reports_name_neither_the_machine_nor_its_paths() {
     let repo = Repo::with_runner(|runner| {
         runner.replace(
             r#"echo '<testsuites><testsuite name="fake">'"#,
@@ -190,7 +201,7 @@ fn committed_reports_name_neither_the_machine_nor_its_paths() {
 
     // Red ran in a worktree under the temp directory and green in the checkout; both are the same `{root}`.
     for report in ["red.xml", "green.xml"] {
-        let evidence = repo.read(&format!("{SPEC}/evidence/{report}"));
+        let evidence = repo.read(&format!("{SPEC}/evidence/raw/{report}"));
         assert!(
             evidence.contains(r#"hostname="{machine}"><system-out>{root}/out.log</system-out>"#),
             "{report}: {evidence}"
@@ -202,10 +213,10 @@ fn committed_reports_name_neither_the_machine_nor_its_paths() {
     }
     assert_eq!(text(&repo.skies(&["proof", "status"])), "0001-toggle  current\n");
 
-    let verified = repo.skies(&["proof", "verify", "1"]);
+    let verified = repo.skies(&["proof", "verify", "1", "--refresh"]);
     assert!(verified.status.success(), "{}", text(&verified));
     assert!(
-        repo.read(&format!("{SPEC}/evidence/green.xml"))
+        repo.read(&format!("{SPEC}/evidence/raw/green.xml"))
             .contains("{root}/out.log")
     );
 }

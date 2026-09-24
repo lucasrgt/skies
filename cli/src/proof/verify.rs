@@ -12,6 +12,7 @@ use std::time::Duration;
 use anyhow::{Result, bail};
 
 use super::coverage;
+use super::evidence::{self, Half};
 use super::footprint::{self, Source};
 use super::git::Repo;
 use super::green::{self, GreenOutcome, ProvenGreen};
@@ -235,22 +236,28 @@ fn verify_one(context: &Context, spec: &SpecDir, session: &mut Session, scratch:
     if matches!(freshness, Freshness::Current) && !context.refresh {
         return Ok(Ok(Some((count, describe(&receipt), false, elapsed))));
     }
-    green::publish_evidence(
-        spec,
-        &proven.staged,
-        &[(proven.file.clone(), proven.report.clone())],
-        true,
-        &Scrub::new(&[&context.repo.top]),
-    )?;
+    if let Some(problem) = evidence::oversized(context.repo, spec, &proven.files())? {
+        return Ok(Err(problem));
+    }
+    evidence::ensure_ignored(root)?;
+    let scrub = Scrub::new(&[&context.repo.top]);
+    // A receipt from before compact evidence committed red's report; summarize it and move it to raw/.
+    let moved: Vec<String> = evidence::migrate_red(spec, &mut receipt, &scrub)?.into_iter().collect();
+    evidence::publish(spec, Half::Green, &proven.files(), &scrub)?;
 
     refresh_footprint(root, &doc, footprint::runner_of(project, &doc), &mut receipt, &proven)?;
     receipt.runner = doc.runner(spec)?.to_string();
     receipt.green.commit = context.head.to_string();
     receipt.green.dirty = context.repo.dirty()?;
+    receipt.green.report = proven.report(spec);
     receipt.green.cases = proven.cases;
-    receipt.green.report = proven.report;
     receipt.inputs = hash::hash_all(root, &hash::input_paths(root, spec)?);
-    receipt.evidence = Some(green::evidence_hashes(spec, receipt.evidence.as_ref())?);
+    receipt.evidence = Some(evidence::hashes(
+        spec,
+        receipt.evidence.as_ref(),
+        Some(Half::Red),
+        &moved,
+    )?);
     receipt.save(spec)?;
     Ok(Ok(Some((count, describe(&receipt), true, elapsed))))
 }

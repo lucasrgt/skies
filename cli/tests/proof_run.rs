@@ -1,4 +1,4 @@
-//! The everyday loop through the real binary: `proof run` (judge the cases now, write nothing), a baseline
+//! The everyday loop through the real binary: `proof run` (judge the cases now, commit nothing), a baseline
 //! `verify` that leaves current receipts alone, a runner `scope` that keeps a surface's receipts to its own files,
 //! and failure modes written over several lines.
 
@@ -18,7 +18,7 @@ fn porcelain(repo: &Repo) -> String {
 }
 
 #[test]
-fn run_judges_each_failure_mode_and_writes_nothing() {
+fn run_judges_each_failure_mode_and_commits_nothing() {
     let repo = Repo::new();
     new_spec(&repo, "FM-1: toggles\nFM-2: always answers\n");
 
@@ -29,17 +29,37 @@ fn run_judges_each_failure_mode_and_writes_nothing() {
     assert!(output.contains("failed: FM-1: toggles"), "{output}");
     assert!(output.contains("  FM-2  pass  toggling twice breaks\n"), "{output}");
     assert!(output.contains("1 of 2 FMs fail"), "{output}");
+    let committed = |repo: &Repo| -> Vec<String> {
+        let evidence = repo.path(&format!("{SPEC}/evidence"));
+        let mut names: Vec<String> = std::fs::read_dir(&evidence)
+            .map(|entries| {
+                entries
+                    .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+                    .collect()
+            })
+            .unwrap_or_default();
+        names.sort();
+        names
+    };
+    assert_eq!(committed(&repo), ["raw"], "run writes no committed evidence");
     assert!(
-        !repo.path(&format!("{SPEC}/evidence")).exists(),
-        "run writes no evidence"
+        repo.read(&format!("{SPEC}/evidence/raw/run.xml"))
+            .contains("FM-1: toggles")
     );
+    assert!(repo.path(&format!("{SPEC}/evidence/raw/run.log")).is_file());
     assert!(!repo.path(&format!("{SPEC}/receipt.json")).exists());
+    repo.git(&["add", ".specs"]);
+    assert!(
+        !porcelain(&repo).contains("evidence/raw"),
+        "the local report is gitignored: {}",
+        porcelain(&repo)
+    );
 
     repo.implement();
     let after = repo.skies(&["proof", "run", "0001-toggle"]);
     assert!(after.status.success(), "{}", text(&after));
     assert!(text(&after).contains("2/2 FMs pass"), "{}", text(&after));
-    assert!(!repo.path(&format!("{SPEC}/evidence")).exists());
+    assert_eq!(committed(&repo), ["raw"]);
 }
 
 #[test]

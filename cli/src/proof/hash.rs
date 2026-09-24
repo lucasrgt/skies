@@ -69,16 +69,17 @@ pub fn input_paths(root: &Path, spec: &SpecDir) -> Result<BTreeSet<String>> {
     Ok(paths)
 }
 
-/// Every file under the spec's evidence/, keyed relative to the spec folder (`evidence/green.trx`). The walk honors
-/// `.gitignore`, so regenerable artifacts a team keeps out of git (traces, videos) are not part of the record and a
-/// fresh clone without them is not reported as tampered.
+/// Every committed file under the spec's evidence/, keyed relative to the spec folder (`evidence/avp-FM-2.json`).
+/// evidence/raw/ (full reports and logs) is always left out, and the walk honors `.gitignore`, so regenerable
+/// artifacts kept out of git are not part of the record and a fresh clone without them is not reported as tampered.
 pub fn evidence(spec: &SpecDir) -> Result<Hashes> {
     let dir = spec.file(EVIDENCE_DIR);
+    let raw = dir.join(super::evidence::RAW_DIR);
     let mut paths = BTreeSet::new();
     if dir.is_dir() {
         for entry in walk(&dir) {
             let entry = entry.with_context(|| format!("walking {}", dir.display()))?;
-            if entry.file_type().is_some_and(|kind| kind.is_file()) {
+            if entry.file_type().is_some_and(|kind| kind.is_file()) && !entry.path().starts_with(&raw) {
                 paths.insert(relative(&spec.path, entry.path()));
             }
         }

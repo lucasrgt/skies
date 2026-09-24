@@ -2,24 +2,26 @@
 //!
 //! Red answers "do these cases bite?": every failure mode must fail where the feature does not exist yet. Green
 //! answers "does the feature handle them?". Only when both hold is a receipt written, so a receipt on disk always
-//! describes a complete red→green pair.
+//! describes a complete red→green pair. `--red-only` ([`super::red_only`]) reruns red alone for a receipt whose red
+//! rotted.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 
 use super::base::Base;
+use super::evidence::{self, Half};
 use super::git::Repo;
 use super::green::{self, GreenOutcome, join};
 use super::hash;
-use super::receipt::{Entry, Green, Patch, Receipt, Red, RedCase};
+use super::receipt::{Entry, Green, Receipt, RedCase};
 use super::red::{self, Revision};
 use super::report::FmId;
 use super::runner::{Session, seconds};
-use super::spec::{self, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
-use super::{avp, ctx, footprint, impact, lines, verify};
+use super::spec::{self, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
+use super::{ctx, footprint, impact, lines, red_only, verify};
 use crate::manifest::{Project, Runner};
 
 /// What `skies proof record` was asked to do.
@@ -28,6 +30,8 @@ pub struct Options<'a> {
     pub red_patch: Option<&'a Path>,
     /// Re-prove green for every other spec whose footprint overlaps this one's, and name them in the receipt.
     pub with_impacted: bool,
+    /// Rerun red alone and rewrite only the receipt's red half: the fix for a red.patch that rotted.
+    pub red_only: bool,
 }
 
 pub fn record(key: &str, options: &Options) -> Result<u8> {
@@ -38,91 +42,30 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
     let runner_name = doc.runner(&spec)?;
     let runner = project.runner(runner_name)?;
     let repo = Repo::open(root)?;
-
-    let patch = red_patch(&spec, options.red, options.red_patch)?;
-    let head = repo.head()?;
-    // --red, then the spec's red.patch on HEAD, then the merge-base with the branch features fork from.
-    let base = match (options.red, &patch) {
-        (Some(rev), _) => Base::explicit(&repo, rev, "--red")?,
-        (None, Some(_)) => Base {
-            commit: head.clone(),
-            how: format!("HEAD + {RED_PATCH_FILE}"),
-            explicit: true,
-        },
-        (None, None) => Base::default(&repo, project.manifest.workspace.default_branch.as_deref())?,
-    };
-    let red_commit = base.commit.clone();
-    if red_commit == head && patch.is_none() {
-        bail!(
-            "the red revision is HEAD ({}; {}), where the feature already exists, so red would prove nothing. Either\n  \
-             - commit the feature on a branch and record from there (red defaults to the merge-base with the branch \
-             features fork from: `default_branch` in Skies.toml, else the upstream, else origin/HEAD),\n  \
-             - pass --red <rev> for a revision without the feature, or\n  \
-             - pass --red-patch <file> with a patch that removes the feature (kept as {}/{RED_PATCH_FILE})",
-            short(&head),
-            base.how,
-            spec.rel()
-        );
+    if options.red_only {
+        return red_only::record(&project, &spec, &doc, &repo, options);
     }
+    evidence::ensure_ignored(root)?;
+    let plan = plan_red(&project, &spec, &repo, options)?;
 
     let scratch = tempfile::Builder::new().prefix("skies-proof-").tempdir()?;
     let mut session = Session::default();
-    let patch_note = if patch.is_some() {
-        format!(" + {RED_PATCH_FILE}")
-    } else {
-        String::new()
-    };
     println!("record {} (runner {runner_name})", spec.name);
-    let (line, warning) = base.describe(&repo);
-    println!("  red    {line}");
-    if let Some(warning) = warning {
-        eprintln!("{warning}");
-    }
-
-    let revision = Revision {
-        commit: &red_commit,
-        patch: patch.as_deref(),
-    };
-    let red_started = Instant::now();
-    let Some(red_run) = red::run(
+    let Some((red_run, red_elapsed)) = prove_red(
         &repo,
         &spec,
         &doc,
         (runner_name, runner),
-        &revision,
+        &plan,
         &mut session,
         scratch.path(),
     )?
     else {
         return Ok(1);
     };
-    let red_elapsed = red_started.elapsed();
-    let unjustified: Vec<FmId> = red_run
-        .cases
-        .iter()
-        .filter(|(id, case)| case.result() == RedCase::NonDiscriminating && !doc.justified.contains(id))
-        .map(|(id, _)| *id)
-        .collect();
-    if !unjustified.is_empty() {
-        let ids = join(&unjustified);
-        eprintln!(
-            "{}: {ids} already pass on red ({}{patch_note}), so their cases do not prove the feature.",
-            spec.name,
-            short(&red_commit)
-        );
-        eprintln!(
-            "Make each case fail without the feature, or justify it in {}/{SPEC_FILE}:\n",
-            spec.rel()
-        );
-        eprintln!("## Non-discriminating\n");
-        for id in &unjustified {
-            eprintln!("- {id} <why this case cannot fail before the feature>");
-        }
-        return Ok(1);
-    }
 
     let dirty = repo.dirty()?;
-    println!("  green  {}{}", short(&head), if dirty { " (dirty)" } else { "" });
+    println!("  green  {}{}", short(&plan.head), if dirty { " (dirty)" } else { "" });
     let proven = match green::run_green(root, &spec, &doc, &project, &mut session, scratch.path())? {
         GreenOutcome::Proven(proven) => proven,
         GreenOutcome::Refuted(message) => {
@@ -135,23 +78,24 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
         seconds(red_elapsed),
         seconds(proven.elapsed)
     );
-    print_cases(&red_run.cases);
+    print_cases(&red_run.cases, "pass");
 
-    let mut files = vec![
-        (red_run.file.clone(), red_run.report.clone()),
-        (proven.file.clone(), proven.report.clone()),
-    ];
-    for id in &doc.failure_modes {
-        let name = avp::verdict_file(*id);
-        if !doc.avp(*id).is_empty() && red_run.evidence.join(&name).is_file() {
-            files.push((red_run.evidence.join(&name), format!("{EVIDENCE_DIR}/red.{name}")));
+    {
+        let red_files = red_run.files(&doc);
+        let green_files = proven.files();
+        for files in [&red_files, &green_files] {
+            if let Some(problem) = evidence::oversized(&repo, &spec, files)? {
+                eprintln!("{}: {problem}", spec.name);
+                return Ok(1);
+            }
         }
+        evidence::publish(&spec, Half::Red, &red_files, &red_run.scrub)?;
+        evidence::publish(&spec, Half::Green, &green_files, &red_run.scrub)?;
     }
-    green::publish_evidence(&spec, &proven.staged, &files, false, &red_run.scrub)?;
 
-    let changed = match patch.as_deref() {
+    let changed = match plan.patch.as_deref() {
         Some(patch) => repo.patch_footprint(patch)?,
-        None => repo.changed_since(&red_commit)?,
+        None => repo.changed_since(&plan.base.commit)?,
     };
     let footprint = footprint::build(root, &doc, runner, &changed, &proven)?;
     let prints = lines::print_all(root, &footprint.paths, &footprint.executed);
@@ -160,43 +104,130 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
         footprint::describe(&footprint, &proven, lines::by_lines(&prints))
     );
     let footprint_paths = footprint.paths;
-    let ctx_revised = revised_ctx(&repo, runner, &changed, patch.is_some().then_some(head.as_str()))?;
+    let patched_head = plan.patch.is_some().then_some(plan.head.as_str());
+    let ctx_revised = revised_ctx(&repo, runner, &changed, patched_head)?;
+    let green_report = proven.report(&spec);
     let mut receipt = Receipt {
         spec: spec.name.clone(),
         runner: runner_name.to_string(),
-        red: Red {
-            commit: red_commit,
-            patch: patch.as_deref().map(|file| Patch {
-                file: RED_PATCH_FILE.to_string(),
-                hash: hash::hash_file(file).unwrap_or_else(|| hash::ABSENT.to_string()),
-            }),
-            cases: red_run.cases,
-            report: red_run.report,
-        },
+        red: red_run.into_receipt(&spec, plan.base.commit.clone(), plan.patch.as_deref()),
         green: Green {
-            commit: head,
+            commit: plan.head.clone(),
             dirty,
             cases: proven.cases,
-            report: proven.report,
+            report: green_report,
         },
         footprint: prints,
         footprint_source: footprint.source,
         footprint_changed: footprint.changed,
         inputs: hash::hash_all(root, &hash::input_paths(root, &spec)?),
-        evidence: Some(green::evidence_hashes(&spec, None)?),
+        evidence: Some(evidence::hashes(&spec, None, None, &[])?),
         ctx_revised,
         verified_with: BTreeMap::new(),
     };
     receipt.save(&spec)?;
     println!(
-        "wrote {}/receipt.json (footprint {}, inputs {}, evidence {})",
+        "wrote {}/receipt.json (footprint {}, inputs {}, evidence {}; full reports in evidence/{}/, not committed)",
         spec.rel(),
         footprint::files(receipt.footprint.len()),
         footprint::files(receipt.inputs.len()),
-        footprint::files(receipt.evidence.as_ref().map_or(0, |evidence| evidence.len()))
+        footprint::files(receipt.evidence.as_ref().map_or(0, |evidence| evidence.len())),
+        evidence::RAW_DIR
     );
     note_unrevised_ctx(root, &spec, &footprint_paths, &receipt.ctx_revised);
     impacted(&project, &spec, &mut receipt, options.with_impacted, &mut session)
+}
+
+/// Where red runs, decided before anything runs.
+pub struct RedPlan {
+    pub base: Base,
+    pub patch: Option<PathBuf>,
+    pub head: String,
+}
+
+/// `--red`, then the spec's red.patch on HEAD, then the merge-base with the branch features fork from. Refuses a
+/// red that is HEAD itself without a patch, where the feature already exists.
+pub fn plan_red(project: &Project, spec: &SpecDir, repo: &Repo, options: &Options) -> Result<RedPlan> {
+    let patch = red_patch(spec, options.red, options.red_patch)?;
+    let head = repo.head()?;
+    let base = match (options.red, &patch) {
+        (Some(rev), _) => Base::explicit(repo, rev, "--red")?,
+        (None, Some(_)) => Base {
+            commit: head.clone(),
+            how: format!("HEAD + {RED_PATCH_FILE}"),
+            explicit: true,
+        },
+        (None, None) => Base::default(repo, project.manifest.workspace.default_branch.as_deref())?,
+    };
+    if base.commit == head && patch.is_none() {
+        bail!(
+            "the red revision is HEAD ({}; {}), where the feature already exists, so red would prove nothing. Either\n  \
+             - commit the feature on a branch and record from there (red defaults to the merge-base with the branch \
+             features fork from: `default_branch` in Skies.toml, else the upstream, else origin/HEAD),\n  \
+             - pass --red <rev> for a revision without the feature, or\n  \
+             - pass --red-patch <file> with a patch that removes the feature (kept as {}/{RED_PATCH_FILE})",
+            short(&head),
+            base.how,
+            spec.rel()
+        );
+    }
+    Ok(RedPlan { base, patch, head })
+}
+
+/// Prints the red line, runs red, and holds it to spec.md: `None` (after saying why) when red does not match it or a
+/// mode passes red without a justification.
+pub fn prove_red(
+    repo: &Repo,
+    spec: &SpecDir,
+    doc: &SpecDoc,
+    runner: (&str, &Runner),
+    plan: &RedPlan,
+    session: &mut Session,
+    scratch: &Path,
+) -> Result<Option<(red::Red, Duration)>> {
+    let (line, warning) = plan.base.describe(repo);
+    println!("  red    {line}");
+    if let Some(warning) = warning {
+        eprintln!("{warning}");
+    }
+    let revision = Revision {
+        commit: &plan.base.commit,
+        patch: plan.patch.as_deref(),
+    };
+    let started = Instant::now();
+    let Some(red_run) = red::run(repo, spec, doc, runner, &revision, session, scratch)? else {
+        return Ok(None);
+    };
+    let elapsed = started.elapsed();
+    let unjustified: Vec<FmId> = red_run
+        .cases
+        .iter()
+        .filter(|(id, case)| case.result() == RedCase::NonDiscriminating && !doc.justified.contains(id))
+        .map(|(id, _)| *id)
+        .collect();
+    if unjustified.is_empty() {
+        return Ok(Some((red_run, elapsed)));
+    }
+    let patch_note = if plan.patch.is_some() {
+        format!(" + {RED_PATCH_FILE}")
+    } else {
+        String::new()
+    };
+    eprintln!(
+        "{}: {} already pass on red ({}{patch_note}), so their cases do not prove the feature.",
+        spec.name,
+        join(&unjustified),
+        short(&plan.base.commit)
+    );
+    eprintln!(
+        "Make each case fail without the feature, or justify it in {}/{SPEC_FILE}:\n",
+        spec.rel()
+    );
+    eprintln!("## Non-discriminating\n");
+    for id in &unjustified {
+        eprintln!("- {id} <why this case cannot fail before the feature>");
+    }
+    Ok(None)
 }
 
 /// A spec that touched a module whose ctx.md stayed as it was gets a note, never a failure: the change may well
@@ -302,8 +333,8 @@ fn red_patch(spec: &SpecDir, red_flag: Option<&str>, given: Option<&Path>) -> Re
     }
 }
 
-/// Red outcome per failure mode; green is only printed on success, where every one of them passed.
-fn print_cases(red: &BTreeMap<FmId, Entry<RedCase>>) {
+/// Red outcome per failure mode, next to green's (`pass` after a full record, `kept` after `--red-only`).
+pub fn print_cases(red: &BTreeMap<FmId, Entry<RedCase>>, green: &str) {
     println!("  {:<6}{:<20}green", "FM", "red");
     for (id, case) in red {
         let red_text = match case.result() {
@@ -311,11 +342,12 @@ fn print_cases(red: &BTreeMap<FmId, Entry<RedCase>>) {
             RedCase::DidNotBuild => "did not build",
             RedCase::NonDiscriminating => "non-discriminating",
         };
-        let tag = match case {
-            Entry::Avp(entry) => format!("  [avp: {}]", entry.avp.join(", ")),
-            Entry::Plain(_) => String::new(),
+        let tag = if case.avp.is_empty() {
+            String::new()
+        } else {
+            format!("  [avp: {}]", case.avp.join(", "))
         };
-        println!("  {:<6}{red_text:<20}pass{tag}", id.to_string());
+        println!("  {:<6}{red_text:<20}{green}{tag}", id.to_string());
     }
 }
 

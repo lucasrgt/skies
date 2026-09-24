@@ -158,11 +158,11 @@ fn cases_that_never_ran_on_red_did_not_build_whatever_the_runner() {
     let receipt = repo.json(&format!("{SPEC}/receipt.json"));
     assert_eq!(
         receipt["red"]["cases"],
-        serde_json::json!({"FM-1": "did-not-build", "FM-2": "did-not-build"})
+        serde_json::json!({"FM-1": {"result": "did-not-build"}, "FM-2": {"result": "did-not-build"}})
     );
-    assert_eq!(receipt["red"]["report"], "evidence/red.log");
+    assert_eq!(receipt["red"]["report"]["file"], "evidence/raw/red.log");
     assert!(
-        repo.read(&format!("{SPEC}/evidence/red.log"))
+        repo.read(&format!("{SPEC}/evidence/raw/red.log"))
             .contains("Failed to resolve import")
     );
 
@@ -216,7 +216,7 @@ fn a_runner_build_runs_once_per_checkout_and_failing_on_red_did_not_build() {
         "{}",
         text(&recorded)
     );
-    assert!(repo.read(&format!("{SPEC}/evidence/red.log")).contains("CS0246"));
+    assert!(repo.read(&format!("{SPEC}/evidence/raw/red.log")).contains("CS0246"));
     assert_eq!(
         repo.read("builds.log").lines().count(),
         2,
@@ -253,8 +253,9 @@ fn a_red_that_does_not_match_the_spec_shows_its_output() {
     assert!(output.contains("ran the cases in .specs/0001-toggle/e2e"), "{output}");
     assert!(output.contains("--red <rev>"), "{output}");
     assert!(
-        repo.read(&format!("{SPEC}/evidence/red.log")).contains("ran the cases"),
-        "kept for a spec without a receipt"
+        repo.read(&format!("{SPEC}/evidence/raw/red.log"))
+            .contains("ran the cases"),
+        "kept locally for a closer look"
     );
     assert!(!repo.path(&format!("{SPEC}/receipt.json")).exists());
 }

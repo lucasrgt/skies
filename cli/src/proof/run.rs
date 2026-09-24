@@ -1,15 +1,18 @@
 //! `skies proof run`: the spec's cases on the working tree, once, judged per failure mode, and nothing written.
 //!
 //! The loop an author runs while writing the cases and then the code: which modes pass, which fail, and the
-//! runner's output when something does not. It is green without the bookkeeping: no receipt, no evidence, no
-//! footprint. Everything the run produces stays in a scratch directory that is gone when it returns.
+//! runner's output when something does not. It is green without the bookkeeping: no receipt, no committed evidence,
+//! no footprint. Only the report and the output are kept, in the spec's gitignored evidence/raw/ (`run.xml`,
+//! `run.log`), for a closer look; everything else the run produces is gone when it returns.
 
 use anyhow::Result;
 
 use super::green::{self, Mode};
 use super::report::{Case, FmId, Outcome, fm_ids};
 use super::runner::{Session, seconds};
+use super::scrub::Scrub;
 use super::spec::{self, SpecDoc};
+use super::{evidence, hash};
 use crate::manifest::Project;
 
 pub fn run(key: &str) -> Result<u8> {
@@ -23,6 +26,21 @@ pub fn run(key: &str) -> Result<u8> {
     println!("run {} (runner {runner_name}, working tree; writes nothing)", spec.name);
     let checked = green::check(root, &spec, &doc, &project, &mut session, scratch.path())?;
     println!("  ran in {}", seconds(checked.run.elapsed));
+    // The report and output stay for inspection, in the gitignored raw/ folder; nothing committed is touched.
+    evidence::ensure_ignored(root)?;
+    let extension = checked.run.report.format.extension();
+    let kept = evidence::keep_local(
+        &spec,
+        &[
+            (checked.run.file.clone(), format!("run.{extension}")),
+            (checked.run.log.clone(), "run.log".to_string()),
+        ],
+        &Scrub::new(&[root]),
+    )?;
+    println!(
+        "  report and output in {}/ (local, not committed)",
+        hash::relative(root, &kept)
+    );
     let modes = match &checked.modes {
         Ok(modes) => modes,
         Err(problems) => {

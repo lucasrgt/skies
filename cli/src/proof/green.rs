@@ -1,4 +1,4 @@
-//! Green: running a spec on the working tree, and publishing what it proved into the spec's evidence/.
+//! Green: running a spec on the working tree, judging it, and saying what of it goes into the spec's evidence/.
 //!
 //! Shared by `record` (after red), `verify` (green alone), and `run` (green, judged and printed, nothing kept). A
 //! failure mode passes green when every case naming it passes and, if spec.md tags it `[avp: …]`, the Assay verdict
@@ -11,21 +11,22 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 
-use super::hash::{self, Hashes};
-use super::receipt::{Entry, GreenCase};
-use super::report::{self, FmId, Inconsistency};
+use super::evidence::{self, Files};
+use super::hash;
+use super::receipt::{Entry, GreenCase, Report};
+use super::report::{self, Case, FmId, Inconsistency};
 use super::runner::{Job, Run, Session, tail};
-use super::scrub::Scrub;
 use super::spec::{EVIDENCE_DIR, SpecDir, SpecDoc};
-use super::{avp, coverage};
+use super::{avp, coverage, summary};
 use crate::manifest::Project;
 
 pub struct ProvenGreen {
     pub cases: BTreeMap<FmId, Entry<GreenCase>>,
-    /// The report file name inside evidence/, relative to the spec folder.
-    pub report: String,
-    /// The report as the runner wrote it.
+    /// The report as the runner wrote it, and its extension (`trx`, `xml`).
     pub file: PathBuf,
+    pub extension: &'static str,
+    /// The runner's output.
+    pub log: PathBuf,
     /// Artifacts the runner wrote to `{evidence}` / `$SKIES_EVIDENCE`, staged until the run is known to be good.
     pub staged: PathBuf,
     /// The project files the run executed, or why there is no telling. Coverage never enters evidence: the
@@ -35,6 +36,26 @@ pub struct ProvenGreen {
     /// never counts as a changed file.
     pub coverage_artifact: Option<String>,
     pub elapsed: Duration,
+}
+
+impl ProvenGreen {
+    /// What green publishes: the runner's artifacts, committed (verdicts, screenshots), and its report and output,
+    /// kept locally under raw/.
+    pub fn files(&self) -> Files<'_> {
+        Files {
+            staged: Some(&self.staged),
+            committed: Vec::new(),
+            raw: vec![
+                (self.file.clone(), format!("green.{}", self.extension)),
+                (self.log.clone(), "green.log".to_string()),
+            ],
+        }
+    }
+
+    /// The receipt's pointer to the report, once [`ProvenGreen::files`] is published into the spec.
+    pub fn report(&self, spec: &SpecDir) -> Report {
+        evidence::raw_report(spec, &format!("green.{}", self.extension))
+    }
 }
 
 pub enum GreenOutcome {
@@ -59,6 +80,8 @@ pub struct Checked {
     pub staged: PathBuf,
     /// Every failure mode's result, or why the run's cases and spec.md do not agree at all.
     pub modes: Result<BTreeMap<FmId, Mode>, Inconsistency>,
+    /// The cases naming each failure mode (empty when the run and spec.md disagree).
+    pub cases: BTreeMap<FmId, Vec<Case>>,
 }
 
 impl Checked {
@@ -88,7 +111,12 @@ pub fn check(
         scratch,
         label: "green",
     })?;
-    let modes = report::evaluate(&doc.failure_modes, &run.report.cases).map(|evaluation| {
+    let evaluation = report::evaluate(&doc.failure_modes, &run.report.cases);
+    let cases = evaluation
+        .as_ref()
+        .map(|evaluation| evaluation.cases.clone())
+        .unwrap_or_default();
+    let modes = evaluation.map(|evaluation| {
         evaluation
             .passed
             .iter()
@@ -103,7 +131,12 @@ pub fn check(
             })
             .collect()
     });
-    Ok(Checked { run, staged, modes })
+    Ok(Checked {
+        run,
+        staged,
+        modes,
+        cases,
+    })
 }
 
 /// Runs the spec on the working tree and decides whether it proves every failure mode.
@@ -151,7 +184,9 @@ pub fn run_green(
         .keys()
         .map(|id| {
             let verdict = format!("{EVIDENCE_DIR}/{}", avp::verdict_file(*id));
-            (*id, Entry::new(GreenCase::Pass, doc.avp(*id), Some(verdict)))
+            let named = checked.cases.get(id).map(Vec::as_slice).unwrap_or_default();
+            let entry = Entry::new(GreenCase::Pass, doc.avp(*id), Some(verdict));
+            (*id, entry.with_cases(summary::names(named), None))
         })
         .collect();
     let Checked { run, staged, .. } = checked;
@@ -166,65 +201,14 @@ pub fn run_green(
         .then(|| hash::relative(root, &run.coverage.path));
     Ok(GreenOutcome::Proven(ProvenGreen {
         cases,
-        report: format!("{EVIDENCE_DIR}/green.{}", run.report.format.extension()),
+        extension: run.report.format.extension(),
         file: run.file,
+        log: run.log,
         staged,
         coverage: covered,
         coverage_artifact,
         elapsed: run.elapsed,
     }))
-}
-
-/// Replaces evidence/ with the staged runner artifacts plus the given files (`(source, path in spec folder)`), the
-/// reports and logs among them scrubbed of machine-specific paths and names. With `keep_red`, the red files of the
-/// original recording survive, since `verify` never reruns red.
-pub fn publish_evidence(
-    spec: &SpecDir,
-    staged: &Path,
-    files: &[(PathBuf, String)],
-    keep_red: bool,
-    scrub: &Scrub,
-) -> Result<()> {
-    let evidence = spec.file(EVIDENCE_DIR);
-    let mut kept: Vec<(String, Vec<u8>)> = Vec::new();
-    if keep_red && evidence.is_dir() {
-        for entry in std::fs::read_dir(&evidence)? {
-            let entry = entry?;
-            let name = entry.file_name().to_string_lossy().into_owned();
-            if name.starts_with("red.") && entry.path().is_file() {
-                kept.push((name, std::fs::read(entry.path())?));
-            }
-        }
-    }
-    if evidence.exists() {
-        std::fs::remove_dir_all(&evidence).with_context(|| format!("clearing {}", evidence.display()))?;
-    }
-    std::fs::create_dir_all(&evidence)?;
-    if staged.is_dir() {
-        copy_dir(staged, &evidence)?;
-    }
-    for (name, bytes) in kept {
-        std::fs::write(evidence.join(name), bytes)?;
-    }
-    for (source, target) in files {
-        scrub
-            .copy(source, &spec.path.join(target))
-            .with_context(|| format!("copying {target} into the spec"))?;
-    }
-    Ok(())
-}
-
-/// Hashes evidence/ as it is now. Red files keep the hash recorded with red (`previous`), because `verify` carries
-/// them over without rerunning red: rehashing would launder an edit made to them since.
-pub fn evidence_hashes(spec: &SpecDir, previous: Option<&Hashes>) -> Result<Hashes> {
-    let mut hashes = hash::evidence(spec)?;
-    if let Some(previous) = previous {
-        let red = format!("{EVIDENCE_DIR}/red.");
-        for (path, recorded) in previous.iter().filter(|(path, _)| path.starts_with(&red)) {
-            hashes.insert(path.clone(), recorded.clone());
-        }
-    }
-    Ok(hashes)
 }
 
 pub fn copy_dir(from: &Path, to: &Path) -> Result<()> {

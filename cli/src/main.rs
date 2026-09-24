@@ -217,15 +217,21 @@ pub enum Proof {
         /// reported as unrecorded and does not count.
         #[arg(long)]
         with_impacted: bool,
+        /// Rerun red alone (with the spec's red.patch, --red-patch, or --red) and rewrite only the red half of an
+        /// existing receipt, keeping green, the footprint, and green's evidence: the fix for a `red-rotted` spec.
+        #[arg(long)]
+        red_only: bool,
     },
     /// Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the
-    /// failing cases reported. Writes nothing: no receipt, no evidence. Exits 1 unless every mode passes.
+    /// failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the
+    /// spec's gitignored evidence/raw/ for inspection. Exits 1 unless every mode passes.
     Run {
         /// The spec id or folder name.
         spec: String,
     },
     /// List receipts that are current, stale (their files changed), tampered (their evidence was edited), or
-    /// unrecorded (no receipt yet). Hashes only; runs nothing.
+    /// unrecorded (no receipt yet), and red-rotted specs (red.patch no longer applies). Hashes only; runs no tests,
+    /// and git only for a red.patch that changed, or whose files did, since the last check.
     Status,
     /// Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its
     /// failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no
@@ -269,12 +275,14 @@ fn main() -> ExitCode {
             red,
             red_patch,
             with_impacted,
+            red_only,
         }) => proof::record(
             &spec,
             &proof::RecordOptions {
                 red: red.as_deref(),
                 red_patch: red_patch.as_deref(),
                 with_impacted,
+                red_only,
             },
         ),
         Command::Proof(Proof::Run { spec }) => proof::run(&spec),

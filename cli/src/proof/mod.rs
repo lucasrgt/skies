@@ -8,6 +8,7 @@ mod avp;
 mod base;
 mod coverage;
 mod ctx;
+mod evidence;
 mod footprint;
 mod git;
 mod green;
@@ -17,11 +18,14 @@ mod lines;
 mod receipt;
 mod record;
 mod red;
+mod red_only;
 mod report;
+mod rot;
 mod run;
 mod runner;
 mod scrub;
 mod spec;
+mod summary;
 mod verify;
 
 use anyhow::{Context, Result, bail};
@@ -90,12 +94,34 @@ pub fn status() -> Result<u8> {
         .flat_map(|receipt| receipt.footprint.keys())
         .collect();
     let known = lines::Snapshot::read(root, shared);
+    let committed_reports = receipts
+        .iter()
+        .filter(|receipt| matches!(receipt, Ok(Some(receipt)) if receipt.has_committed_reports()))
+        .count();
+    let rotted = rot::rotted(root, &specs);
     let mut unreadable = false;
     for (spec, receipt) in specs.iter().zip(receipts) {
-        let (line, readable) =
+        let (mut line, readable) =
             describe(receipt.and_then(|receipt| receipt::freshness_with(&project, spec, receipt, &known)));
         unreadable |= !readable;
+        if rotted.contains(&spec.name) {
+            line.push_str(&format!(", red-rotted ({} no longer applies)", spec::RED_PATCH_FILE));
+        }
         println!("{:<width$}  {line}", spec.name);
+    }
+    if !rotted.is_empty() {
+        println!(
+            "red-rotted: the code under red.patch moved, so red can no longer be reproduced. Stub the feature out \
+             again, save the diff as the spec's red.patch, restore the code, then `skies proof record <id> --red-only`."
+        );
+    }
+    if committed_reports > 0 {
+        println!(
+            "{committed_reports} receipt{} still commit full reports under evidence/; `skies proof verify --refresh \
+             --all` moves them to the local evidence/{}/ and keeps their summary in the receipt.",
+            if committed_reports == 1 { "" } else { "s" },
+            evidence::RAW_DIR
+        );
     }
     Ok(if unreadable { 2 } else { 0 })
 }

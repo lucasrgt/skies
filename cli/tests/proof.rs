@@ -19,11 +19,17 @@ fn record_status_verify_round_trip() {
     assert_eq!(receipt["spec"], "0001-toggle");
     assert_eq!(
         receipt["red"]["cases"],
-        serde_json::json!({"FM-1": "fail", "FM-2": "fail"})
+        serde_json::json!({
+            "FM-1": {"result": "fail", "cases": ["FM-1: toggles"]},
+            "FM-2": {"result": "fail", "cases": ["FM-2: toggles twice"]}
+        })
     );
     assert_eq!(
         receipt["green"]["cases"],
-        serde_json::json!({"FM-1": "pass", "FM-2": "pass"})
+        serde_json::json!({
+            "FM-1": {"result": "pass", "cases": ["FM-1: toggles"]},
+            "FM-2": {"result": "pass", "cases": ["FM-2: toggles twice"]}
+        })
     );
     assert_eq!(
         receipt["green"]["dirty"], false,
@@ -41,8 +47,14 @@ fn record_status_verify_round_trip() {
             .unwrap()
             .contains_key(".specs/0001-toggle/e2e/cases.txt")
     );
-    assert!(repo.path(&format!("{SPEC}/evidence/green.xml")).is_file());
-    assert!(repo.path(&format!("{SPEC}/evidence/red.xml")).is_file());
+    assert_eq!(receipt["red"]["report"]["file"], "evidence/raw/red.xml");
+    assert_eq!(receipt["green"]["report"]["file"], "evidence/raw/green.xml");
+    assert!(repo.path(&format!("{SPEC}/evidence/raw/green.xml")).is_file());
+    assert!(repo.path(&format!("{SPEC}/evidence/raw/red.xml")).is_file());
+    assert!(
+        !repo.path(&format!("{SPEC}/evidence/red.xml")).exists(),
+        "full reports are not committed evidence"
+    );
     assert_eq!(repo.read(&format!("{SPEC}/evidence/final.txt")), "screenshot\n");
 
     let status = repo.skies(&["proof", "status"]);
@@ -61,7 +73,7 @@ fn record_status_verify_round_trip() {
     let refreshed: serde_json::Value = serde_json::from_str(&repo.read(&format!("{SPEC}/receipt.json"))).unwrap();
     assert_eq!(refreshed["red"], receipt["red"], "verify never touches red");
     assert!(
-        repo.path(&format!("{SPEC}/evidence/red.xml")).is_file(),
+        repo.path(&format!("{SPEC}/evidence/raw/red.xml")).is_file(),
         "verify keeps the red report"
     );
 
@@ -91,7 +103,7 @@ fn a_case_that_passes_on_red_needs_a_justification() {
     let recorded = repo.skies(&["proof", "record", "0001"]);
     assert!(recorded.status.success(), "{}", text(&recorded));
     let receipt: serde_json::Value = serde_json::from_str(&repo.read(&format!("{SPEC}/receipt.json"))).unwrap();
-    assert_eq!(receipt["red"]["cases"]["FM-2"], "non-discriminating");
+    assert_eq!(receipt["red"]["cases"]["FM-2"]["result"], "non-discriminating");
 }
 
 #[test]
@@ -168,8 +180,12 @@ fn e2e_that_does_not_build_on_red_counts_as_failing() {
     let receipt: serde_json::Value = serde_json::from_str(&repo.read(&format!("{SPEC}/receipt.json"))).unwrap();
     assert_eq!(
         receipt["red"]["cases"],
-        serde_json::json!({"FM-1": "did-not-build", "FM-2": "did-not-build"})
+        serde_json::json!({"FM-1": {"result": "did-not-build"}, "FM-2": {"result": "did-not-build"}})
     );
-    assert_eq!(receipt["red"]["report"], "evidence/red.log");
-    assert!(repo.read(&format!("{SPEC}/evidence/red.log")).contains("CS0246"));
+    assert_eq!(receipt["red"]["report"]["file"], "evidence/raw/red.log");
+    assert_eq!(
+        receipt["red"]["output"], "error CS0246: type not found",
+        "the receipt says why red did not build"
+    );
+    assert!(repo.read(&format!("{SPEC}/evidence/raw/red.log")).contains("CS0246"));
 }
