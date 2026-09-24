@@ -1,38 +1,38 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TestRun id="98c5a22b-a893-4262-8343-7a79f8bc6021" name="@omarchy 2026-09-24 02:15:14" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2026-09-24T02:15:14.6407914-03:00" queuing="2026-09-24T02:15:14.6407914-03:00" start="2026-09-24T02:15:14.2363963-03:00" finish="2026-09-24T02:15:14.6438797-03:00" />
-  <TestSettings name="default" id="dadf7662-c74a-45d8-b48f-a04326a01851">
-    <Deployment runDeploymentRoot="_omarchy_2026-09-24_02_15_14" />
+<TestRun id="22b78559-3709-4461-bd6f-33827691b470" name="@omarchy 2026-09-24 02:29:15" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-24T02:29:15.8837202-03:00" queuing="2026-09-24T02:29:15.8837202-03:00" start="2026-09-24T02:29:15.4523016-03:00" finish="2026-09-24T02:29:15.8867746-03:00" />
+  <TestSettings name="default" id="8551a6e8-8f47-47af-aeda-7a676ae009e0">
+    <Deployment runDeploymentRoot="_omarchy_2026-09-24_02_29_15" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="0d303bd2-1bbe-4617-b34a-7483f91983b3" testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" testName="FM-3: a negative amount is rejected as a validation error" computerName="omarchy" duration="00:00:00.0015384" startTime="2026-09-24T02:15:14.5713503-03:00" endTime="2026-09-24T02:15:14.5713759-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0d303bd2-1bbe-4617-b34a-7483f91983b3" />
-    <UnitTestResult executionId="6dd62ab0-63d6-4acf-9de1-0476dfefa712" testId="12f56f37-339b-9ad3-76f9-5908fa634c23" testName="FM-4: adding two amounts produces their sum" computerName="omarchy" duration="00:00:00.0039309" startTime="2026-09-24T02:15:14.5585001-03:00" endTime="2026-09-24T02:15:14.5655276-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6dd62ab0-63d6-4acf-9de1-0476dfefa712" />
-    <UnitTestResult executionId="37249581-ffcd-43dc-be72-2bb04a84a1ef" testId="b811b544-d10f-7f86-6fed-0755b888f86c" testName="FM-1: zero is valid money" computerName="omarchy" duration="00:00:00.0001328" startTime="2026-09-24T02:15:14.5708928-03:00" endTime="2026-09-24T02:15:14.5709462-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="37249581-ffcd-43dc-be72-2bb04a84a1ef" />
-    <UnitTestResult executionId="4a9f36fc-5cf1-418f-a0e4-946f79457fef" testId="f0b323f1-dceb-aac3-89c0-879baa921e20" testName="FM-2: a positive amount is valid and keeps its value" computerName="omarchy" duration="00:00:00.0000699" startTime="2026-09-24T02:15:14.5712069-03:00" endTime="2026-09-24T02:15:14.5712349-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4a9f36fc-5cf1-418f-a0e4-946f79457fef" />
+    <UnitTestResult executionId="c01595aa-172a-4c44-9fb0-dc4d0d20d68f" testId="b811b544-d10f-7f86-6fed-0755b888f86c" testName="FM-1: zero is valid money" computerName="omarchy" duration="00:00:00.0001563" startTime="2026-09-24T02:29:15.8119138-03:00" endTime="2026-09-24T02:29:15.8119687-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c01595aa-172a-4c44-9fb0-dc4d0d20d68f" />
+    <UnitTestResult executionId="5265f713-bc73-45e4-af69-0f36b4782351" testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" testName="FM-3: a negative amount is rejected as a validation error" computerName="omarchy" duration="00:00:00.0015563" startTime="2026-09-24T02:29:15.8124146-03:00" endTime="2026-09-24T02:29:15.8124401-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5265f713-bc73-45e4-af69-0f36b4782351" />
+    <UnitTestResult executionId="bfadfbfb-a6a7-49e7-aabc-553aa2f647a2" testId="12f56f37-339b-9ad3-76f9-5908fa634c23" testName="FM-4: adding two amounts produces their sum" computerName="omarchy" duration="00:00:00.0044611" startTime="2026-09-24T02:29:15.7980175-03:00" endTime="2026-09-24T02:29:15.8059092-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bfadfbfb-a6a7-49e7-aabc-553aa2f647a2" />
+    <UnitTestResult executionId="ec93f75f-a93b-46a0-9ba1-74ee1a84da0b" testId="f0b323f1-dceb-aac3-89c0-879baa921e20" testName="FM-2: a positive amount is valid and keeps its value" computerName="omarchy" duration="00:00:00.0000762" startTime="2026-09-24T02:29:15.8122485-03:00" endTime="2026-09-24T02:29:15.8122813-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ec93f75f-a93b-46a0-9ba1-74ee1a84da0b" />
   </Results>
   <TestDefinitions>
     <UnitTest name="FM-2: a positive amount is valid and keeps its value" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a268806e3fc3bd588/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="f0b323f1-dceb-aac3-89c0-879baa921e20">
-      <Execution id="4a9f36fc-5cf1-418f-a0e4-946f79457fef" />
+      <Execution id="ec93f75f-a93b-46a0-9ba1-74ee1a84da0b" />
       <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a268806e3fc3bd588/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="A_positive_amount_is_valid" />
     </UnitTest>
     <UnitTest name="FM-1: zero is valid money" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a268806e3fc3bd588/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b811b544-d10f-7f86-6fed-0755b888f86c">
-      <Execution id="37249581-ffcd-43dc-be72-2bb04a84a1ef" />
+      <Execution id="c01595aa-172a-4c44-9fb0-dc4d0d20d68f" />
       <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a268806e3fc3bd588/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="Zero_is_valid_money" />
     </UnitTest>
     <UnitTest name="FM-4: adding two amounts produces their sum" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a268806e3fc3bd588/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="12f56f37-339b-9ad3-76f9-5908fa634c23">
-      <Execution id="6dd62ab0-63d6-4acf-9de1-0476dfefa712" />
+      <Execution id="bfadfbfb-a6a7-49e7-aabc-553aa2f647a2" />
       <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a268806e3fc3bd588/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="Add_sums_two_amounts" />
     </UnitTest>
     <UnitTest name="FM-3: a negative amount is rejected as a validation error" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a268806e3fc3bd588/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="e5512643-23a3-ec3b-89b2-35eb17a244e3">
-      <Execution id="0d303bd2-1bbe-4617-b34a-7483f91983b3" />
+      <Execution id="5265f713-bc73-45e4-af69-0f36b4782351" />
       <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a268806e3fc3bd588/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="A_negative_amount_is_rejected" />
     </UnitTest>
   </TestDefinitions>
   <TestEntries>
-    <TestEntry testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" executionId="0d303bd2-1bbe-4617-b34a-7483f91983b3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="12f56f37-339b-9ad3-76f9-5908fa634c23" executionId="6dd62ab0-63d6-4acf-9de1-0476dfefa712" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="b811b544-d10f-7f86-6fed-0755b888f86c" executionId="37249581-ffcd-43dc-be72-2bb04a84a1ef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="f0b323f1-dceb-aac3-89c0-879baa921e20" executionId="4a9f36fc-5cf1-418f-a0e4-946f79457fef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b811b544-d10f-7f86-6fed-0755b888f86c" executionId="c01595aa-172a-4c44-9fb0-dc4d0d20d68f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" executionId="5265f713-bc73-45e4-af69-0f36b4782351" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="12f56f37-339b-9ad3-76f9-5908fa634c23" executionId="bfadfbfb-a6a7-49e7-aabc-553aa2f647a2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f0b323f1-dceb-aac3-89c0-879baa921e20" executionId="ec93f75f-a93b-46a0-9ba1-74ee1a84da0b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
     <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
@@ -42,10 +42,10 @@
     <Counters total="4" executed="4" passed="4" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
     <Output>
       <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
-[xUnit.net 00:00:00.04]   Discovering: Sample.Tests
-[xUnit.net 00:00:00.06]   Discovered:  Sample.Tests
+[xUnit.net 00:00:00.05]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.07]   Discovered:  Sample.Tests
 [xUnit.net 00:00:00.08]   Starting:    Sample.Tests
-[xUnit.net 00:00:00.10]   Finished:    Sample.Tests
+[xUnit.net 00:00:00.11]   Finished:    Sample.Tests
 </StdOut>
     </Output>
   </ResultSummary>

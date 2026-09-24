@@ -1,52 +1,52 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TestRun id="da2a4878-b421-45cc-af57-e29cbcea5fae" name="@omarchy 2026-09-24 02:15:08" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2026-09-24T02:15:08.3410524-03:00" queuing="2026-09-24T02:15:08.3410524-03:00" start="2026-09-24T02:15:07.9225244-03:00" finish="2026-09-24T02:15:08.3453713-03:00" />
-  <TestSettings name="default" id="4137b859-a927-4037-9a78-d80376fe60bd">
-    <Deployment runDeploymentRoot="_omarchy_2026-09-24_02_15_08" />
+<TestRun id="56570f5c-356d-4eca-880f-8136f05601a1" name="@omarchy 2026-09-24 02:29:03" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-24T02:29:03.0897353-03:00" queuing="2026-09-24T02:29:03.0897353-03:00" start="2026-09-24T02:29:02.3476762-03:00" finish="2026-09-24T02:29:03.0988300-03:00" />
+  <TestSettings name="default" id="d7c5ed61-8fc9-4004-a4d6-83373af40ed2">
+    <Deployment runDeploymentRoot="_omarchy_2026-09-24_02_29_03" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="e5385a10-f2d9-41d0-b80b-2fdfa650b881" testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" testName="FM-3: a negative amount is rejected as a validation error" computerName="omarchy" duration="00:00:00.0001873" startTime="2026-09-24T02:15:08.2674832-03:00" endTime="2026-09-24T02:15:08.2675138-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e5385a10-f2d9-41d0-b80b-2fdfa650b881">
-      <Output>
-        <ErrorInfo>
-          <Message>Assert.True() Failure
-Expected: True
-Actual:   False</Message>
-          <StackTrace>   at Specs.S0004.MoneySpec.A_negative_amount_is_rejected() in /tmp/skies-red-dbpxcu/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs:line 31
-   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
-        </ErrorInfo>
-      </Output>
-    </UnitTestResult>
-    <UnitTestResult executionId="a28dffdf-1a77-4f39-9ae1-d6a085460374" testId="12f56f37-339b-9ad3-76f9-5908fa634c23" testName="FM-4: adding two amounts produces their sum" computerName="omarchy" duration="00:00:00.0019844" startTime="2026-09-24T02:15:08.2506846-03:00" endTime="2026-09-24T02:15:08.2585293-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a28dffdf-1a77-4f39-9ae1-d6a085460374">
+    <UnitTestResult executionId="be8c8bbe-e4d7-4656-9ad3-1d81f9a8bf9f" testId="12f56f37-339b-9ad3-76f9-5908fa634c23" testName="FM-4: adding two amounts produces their sum" computerName="omarchy" duration="00:00:00.0035294" startTime="2026-09-24T02:29:02.9164550-03:00" endTime="2026-09-24T02:29:02.9344874-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="be8c8bbe-e4d7-4656-9ad3-1d81f9a8bf9f">
       <Output>
         <ErrorInfo>
           <Message>System.InvalidOperationException : Result is a failure; no value to read.</Message>
-          <StackTrace>   at Skies.Framework.Abstractions.Result`1.get_Value() in /tmp/skies-red-dbpxcu/checkout/src/Skies.Framework.Abstractions/Result.cs:line 121
-   at Specs.S0004.MoneySpec.Add_sums_two_amounts() in /tmp/skies-red-dbpxcu/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs:line 39
+          <StackTrace>   at Skies.Framework.Abstractions.Result`1.get_Value() in /tmp/skies-red-1A60pK/checkout/src/Skies.Framework.Abstractions/Result.cs:line 121
+   at Specs.S0004.MoneySpec.Add_sums_two_amounts() in /tmp/skies-red-1A60pK/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs:line 39
    at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
    at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
         </ErrorInfo>
       </Output>
     </UnitTestResult>
-    <UnitTestResult executionId="9b6597f4-2306-4b2e-be9d-654860b9214d" testId="f0b323f1-dceb-aac3-89c0-879baa921e20" testName="FM-2: a positive amount is valid and keeps its value" computerName="omarchy" duration="00:00:00.0001282" startTime="2026-09-24T02:15:08.2672547-03:00" endTime="2026-09-24T02:15:08.2672844-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9b6597f4-2306-4b2e-be9d-654860b9214d">
+    <UnitTestResult executionId="5080c24d-7a71-48c7-975b-a18e13da7783" testId="f0b323f1-dceb-aac3-89c0-879baa921e20" testName="FM-2: a positive amount is valid and keeps its value" computerName="omarchy" duration="00:00:00.0002529" startTime="2026-09-24T02:29:02.9586308-03:00" endTime="2026-09-24T02:29:02.9586947-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5080c24d-7a71-48c7-975b-a18e13da7783">
       <Output>
         <ErrorInfo>
           <Message>Assert.True() Failure
 Expected: True
 Actual:   False</Message>
-          <StackTrace>   at Specs.S0004.MoneySpec.A_positive_amount_is_valid() in /tmp/skies-red-dbpxcu/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs:line 22
+          <StackTrace>   at Specs.S0004.MoneySpec.A_positive_amount_is_valid() in /tmp/skies-red-1A60pK/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs:line 22
    at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
    at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
         </ErrorInfo>
       </Output>
     </UnitTestResult>
-    <UnitTestResult executionId="a8e502d9-b218-4c19-8729-a6aba1f87de9" testId="b811b544-d10f-7f86-6fed-0755b888f86c" testName="FM-1: zero is valid money" computerName="omarchy" duration="00:00:00.0003185" startTime="2026-09-24T02:15:08.2666891-03:00" endTime="2026-09-24T02:15:08.2667377-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a8e502d9-b218-4c19-8729-a6aba1f87de9">
+    <UnitTestResult executionId="f0f93e18-2b00-4f8c-8027-abc8ebc0783f" testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" testName="FM-3: a negative amount is rejected as a validation error" computerName="omarchy" duration="00:00:00.0042338" startTime="2026-09-24T02:29:02.9591132-03:00" endTime="2026-09-24T02:29:02.9591654-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f0f93e18-2b00-4f8c-8027-abc8ebc0783f">
       <Output>
         <ErrorInfo>
           <Message>Assert.True() Failure
 Expected: True
 Actual:   False</Message>
-          <StackTrace>   at Specs.S0004.MoneySpec.Zero_is_valid_money() in /tmp/skies-red-dbpxcu/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs:line 13
+          <StackTrace>   at Specs.S0004.MoneySpec.A_negative_amount_is_rejected() in /tmp/skies-red-1A60pK/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs:line 31
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c6124f29-9330-4283-bab4-7e9022a0897d" testId="b811b544-d10f-7f86-6fed-0755b888f86c" testName="FM-1: zero is valid money" computerName="omarchy" duration="00:00:00.0016493" startTime="2026-09-24T02:29:02.9561331-03:00" endTime="2026-09-24T02:29:02.9562372-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c6124f29-9330-4283-bab4-7e9022a0897d">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.True() Failure
+Expected: True
+Actual:   False</Message>
+          <StackTrace>   at Specs.S0004.MoneySpec.Zero_is_valid_money() in /tmp/skies-red-1A60pK/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs:line 13
    at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
    at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
         </ErrorInfo>
@@ -54,28 +54,28 @@ Actual:   False</Message>
     </UnitTestResult>
   </Results>
   <TestDefinitions>
-    <UnitTest name="FM-2: a positive amount is valid and keeps its value" storage="/tmp/skies-red-dbpxcu/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="f0b323f1-dceb-aac3-89c0-879baa921e20">
-      <Execution id="9b6597f4-2306-4b2e-be9d-654860b9214d" />
-      <TestMethod codeBase="/tmp/skies-red-dbpxcu/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="A_positive_amount_is_valid" />
+    <UnitTest name="FM-2: a positive amount is valid and keeps its value" storage="/tmp/skies-red-1a60pk/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="f0b323f1-dceb-aac3-89c0-879baa921e20">
+      <Execution id="5080c24d-7a71-48c7-975b-a18e13da7783" />
+      <TestMethod codeBase="/tmp/skies-red-1A60pK/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="A_positive_amount_is_valid" />
     </UnitTest>
-    <UnitTest name="FM-1: zero is valid money" storage="/tmp/skies-red-dbpxcu/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b811b544-d10f-7f86-6fed-0755b888f86c">
-      <Execution id="a8e502d9-b218-4c19-8729-a6aba1f87de9" />
-      <TestMethod codeBase="/tmp/skies-red-dbpxcu/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="Zero_is_valid_money" />
+    <UnitTest name="FM-1: zero is valid money" storage="/tmp/skies-red-1a60pk/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b811b544-d10f-7f86-6fed-0755b888f86c">
+      <Execution id="c6124f29-9330-4283-bab4-7e9022a0897d" />
+      <TestMethod codeBase="/tmp/skies-red-1A60pK/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="Zero_is_valid_money" />
     </UnitTest>
-    <UnitTest name="FM-4: adding two amounts produces their sum" storage="/tmp/skies-red-dbpxcu/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="12f56f37-339b-9ad3-76f9-5908fa634c23">
-      <Execution id="a28dffdf-1a77-4f39-9ae1-d6a085460374" />
-      <TestMethod codeBase="/tmp/skies-red-dbpxcu/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="Add_sums_two_amounts" />
+    <UnitTest name="FM-4: adding two amounts produces their sum" storage="/tmp/skies-red-1a60pk/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="12f56f37-339b-9ad3-76f9-5908fa634c23">
+      <Execution id="be8c8bbe-e4d7-4656-9ad3-1d81f9a8bf9f" />
+      <TestMethod codeBase="/tmp/skies-red-1A60pK/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="Add_sums_two_amounts" />
     </UnitTest>
-    <UnitTest name="FM-3: a negative amount is rejected as a validation error" storage="/tmp/skies-red-dbpxcu/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="e5512643-23a3-ec3b-89b2-35eb17a244e3">
-      <Execution id="e5385a10-f2d9-41d0-b80b-2fdfa650b881" />
-      <TestMethod codeBase="/tmp/skies-red-dbpxcu/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="A_negative_amount_is_rejected" />
+    <UnitTest name="FM-3: a negative amount is rejected as a validation error" storage="/tmp/skies-red-1a60pk/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="e5512643-23a3-ec3b-89b2-35eb17a244e3">
+      <Execution id="f0f93e18-2b00-4f8c-8027-abc8ebc0783f" />
+      <TestMethod codeBase="/tmp/skies-red-1A60pK/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="A_negative_amount_is_rejected" />
     </UnitTest>
   </TestDefinitions>
   <TestEntries>
-    <TestEntry testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" executionId="e5385a10-f2d9-41d0-b80b-2fdfa650b881" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="12f56f37-339b-9ad3-76f9-5908fa634c23" executionId="a28dffdf-1a77-4f39-9ae1-d6a085460374" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="f0b323f1-dceb-aac3-89c0-879baa921e20" executionId="9b6597f4-2306-4b2e-be9d-654860b9214d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="b811b544-d10f-7f86-6fed-0755b888f86c" executionId="a8e502d9-b218-4c19-8729-a6aba1f87de9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="12f56f37-339b-9ad3-76f9-5908fa634c23" executionId="be8c8bbe-e4d7-4656-9ad3-1d81f9a8bf9f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f0b323f1-dceb-aac3-89c0-879baa921e20" executionId="5080c24d-7a71-48c7-975b-a18e13da7783" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" executionId="f0f93e18-2b00-4f8c-8027-abc8ebc0783f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b811b544-d10f-7f86-6fed-0755b888f86c" executionId="c6124f29-9330-4283-bab4-7e9022a0897d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
     <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
@@ -85,51 +85,51 @@ Actual:   False</Message>
     <Counters total="4" executed="4" passed="0" failed="4" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
     <Output>
       <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
-[xUnit.net 00:00:00.04]   Discovering: Sample.Tests
-[xUnit.net 00:00:00.06]   Discovered:  Sample.Tests
-[xUnit.net 00:00:00.08]   Starting:    Sample.Tests
-[xUnit.net 00:00:00.10]       System.InvalidOperationException : Result is a failure; no value to read.
-[xUnit.net 00:00:00.10]       Stack Trace:
-[xUnit.net 00:00:00.10]         /tmp/skies-red-dbpxcu/checkout/src/Skies.Framework.Abstractions/Result.cs(121,0): at Skies.Framework.Abstractions.Result`1.get_Value()
-[xUnit.net 00:00:00.10]         /tmp/skies-red-dbpxcu/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs(39,0): at Specs.S0004.MoneySpec.Add_sums_two_amounts()
-[xUnit.net 00:00:00.10]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-[xUnit.net 00:00:00.10]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
-[xUnit.net 00:00:00.11]       Assert.True() Failure
-[xUnit.net 00:00:00.11]       Expected: True
-[xUnit.net 00:00:00.11]       Actual:   False
-[xUnit.net 00:00:00.11]       Stack Trace:
-[xUnit.net 00:00:00.11]         /tmp/skies-red-dbpxcu/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs(13,0): at Specs.S0004.MoneySpec.Zero_is_valid_money()
-[xUnit.net 00:00:00.11]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-[xUnit.net 00:00:00.11]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
-[xUnit.net 00:00:00.11]       Assert.True() Failure
-[xUnit.net 00:00:00.11]       Expected: True
-[xUnit.net 00:00:00.11]       Actual:   False
-[xUnit.net 00:00:00.11]       Stack Trace:
-[xUnit.net 00:00:00.11]         /tmp/skies-red-dbpxcu/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs(22,0): at Specs.S0004.MoneySpec.A_positive_amount_is_valid()
-[xUnit.net 00:00:00.11]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-[xUnit.net 00:00:00.11]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
-[xUnit.net 00:00:00.11]       Assert.True() Failure
-[xUnit.net 00:00:00.11]       Expected: True
-[xUnit.net 00:00:00.11]       Actual:   False
-[xUnit.net 00:00:00.11]       Stack Trace:
-[xUnit.net 00:00:00.11]         /tmp/skies-red-dbpxcu/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs(31,0): at Specs.S0004.MoneySpec.A_negative_amount_is_rejected()
-[xUnit.net 00:00:00.11]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
-[xUnit.net 00:00:00.11]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
-[xUnit.net 00:00:00.11]   Finished:    Sample.Tests
+[xUnit.net 00:00:00.08]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.15]   Discovered:  Sample.Tests
+[xUnit.net 00:00:00.19]   Starting:    Sample.Tests
+[xUnit.net 00:00:00.24]       System.InvalidOperationException : Result is a failure; no value to read.
+[xUnit.net 00:00:00.24]       Stack Trace:
+[xUnit.net 00:00:00.25]         /tmp/skies-red-1A60pK/checkout/src/Skies.Framework.Abstractions/Result.cs(121,0): at Skies.Framework.Abstractions.Result`1.get_Value()
+[xUnit.net 00:00:00.25]         /tmp/skies-red-1A60pK/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs(39,0): at Specs.S0004.MoneySpec.Add_sums_two_amounts()
+[xUnit.net 00:00:00.25]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.25]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.26]       Assert.True() Failure
+[xUnit.net 00:00:00.26]       Expected: True
+[xUnit.net 00:00:00.26]       Actual:   False
+[xUnit.net 00:00:00.26]       Stack Trace:
+[xUnit.net 00:00:00.26]         /tmp/skies-red-1A60pK/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs(13,0): at Specs.S0004.MoneySpec.Zero_is_valid_money()
+[xUnit.net 00:00:00.26]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.26]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.26]       Assert.True() Failure
+[xUnit.net 00:00:00.26]       Expected: True
+[xUnit.net 00:00:00.26]       Actual:   False
+[xUnit.net 00:00:00.26]       Stack Trace:
+[xUnit.net 00:00:00.26]         /tmp/skies-red-1A60pK/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs(22,0): at Specs.S0004.MoneySpec.A_positive_amount_is_valid()
+[xUnit.net 00:00:00.26]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.26]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.26]       Assert.True() Failure
+[xUnit.net 00:00:00.26]       Expected: True
+[xUnit.net 00:00:00.26]       Actual:   False
+[xUnit.net 00:00:00.26]       Stack Trace:
+[xUnit.net 00:00:00.26]         /tmp/skies-red-1A60pK/checkout/examples/sample-app/.specs/0004-money/e2e/MoneySpec.cs(31,0): at Specs.S0004.MoneySpec.A_negative_amount_is_rejected()
+[xUnit.net 00:00:00.26]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.26]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.26]   Finished:    Sample.Tests
 </StdOut>
     </Output>
     <RunInfos>
-      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:08.2603109-03:00">
-        <Text>[xUnit.net 00:00:00.10]     FM-4: adding two amounts produces their sum [FAIL]</Text>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:29:02.9416475-03:00">
+        <Text>[xUnit.net 00:00:00.24]     FM-4: adding two amounts produces their sum [FAIL]</Text>
       </RunInfo>
-      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:08.2669667-03:00">
-        <Text>[xUnit.net 00:00:00.11]     FM-1: zero is valid money [FAIL]</Text>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:29:02.9567024-03:00">
+        <Text>[xUnit.net 00:00:00.26]     FM-1: zero is valid money [FAIL]</Text>
       </RunInfo>
-      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:08.2673567-03:00">
-        <Text>[xUnit.net 00:00:00.11]     FM-2: a positive amount is valid and keeps its value [FAIL]</Text>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:29:02.9604677-03:00">
+        <Text>[xUnit.net 00:00:00.26]     FM-2: a positive amount is valid and keeps its value [FAIL]</Text>
       </RunInfo>
-      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:15:08.2675713-03:00">
-        <Text>[xUnit.net 00:00:00.11]     FM-3: a negative amount is rejected as a validation error [FAIL]</Text>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:29:02.9605061-03:00">
+        <Text>[xUnit.net 00:00:00.26]     FM-3: a negative amount is rejected as a validation error [FAIL]</Text>
       </RunInfo>
     </RunInfos>
   </ResultSummary>
