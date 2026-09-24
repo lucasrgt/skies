@@ -78,8 +78,12 @@ root entry a decision the manifest records: a new one is a one-line diff a revie
 The doctor's workspace leg reports `SKYWS001` (error) for each undeclared root entry ("move it under a declared
 folder, delete it, or declare it") and `SKYWS002` (warning) for a declared entry that matches nothing on disk (a
 stale line). A manifest without `root` gets one `SKYWS001` whose message carries today's root as a list ready to
-paste. `skies new` writes the template's list; `skies migrate 5` declares the current root entries, so a migrated app
-stays doctor-clean, and asks the owner to delete the junk and trim the list. `skies doctor --package` skips the leg.
+paste. `skies new` writes the template's list, which declares exactly what a new app holds (its `README.md` included),
+so a fresh app is clean of both findings; the usual later arrivals (`LICENSE`, `.env.example`, `docker-compose.yml`,
+`global.json`, `nuget.config`) are named in its comment and declared with a line each when they arrive, and
+`skies g web-app` declares the folder it creates. `skies migrate 5` declares the current root entries, so a migrated
+app stays doctor-clean, and asks the owner to delete the junk and trim the list. `skies doctor --package` skips the
+leg.
 
 ## Package ownership
 

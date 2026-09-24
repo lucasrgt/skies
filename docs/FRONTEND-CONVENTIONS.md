@@ -30,6 +30,17 @@ It exists to kill one failure: **the AI says "done" and ships a screen rendering
   needs the real page. Cases live in [specs](#specs--every-test-lives-in-one).
 - Browser capabilities a ViewModel needs (storage, clipboard, geolocation) enter as injected ports.
 
+**Start a web package with `skies g web-app <Name> [--path clients/web]`.** It writes a plain Vite + React +
+TypeScript package on this stack, runnable before any backend exists: TanStack Router with a code-based route tree
+(`src/routes/router.ts`, typed `Register`), a QueryClient and the client seams from `lib/` (`skies-client.ts`,
+`query.ts`, `feedback.ts`), react-i18next (`src/i18n.ts` over `skies i18n`'s resources), react-hook-form + zod,
+`@skiesjs/react`, an app-owned `src/ui/` kit with web DOM props (`onClick`, `onChange` with the change event), the
+`@/` alias for `src/`, and `@skiesjs/eslint-plugin`'s recommended config. Its scripts are `dev`, `build` (`vite
+build`), `typecheck`, `lint`, and `test` (Vitest over the app's `.specs/*/e2e/`). Inside a Skies app it is declared in
+`Skies.toml` (the product's `frontend` and its folder in `[workspace] root`), its `npm ci` joins the CI before
+`skies doctor`, and a job builds and tests it. The router is TanStack Router because its code-based tree types routes
+with no code generation step; an app that prefers React Router swaps it in the one route file.
+
 ## The MVVM convention — one feature, one shape
 
 ```
@@ -292,21 +303,32 @@ route tree, React Router's route types); without them the literal degrades to an
 Scaffolding writes visible code you own and edit, and deleting the generator touches nothing. Source generation
 owns its output, clobbers edits, and hides behavior in the generator. `skies g feature <Name> [--kind list|form]`
 scaffolds the `view`/`viewModel`/`i18n` unit once, typed from the contract, behavior left to the app; tests are not
-scaffolded (cases live in the spec):
+scaffolded (cases live in the spec). The unit lands in a kebab-case folder named after the feature
+(`src/create-product/`), which is also its i18n namespace, and the scaffold reads the backend's OpenAPI contract (the
+one `dotnet build` writes and `skies g client` generates from) so it binds to what orval generates:
 
-- **`--kind list`** (the default: a module's first screen is usually the read of what it holds): the
-  `List<Name>` read hook's page (`data.<name>.items`, the shape `g crud`'s List returns) folded into `AsyncState`
-  and rendered through `<Resource>` with loading, error, and empty states.
+- **`--kind list`** (the default: a module's first screen is usually the read of what it holds): the list slice's
+  page folded into `AsyncState` and rendered through `<Resource>` with loading, error, and empty states. `Products`
+  reads `ListProducts` (`useListProducts`), the plural name `g crud` gives its list; the page field
+  (`data.products.items`) and the row type (`ProductView`, from `@/client.gen/model`) come from the contract. Without
+  a contract the row is a placeholder to replace.
 - **`--kind form`**: a command screen, the Deposit recipe. The ViewModel owns a react-hook-form `useForm` with a zod
-  schema restating only the slice's rules, submits through `submitOrReveal` into the `<Name>` mutation
-  (`mutate({ data })`), and exposes `submitting`, a localized `submitError`, and `completed`; the View renders one
-  `Controller` + `Field` per input, the `role=alert` command error, and the success surface. Its fields start as the
-  `g slice` scaffold's Input (`id`): replace them with the slice's real Input.
+  schema restating only the slice's rules, submits through `submitOrReveal` into the `<Name>` mutation, and exposes
+  `submitting`, a localized `submitError`, and `completed`; the View renders one `Controller` + `Field` per input,
+  the `role=alert` command error, and the success surface. The inputs are the command's body fields from the
+  contract, in its order (every input holds a string; numbers convert at the submit). What names the record the
+  command acts on, its path and query parameters and a body `version` (the concurrency token `g crud` sends back), is
+  the screen's `target`, passed in by the route and sent as given: `useUpdateProductModel({ id, version })` submits
+  `mutate({ id, data: { name, price, version } })`. A command with nothing to type (a delete) scaffolds as a
+  confirmation with no form. Without a contract, name the inputs with `--fields name:string,price:number` (`string`,
+  `number`, `integer`, `uuid`) or the scaffold stops; a field it cannot render as a text box (a boolean, an enum, a
+  list) stops it too, by name.
 
 Both import their hook from the package's own client module (`@/client.gen/<backend>`, e.g. `@/client.gen/sample`
 for `Sample.Api`), read from `client.gen/` or from `Skies.toml` before the client exists, never from the feature's
-name. "Smart stubs" that pre-fill the body with runtime calls are out. When the contract changes,
-`*.gen.ts` regenerates and `tsc` breaks the ViewModel where it is now wrong; you fix it by hand.
+name, and import only what a `g web-app` package provides (`@/ui`, `@/i18n`, `@/client.gen`). "Smart stubs" that
+pre-fill the body with runtime calls are out. When the contract changes, `*.gen.ts` regenerates and `tsc` breaks the
+ViewModel where it is now wrong; you fix it by hand.
 
 ## The harness — rule catalog (`SKYFE*`)
 
@@ -382,17 +404,22 @@ boundary (MSW), whose handlers answer the backend's real routes (`POST /wallets/
 `/deposit`) with its real error codes. The server and its handlers live in one setup file owned by the app's specs,
 wired through the Vitest config's `setupFiles`; the sample's is `examples/sample-app/.specs/web.setup.ts`, loaded by
 the config its web runner uses. Never in `src/` (MSW there is production code, `SKYFE003`), and never in a framework
-file: a feature that needs a new route adds its handler to the app's setup. The sample's web runner:
+file: a feature that needs a new route adds its handler to the app's setup. An app's web runner points at its package
+(`skies g web-app` prints this one):
 
 ```toml
 [runners.web]
-setup = "test -d ../../frontend-sdk/node_modules || npm --prefix ../../frontend-sdk ci --prefer-offline"
-command = "node ../../frontend-sdk/node_modules/vitest/vitest.mjs run --config ../../frontend-sdk/vitest.config.ts --reporter=junit --outputFile={report} {dir}"
+setup = "test -d clients/web/node_modules || npm --prefix clients/web ci"
+command = "node clients/web/node_modules/vitest/vitest.mjs run --config clients/web/vitest.config.ts --reporter=junit --outputFile={report} {dir}"
 ```
 
-`setup` matters: red runs in a fresh git worktree with no `node_modules`. In an app, point the paths at the package
-(`npm --prefix clients/web ci`, `clients/web/node_modules/vitest/vitest.mjs`) and include
-`.specs/*/e2e/**/*.test.{ts,tsx}` in the Vitest config, the tsconfig, and the ESLint `files`.
+`setup` matters: red runs in a fresh git worktree with no `node_modules`. A `g web-app` package's `vitest.config.ts`
+already runs from the application root over `.specs/*/e2e/**/*.test.{ts,tsx}` (jsdom, the `@/` alias) and resolves a
+case's bare imports from the package, so `npm test` there runs every web spec; wire an MSW setup file through its
+`setupFiles` when the specs need a stand-in backend. The sample is the one exception to this shape: it lives inside
+this repository and borrows `frontend-sdk`'s installed dependencies and Vitest config, so its runner reads
+`../../frontend-sdk/node_modules/vitest/vitest.mjs … --config ../../frontend-sdk/vitest.config.ts`, a path that only
+exists here.
 
 Tests write artifacts to `process.env.SKIES_EVIDENCE` when set; they become the spec's committed `evidence/`. For an
 Assay-decided mode, tag its line (`- FM-4 … [avp: <criterion-id>]`) and write the verdict with
@@ -445,8 +472,8 @@ Flutter's floor is `SKYFL037`–`040`: see [FLUTTER-CONVENTIONS.md](FLUTTER-CONV
 
 ## Scope and non-goals
 
-**In:** the MVVM feature convention, the `SKYFE*` rules, `skies g feature`, and `skies g client` (stock orval with
-the shipped config and mutator). One blessed frontend shape for the web.
+**In:** the MVVM feature convention, the `SKYFE*` rules, `skies g web-app`, `skies g feature`, and `skies g client`
+(stock orval with the shipped config and mutator). One blessed frontend shape for the web.
 
 **Out, by decision:** a bespoke generator; source generation of behavior (ViewModels are scaffolded once and
 owned); an MVVM framework; a design system (styling, kit, tokens, and layout are the app's: a framework vocabulary

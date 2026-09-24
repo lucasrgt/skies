@@ -59,6 +59,7 @@ Commands:
   auth:email   Email verification and password reset
   feature      A frontend feature (ViewModel + View + i18n) in a React web or Flutter package
   client       The typed API client for a React web or Flutter package, from the backend's OpenAPI contract
+  web-app      A React web application package (Vite, TanStack Router and Query, react-hook-form + zod, i18n, the `@skiesjs/react` spine, and the SKYFE lint), declared in Skies.toml when run inside a Skies app
   flutter-app  A Flutter application package wired to the Skies spine
   help         Print this message or the help of the given subcommand(s)
 
@@ -222,6 +223,7 @@ Arguments:
 
 Options:
       --kind <KIND>        `list`: a read screen over the `List<Name>` query. `form`: a command screen that submits the `<Name>` mutation, with validation, pending, error, and success states [default: list] [possible values: list, form]
+      --fields <FIELDS>    React `--kind form`: the command's input fields, as `name:type` pairs (`title:string,price:number`; types `string`, `number`, `uuid`). Without it the fields are read from the backend's OpenAPI contract
       --package <PACKAGE>  The frontend package directory (defaults to the current directory)
   -h, --help               Print help
 ```
@@ -240,6 +242,21 @@ Options:
       --name <NAME>        Flutter: the generated Dart package name (defaults to <backend>_api)
       --version <VERSION>  Flutter: the generated package's pub version (defaults to 0.1.0)
   -h, --help               Print help
+```
+
+## skies g web-app
+
+```text
+A React web application package (Vite, TanStack Router and Query, react-hook-form + zod, i18n, the `@skiesjs/react` spine, and the SKYFE lint), declared in Skies.toml when run inside a Skies app
+
+Usage: skies g web-app [OPTIONS] <NAME>
+
+Arguments:
+  <NAME>
+
+Options:
+      --path <PATH>  Where to create the package (defaults to ./<name>)
+  -h, --help         Print help
 ```
 
 ## skies g flutter-app

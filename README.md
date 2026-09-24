@@ -117,7 +117,7 @@ skies doctor
 ### React (web)
 
 ```text
-features/billing/create-invoice/
+clients/web/src/create-invoice/
   CreateInvoice.view.tsx
   CreateInvoice.viewModel.ts
   create-invoice.i18n.ts
@@ -125,12 +125,17 @@ features/billing/create-invoice/
 
 React is the web body. The ViewModel is a render-agnostic hook and the only data door; it composes the generated
 query hooks. The View renders. `@skiesjs/react` provides the small spine (`AsyncState`, `Resource`, session, guards, paging, forms) and
-`@skiesjs/eslint-plugin` enforces the `SKYFE###` architecture rules. Styling and components are the app's.
+`@skiesjs/eslint-plugin` enforces the `SKYFE###` architecture rules. Styling and components are the app's:
+`g web-app` starts the package with a small kit it owns.
 
 ```bash
-npm install @skiesjs/react
-npm install --save-dev @skiesjs/eslint-plugin
-skies g client && skies g feature CreateInvoice
+skies g web-app Web --path clients/web     # Vite + React + TanStack Router, declared in Skies.toml and CI
+npm install --prefix clients/web
+dotnet build                               # writes the OpenAPI contract the client and screens read
+cd clients/web && skies g client
+skies g feature Invoices                   # a list over ListInvoices
+skies g feature CreateInvoice --kind form  # a form over CreateInvoice's inputs
+npm run build && npm run lint              # skies doctor runs the lint and typecheck too
 ```
 
 ### Flutter
@@ -149,8 +154,8 @@ defaults, localized errors, and paging. `skies g client` wraps stock OpenAPI Gen
 runs the `SKYFL###` rules natively.
 
 ```bash
-flutter create app && skies g flutter-app app --path app
-cd app && flutter pub add skies_flutter && skies g feature Wallets
+skies g flutter-app App --path clients/app   # flutter create, plus the spine and i18n wiring
+cd clients/app && skies g feature Wallets
 ```
 
 ---
