@@ -1,10 +1,11 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-// Runs the spine (@skiesjs/react) tests AND the canonical example (examples/sample-app). The example's agnostic
-// core (the ViewModel + the View) renders against the WEB `@/ui` components in
-// jsdom; the spine + the generated client + i18n resolve to source. Root is the repo so the example (a sibling of
-// frontend/) is in scope; the include globs keep the run to the real test files.
+// Runs the spine (@skiesjs/react) tests AND the canonical example's specs (examples/sample-app/.specs/*/e2e). The
+// example keeps every test in a spec, so its cases live there, not beside the code: its agnostic core (the ViewModel +
+// the View) renders against the WEB `@/ui` components in jsdom; the spine + the generated client + i18n resolve to
+// source. Root is the repo so the example (a sibling of frontend/) is in scope; the include globs keep the run to the
+// real test files. The sample's `[runners.web]` runs this same config with a spec folder as the filter.
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
@@ -16,8 +17,7 @@ export default defineConfig({
     setupFiles: [r("./vitest.setup.ts")],
     include: [
       "frontend-sdk/packages/**/*.test.{ts,tsx}",
-      "examples/sample-app/frontend/core/**/*.test.{ts,tsx}",
-      "examples/sample-app/frontend/web/**/*.test.{ts,tsx}",
+      "examples/sample-app/.specs/*/e2e/**/*.test.{ts,tsx}",
     ],
   },
   resolve: {

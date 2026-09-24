@@ -12,3 +12,10 @@ tests = "backend/Sample.Tests"   # `skies doctor` builds it, so the SKY rules (S
 # and the TRX logger writes the report `skies proof` reads back.
 [runners.api]
 command = "dotnet test backend/Sample.Tests --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\""
+
+# The web specs (.specs/*/e2e/*.test.tsx) run with the frontend workspace's vitest config, which resolves the sample's
+# aliases and stubs its HTTP layer; the spec folder is the filter and vitest's JUnit reporter writes the report. A red
+# checkout is a fresh git worktree without node_modules, so setup installs them there (a no-op where they exist).
+[runners.web]
+setup = "test -d ../../frontend-sdk/node_modules || npm --prefix ../../frontend-sdk ci --no-audit --no-fund --prefer-offline"
+command = "node ../../frontend-sdk/node_modules/vitest/vitest.mjs run --config ../../frontend-sdk/vitest.config.ts --reporter=junit --outputFile={report} {dir}"

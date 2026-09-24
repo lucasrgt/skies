@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import { afterEach, describe, it, expect } from "vitest";
 import { cleanup, render, renderHook, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useItemsModel } from "./Items.viewModel";
-import { ItemsView } from "./Items.view";
+import { useItemsModel } from "../../../frontend/core/src/items/Items.viewModel";
+import { ItemsView } from "../../../frontend/core/src/items/Items.view";
 
-// Colocated tests: renderHook the ViewModel (the data door) against the real client (the HTTP layer is stubbed
-// with MSW in vitest.setup.ts), and render the View through its states.
+// The Items screen: the ViewModel (the data door) against the real generated client, the HTTP layer an MSW stand-in
+// (frontend-sdk/vitest.setup.ts), and the View rendered through its states.
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -14,18 +14,13 @@ function wrapper({ children }: { children: ReactNode }) {
 
 afterEach(cleanup);
 
-describe("Items", () => {
-  it("starts its resource in loading while the list is fetched", () => {
+describe("Items screen", () => {
+  it("FM-1: the list resource starts in loading while it is fetched", () => {
     const { result } = renderHook(() => useItemsModel(), { wrapper });
     expect(result.current.state.items.status).toBe("loading");
   });
 
-  it("renders the View without crashing", () => {
-    const { container } = render(<ItemsView />, { wrapper });
-    expect(container).toBeTruthy();
-  });
-
-  it("renders the empty branch through the kit when the list settles empty", async () => {
+  it("FM-2: a list that settles empty renders the kit's empty state", async () => {
     render(<ItemsView />, { wrapper });
     expect(await screen.findByText("Nothing here yet")).toBeTruthy();
   });

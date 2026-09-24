@@ -1,0 +1,5 @@
+{
+  "//": "The sample keeps every test in a spec; its web cases compile against the frontend config (paths, JSX).",
+  "extends": "../frontend/tsconfig.json",
+  "include": ["*/e2e/**/*.ts", "*/e2e/**/*.tsx"]
+}

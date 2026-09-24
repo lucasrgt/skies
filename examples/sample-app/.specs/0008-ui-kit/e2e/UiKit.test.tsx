@@ -1,13 +1,13 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { Button, EmptyState, ErrorState, Field, Input, Stack, Text } from "./index";
-import { color, space, text } from "./theme";
+import { Button, EmptyState, ErrorState, Field, Input, Stack, Text } from "../../../frontend/web/src/ui/index";
+import { color, space, text } from "../../../frontend/web/src/ui/theme";
 
-// Component tests for the sample's UI kit: interactive states, the form anatomy's aria wiring, typography, and the
-// closed prop surface. Values are read from ./theme so restyling the app never breaks the suite.
+// Isolated cases for the sample's web UI kit: interactive states, the form anatomy's aria wiring, typography, and the
+// closed prop surface. Values are read from the theme so restyling the app never breaks the spec.
 
-// Vitest runs without globals, so RTL can't register its auto-cleanup — do it explicitly or the
-// DOM accumulates across tests and every query goes ambiguous.
+// Vitest runs without globals, so RTL can't register its auto-cleanup: do it explicitly or the DOM accumulates
+// across cases and every query goes ambiguous.
 afterEach(cleanup);
 
 // jsdom normalizes some inline colors to rgb(); accept either spelling of the same color.
@@ -18,14 +18,14 @@ const rgb = (hex: string) => {
 const sameColor = (actual: string, hex: string) => expect([hex, rgb(hex)]).toContain(actual);
 
 describe("Button", () => {
-  it("renders its label as the accessible name and fires onPress", () => {
+  it("FM-1: the label is the accessible name and a press fires the action", () => {
     const onPress = vi.fn();
     render(<Button label="Save" onPress={onPress} />);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it("blocks the action and announces while loading", () => {
+  it("FM-2: a loading button blocks the action and announces itself", () => {
     const onPress = vi.fn();
     render(<Button label="Save" onPress={onPress} loading />);
     const btn = screen.getByRole("button") as HTMLButtonElement;
@@ -35,14 +35,14 @@ describe("Button", () => {
     expect(btn.getAttribute("aria-busy")).toBe("true");
   });
 
-  it("blocks when disabled", () => {
+  it("FM-2: a disabled button blocks the action", () => {
     const onPress = vi.fn();
     render(<Button label="Save" onPress={onPress} disabled />);
     fireEvent.click(screen.getByRole("button"));
     expect(onPress).toHaveBeenCalledTimes(0);
   });
 
-  it("shows the focusRing treatment on focus and drops it on blur — never outline:none alone", () => {
+  it("FM-3: focus shows the focus ring and blur drops it, never outline:none alone", () => {
     render(<Button label="Go" onPress={() => {}} />);
     const btn = screen.getByRole("button") as HTMLButtonElement;
     fireEvent.focus(btn);
@@ -52,8 +52,8 @@ describe("Button", () => {
   });
 });
 
-describe("Field + Input — the form anatomy", () => {
-  it("associates the label and points describedby at the hint", () => {
+describe("Field and Input, the form anatomy", () => {
+  it("FM-4: the label is associated and describedby points at the hint", () => {
     render(
       <Field fieldId="email" label="Email" hint="We never share it">
         <Input id="email" value="" onChangeText={() => {}} kind="email" />
@@ -64,7 +64,7 @@ describe("Field + Input — the form anatomy", () => {
     expect(document.getElementById("email-hint")?.textContent).toBe("We never share it");
   });
 
-  it("replaces the hint with a role=alert error and flips the control invalid", () => {
+  it("FM-4: an error replaces the hint as a role=alert and flips the control invalid", () => {
     render(
       <Field fieldId="email" label="Email" hint="We never share it" error="Required">
         <Input id="email" value="" onChangeText={() => {}} />
@@ -80,7 +80,7 @@ describe("Field + Input — the form anatomy", () => {
     sameColor(input.style.borderColor, color.danger);
   });
 
-  it("hands the View a string through onChangeText, not an event", () => {
+  it("FM-5: the input hands the View a string through onChangeText, not an event", () => {
     const onChangeText = vi.fn();
     render(
       <Field fieldId="name" label="Name">
@@ -92,8 +92,8 @@ describe("Field + Input — the form anatomy", () => {
   });
 });
 
-describe("Text — typography is one decision", () => {
-  it("maps a role to its type scale and the document outline", () => {
+describe("Text, typography as one decision", () => {
+  it("FM-6: a role maps to its type scale and the document outline", () => {
     render(<Text role="title">Hello</Text>);
     const el = screen.getByText("Hello");
     expect(el.tagName).toBe("H1");
@@ -101,13 +101,13 @@ describe("Text — typography is one decision", () => {
     expect(el.style.fontWeight).toBe(String(text.title.fontWeight));
   });
 
-  it("maps tones to semantic color roles", () => {
+  it("FM-6: a tone maps to its semantic color role", () => {
     expect.hasAssertions();
     render(<Text tone="muted">m</Text>);
     sameColor(screen.getByText("m").style.color, color.textMuted);
   });
 
-  it("announces as an alert when asked — the command-error surface", () => {
+  it("FM-6: the alert flag announces the text, the command-error surface", () => {
     render(
       <Text role="label" tone="danger" alert>
         Failed
@@ -117,8 +117,8 @@ describe("Text — typography is one decision", () => {
   });
 });
 
-describe("Stack — rhythm from the scale", () => {
-  it("spaces children with the gap scale; children carry no margin", () => {
+describe("Stack, rhythm from the scale", () => {
+  it("FM-7: children are spaced by the gap scale and carry no margin", () => {
     render(
       <Stack gap="lg">
         <Text>a</Text>
@@ -131,14 +131,14 @@ describe("Stack — rhythm from the scale", () => {
   });
 });
 
-describe("states", () => {
-  it("EmptyState renders title and description", () => {
+describe("Async states", () => {
+  it("FM-8: the empty state renders its title and description", () => {
     render(<EmptyState title="Nothing yet" description="Create one" />);
     expect(screen.getByText("Nothing yet")).toBeTruthy();
     expect(screen.getByText("Create one")).toBeTruthy();
   });
 
-  it("ErrorState offers the retry action when given one", () => {
+  it("FM-8: the error state offers its retry action", () => {
     const onRetry = vi.fn();
     render(<ErrorState title="Boom" retryLabel="Try again" onRetry={onRetry} />);
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
@@ -146,8 +146,8 @@ describe("states", () => {
   });
 });
 
-it("keeps the API closed — no className/style passthrough anywhere", () => {
-  // Compile-time assertions: styling passthrough is not part of the prop surface.
+it("FM-9: the prop surface stays closed, with no className or style passthrough", () => {
+  // Compile-time assertions, checked by `npm run typecheck`: styling passthrough is not part of the prop surface.
   // @ts-expect-error className is not part of the kit vocabulary
   const a = <Stack className="x">k</Stack>;
   // @ts-expect-error style is not part of the kit vocabulary

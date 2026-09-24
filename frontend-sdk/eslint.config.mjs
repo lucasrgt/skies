@@ -29,7 +29,7 @@ export default [
   // react-query correctness (parser comes from the sample block below, which these merge onto).
   ...tanstackQuery.configs["flat/recommended"],
   {
-    files: ["examples/sample-app/frontend/{core,web}/**/*.{ts,tsx}"],
+    files: ["examples/sample-app/frontend/{core,web}/**/*.{ts,tsx}", "examples/sample-app/.specs/*/e2e/**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2022,
@@ -76,6 +76,8 @@ export default [
       // The session-rotation door (SKYFE029) — refresh is consumed by ONE seam (the client's single-flight
       // interceptor / the session seam); a second rotation path trips the backend's theft detection.
       "skies/refresh-one-door": "error",
+      // Every test lives in a spec (SKYFE036): a test call outside .specs/<id>-<slug>/e2e/ is flagged.
+      "skies/tests-live-in-specs": "error",
       // curated community kit
       "no-secrets/no-secrets": ["error", { tolerance: 4.5 }],
       "sonarjs/no-identical-functions": "warn",
@@ -90,9 +92,10 @@ export default [
     plugins: { "jsx-a11y": jsxA11y },
     rules: { ...jsxA11y.flatConfigs.recommended.rules, "jsx-a11y/aria-role": ["error", { ignoreNonDOM: true }] },
   },
-  // test hygiene — no .only/.skip leaking into the suite (the @vitest recommended set).
+  // test hygiene — no .only/.skip leaking into the suite (the @vitest recommended set). The sample's tests all live in
+  // its specs.
   {
-    files: ["examples/sample-app/frontend/{core,web}/**/*.test.{ts,tsx}"],
+    files: ["examples/sample-app/.specs/*/e2e/**/*.test.{ts,tsx}"],
     plugins: { vitest },
     rules: { ...vitest.configs.recommended.rules },
   },
