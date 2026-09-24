@@ -18,11 +18,15 @@ Role is optional at registration — chosen later, after sign-in.
 
 ## Design notes
 
+Each invariant below cites the failure mode of `0001-auth` that proves it; revise the note and its citation
+together.
+
 ### Tenancy is invisible to slices
 `TenantDbContext` applies a global query filter to every `ITenantScoped` entity and stamps `OrgId`
 on insert. So a normal slice writes `db.Things.Where(...)` with no org plumbing — it is already
 scoped to the caller's org. Forgetting the filter would be a cross-tenant leak, so it is applied to
-*all* marked entities, not per-entity. The one exception is auth-bootstrap — see below.
+*all* marked entities, not per-entity (`0001-auth#FM-20`). The one exception is auth-bootstrap —
+see below.
 
 ### Auth-bootstrap and the tenant filter
 Register / login / refresh / logout run *before or around* authentication: the request has no org of
@@ -35,7 +39,7 @@ falls back to `DefaultOrg`). The identity itself — the email, the refresh-toke
   globally** (index on `Email`, not `(OrgId, Email)`), one-human-one-account — a user belongs to one
   org but signs in by email across all of them. The latent bug it fixes: with a per-org filter, a user
   living in a non-default org could never log in, because the anonymous login would scope to
-  `DefaultOrg` and never see them.
+  `DefaultOrg` and never see them (`0001-auth#FM-8`, `0001-auth#FM-4`).
 - **`UserSession` is *not* `ITenantScoped` at all.** It is a global auth artifact keyed by an
   unguessable token hash, never part of an org's dataset — so it is looked up directly, no filter to
   bypass. The tell: an entity you would *always* `IgnoreQueryFilters()` should not be scoped.
@@ -56,7 +60,8 @@ integration test in `AuthFlow.Tests` guards against a regression here.
 ### Password vs session-token hashing
 A **password** is low-entropy → argon2id (Konscious): slow, salted, verified, never reversible. A
 **session/refresh token** is high-entropy random → SHA-256: fast and deterministic so it can be
-looked up by hash. Hashing a token with argon2 (random salt) would make it impossible to look up.
+looked up by hash. Hashing a token with argon2 (random salt) would make it impossible to look up. A wrong
+password never signs in (`0001-auth#FM-6`).
 
 The framework ships **no** crypto. argon2id is the chosen default, living in your own
 `BuildingBlocks/PasswordHash.cs`; Konscious is a dependency of *your* project, not Skies — the same way
@@ -70,12 +75,14 @@ the step so the client routes to what's next.
 
 ### Refresh rotation with theft detection
 Login mints a 14-day refresh token and opens a **family** (`UserSession.FamilyId`). `Refresh` marks the
-presented slot `UsedAt` and adds a new slot to the same family — the old token is dead after one use.
+presented slot `UsedAt` and adds a new slot to the same family — the old token is dead after one use
+(`0001-auth#FM-10`).
 If a *spent* slot is presented again (`UsedAt != null`), that token leaked: the legit client still holds
 the live one, so a second use of a rotated one is **theft**. The response is to burn the whole family
-(`RevokeFamily`) — thief's and victim's tokens alike — forcing a fresh login. `Logout` revokes the
-family too. (Tokens are Base64Url so they are cookie/URL-safe; the chain grows append-only — pruning
-spent/expired rows is a future job.)
+(`RevokeFamily`) — thief's and victim's tokens alike — forcing a fresh login
+(`0001-auth#FM-11`). `Logout` revokes the family too (`0001-auth#FM-14`).
+(Tokens are Base64Url so they are cookie/URL-safe; the chain grows append-only — pruning spent/expired rows
+is a future job.)
 
 There is no time-based replay grace: once rotation commits, presenting the spent token burns the family
 immediately. A genuinely simultaneous refresh is distinguished structurally instead: `UserSession.RowVersion`
@@ -86,12 +93,14 @@ is theft. (The exception path is enforced only by a relational provider; the in-
 
 A family also has an **absolute ceiling** (`SessionToken.FamilyMaxAge`, 90 days): a session may slide
 (rotate) freely within that window, but `Refresh` retires the family once its first token is older than
-the ceiling — so a silently-rotating session cannot live forever, no matter how often it refreshes.
+the ceiling — so a silently-rotating session cannot live forever, no matter how often it refreshes
+(`0001-auth#FM-13`).
 
 ### Security posture (the deliberate choices)
 - **No user enumeration by timing.** `Login` verifies the password against a fixed dummy argon2 hash when
   no account matches, so a missing email costs the same work as a wrong one, and the two return the *same*
-  error. The absence of an account is observable through neither the response nor its timing.
+  error. The absence of an account is observable through neither the response nor its timing
+  (`0001-auth#FM-7`).
 - **A credential change ends every session.** When a password reset (the email flow) or any future
   password change succeeds, it revokes **all** of the user's refresh families (`Refresh.RevokeAllForUser`),
   not just the caller's — so a takeover recovery also evicts the attacker.
@@ -99,7 +108,8 @@ the ceiling — so a silently-rotating session cannot live forever, no matter ho
   code after a small number of wrong guesses (consuming the OTP), so the 10⁶ space cannot be walked.
 - **Registration accepts email-existence disclosure.** A duplicate registration returns `409 Conflict`
   (an explicit `EmailTaken`) rather than masking it — a conscious UX trade-off; the mitigation for
-  enumeration/abuse is edge rate-limiting, not a vague error.
+  enumeration/abuse is edge rate-limiting, not a vague error. The first account is never damaged by the
+  attempt (`0001-auth#FM-3`).
 - **Rate limiting is platform infra, not slice shape.** Brute-force / spam protection on the auth
   endpoints (login, register, refresh, password-reset request, OTP) is ASP.NET rate-limiter middleware
   wired in `Platform/Security`, surfacing `platform.rate_limited` — it does not belong in a slice's
@@ -110,7 +120,8 @@ A "session" is a refresh family. The access token carries that family id as the 
 request can name *its own* session without a DB lookup. That is what lets `ListMySessions` flag the
 current one (`FamilyId == current.SessionId`), `RevokeSession` refuse to drop a family that isn't the
 caller's, and `RevokeOtherSessions` keep the current and burn the rest. Without `sid` the stateless
-token could not tell "this session" from the others. The session row is keyed by `UserId` +
+token could not tell "this session" from the others (`0001-auth#FM-16`, `0001-auth#FM-18`,
+`0001-auth#FM-19`). The session row is keyed by `UserId` +
 `FamilyId`, never tenant-scoped (it is auth plumbing, not org data).
 
 ### Web vs mobile token delivery
@@ -121,7 +132,8 @@ API** gets the refresh in the body and keeps it in secure storage. The access to
 body for the `Authorization` header. This shaping lives in the route's `Respond` helper (delivery, not
 logic — the route stays an expression, `Handle` stays pure and host-free); the cookie policy is the
 framework's `RefreshCookie` service (httpOnly/Secure/SameSite are its opinion; the app sets only the
-cookie name and path via `AddRefreshCookie`).
+cookie name and path via `AddRefreshCookie`). A web client never sees the refresh token in a body
+(`0001-auth#FM-21`, `0001-auth#FM-22`).
 
 ## Not yet ported
 Email verification, phone OTP, OAuth, password reset. The first three need providers (SMTP / SMS / OAuth).

@@ -40,8 +40,10 @@ pub fn generate(root: &Path, tenancy: bool, cookies: bool) -> Result<u8> {
     wire_test_project(&project.test_dir())?;
     wire_global_usings(&project)?;
     let spec = specs::emit(&project, "auth", flags)?;
+    // The ctx cites the spec that proves its invariants; the spec's id and numbering exist only now.
+    spec.cite_file(&project.module_dir("Account").join("Account.ctx.md"))?;
 
-    println!("{}", summary(flags, &spec));
+    println!("{}", summary(flags, &spec.folder));
     Ok(0)
 }
 

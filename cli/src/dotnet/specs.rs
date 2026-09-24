@@ -15,14 +15,48 @@ use super::{ApiProject, blueprint, embedded, first_csproj, text};
 /// The Compile item that makes the tests project build every spec's E2E, relative to `tests/<App>.Tests`.
 const SPEC_COMPILE: &str = "    <Compile Include=\"..\\..\\.specs\\*\\e2e\\**\\*.cs\" />";
 
+/// The placeholder a blueprint's ctx.md uses for the spec folder it cites: `` `__SPEC_FOLDER__#FM-[key]` `` becomes
+/// `` `0003-auth#FM-6` `` once the spec's id and numbering are known.
+const SPEC_FOLDER: &str = "__SPEC_FOLDER__";
+
+/// A spec just written: its folder and the number each symbolic failure-mode key received.
+pub struct Emitted {
+    pub folder: PathBuf,
+    numbers: HashMap<String, usize>,
+}
+
+impl Emitted {
+    /// Resolves a rendered file's citations of this spec (`__SPEC_FOLDER__`, `FM-[key]`) to the real folder name and
+    /// failure-mode numbers, so a module ctx cites the spec exactly as SKY0005 resolves it. A key the spec does not
+    /// list in this variant is a template bug and fails loudly.
+    pub fn cite(&self, body: &str) -> Result<String> {
+        let name = self.folder.file_name().unwrap_or_default().to_string_lossy();
+        let mut body = body.replace(SPEC_FOLDER, &name);
+        for key in failure_mode_keys(&body) {
+            let Some(number) = self.numbers.get(&key) else {
+                bail!("a ctx cites FM-[{key}], which {name}/spec.md does not list");
+            };
+            body = body.replace(&format!("FM-[{key}]"), &format!("FM-{number}"));
+        }
+        Ok(body)
+    }
+
+    /// Rewrites `path` in place with [`Emitted::cite`].
+    pub fn cite_file(&self, path: &Path) -> Result<()> {
+        let body = self.cite(&text::read(path)?)?;
+        std::fs::write(path, body)?;
+        Ok(())
+    }
+}
+
 /// Renders `templates/dotnet/specs/<slug>` into the next free `.specs/<id>-<slug>/` and makes sure the tests
-/// project compiles it. Returns the new folder.
-pub fn emit(project: &ApiProject, slug: &str, flags: blueprint::Flags) -> Result<PathBuf> {
+/// project compiles it. Returns the new folder and its failure-mode numbering.
+pub fn emit(project: &ApiProject, slug: &str, flags: blueprint::Flags) -> Result<Emitted> {
     let specs_root = project.solution_root().join(".specs");
     let id = next_id(&specs_root)?;
     let folder = specs_root.join(format!("{id}-{slug}"));
 
-    let files = render(slug, flags, &id, project.app_name(), &project.app_lower())?;
+    let (files, numbers) = render(slug, flags, &id, project.app_name(), &project.app_lower())?;
     for (relative, body) in &files {
         let path = folder.join(relative);
         text::write(&path, body)?;
@@ -30,7 +64,7 @@ pub fn emit(project: &ApiProject, slug: &str, flags: blueprint::Flags) -> Result
     }
     compile_specs_in_tests(project)?;
     note_missing_runner(project);
-    Ok(folder)
+    Ok(Emitted { folder, numbers })
 }
 
 /// The spec names `runner: api`; `skies proof record` needs that runner declared. New apps declare it; an older or
@@ -47,14 +81,11 @@ fn note_missing_runner(project: &ApiProject) {
     }
 }
 
-/// Renders one spec template folder as (path relative to the spec folder, contents).
-fn render(
-    slug: &str,
-    flags: blueprint::Flags,
-    id: &str,
-    app_name: &str,
-    app_lower: &str,
-) -> Result<Vec<(String, String)>> {
+/// A rendered spec: (path relative to the spec folder, contents) per file, and the failure-mode numbering.
+type Rendered = (Vec<(String, String)>, HashMap<String, usize>);
+
+/// Renders one spec template folder.
+fn render(slug: &str, flags: blueprint::Flags, id: &str, app_name: &str, app_lower: &str) -> Result<Rendered> {
     let mut files: Vec<(String, String)> = embedded::dotnet_folder(&format!("specs/{slug}"))
         .into_iter()
         .filter(|(logical, _)| !skipped_by_flag(logical, flags))
@@ -63,8 +94,8 @@ fn render(
             (blueprint::render_path(&logical, app_name, app_lower), rendered)
         })
         .collect();
-    number_failure_modes(&mut files)?;
-    Ok(files)
+    let numbers = number_failure_modes(&mut files)?;
+    Ok((files, numbers))
 }
 
 /// The next spec id: one past the highest numeric prefix under `.specs/`, four digits, starting at 0001.
@@ -94,8 +125,8 @@ fn skipped_by_flag(logical: &str, flags: blueprint::Flags) -> bool {
 
 /// Replaces every `FM-[key]` with `FM-n`, numbering keys in the order `spec.md` first mentions them. A key an
 /// E2E case uses but the spec never lists is a template bug, so it fails loudly instead of emitting a case the
-/// proof engine could not map.
-fn number_failure_modes(files: &mut [(String, String)]) -> Result<()> {
+/// proof engine could not map. Returns the numbering, for the ctx citations of the spec.
+fn number_failure_modes(files: &mut [(String, String)]) -> Result<HashMap<String, usize>> {
     let Some((_, spec)) = files.iter().find(|(path, _)| path == "spec.md") else {
         bail!("spec template has no spec.md");
     };
@@ -112,7 +143,7 @@ fn number_failure_modes(files: &mut [(String, String)]) -> Result<()> {
             *body = body.replace(&format!("FM-[{key}]"), &format!("FM-{number}"));
         }
     }
-    Ok(())
+    Ok(numbers)
 }
 
 /// The symbolic failure-mode keys in `text`, in order of appearance.
@@ -179,7 +210,24 @@ mod tests {
                 "\"FM-[a]: x\" \"FM-[c]: y\" \"FM-[b]: z\"".to_string(),
             ),
         ];
-        number_failure_modes(&mut files).unwrap();
+        let numbers = number_failure_modes(&mut files).unwrap();
+        let emitted = Emitted {
+            folder: PathBuf::from(".specs/0003-auth"),
+            numbers,
+        };
+        assert_eq!(
+            emitted
+                .cite("refused (`__SPEC_FOLDER__#FM-[a]`, `__SPEC_FOLDER__`)")
+                .unwrap(),
+            "refused (`0003-auth#FM-2`, `0003-auth`)"
+        );
+        assert!(
+            emitted
+                .cite("`__SPEC_FOLDER__#FM-[ghost]`")
+                .unwrap_err()
+                .to_string()
+                .contains("ghost")
+        );
         assert_eq!(files[0].1, "- FM-1 second\n- FM-2 third\n- FM-3 first?\n");
         assert_eq!(files[1].1, "\"FM-2: x\" \"FM-3: y\" \"FM-1: z\"");
     }
@@ -205,7 +253,7 @@ mod tests {
         ];
         for slug in ["auth", "auth-otp", "auth-oauth", "auth-email"] {
             for flags in variants {
-                let files = render(slug, flags, "0007", "Acme", "acme").unwrap();
+                let (files, _) = render(slug, flags, "0007", "Acme", "acme").unwrap();
                 let spec = &files.iter().find(|(path, _)| path == "spec.md").unwrap().1;
                 assert!(
                     spec.starts_with("---\nid: \"0007\"\nrunner: api\n---\n"),

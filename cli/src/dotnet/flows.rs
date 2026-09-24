@@ -52,7 +52,7 @@ pub fn generate(root: &Path, flow: Flow) -> Result<u8> {
     augment_account_module(&account_module, spec)?;
     augment_account_setup(&account.join("AccountSetup.cs"), spec)?;
     augment_api_project(&project.csproj, spec)?;
-    let folder = specs::emit(&project, spec.folder, Flags::DEFAULT)?;
+    let folder = specs::emit(&project, spec.folder, Flags::DEFAULT)?.folder;
 
     println!(
         "{} Its failure modes and E2E are in {}.",
