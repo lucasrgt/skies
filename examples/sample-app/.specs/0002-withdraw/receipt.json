@@ -2,7 +2,7 @@
   "spec": "0002-withdraw",
   "runner": "api",
   "red": {
-    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:244639ea66c85c8fd6153a8fa7d837e02044f50472dc5035a3bad94634afc0ee"
@@ -23,7 +23,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -51,13 +51,14 @@
     ".specs/0002-withdraw/spec.md": "blake3:ed70731732ef1d7152a5418e3073283b69d63000b0bf22a930c3688fbbd8345a"
   },
   "evidence": {
-    "evidence/avp-FM-5.json": "blake3:e302a0c3c04b52bacd16f3d853593c28441b39f24a82e4c0049c93f31d70254b",
-    "evidence/green.trx": "blake3:114ef8b10556e8a7e289d14d67451a38eec9472eedf26403b1246dd7e88f125b",
-    "evidence/red.avp-FM-5.json": "blake3:0ce3008b3d166b1c8527c041ec5e68c9f64d487fa02a0ef99b86a6a1c02d86fe",
-    "evidence/red.trx": "blake3:61d739e739702754a4ce36f42106a4418d605fda03ec69371d869cc401eef8a0"
+    "evidence/avp-FM-5.json": "blake3:9a8ad3198d75829594a27276515eb125445e51570c5257eacad892495b5d7165",
+    "evidence/green.trx": "blake3:c5e14c86dca79484efab285fc9b8aa57df7409897503f1489c9b14a46d5f6217",
+    "evidence/red.avp-FM-5.json": "blake3:9a00f6a650b6b46f7473b8681bb2a2c07398b8f8fbc18e7f315139ced37f76c8",
+    "evidence/red.trx": "blake3:81aac8e4e47dcd0f63a9c78c91455b5ff9e3d28b1e7bbb95207994ab03569267"
   },
   "verified_with": {
-    "0001-deposit": "blake3:79a56dc3377635dca66aa20d61c85c28ae310384214908488c6896b819cc7995",
-    "0003-wallet-reads": "blake3:0540b3849abbb67582a9c8b2fe6b3424abec30a9247bda0039a23fd54e0441ce"
+    "0001-deposit": "blake3:28359b02790ca1e3497e189317265e76c811fc65c39429e7928118bf1eaa1b23",
+    "0003-wallet-reads": "blake3:49caab3d030c6bab2e6c9611190784d28d4d18b195255e3d33744dcc5bca84f0",
+    "0004-money": "blake3:55ab6268b332a53f4bd1a87ef4d4c309b282d1d0b268a88ee4142b83f680ba66"
   }
 }

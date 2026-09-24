@@ -7,7 +7,7 @@
       "status": "Fail",
       "reason": "two different idempotency keys collapsed to one \u0027balance\u0027 value (\u00270\u0027) \u2014 a distinct key must apply again, not dedup regardless of the key.",
       "evidence": null,
-      "durationMs": 6.757
+      "durationMs": 6.5311
     }
   ],
   "archetypeVersion": "0.1.0",
@@ -18,5 +18,5 @@
   "notApplicable": 0,
   "outcome": "Fail",
   "acceptanceScore": 0,
-  "durationMs": 6.9421
+  "durationMs": 6.69
 }

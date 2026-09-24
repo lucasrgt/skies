@@ -2,7 +2,7 @@
   "spec": "0003-wallet-reads",
   "runner": "api",
   "red": {
-    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:8136cd158b0db3a000a3751b35222d877b06d8d6650a7a37dc63d0ca10e34f45"
@@ -17,7 +17,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -38,7 +38,7 @@
     ".specs/0003-wallet-reads/spec.md": "blake3:8457fd006b04d19b66fd27e166cbb15e287883564af388eb82c7b69310a243d5"
   },
   "evidence": {
-    "evidence/green.trx": "blake3:7a5e696bb71c37835979c2e08d7c6f3c6e4ec3e2054a6fced540ecc2e756c8ba",
-    "evidence/red.trx": "blake3:dc3450be65cb8dc9047685624f0897820963f8f61acbba01acf41a3cb1ae5837"
+    "evidence/green.trx": "blake3:60f6b0b85e1373e06fd14b65d09e074acc8211752b95fd004443a741d4d54e7a",
+    "evidence/red.trx": "blake3:4e9b39916315cf7ec47fa2a81cbfd5fee87e79091e32971a3cc82824dd79399c"
   }
 }

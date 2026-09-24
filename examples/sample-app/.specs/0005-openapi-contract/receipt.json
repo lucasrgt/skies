@@ -2,7 +2,7 @@
   "spec": "0005-openapi-contract",
   "runner": "api",
   "red": {
-    "commit": "2c71ec2b129ac7dbb59a9a479834630e7222f073",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:dbf6b140d39d9c279dd98424e3e3fc58f985c3740b99a374254b35908e5a12df"
@@ -19,8 +19,8 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "ab2e5967fca3f01a6ee07a64be0b23616a9caf17",
-    "dirty": true,
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
+    "dirty": false,
     "cases": {
       "FM-1": "pass",
       "FM-2": "pass",
@@ -43,7 +43,7 @@
     ".specs/0005-openapi-contract/spec.md": "blake3:ea2bdf9821350d311c22cd4edd80d65b74f078e647b70916e530acb95ae6eb1b"
   },
   "evidence": {
-    "evidence/green.trx": "blake3:be0c0b49d428e0eea0039ea0417e8f244d248cc84e558dc3b3da81e6956aff01",
-    "evidence/red.trx": "blake3:be03c66a734f5eb57e76eb806dd6e2670acd1093b8a2c191c36c0b11688c7fb4"
+    "evidence/green.trx": "blake3:8fea1c5f88ef136e98841705db43fecfedc2f20c8cedceb0ed22eef197eb3a82",
+    "evidence/red.trx": "blake3:40a398bd25ca0822a5479248d290967c0c29f2550d36dc624486029e63653e78"
   }
 }

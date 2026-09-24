@@ -1,50 +1,50 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TestRun id="6c0a433a-ac2b-41a3-bc4f-02a606c2dee9" name="@omarchy 2026-09-24 02:18:24" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2026-09-24T02:18:24.2000424-03:00" queuing="2026-09-24T02:18:24.2000425-03:00" start="2026-09-24T02:18:23.2187794-03:00" finish="2026-09-24T02:18:24.2031254-03:00" />
-  <TestSettings name="default" id="5fc244d6-e89b-49a9-a8f4-eabc1de49f8a">
-    <Deployment runDeploymentRoot="_omarchy_2026-09-24_02_18_24" />
+<TestRun id="00000000-0000-0000-0000-000000000001" name="{run}" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-24T03:29:46.6053936-03:00" queuing="2026-09-24T03:29:46.6053937-03:00" start="2026-09-24T03:29:45.6436497-03:00" finish="2026-09-24T03:29:46.6083485-03:00" />
+  <TestSettings name="default" id="00000000-0000-0000-0000-000000000002">
+    <Deployment runDeploymentRoot="{run}" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="105fe853-5d8b-42a4-b600-b482b99eee5f" testId="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1" testName="FM-1: a deposit is reflected by the next balance read" computerName="omarchy" duration="00:00:00.0121809" startTime="2026-09-24T02:18:24.1108565-03:00" endTime="2026-09-24T02:18:24.1231428-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="105fe853-5d8b-42a4-b600-b482b99eee5f" />
-    <UnitTestResult executionId="6cc077f5-eaad-4c13-a2aa-1873d9f3b75c" testId="00b01ed6-e9a2-cf13-ebaa-6b1834353dba" testName="FM-4: a missing wallet answers 404" computerName="omarchy" duration="00:00:00.0093697" startTime="2026-09-24T02:18:24.0675642-03:00" endTime="2026-09-24T02:18:24.0764017-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6cc077f5-eaad-4c13-a2aa-1873d9f3b75c" />
-    <UnitTestResult executionId="9448ca01-b2db-4f0d-a0d8-79ac7835f3e6" testId="787a3ac5-fe72-fd17-382e-bddc7280cf45" testName="FM-5: a retry with the same Idempotency-Key credits once" computerName="omarchy" duration="00:00:00.0220773" startTime="2026-09-24T02:18:24.0885198-03:00" endTime="2026-09-24T02:18:24.1107277-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9448ca01-b2db-4f0d-a0d8-79ac7835f3e6" />
-    <UnitTestResult executionId="1d77d1f0-5d6d-4448-bcd2-05a148dcca97" testId="b4eaa1be-3b23-2d60-48aa-2943e0b6fffb" testName="FM-6: a new Idempotency-Key credits again" computerName="omarchy" duration="00:00:00.4924835" startTime="2026-09-24T02:18:23.5405803-03:00" endTime="2026-09-24T02:18:24.0378700-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1d77d1f0-5d6d-4448-bcd2-05a148dcca97" />
-    <UnitTestResult executionId="8a8e52e2-1dc1-4e7b-9c61-9d0daf662c6c" testId="1be71c20-8270-b493-2dfc-5dccd1d0ff2d" testName="FM-3: every invalid field is reported at once" computerName="omarchy" duration="00:00:00.0279646" startTime="2026-09-24T02:18:24.0433352-03:00" endTime="2026-09-24T02:18:24.0668321-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8a8e52e2-1dc1-4e7b-9c61-9d0daf662c6c" />
-    <UnitTestResult executionId="31097ed9-3a61-4858-86fa-94de0068373d" testId="ba2e4f64-ab4e-93ae-caa8-a11912d3a16d" testName="FM-2: a negative amount is rejected and the balance is untouched" computerName="omarchy" duration="00:00:00.0117215" startTime="2026-09-24T02:18:24.0765464-03:00" endTime="2026-09-24T02:18:24.0883898-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="31097ed9-3a61-4858-86fa-94de0068373d" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="787a3ac5-fe72-fd17-382e-bddc7280cf45" testName="FM-5: a retry with the same Idempotency-Key credits once" computerName="{machine}" duration="00:00:00.0221737" startTime="2026-09-24T03:29:46.4926712-03:00" endTime="2026-09-24T03:29:46.5149906-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1" testName="FM-1: a deposit is reflected by the next balance read" computerName="{machine}" duration="00:00:00.0114447" startTime="2026-09-24T03:29:46.5151296-03:00" endTime="2026-09-24T03:29:46.5266370-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="1be71c20-8270-b493-2dfc-5dccd1d0ff2d" testName="FM-3: every invalid field is reported at once" computerName="{machine}" duration="00:00:00.0259845" startTime="2026-09-24T03:29:46.4485785-03:00" endTime="2026-09-24T03:29:46.4701238-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="b4eaa1be-3b23-2d60-48aa-2943e0b6fffb" testName="FM-6: a new Idempotency-Key credits again" computerName="{machine}" duration="00:00:00.4683889" startTime="2026-09-24T03:29:45.9677609-03:00" endTime="2026-09-24T03:29:46.4429881-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000007" testId="00b01ed6-e9a2-cf13-ebaa-6b1834353dba" testName="FM-4: a missing wallet answers 404" computerName="{machine}" duration="00:00:00.0094033" startTime="2026-09-24T03:29:46.4705864-03:00" endTime="2026-09-24T03:29:46.4797311-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000007" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000008" testId="ba2e4f64-ab4e-93ae-caa8-a11912d3a16d" testName="FM-2: a negative amount is rejected and the balance is untouched" computerName="{machine}" duration="00:00:00.0125621" startTime="2026-09-24T03:29:46.4798660-03:00" endTime="2026-09-24T03:29:46.4925329-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000008" />
   </Results>
   <TestDefinitions>
-    <UnitTest name="FM-4: a missing wallet answers 404" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="00b01ed6-e9a2-cf13-ebaa-6b1834353dba">
-      <Execution id="6cc077f5-eaad-4c13-a2aa-1873d9f3b75c" />
-      <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Missing_wallet_is_not_found" />
+    <UnitTest name="FM-4: a missing wallet answers 404" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="00b01ed6-e9a2-cf13-ebaa-6b1834353dba">
+      <Execution id="00000000-0000-0000-0000-000000000007" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Missing_wallet_is_not_found" />
     </UnitTest>
-    <UnitTest name="FM-5: a retry with the same Idempotency-Key credits once" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="787a3ac5-fe72-fd17-382e-bddc7280cf45">
-      <Execution id="9448ca01-b2db-4f0d-a0d8-79ac7835f3e6" />
-      <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Same_key_credits_once" />
+    <UnitTest name="FM-5: a retry with the same Idempotency-Key credits once" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="787a3ac5-fe72-fd17-382e-bddc7280cf45">
+      <Execution id="00000000-0000-0000-0000-000000000003" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Same_key_credits_once" />
     </UnitTest>
-    <UnitTest name="FM-3: every invalid field is reported at once" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="1be71c20-8270-b493-2dfc-5dccd1d0ff2d">
-      <Execution id="8a8e52e2-1dc1-4e7b-9c61-9d0daf662c6c" />
-      <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Every_invalid_field_is_reported" />
+    <UnitTest name="FM-3: every invalid field is reported at once" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="1be71c20-8270-b493-2dfc-5dccd1d0ff2d">
+      <Execution id="00000000-0000-0000-0000-000000000005" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Every_invalid_field_is_reported" />
     </UnitTest>
-    <UnitTest name="FM-1: a deposit is reflected by the next balance read" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1">
-      <Execution id="105fe853-5d8b-42a4-b600-b482b99eee5f" />
-      <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Deposit_is_reflected_by_the_balance" />
+    <UnitTest name="FM-1: a deposit is reflected by the next balance read" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1">
+      <Execution id="00000000-0000-0000-0000-000000000004" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Deposit_is_reflected_by_the_balance" />
     </UnitTest>
-    <UnitTest name="FM-6: a new Idempotency-Key credits again" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b4eaa1be-3b23-2d60-48aa-2943e0b6fffb">
-      <Execution id="1d77d1f0-5d6d-4448-bcd2-05a148dcca97" />
-      <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="New_key_credits_again" />
+    <UnitTest name="FM-6: a new Idempotency-Key credits again" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b4eaa1be-3b23-2d60-48aa-2943e0b6fffb">
+      <Execution id="00000000-0000-0000-0000-000000000006" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="New_key_credits_again" />
     </UnitTest>
-    <UnitTest name="FM-2: a negative amount is rejected and the balance is untouched" storage="/home/lucasrgt/projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="ba2e4f64-ab4e-93ae-caa8-a11912d3a16d">
-      <Execution id="31097ed9-3a61-4858-86fa-94de0068373d" />
-      <TestMethod codeBase="/home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Negative_amount_is_rejected" />
+    <UnitTest name="FM-2: a negative amount is rejected and the balance is untouched" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="ba2e4f64-ab4e-93ae-caa8-a11912d3a16d">
+      <Execution id="00000000-0000-0000-0000-000000000008" />
+      <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0001.DepositSpec" name="Negative_amount_is_rejected" />
     </UnitTest>
   </TestDefinitions>
   <TestEntries>
-    <TestEntry testId="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1" executionId="105fe853-5d8b-42a4-b600-b482b99eee5f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="00b01ed6-e9a2-cf13-ebaa-6b1834353dba" executionId="6cc077f5-eaad-4c13-a2aa-1873d9f3b75c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="787a3ac5-fe72-fd17-382e-bddc7280cf45" executionId="9448ca01-b2db-4f0d-a0d8-79ac7835f3e6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="b4eaa1be-3b23-2d60-48aa-2943e0b6fffb" executionId="1d77d1f0-5d6d-4448-bcd2-05a148dcca97" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="1be71c20-8270-b493-2dfc-5dccd1d0ff2d" executionId="8a8e52e2-1dc1-4e7b-9c61-9d0daf662c6c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="ba2e4f64-ab4e-93ae-caa8-a11912d3a16d" executionId="31097ed9-3a61-4858-86fa-94de0068373d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="787a3ac5-fe72-fd17-382e-bddc7280cf45" executionId="00000000-0000-0000-0000-000000000003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d1ec8f2e-ebfb-b58a-f9d7-7605033429b1" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1be71c20-8270-b493-2dfc-5dccd1d0ff2d" executionId="00000000-0000-0000-0000-000000000005" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b4eaa1be-3b23-2d60-48aa-2943e0b6fffb" executionId="00000000-0000-0000-0000-000000000006" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="00b01ed6-e9a2-cf13-ebaa-6b1834353dba" executionId="00000000-0000-0000-0000-000000000007" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ba2e4f64-ab4e-93ae-caa8-a11912d3a16d" executionId="00000000-0000-0000-0000-000000000008" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
     <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
@@ -56,7 +56,7 @@
       <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
 [xUnit.net 00:00:00.04]   Discovering: Sample.Tests
 [xUnit.net 00:00:00.06]   Discovered:  Sample.Tests
-[xUnit.net 00:00:00.07]   Starting:    Sample.Tests
+[xUnit.net 00:00:00.08]   Starting:    Sample.Tests
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
@@ -64,7 +64,7 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Api
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.EntityFrameworkCore.Update[30100]
@@ -78,7 +78,7 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Api
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
 info: Microsoft.EntityFrameworkCore.Update[30100]
@@ -88,7 +88,7 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Api
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
 info: Microsoft.EntityFrameworkCore.Update[30100]
@@ -98,21 +98,7 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Api
-info: Microsoft.EntityFrameworkCore.Update[30100]
-      Saved 1 entities to in-memory store.
-info: Microsoft.Hosting.Lifetime[0]
-      Application is shutting down...
-info: Microsoft.EntityFrameworkCore.Update[30100]
-      Saved 1 entities to in-memory store.
-info: Microsoft.Hosting.Lifetime[0]
-      Application started. Press Ctrl+C to shut down.
-info: Microsoft.Hosting.Lifetime[0]
-      Hosting environment: Development
-info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Api
-info: Microsoft.EntityFrameworkCore.Update[30100]
-      Saved 1 entities to in-memory store.
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
@@ -124,12 +110,26 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /home/lucasrgt/Projects/skies/.claude/worktrees/agent-a9db0dca188bdf4a9/examples/sample-app/backend/Sample.Api
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
-[xUnit.net 00:00:00.67]   Finished:    Sample.Tests
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.66]   Finished:    Sample.Tests
 </StdOut>
     </Output>
   </ResultSummary>

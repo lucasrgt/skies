@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="3" failures="3" errors="0" time="3.135778232">
-    <testsuite name="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" timestamp="2026-09-24T05:47:19.565Z" hostname="omarchy" tests="3" failures="3" errors="0" skipped="0" time="3.135778232">
-        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-1: an invalid submit is blocked with field errors inside the Field anatomy" time="1.092718922">
+<testsuites name="vitest tests" tests="3" failures="3" errors="0" time="3.126065934">
+    <testsuite name="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" timestamp="2026-09-24T06:29:22.816Z" hostname="{machine}" tests="3" failures="3" errors="0" skipped="0" time="3.126065934">
+        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-1: an invalid submit is blocked with field errors inside the Field anatomy" time="1.086509629">
             <failure message="Unable to find role=&quot;alert&quot;
 
 Ignored nodes: comments, script, style
@@ -121,7 +121,7 @@ Ignored nodes: comments, script, style
  ❯ examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx:31:33
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-2: a valid submit announces while pending, then reaches the success surface" time="1.02673519">
+        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-2: a valid submit announces while pending, then reaches the success surface" time="1.024546352">
             <failure message="Unable to find role=&quot;button&quot;
 
 Ignored nodes: comments, script, style
@@ -246,7 +246,7 @@ Ignored nodes: comments, script, style
  ❯ examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx:41:11
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-3: a command failure surfaces as a role=alert block and keeps the form" time="1.013655181">
+        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-3: a command failure surfaces as a role=alert block and keeps the form" time="1.01253962">
             <failure message="Unable to find an element with the text: We couldn&apos;t complete the deposit. Try again.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
 
 Ignored nodes: comments, script, style

@@ -2,7 +2,7 @@
   "spec": "0007-items-screen",
   "runner": "web",
   "red": {
-    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:d32e89557f50cc8326f1986d7584aadc9229feb7538e06be5dd41082ad7f57ae"
@@ -14,7 +14,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -32,7 +32,7 @@
     ".specs/0007-items-screen/spec.md": "blake3:7d1fa990f1ec2bcf2796cfc2c99c6b4b7de648c38d6146265f4e9f7afc420ae1"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:ac624005ab1cfac69eba464e8429866a6ba709ba7a1c55f75c2efcdbf1cbd33e",
-    "evidence/red.xml": "blake3:2455920a678c357d63b99012ca1af9b6af4bad7a81859caf46eb839fe3bef2df"
+    "evidence/green.xml": "blake3:2a50e03b0e8ec1a65744c58458abbeb02c5fe81ab5ebff6d9287531cf53b7cc4",
+    "evidence/red.xml": "blake3:353fef8724db15dc1829c5a885c9956e9647539c3f29121a65730be72c5141fa"
   }
 }

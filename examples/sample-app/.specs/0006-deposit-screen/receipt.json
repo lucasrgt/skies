@@ -2,7 +2,7 @@
   "spec": "0006-deposit-screen",
   "runner": "web",
   "red": {
-    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:d4d2a52a41484886fb7db3764eb4e2193cabcca737f9e6a93db761475de401d1"
@@ -15,7 +15,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "d41c857cecf18d6a7b73bf81381e192291ada1ac",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -34,7 +34,7 @@
     ".specs/0006-deposit-screen/spec.md": "blake3:a8484742b8a4f393e41da8308b91e33f21652e44c47f82e17af4fbbbdc4c9c2f"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:ba422165c87333297bf2fc0f2feec343b91dc52abc58b956a0865bbbef4a8a0f",
-    "evidence/red.xml": "blake3:810169145f2ab1f45aa62a92c24d973882ab0ebb0c8b74a33480c15be9c3b357"
+    "evidence/green.xml": "blake3:46a1c25830f7bd3deb379172a3193ad1182deec93ea94eab9dac1e899690cba4",
+    "evidence/red.xml": "blake3:43f465105462e42df85900b6e83ff3016fe5fa14155f6051954f05ac49b3d8a7"
   }
 }

@@ -2,7 +2,7 @@
   "spec": "0001-deposit",
   "runner": "api",
   "red": {
-    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:0d3afb14bf21674581316804e9666219543752a63c1b16c77f1b429801841034"
@@ -30,7 +30,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
+    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -65,11 +65,11 @@
     ".specs/0001-deposit/spec.md": "blake3:43cc52626b36804dfa1f46549706ec93cad2c34608cabf1a33db3ef923c5c5a9"
   },
   "evidence": {
-    "evidence/avp-FM-5.json": "blake3:ac0416e277483aa3a63554cba5dffdc597d3a178f37d3c3a2306415644ba66e5",
-    "evidence/avp-FM-6.json": "blake3:f9d081a18ba245dcb53067e5664104d058b9ce4de818da876ff90a8986440ec0",
-    "evidence/green.trx": "blake3:5ce2c094ebf7d67a65d86a3a084bea279d3731a676d5beb908e1c57c042321ee",
-    "evidence/red.avp-FM-5.json": "blake3:14c6843d6f2a9c9cd0291e39ca534ed1de91a65f56909ec7cad44e103d4c6cbc",
-    "evidence/red.avp-FM-6.json": "blake3:6bf191094ec7c075dff1aa142b82bec91e0a9506721da6f0ce7251ac0680fd0c",
-    "evidence/red.trx": "blake3:665c84a051f2348b3c1f6e3be0a51c2cf7b77627ae1b52361561492c98c0451d"
+    "evidence/avp-FM-5.json": "blake3:6acb335839fc1f7b138749d62756dd4aece1e12d9cffc165986e9ffcda635692",
+    "evidence/avp-FM-6.json": "blake3:6ba41c8ba00fb4281d0125cdedaa3e1df60f5c87dd57724c1859a9b53cc301ea",
+    "evidence/green.trx": "blake3:04019c189a68c5b813c6b356f9442ccff2cf40450f4febfc0b75269437d832e2",
+    "evidence/red.avp-FM-5.json": "blake3:54aa3c53fc2eb66f13284b4bf71019e46ec91944d666e973645a7c485e343b87",
+    "evidence/red.avp-FM-6.json": "blake3:4dc67c5bc8c626fa4df1f9f1988aa17509db32679d37d16c210294c4693d035c",
+    "evidence/red.trx": "blake3:04e55fbe321f27fce619dcc849cf347caf35d3189ceb1d563907f360d0541bf1"
   }
 }
