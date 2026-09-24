@@ -72,7 +72,7 @@ pub enum Generate {
     Entity { module: String, name: String },
     /// An always-valid [ValueObject] in BuildingBlocks.
     Vo { name: String },
-    /// List/lookup/create/update/delete slices for a tenant-scoped entity.
+    /// List/lookup/create/update/delete slices for a tenant-scoped [Entity], plus the Open/Update they call.
     Crud { module: String, entity: String },
     /// A SignalR hub for real-time fan-out.
     Hub { module: String, name: String },

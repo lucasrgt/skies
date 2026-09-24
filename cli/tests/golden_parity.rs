@@ -27,13 +27,30 @@ fn removed(path: &str) -> bool {
 /// only workspace, products, and a commented runner.
 const REWRITTEN: &[&str] = &[".github/workflows/ci.yml", "Skies.toml"];
 
-/// Not compared: 4.x `g crud` matched the scaffold's commented `//   var catalog = app.MapGroup(...)` line as the
-/// module's route group and mapped the slices onto an undeclared `catalog`. 5.0 matches code lines only and declares
-/// the group itself (fail-closed) when the module has none.
-const CRUD_MODULE: &str = "src/Golden.Api/Modules/Catalog/CatalogModule.cs";
+/// `g crud` was redesigned for 5.0, so its output is not compared with 4.x; `crud_output_is_doctor_shaped` pins
+/// the new shape instead. The 4.x slices assigned public setters and built the entity with `new Product { ... }`,
+/// which an `[Entity]` forbids (SKY0014), and mapped onto the module's commented-out group line. In 5.0 crud
+/// writes `Open`/`Update`/`RowVersion` into the entity and the slices call them, `List` pages through
+/// `ToPageAsync`, and crud declares the route group when the module has none. The entity file is here too
+/// because the test's own edit of it differs (a real `OrgId` instead of 4.x's `TenantId { get; set; }`).
+fn crud_redesigned(path: &str) -> bool {
+    path == "src/Golden.Api/Modules/Catalog/Product.cs"
+        || path == "src/Golden.Api/Modules/Catalog/CatalogModule.cs"
+        || path.starts_with("src/Golden.Api/Modules/Catalog/Slices/")
+}
 
 /// Applies the intentional template edits to a golden file, so the rest of the file is still compared exactly.
-fn normalize_golden(path: &str, golden: String) -> String {
+fn normalize_golden(tree: &str, path: &str, golden: String) -> String {
+    // `g crud` (only the Golden tree runs it) references the EF Core satellite: its List slice pages through
+    // ToPageAsync.
+    let golden = if tree == "Golden" && path == "src/Golden.Api/Golden.Api.csproj" {
+        let last = "    <PackageReference Include=\"Skies.Framework.Mail\" Version=\"4.1.4\" />\n";
+        let paging = "    <PackageReference Include=\"Skies.Framework.EntityFrameworkCore\" Version=\"4.1.4\" />\n";
+        assert!(golden.contains(last), "{path}: the golden csproj changed shape");
+        golden.replacen(last, &format!("{last}{paging}"), 1)
+    } else {
+        golden
+    };
     let edits: &[(&str, &str)] = match path {
         "AGENTS.md" | "CLAUDE.md" => {
             // The `skies:foundations` block (the CSM workflow) is gone, with the blank line before it.
@@ -73,13 +90,6 @@ fn normalize_golden(path: &str, golden: String) -> String {
             let to = format!("            .WithName(nameof({slice}))\n            .RequireAuthorization();\n");
             assert!(golden.contains(&from), "{path}: the golden slice changed shape");
             return golden.replacen(&from, &to, 1);
-        }
-        // The crud slices name their endpoints (SKY0012), which the 4.x templates forgot.
-        path if path.starts_with("src/Golden.Api/Modules/Catalog/Slices/") => {
-            let slice = path.rsplit('/').next().unwrap().trim_end_matches(".cs");
-            let from = "            .RequireAuthorization();\n";
-            assert!(golden.contains(from), "{path}: the golden crud slice changed shape");
-            return golden.replacen(from, &format!("            .WithName(nameof({slice}))\n{from}"), 1);
         }
         _ => &[],
     };
@@ -150,10 +160,10 @@ fn assert_parity(tree: &str, generated: &Path, expected_specs: &[&str]) {
             mismatches.push(format!("missing: {path}"));
             continue;
         };
-        if REWRITTEN.contains(&path.as_str()) || path == CRUD_MODULE {
+        if REWRITTEN.contains(&path.as_str()) || crud_redesigned(path) {
             continue;
         }
-        let expected = normalize_golden(path, String::from_utf8(golden_bytes.clone()).unwrap());
+        let expected = normalize_golden(tree, path, String::from_utf8(golden_bytes.clone()).unwrap());
         if expected.as_bytes() != our_bytes.as_slice() {
             mismatches.push(format!("differs: {path}"));
         }
@@ -200,12 +210,13 @@ fn the_full_generator_sequence_matches_the_4x_golden() {
         skies(&api, args);
     }
 
-    // The manual edit the golden history records ("tenant product"): crud needs an ITenantScoped entity.
+    // The owner's edit the golden history records ("tenant product"): crud needs an ITenantScoped entity with
+    // domain state. 5.0 writes the tenancy the way ITenantScoped documents it (an encapsulated OrgId).
     let product = api.join("Modules/Catalog/Product.cs");
     let source = std::fs::read_to_string(&product).unwrap();
     let edited = source.replacen("public class Product\n", "public class Product : ITenantScoped\n", 1).replacen(
         "    public Guid Id { get; private set; }\n",
-        "    public Guid Id { get; private set; }\n\n    public Guid TenantId { get; set; }\n    public string Name { get; private set; } = \"\";\n",
+        "    public Guid Id { get; private set; }\n\n    public Guid OrgId { get; private set; }\n    public string Name { get; private set; } = \"\";\n",
         1,
     );
     std::fs::write(&product, edited).unwrap();
@@ -216,6 +227,46 @@ fn the_full_generator_sequence_matches_the_4x_golden() {
         &solution,
         &["0001-auth", "0002-auth-otp", "0003-auth-oauth", "0004-auth-email"],
     );
+    crud_output_is_doctor_shaped(&api);
+}
+
+/// The 5.0 crud shape that replaces byte parity for the files in `crud_redesigned`: no slice writes a column,
+/// the entity carries the members the slices call, and the module maps them under a real (uncommented) group.
+fn crud_output_is_doctor_shaped(api: &Path) {
+    let read = |path: &str| std::fs::read_to_string(api.join(path)).unwrap();
+    let product = read("Modules/Catalog/Product.cs");
+    assert!(
+        !product.contains("{ get; set; }"),
+        "an [Entity] has no public setter (SKY0014)"
+    );
+    assert!(product.contains(
+        "    public static Result<Product> Open(Guid id, string name) =>\n        new Product { Id = id, Name = name }.EnsureValid();\n"
+    ));
+    assert!(product.contains("    public Result<Product> Update(string name)\n    {\n        Name = name;\n        return EnsureValid();\n    }\n"));
+    assert!(product.contains(
+        "[System.ComponentModel.DataAnnotations.Timestamp]\n    public byte[]? RowVersion { get; private set; }"
+    ));
+
+    let create = read("Modules/Catalog/Slices/CreateProduct.cs");
+    assert!(create.contains("var opened = Product.Open(Guid.NewGuid(), input.Name);"));
+    assert!(!create.contains("new Product"));
+    let update = read("Modules/Catalog/Slices/UpdateProduct.cs");
+    assert!(update.contains("var updated = item.Update(input.Name);\n        if (updated.IsFailure)"));
+    let list = read("Modules/Catalog/Slices/ListProduct.cs");
+    assert!(list.contains(
+        "db.Products.OrderBy(e => e.Id)\n            .ToPageAsync(input.Page, input.PageSize, MaxPageSize, ct);"
+    ));
+    for slice in ["List", "Lookup", "Create", "Update", "Delete"] {
+        let source = read(&format!("Modules/Catalog/Slices/{slice}Product.cs"));
+        assert!(source.contains(&format!(
+            ".WithName(nameof({slice}Product))\n            .RequireAuthorization();"
+        )));
+    }
+
+    let module = read("Modules/Catalog/CatalogModule.cs");
+    assert!(module.contains(
+        "        var catalog = app.MapGroup(\"/catalog\").RequireAuthorization();\n        ListProduct.Map(catalog);\n"
+    ));
 }
 
 #[test]

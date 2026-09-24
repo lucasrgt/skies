@@ -1,31 +1,29 @@
-using Microsoft.EntityFrameworkCore;
+using Skies.Framework.EntityFrameworkCore;
 
 namespace MyApp.Api.Modules.__MODULE__;
 
-/// <summary>List __ENTITY__ records for the caller's tenant, newest first. Authenticated; the tenant
-/// filter on the DbContext scopes the rows, so paging never crosses an org boundary.</summary>
+/// <summary>List __ENTITY__ records for the caller's tenant, one page at a time. The tenant filter on the
+/// DbContext scopes the rows, and the count and the page run over the same query, so neither crosses an org
+/// boundary. The order ends on the unique Id, so page boundaries are deterministic.</summary>
 [Slice]
 public static class List__ENTITY__
 {
-    public record Input(int? Limit, int? Offset);
+    public record Input(int Page = 1, int PageSize = 20);
 
-    public record Output(IReadOnlyList<__ENTITY__> Items);
+    public record Output(Page<__ENTITY__> Items);
+
+    private const int MaxPageSize = 100;
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct)
     {
-        var offset = input.Offset is > 0 ? input.Offset.Value : 0;
-        var limit = input.Limit is > 0 ? input.Limit.Value : 50;
-        var items = await db.__PLURAL__
-            .OrderByDescending(e => e.__ORDER_KEY__)
-            .Skip(offset)
-            .Take(limit)
-            .ToListAsync(ct);
+        var items = await db.__PLURAL__.__ORDER__
+            .ToPageAsync(input.Page, input.PageSize, MaxPageSize, ct);
         return new Output(items);
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapGet("/__ENTITY_LOWER__", async (int? limit, int? offset, AppDb db, CancellationToken ct) =>
-            (await Handle(new Input(limit, offset), db, ct)).ToHttp())
+        app.MapGet("/__ENTITY_LOWER__", async (int? page, int? pageSize, AppDb db, CancellationToken ct) =>
+            (await Handle(new Input(page ?? 1, pageSize ?? 20), db, ct)).ToHttp())
             .WithName(nameof(List__ENTITY__))
             .RequireAuthorization();
 }

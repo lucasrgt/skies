@@ -1,28 +1,29 @@
 __AUTH_USING__namespace MyApp.Api.Modules.__MODULE__;
 
-/// <summary>Create a __ENTITY__ for the caller's tenant. The org is stamped by the DbContext; only the
-/// writable scalar fields are taken from the request.</summary>
+/// <summary>Create a __ENTITY__ for the caller's tenant. The slice never writes a column: the entity is born
+/// through <see cref="__ENTITY__.Open"/>, whose invariants (EnsureValid) decide whether it may exist, and the org
+/// is stamped by the DbContext, never taken from the request.</summary>
 [Slice]
 public static class Create__ENTITY__
 {
-    public record Input(__CREATE_INPUT_FIELDS__);
+    public record Input(__INPUT_FIELDS__);
 
     public record Output(Guid Id);
 
-    public static async Task<Result<Output>> Handle(Input input, AppDb db, __CURRENT_PARAM__TimeProvider clock, CancellationToken ct)
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, __CREATE_PARAMS__CancellationToken ct)
     {
-__NOW_DECL__        var item = new __ENTITY__
-        {
-            Id = Guid.NewGuid(),
-__CREATE_ASSIGNMENTS____USERID_ASSIGNMENT____CREATE_TODO____CREATED_AT_ASSIGN____UPDATED_AT_ASSIGN__        };
-        db.__PLURAL__.Add(item);
+        var opened = __ENTITY__.Open(__OPEN_ARGS__);
+        if (opened.IsFailure)
+            return opened.Error;
+
+        db.__PLURAL__.Add(opened.Value);
         await db.SaveChangesAsync(ct);
-        return new Output(item.Id);
+        return new Output(opened.Value.Id);
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/__ENTITY_LOWER__", async (Input input, AppDb db, __CURRENT_PARAM__TimeProvider clock, CancellationToken ct) =>
-            (await Handle(input, db, __CURRENT_ARG__clock, ct)).ToHttp())
+        app.MapPost("/__ENTITY_LOWER__", async (Input input, AppDb db, __CREATE_PARAMS__CancellationToken ct) =>
+            (await Handle(input, db, __CREATE_ARGS__ct)).ToHttp())
             .WithName(nameof(Create__ENTITY__))
             .RequireAuthorization();
 }

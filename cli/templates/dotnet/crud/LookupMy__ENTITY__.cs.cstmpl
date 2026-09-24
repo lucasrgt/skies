@@ -1,4 +1,4 @@
-using MyApp.Api.Auth;
+using Skies.Framework.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Api.Modules.__MODULE__;
