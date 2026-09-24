@@ -1,0 +1,111 @@
+using Golden.Api.Tenancy;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>A user account — a domain entity, not a data bag. The email is unique globally —
+/// one-human-one-account — so a user signs in by email regardless of org. It owns its identity and its
+/// invariants: no public setter, born through <see cref="Register"/>, every state change an
+/// intention-revealing method. Fields grow as the account sub-flows are ported (the auth:* generators
+/// add their columns + mutators here).</summary>
+[Entity]
+public class User : ITenantScoped
+{
+    /// <summary>The account's identity, assigned when it is registered.</summary>
+    public Guid Id { get; private set; }
+    /// <summary>The owning org. Stamped on insert by <c>TenantDbContext</c> through EF metadata — never set
+    /// by a slice, so a user cannot leak across tenants.</summary>
+    public Guid OrgId { get; private set; }
+
+    /// <summary>The globally-unique email — how a user signs in, regardless of org.</summary>
+    public Email Email { get; private set; }
+
+    /// <summary>The display name. Defaults to the email at registration; a profile slice may change it later.</summary>
+    public string Name { get; private set; } = "";
+
+    /// <summary>The argon2id password hash. Changed only through <see cref="ResetPassword"/>.</summary>
+    public PasswordHash PasswordHash { get; private set; }
+
+    /// <summary>Where the user is in multistep registration. Login does not block on it — it returns the step
+    /// so the client routes to what is next.</summary>
+    public RegistrationStep RegistrationStep { get; private set; } = RegistrationStep.EmailPending;
+
+    /// <summary>The optional role, chosen after sign-in.</summary>
+    public Role? Role { get; private set; }
+
+    /// <summary>When the account was created.</summary>
+    public DateTime CreatedAt { get; private set; }
+
+    /// <summary>Whether the account's email has been verified.</summary>
+    public bool IsEmailVerified { get; private set; }
+
+    /// <summary>The verified phone number, set once VerifyPhone succeeds.</summary>
+    public string? Phone { get; private set; }
+
+    /// <summary>Whether the phone number has been verified.</summary>
+    public bool IsPhoneVerified { get; private set; }
+
+    /// <summary>The optimistic-concurrency token (SKY0026): a concurrent write to the same user row fails loudly
+    /// with a <c>DbUpdateConcurrencyException</c> instead of silently losing the first change.</summary>
+    [System.ComponentModel.DataAnnotations.Timestamp]
+    public byte[]? RowVersion { get; private set; }
+
+    // Parameterless and private: the constructor EF Core materialises a row through. The domain creates a user
+    // via Register, so there is no public way to construct a blank account.
+    private User() { }
+
+    /// <summary>Register a new account — a fresh identity, the email as the initial display name, and the
+    /// already-hashed password. Creation funnels through <see cref="EnsureValid"/>, so a user is valid the
+    /// instant it exists.</summary>
+    public static Result<User> Register(Email email, PasswordHash passwordHash, DateTime now) =>
+        new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            Name = email.Value,
+            PasswordHash = passwordHash,
+            CreatedAt = now,
+        }.EnsureValid();
+
+    /// <summary>Set a new password (e.g. after a verified reset). The <see cref="PasswordHash"/> value object
+    /// already guarantees a valid hash, so this cannot fail — a void mutation, not a Result.</summary>
+    public void ResetPassword(PasswordHash passwordHash) => PasswordHash = passwordHash;
+
+    // The single invariant funnel: every create path returns through here, so a broken User can never be
+    // observed or persisted.
+    /// <summary>Complete phone verification: record the verified phone, flag it verified, and
+    /// advance registration to Complete. Cannot fail — a void mutation.</summary>
+    public void CompletePhoneVerification(string phone)
+    {
+        Phone = phone;
+        IsPhoneVerified = true;
+        RegistrationStep = RegistrationStep.Complete;
+    }
+
+    /// <summary>Register an account from a Google identity: Google has already verified the email,
+    /// so the user is email-verified from the start, has no password (a random one is stored —
+    /// Google is the credential), and lands at PhonePending. Funnels through EnsureValid.</summary>
+    public static Result<User> RegisterViaGoogle(Email email, DateTime now) =>
+        new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            Name = email.Value,
+            PasswordHash = PasswordHash.Create(Guid.NewGuid().ToString()),
+            IsEmailVerified = true,
+            RegistrationStep = RegistrationStep.PhonePending,
+            CreatedAt = now,
+        }.EnsureValid();
+
+    /// <summary>Flag the account's email verified. Cannot fail — a void mutation.</summary>
+    public void MarkEmailVerified() => IsEmailVerified = true;
+
+    private Result<User> EnsureValid()
+    {
+        var validation = new Validation()
+            .Require(Id, "id", AccountErrorCodes.InvalidState)
+            .NotBlank(Name, "name", AccountErrorCodes.InvalidState);
+        if (validation.Failed)
+            return validation.ToError();
+        return this;
+    }
+}

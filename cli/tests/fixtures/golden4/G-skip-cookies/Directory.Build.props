@@ -1,0 +1,14 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- The .NET analyzers run at build time, so the native lint joins the Skies doctor's gate. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- IDE0005 (unnecessary usings) only fires in the build when a doc file is generated
+         (roslyn#41640). Generate it so the gate works — but don't demand XML docs on every public
+         member (CS1591), which is library ceremony an app doesn't want. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+</Project>

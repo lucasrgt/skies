@@ -1,0 +1,58 @@
+using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+
+namespace Golden.Api.Tenancy;
+
+/// <summary>
+/// A DbContext that scopes every <see cref="ITenantScoped"/> entity to the current org. Two halves,
+/// both safe-by-default:
+///
+/// <list type="bullet">
+/// <item><description><b>Reads</b> — a global query filter is applied to <em>all</em> marked entities,
+/// not per-entity, so adding an entity and forgetting its filter (a cross-tenant data leak) is
+/// impossible by construction.</description></item>
+/// <item><description><b>Writes</b> — <see cref="ITenantScoped.OrgId"/> is stamped on insert from the
+/// current <see cref="ITenant"/>, so a slice never sets the org by hand.</description></item>
+/// </list>
+///
+/// Module DbContexts inherit this. Visibility is preserved by the marker on the entity
+/// (<c>class User : ITenantScoped</c>) rather than by scattering the filter across configurations.
+/// </summary>
+public abstract class TenantDbContext(DbContextOptions options, ITenant tenant) : DbContext(options)
+{
+    private static readonly MethodInfo ApplyFilter =
+        typeof(TenantDbContext).GetMethod(nameof(ApplyTenantFilter), BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+    /// <summary>The org this context is scoped to — the tenant every read filters by and every insert is stamped
+    /// with. Exposed for the rare write that must carry an org explicitly (e.g. a row owned by a resource's org,
+    /// not the caller's), rather than reaching into <see cref="ITenant"/> directly.</summary>
+    public Guid CurrentOrgId => tenant.OrgId;
+
+    /// <inheritdoc />
+    protected override void OnModelCreating(ModelBuilder model)
+    {
+        base.OnModelCreating(model);
+
+        foreach (var entity in model.Model.GetEntityTypes())
+            if (typeof(ITenantScoped).IsAssignableFrom(entity.ClrType))
+                ApplyFilter.MakeGenericMethod(entity.ClrType).Invoke(this, [model]);
+    }
+
+    // The filter references `tenant`, so EF re-reads the current org per query — one cached model,
+    // correct per request.
+    private void ApplyTenantFilter<TEntity>(ModelBuilder model)
+        where TEntity : class, ITenantScoped =>
+        model.Entity<TEntity>().HasQueryFilter(e => e.OrgId == tenant.OrgId);
+
+    /// <inheritdoc />
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Stamp through EF's property metadata, not the CLR setter, so OrgId stays encapsulated on the entity
+        // ({ get; private set; }) — a slice cannot set it, so it cannot leak across tenants.
+        foreach (var entry in ChangeTracker.Entries<ITenantScoped>())
+            if (entry.State == EntityState.Added)
+                entry.Property(nameof(ITenantScoped.OrgId)).CurrentValue = tenant.OrgId;
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
+}

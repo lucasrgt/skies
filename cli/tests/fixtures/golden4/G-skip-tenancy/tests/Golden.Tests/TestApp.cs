@@ -1,0 +1,13 @@
+using Golden.Api;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Golden.Tests;
+
+/// <summary>Boots the real app for integration tests, swapping the Account database for an isolated
+/// in-memory store per instance. The auth wiring (JwtBearer, ICurrentUser) is the real one, so these
+/// tests exercise the actual token → claims → slice path.</summary>
+public sealed class TestApp : SkiesWebTest<Program>
+{
+    protected override void SwapStores(IServiceCollection services) =>
+        services.UseIsolatedInMemory<AppDb>();
+}

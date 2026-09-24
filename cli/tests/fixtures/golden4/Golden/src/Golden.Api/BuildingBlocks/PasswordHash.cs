@@ -1,0 +1,61 @@
+using System.Security.Cryptography;
+using System.Text;
+using Konscious.Security.Cryptography;
+
+namespace Golden.Api.BuildingBlocks;
+
+/// <summary>
+/// An argon2id password hash. The crypto comes from a library (Konscious) — the framework ships no
+/// hashing; this is app code wrapping the "gem", per the Rails posture, so this type is the swap point:
+/// to move to bcrypt / scrypt / a managed KMS, rewrite it and nothing else in the app changes. The
+/// stored value is <c>base64(salt).base64(hash)</c>; <see cref="Verify"/> re-derives with the stored
+/// salt and compares in constant time.
+/// </summary>
+[ValueObject]
+public readonly record struct PasswordHash
+{
+    /// <summary>The encoded hash (<c>base64(salt).base64(hash)</c>). Opaque; persist it as-is.</summary>
+    public string Value { get; }
+
+    private PasswordHash(string value) => Value = value;
+
+    /// <summary>The value-object smart constructor (SKY0013): hash a plaintext into an always-valid
+    /// <see cref="PasswordHash"/>. Hashing cannot fail, so the <see cref="Result{T}"/> is always success —
+    /// the shape is the convention (a VO is built through a Result-returning factory), and callers that
+    /// know it cannot fail can use <see cref="Create"/> directly.</summary>
+    public static Result<PasswordHash> From(string password) => Create(password);
+
+    /// <summary>Hash a plaintext password with a fresh random salt. The total (never-failing) form of
+    /// <see cref="From"/>, for the callers that just want the hash.</summary>
+    public static PasswordHash Create(string password)
+    {
+        var salt = RandomNumberGenerator.GetBytes(16);
+        var hash = Derive(password, salt);
+        return new($"{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}");
+    }
+
+    /// <summary>Whether <paramref name="password"/> matches this hash.</summary>
+    public bool Verify(string password)
+    {
+        var parts = Value.Split('.');
+        if (parts.Length != 2)
+            return false;
+
+        var salt = Convert.FromBase64String(parts[0]);
+        var expected = Convert.FromBase64String(parts[1]);
+        return CryptographicOperations.FixedTimeEquals(Derive(password, salt), expected);
+    }
+
+    /// <summary>Rehydrate from a stored value — used by the EF value converter.</summary>
+    public static PasswordHash FromStored(string value) => new(value);
+
+    // OWASP argon2id baseline: 19 MiB, 2 iterations, single lane.
+    private static byte[] Derive(string password, byte[] salt) =>
+        new Argon2id(Encoding.UTF8.GetBytes(password))
+        {
+            Salt = salt,
+            DegreeOfParallelism = 1,
+            MemorySize = 19456,
+            Iterations = 2,
+        }.GetBytes(32);
+}

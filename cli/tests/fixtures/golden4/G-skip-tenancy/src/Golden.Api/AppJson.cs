@@ -1,0 +1,21 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace Golden.Api;
+
+/// <summary>The application's canonical JSON contract: web defaults plus enums serialized by name. The HTTP
+/// pipeline and every hand-written test deserializer share it, so wire and assertion shapes cannot drift.</summary>
+public static class AppJson
+{
+    public static readonly JsonSerializerOptions Options = Create();
+
+    public static void Configure(JsonSerializerOptions options) =>
+        options.Converters.Add(new JsonStringEnumConverter());
+
+    private static JsonSerializerOptions Create()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        Configure(options);
+        return options;
+    }
+}

@@ -1,0 +1,44 @@
+using Microsoft.EntityFrameworkCore;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Confirm an email from a verification link. Public — the link works while signed out. The
+/// token is consumed by its hash (looked up directly, no tenant filter) and the user is marked
+/// email-verified. The user lookup crosses the tenant filter (the verifier is anonymous), so it is
+/// found by id regardless of org.</summary>
+/// <remarks>Security contract: the sad path is the bypass guard — a wrong or expired token must be rejected and
+/// leave the email unverified. If it passed silently, an email could be confirmed without the link. SKY0008
+/// forces both the happy confirmation and the bad-token rejection to be proven end-to-end (see
+/// Journeys/EmailJourney).</remarks>
+[Slice]
+public static class VerifyEmail
+{
+    public record Input(string Token);
+
+    public record Output();
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, TimeProvider clock, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow().UtcDateTime;
+        var hash = SessionToken.Hash(input.Token);
+        var token = await db.EmailVerificationTokens
+            .FirstOrDefaultAsync(t => t.TokenHash == hash && t.ConsumedAt == null && t.ExpiresAt > now, ct);
+        if (token is null)
+            return Error.Unauthorized(AccountErrorCodes.InvalidToken, "invalid or expired token");
+
+        var user = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == token.UserId, ct);
+        if (user is null)
+            return Error.NotFound(AccountErrorCodes.UserNotFound, "user not found");
+
+        token.Consume(now);
+        user.MarkEmailVerified();
+        await db.SaveChangesAsync(ct);
+        return new Output();
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/verify-email", async (Input input, AppDb db, TimeProvider clock, CancellationToken ct) =>
+            (await Handle(input, db, clock, ct)).ToHttp())
+            .WithName(nameof(VerifyEmail))
+            .AllowAnonymous();   // public: the verification token IS the credential (SKY0022 — the decision, made visible)
+}

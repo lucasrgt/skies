@@ -1,0 +1,127 @@
+# account
+
+User identity: register (email + password), sign in (issue a session), the base profile and role.
+Every user belongs to one org (tenancy).
+Role is optional at registration — chosen later, after sign-in.
+
+## Boundaries
+
+- **Inside**: identity — registration, sign-in, the refresh-session lifecycle, the base profile and role.
+- **Outside**: anything past *who a user is* lives in its own module — payments, richer profiles,
+  notifications, moderation. Account knows the user, not their activity.
+
+## Wiring
+
+- `org` provides tenancy: every `ITenantScoped` entity carries an `OrgId` and is scoped to it (auth
+  artifacts like `UserSession` are the deliberate exception — see the auth-bootstrap note).
+- The authenticated caller is `ICurrentUser`, resolved from the access-token claims.
+
+## Design notes
+
+### Tenancy is invisible to slices
+`TenantDbContext` applies a global query filter to every `ITenantScoped` entity and stamps `OrgId`
+on insert. So a normal slice writes `db.Things.Where(...)` with no org plumbing — it is already
+scoped to the caller's org. Forgetting the filter would be a cross-tenant leak, so it is applied to
+*all* marked entities, not per-entity. The one exception is auth-bootstrap — see below.
+
+### Auth-bootstrap and the tenant filter
+Register / login / refresh / logout run *before or around* authentication: the request has no org of
+its own (login is anonymous; refresh & logout happen once the access token has expired → `RequestTenant`
+falls back to `DefaultOrg`). The identity itself — the email, the refresh-token hash — is what
+*establishes* the org; it cannot presuppose it. Two consequences:
+
+- **The user is looked up across the filter** (`db.Users.IgnoreQueryFilters()`), and the org is derived
+  **from the found user**, then put into the JWT. This forced the identity model: **email is unique
+  globally** (index on `Email`, not `(OrgId, Email)`), one-human-one-account — a user belongs to one
+  org but signs in by email across all of them. The latent bug it fixes: with a per-org filter, a user
+  living in a non-default org could never log in, because the anonymous login would scope to
+  `DefaultOrg` and never see them.
+- **`UserSession` is *not* `ITenantScoped` at all.** It is a global auth artifact keyed by an
+  unguessable token hash, never part of an org's dataset — so it is looked up directly, no filter to
+  bypass. The tell: an entity you would *always* `IgnoreQueryFilters()` should not be scoped.
+
+Outside auth-bootstrap, never reach for `IgnoreQueryFilters()` on a scoped entity; it is a tenant-safety
+bypass and every use is a deliberate, documented exception, not a convenience.
+
+### Access token = stateless JWT
+Login issues a 15-minute JWT carrying `sub` (userId), `org`, `role`, and `sid` (the session — see
+below). `ICurrentUser` reads those claims — no session lookup per request. For an authenticated
+request the org comes from the JWT (`RequestTenant`), so the tenant and the caller can never disagree.
+
+### JWT claim mapping
+JwtBearer is configured with `MapInboundClaims = false`. The default remaps `sub` to
+`ClaimTypes.NameIdentifier`, which makes `FindFirst("sub")` null and breaks `ICurrentUser`. The
+integration test in `AuthFlow.Tests` guards against a regression here.
+
+### Password vs session-token hashing
+A **password** is low-entropy → argon2id (Konscious): slow, salted, verified, never reversible. A
+**session/refresh token** is high-entropy random → SHA-256: fast and deterministic so it can be
+looked up by hash. Hashing a token with argon2 (random salt) would make it impossible to look up.
+
+The framework ships **no** crypto. argon2id is the chosen default, living in your own
+`BuildingBlocks/PasswordHash.cs`; Konscious is a dependency of *your* project, not Skies — the same way
+Rails adds bcrypt to your Gemfile rather than baking it in. That file is the swap point: to move to
+bcrypt / scrypt / a managed KMS, rewrite `PasswordHash` and nothing else in the module knows the
+algorithm.
+
+### Multistep registration
+Register lands a user at `EmailPending`. Login does **not** block on an incomplete step — it returns
+the step so the client routes to what's next.
+
+### Refresh rotation with theft detection
+Login mints a 14-day refresh token and opens a **family** (`UserSession.FamilyId`). `Refresh` marks the
+presented slot `UsedAt` and adds a new slot to the same family — the old token is dead after one use.
+If a *spent* slot is presented again (`UsedAt != null`), that token leaked: the legit client still holds
+the live one, so a second use of a rotated one is **theft**. The response is to burn the whole family
+(`RevokeFamily`) — thief's and victim's tokens alike — forcing a fresh login. `Logout` revokes the
+family too. (Tokens are Base64Url so they are cookie/URL-safe; the chain grows append-only — pruning
+spent/expired rows is a future job.)
+
+There is no time-based replay grace: once rotation commits, presenting the spent token burns the family
+immediately. A genuinely simultaneous refresh is distinguished structurally instead: `UserSession.RowVersion`
+guards the rotation save with optimistic concurrency. The racer that loses the write gets a
+`DbUpdateConcurrencyException`, caught and mapped to `SessionRetry`; the winner already delivered the live
+replacement. Thus concurrent use yields one winner and one retry, while every replay observed after rotation
+is theft. (The exception path is enforced only by a relational provider; the in-memory store never raises it.)
+
+A family also has an **absolute ceiling** (`SessionToken.FamilyMaxAge`, 90 days): a session may slide
+(rotate) freely within that window, but `Refresh` retires the family once its first token is older than
+the ceiling — so a silently-rotating session cannot live forever, no matter how often it refreshes.
+
+### Security posture (the deliberate choices)
+- **No user enumeration by timing.** `Login` verifies the password against a fixed dummy argon2 hash when
+  no account matches, so a missing email costs the same work as a wrong one, and the two return the *same*
+  error. The absence of an account is observable through neither the response nor its timing.
+- **A credential change ends every session.** When a password reset (the email flow) or any future
+  password change succeeds, it revokes **all** of the user's refresh families (`Refresh.RevokeAllForUser`),
+  not just the caller's — so a takeover recovery also evicts the attacker.
+- **OTP codes are brute-force-capped.** When the phone flow is added, its verify slice locks a 6-digit
+  code after a small number of wrong guesses (consuming the OTP), so the 10⁶ space cannot be walked.
+- **Registration accepts email-existence disclosure.** A duplicate registration returns `409 Conflict`
+  (an explicit `EmailTaken`) rather than masking it — a conscious UX trade-off; the mitigation for
+  enumeration/abuse is edge rate-limiting, not a vague error.
+- **Rate limiting is platform infra, not slice shape.** Brute-force / spam protection on the auth
+  endpoints (login, register, refresh, password-reset request, OTP) is ASP.NET rate-limiter middleware
+  wired in `Platform/Security`, surfacing `platform.rate_limited` — it does not belong in a slice's
+  `Handle`. See the platform/security guidance in `docs/CONVENTIONS.md`.
+
+### The session id (sid)
+A "session" is a refresh family. The access token carries that family id as the `sid` claim, so a
+request can name *its own* session without a DB lookup. That is what lets `ListMySessions` flag the
+current one (`FamilyId == current.SessionId`), `RevokeSession` refuse to drop a family that isn't the
+caller's, and `RevokeOtherSessions` keep the current and burn the rest. Without `sid` the stateless
+token could not tell "this session" from the others. The session row is keyed by `UserId` +
+`FamilyId`, never tenant-scoped (it is auth plumbing, not org data).
+
+### Web vs mobile token delivery
+Same endpoints serve both clients; the request opts in with `X-Client: web`. **Web** gets the refresh
+token in an httpOnly, Secure, SameSite=Strict cookie scoped to `/account` — invisible to JS, so XSS
+can't exfiltrate it — and never in the body; `Refresh`/`Logout` read it back from the cookie. **Mobile/
+API** gets the refresh in the body and keeps it in secure storage. The access token always rides in the
+body for the `Authorization` header. This shaping lives in the route's `Respond` helper (delivery, not
+logic — the route stays an expression, `Handle` stays pure and host-free); the cookie policy is the
+framework's `RefreshCookie` service (httpOnly/Secure/SameSite are its opinion; the app sets only the
+cookie name and path via `AddRefreshCookie`).
+
+## Not yet ported
+Email verification, phone OTP, OAuth, password reset. The first three need providers (SMTP / SMS / OAuth).

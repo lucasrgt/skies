@@ -1,0 +1,10 @@
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Where a user is in the multistep onboarding. Login does not block on an incomplete step
+/// — it returns the step so the client can route the user to what's next.</summary>
+public enum RegistrationStep
+{
+    EmailPending,
+    PhonePending,
+    Complete,
+}

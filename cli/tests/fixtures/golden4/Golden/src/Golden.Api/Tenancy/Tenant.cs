@@ -1,0 +1,9 @@
+namespace Golden.Api.Tenancy;
+
+/// <summary>The request-scoped <see cref="ITenant"/>. Middleware sets <see cref="OrgId"/> once per
+/// request; tests set it directly.</summary>
+public sealed class Tenant : ITenant
+{
+    /// <inheritdoc />
+    public Guid OrgId { get; set; }
+}

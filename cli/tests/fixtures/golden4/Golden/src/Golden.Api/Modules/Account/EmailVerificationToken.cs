@@ -1,0 +1,70 @@
+namespace Golden.Api.Modules.Account;
+
+/// <summary>A one-time email-verification token — a domain entity that owns its lifecycle. <b>Not</b>
+/// <c>ITenantScoped</c>: like <see cref="UserSession"/>, it is a global auth artifact keyed by an unguessable
+/// token hash, looked up directly — there is no tenant filter to bypass, the tell that it should not be
+/// scoped. Only the hash is stored (high-entropy, so a plain SHA-256 hash via <see cref="SessionToken"/>,
+/// deterministic for lookup). It is minted through <see cref="Issue"/> and spent through
+/// <see cref="Consume"/>.</summary>
+[Entity]
+public class EmailVerificationToken
+{
+    /// <summary>How long a freshly-issued verification token stays valid.</summary>
+    public static readonly TimeSpan Lifetime = TimeSpan.FromHours(24);
+
+    /// <summary>The token's identity, assigned when it is issued.</summary>
+    public Guid Id { get; private set; }
+
+    /// <summary>The user whose email is being verified.</summary>
+    public Guid UserId { get; private set; }
+
+    /// <summary>The SHA-256 hash of the raw token — the token itself is never stored.</summary>
+    public string TokenHash { get; private set; } = "";
+
+    /// <summary>When the token expires.</summary>
+    public DateTime ExpiresAt { get; private set; }
+
+    /// <summary>When the token was consumed. Null while it is still usable.</summary>
+    public DateTime? ConsumedAt { get; private set; }
+
+    /// <summary>When the token was issued.</summary>
+    public DateTime CreatedAt { get; private set; }
+
+    /// <summary>The optimistic-concurrency token (SKY0026): a concurrent consume of the same token fails loudly
+    /// instead of two requests both verifying.</summary>
+    [System.ComponentModel.DataAnnotations.Timestamp]
+    public byte[]? RowVersion { get; private set; }
+
+    // Parameterless and private: the constructor EF Core materialises a row through. A token is minted via
+    // Issue, so there is no public way to construct a blank one.
+    private EmailVerificationToken() { }
+
+    /// <summary>Issue a fresh verification token for <paramref name="userId"/>, carrying its hash and expiring
+    /// one <see cref="Lifetime"/> from <paramref name="now"/>. Creation funnels through <see cref="EnsureValid"/>.</summary>
+    public static Result<EmailVerificationToken> Issue(Guid userId, string tokenHash, DateTime now) =>
+        new EmailVerificationToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            TokenHash = tokenHash,
+            ExpiresAt = now.Add(Lifetime),
+            CreatedAt = now,
+        }.EnsureValid();
+
+    /// <summary>Consume the token at <paramref name="now"/> — a spent token can never be used again. Cannot
+    /// fail — a void mutation.</summary>
+    public void Consume(DateTime now) => ConsumedAt = now;
+
+    // The single invariant funnel: every create path returns through here, so a broken token can never be
+    // observed or persisted.
+    private Result<EmailVerificationToken> EnsureValid()
+    {
+        var validation = new Validation()
+            .Require(Id, "id", AccountErrorCodes.InvalidState)
+            .Require(UserId, "userId", AccountErrorCodes.InvalidState)
+            .NotBlank(TokenHash, "tokenHash", AccountErrorCodes.InvalidState);
+        if (validation.Failed)
+            return validation.ToError();
+        return this;
+    }
+}

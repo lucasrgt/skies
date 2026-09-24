@@ -1,0 +1,9 @@
+namespace Golden.Api.Tenancy;
+
+/// <summary>The org (tenant) of the current request. Resolved once by middleware (from the JWT
+/// claim / subdomain) and injected wherever a slice or DbContext needs to scope by tenant.</summary>
+public interface ITenant
+{
+    /// <summary>The current request's org. <see cref="Guid.Empty"/> before a tenant is resolved.</summary>
+    Guid OrgId { get; }
+}
