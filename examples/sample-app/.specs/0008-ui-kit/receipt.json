@@ -1,0 +1,53 @@
+{
+  "spec": "0008-ui-kit",
+  "runner": "web",
+  "red": {
+    "commit": "f48f1ef09e79d58bd95f575cbbcc5ca595c47ff5",
+    "patch": {
+      "file": "red.patch",
+      "hash": "blake3:e21a028aaa6e4f8f4423be6cc8f499bf75ba3895ced2d66d0a16fb4118305ae4"
+    },
+    "cases": {
+      "FM-1": "fail",
+      "FM-2": "fail",
+      "FM-3": "fail",
+      "FM-4": "fail",
+      "FM-5": "fail",
+      "FM-6": "fail",
+      "FM-7": "fail",
+      "FM-8": "fail",
+      "FM-9": "non-discriminating"
+    },
+    "report": "evidence/red.xml"
+  },
+  "green": {
+    "commit": "f48f1ef09e79d58bd95f575cbbcc5ca595c47ff5",
+    "dirty": false,
+    "cases": {
+      "FM-1": "pass",
+      "FM-2": "pass",
+      "FM-3": "pass",
+      "FM-4": "pass",
+      "FM-5": "pass",
+      "FM-6": "pass",
+      "FM-7": "pass",
+      "FM-8": "pass",
+      "FM-9": "pass"
+    },
+    "report": "evidence/green.xml"
+  },
+  "footprint": {
+    "frontend/web/src/ui/Button.tsx": "blake3:701796d9213a72d2ae039a5e333442dac1624eaad2bbc4e9ae5cf4e7a767e019",
+    "frontend/web/src/ui/Field.tsx": "blake3:50baa5a7ff60bc480caf60c83184384eb8ddcd38820acf8660e68abfbb43674f",
+    "frontend/web/src/ui/Input.tsx": "blake3:3ce096f259ebcac85902d6b780700f39072326ec483f14a77cbcf965356564fd",
+    "frontend/web/src/ui/Stack.tsx": "blake3:6848148f963e8d440542f37abf6966e3110029e1f8844f0ee12d1173407cacae",
+    "frontend/web/src/ui/Text.tsx": "blake3:f86e6e9f28afd165d0f67ebf8339035a233efe18abe65d42d9101d96eb12fe52",
+    "frontend/web/src/ui/index.ts": "blake3:52291a3fee7c9a6796c0062564896c9967aa165f039d45d15699f0b90cfa6be0",
+    "frontend/web/src/ui/states.tsx": "blake3:a6490651b2384d01c30a5a9b5938d5aa7ed7ae238b620734eef685ffb20e50d1",
+    "frontend/web/src/ui/theme.ts": "blake3:1015317fe0f61dfefa1cfb688bdbc9b3ada56f4e31fa740a0e4302a3beb70a13"
+  },
+  "inputs": {
+    ".specs/0008-ui-kit/e2e/UiKit.test.tsx": "blake3:5a7f25bcba0041b0c735dbe20f2df54d2bd3f073023f32a90baff42c60b0abc5",
+    ".specs/0008-ui-kit/spec.md": "blake3:5a8f9d63d7da069e2c0e84244c5041aba66b11e5787a4ccff68b5c796f6a9f7f"
+  }
+}

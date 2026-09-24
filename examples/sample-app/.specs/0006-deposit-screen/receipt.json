@@ -1,0 +1,36 @@
+{
+  "spec": "0006-deposit-screen",
+  "runner": "web",
+  "red": {
+    "commit": "f48f1ef09e79d58bd95f575cbbcc5ca595c47ff5",
+    "patch": {
+      "file": "red.patch",
+      "hash": "blake3:fe80747f0cbb0a35aba224bdcbdd0e42591de89e8711aeee755128e83c81569e"
+    },
+    "cases": {
+      "FM-1": "fail",
+      "FM-2": "fail",
+      "FM-3": "fail"
+    },
+    "report": "evidence/red.xml"
+  },
+  "green": {
+    "commit": "f48f1ef09e79d58bd95f575cbbcc5ca595c47ff5",
+    "dirty": false,
+    "cases": {
+      "FM-1": "pass",
+      "FM-2": "pass",
+      "FM-3": "pass"
+    },
+    "report": "evidence/green.xml"
+  },
+  "footprint": {
+    "frontend/core/src/deposit/Deposit.view.tsx": "blake3:0c7b58cf0bccfe2c4f732700d1122217495422ad43e9f442e51ccc17903c78f8",
+    "frontend/core/src/deposit/Deposit.viewModel.ts": "blake3:1a1fa311b6416a98142d30eb72f72a225b3b4898439f34f853c8979605e81956",
+    "frontend/core/src/deposit/deposit.i18n.ts": "blake3:f5de3851f031c9124b9766753841f805f78d5769eae876a37ea3615e947755fc"
+  },
+  "inputs": {
+    ".specs/0006-deposit-screen/e2e/Deposit.test.tsx": "blake3:bcec90b75bc22c136653bd1b9c964b523f8a8c0ac808ed6127aafa0977cc8e4e",
+    ".specs/0006-deposit-screen/spec.md": "blake3:9910ee32928168a74aaf354aeebd93825ec1abe6d3b8db2302db3c55024ee65f"
+  }
+}

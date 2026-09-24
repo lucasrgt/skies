@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="2" failures="0" errors="0" time="0.057816652">
+    <testsuite name="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" timestamp="2026-09-24T05:21:49.735Z" hostname="omarchy" tests="2" failures="0" errors="0" skipped="0" time="0.057816652">
+        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-1: the list resource starts in loading while it is fetched" time="0.021624773">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-2: a list that settles empty renders the kit&apos;s empty state" time="0.033271862">
+        </testcase>
+    </testsuite>
+</testsuites>

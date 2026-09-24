@@ -1,0 +1,34 @@
+{
+  "spec": "0007-items-screen",
+  "runner": "web",
+  "red": {
+    "commit": "f48f1ef09e79d58bd95f575cbbcc5ca595c47ff5",
+    "patch": {
+      "file": "red.patch",
+      "hash": "blake3:3fb1f08d4ea6a902be27101ab804e4aec0d7e70b6d0f20967e290a472a4837c5"
+    },
+    "cases": {
+      "FM-1": "fail",
+      "FM-2": "fail"
+    },
+    "report": "evidence/red.xml"
+  },
+  "green": {
+    "commit": "f48f1ef09e79d58bd95f575cbbcc5ca595c47ff5",
+    "dirty": false,
+    "cases": {
+      "FM-1": "pass",
+      "FM-2": "pass"
+    },
+    "report": "evidence/green.xml"
+  },
+  "footprint": {
+    "frontend/core/src/items/Items.view.tsx": "blake3:ffae31797877832a477f6ae729f8bac12c299c744665a8e3ad8d66e9d42675db",
+    "frontend/core/src/items/Items.viewModel.ts": "blake3:31dc6ae857d79250acf6e33df4587dc028b455665c19f098247d81078eaefcde",
+    "frontend/core/src/items/items.i18n.ts": "blake3:ae8aa8e9779fe21ffbb8a1390cb0cea439096dd0124b99c21c242b069b62f1f1"
+  },
+  "inputs": {
+    ".specs/0007-items-screen/e2e/Items.test.tsx": "blake3:4ada4b6fab2e49dfbf3205c5946fb15a57251e362d491063467a9cbccb1a7043",
+    ".specs/0007-items-screen/spec.md": "blake3:2b144d9e5032191fa927d6236cb45fb46d5446c1bd10fce1ad3f0fb2d760e91d"
+  }
+}

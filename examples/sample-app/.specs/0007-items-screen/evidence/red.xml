@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="2" failures="2" errors="0" time="1.051504896">
+    <testsuite name="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" timestamp="2026-09-24T05:21:48.768Z" hostname="omarchy" tests="2" failures="2" errors="0" skipped="0" time="1.051504896">
+        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-1: the list resource starts in loading while it is fetched" time="0.028153942">
+            <failure message="expected &apos;ready&apos; to be &apos;loading&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;ready&apos; to be &apos;loading&apos; // Object.is equality
+
+Expected: &quot;loading&quot;
+Received: &quot;ready&quot;
+
+ ❯ examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx:20:47
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx" name="Items screen &gt; FM-2: a list that settles empty renders the kit&apos;s empty state" time="1.020677935">
+            <failure message="Unable to find an element with the text: Nothing here yet. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;div[39m
+        [33mstyle[39m=[32m&quot;max-width: 720px; margin: 0px auto;&quot;[39m
+      [36m&gt;[39m
+        [36m&lt;div[39m
+          [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 16px;&quot;[39m
+        [36m&gt;[39m
+          [36m&lt;h1[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 25px; line-height: 32px; font-weight: 600; color: rgb(15, 23, 42);&quot;[39m
+          [36m&gt;[39m
+            [0mItems[0m
+          [36m&lt;/h1&gt;[39m
+          [36m&lt;div[39m
+            [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 8px;&quot;[39m
+          [36m/&gt;[39m
+        [36m&lt;/div&gt;[39m
+      [36m&lt;/div&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;div[39m
+        [33mstyle[39m=[32m&quot;max-width: 720px; margin: 0px auto;&quot;[39m
+      [36m&gt;[39m
+        [36m&lt;div[39m
+          [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 16px;&quot;[39m
+        [36m&gt;[39m
+          [36m&lt;h1[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 25px; line-height: 32px; font-weight: 600; color: rgb(15, 23, 42);&quot;[39m
+          [36m&gt;[39m
+            [0mItems[0m
+          [36m&lt;/h1&gt;[39m
+          [36m&lt;div[39m
+            [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 8px;&quot;[39m
+          [36m/&gt;[39m
+        [36m&lt;/div&gt;[39m
+      [36m&lt;/div&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Unable to find an element with the text: Nothing here yet. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;
+    &gt;
+      &lt;div
+        style=&quot;max-width: 720px; margin: 0px auto;&quot;
+      &gt;
+        &lt;div
+          style=&quot;display: flex; flex-direction: column; gap: 16px;&quot;
+        &gt;
+          &lt;h1
+            style=&quot;margin: 0px; font-size: 25px; line-height: 32px; font-weight: 600; color: rgb(15, 23, 42);&quot;
+          &gt;
+            Items
+          &lt;/h1&gt;
+          &lt;div
+            style=&quot;display: flex; flex-direction: column; gap: 8px;&quot;
+          /&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;
+    &gt;
+      &lt;div
+        style=&quot;max-width: 720px; margin: 0px auto;&quot;
+      &gt;
+        &lt;div
+          style=&quot;display: flex; flex-direction: column; gap: 16px;&quot;
+        &gt;
+          &lt;h1
+            style=&quot;margin: 0px; font-size: 25px; line-height: 32px; font-weight: 600; color: rgb(15, 23, 42);&quot;
+          &gt;
+            Items
+          &lt;/h1&gt;
+          &lt;div
+            style=&quot;display: flex; flex-direction: column; gap: 8px;&quot;
+          /&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+ ❯ waitForWrapper frontend-sdk/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ examples/sample-app/.specs/0007-items-screen/e2e/Items.test.tsx:25:25
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

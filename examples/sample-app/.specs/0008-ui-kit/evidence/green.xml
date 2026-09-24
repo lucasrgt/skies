@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="14" failures="0" errors="0" time="0.114262965">
+    <testsuite name="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" timestamp="2026-09-24T05:21:53.206Z" hostname="omarchy" tests="14" failures="0" errors="0" skipped="0" time="0.114262965">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-1: the label is the accessible name and a press fires the action" time="0.066784213">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a loading button blocks the action and announces itself" time="0.00644533">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a disabled button blocks the action" time="0.004271717">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-3: focus shows the focus ring and blur drops it, never outline:none alone" time="0.005712786">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: the label is associated and describedby points at the hint" time="0.005752445">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: an error replaces the hint as a role=alert and flips the control invalid" time="0.006730178">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-5: the input hands the View a string through onChangeText, not an event" time="0.002867808">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a role maps to its type scale and the document outline" time="0.001526449">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a tone maps to its semantic color role" time="0.001137081">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: the alert flag announces the text, the command-error surface" time="0.002407201">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Stack, rhythm from the scale &gt; FM-7: children are spaced by the gap scale and carry no margin" time="0.001527268">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the empty state renders its title and description" time="0.00142866">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the error state offers its retry action" time="0.004437065">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="FM-9: the prop surface stays closed, with no className or style passthrough" time="0.000269758">
+        </testcase>
+    </testsuite>
+</testsuites>

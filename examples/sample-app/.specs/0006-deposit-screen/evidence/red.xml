@@ -1,0 +1,570 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="3" failures="3" errors="0" time="3.117914803">
+    <testsuite name="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" timestamp="2026-09-24T05:21:43.845Z" hostname="omarchy" tests="3" failures="3" errors="0" skipped="0" time="3.117914803">
+        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-1: an invalid submit is blocked with field errors inside the Field anatomy" time="1.086981626">
+            <failure message="Unable to find role=&quot;alert&quot;
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;div[39m
+        [33mstyle[39m=[32m&quot;max-width: 720px; margin: 0px auto;&quot;[39m
+      [36m&gt;[39m
+        [36m&lt;div[39m
+          [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 24px;&quot;[39m
+        [36m&gt;[39m
+          [36m&lt;h2[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;[39m
+          [36m&gt;[39m
+            [0mDeposit complete[0m
+          [36m&lt;/h2&gt;[39m
+          [36m&lt;p[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 16px; line-height: 24px; font-weight: 400; color: rgb(100, 116, 139);&quot;[39m
+          [36m&gt;[39m
+            [0mThe wallet balance has been updated.[0m
+          [36m&lt;/p&gt;[39m
+        [36m&lt;/div&gt;[39m
+      [36m&lt;/div&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;div[39m
+        [33mstyle[39m=[32m&quot;max-width: 720px; margin: 0px auto;&quot;[39m
+      [36m&gt;[39m
+        [36m&lt;div[39m
+          [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 24px;&quot;[39m
+        [36m&gt;[39m
+          [36m&lt;h2[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;[39m
+          [36m&gt;[39m
+            [0mDeposit complete[0m
+          [36m&lt;/h2&gt;[39m
+          [36m&lt;p[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 16px; line-height: 24px; font-weight: 400; color: rgb(100, 116, 139);&quot;[39m
+          [36m&gt;[39m
+            [0mThe wallet balance has been updated.[0m
+          [36m&lt;/p&gt;[39m
+        [36m&lt;/div&gt;[39m
+      [36m&lt;/div&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Unable to find role=&quot;alert&quot;
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;
+    &gt;
+      &lt;div
+        style=&quot;max-width: 720px; margin: 0px auto;&quot;
+      &gt;
+        &lt;div
+          style=&quot;display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 24px;&quot;
+        &gt;
+          &lt;h2
+            style=&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;
+          &gt;
+            Deposit complete
+          &lt;/h2&gt;
+          &lt;p
+            style=&quot;margin: 0px; font-size: 16px; line-height: 24px; font-weight: 400; color: rgb(100, 116, 139);&quot;
+          &gt;
+            The wallet balance has been updated.
+          &lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;
+    &gt;
+      &lt;div
+        style=&quot;max-width: 720px; margin: 0px auto;&quot;
+      &gt;
+        &lt;div
+          style=&quot;display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 24px;&quot;
+        &gt;
+          &lt;h2
+            style=&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;
+          &gt;
+            Deposit complete
+          &lt;/h2&gt;
+          &lt;p
+            style=&quot;margin: 0px; font-size: 16px; line-height: 24px; font-weight: 400; color: rgb(100, 116, 139);&quot;
+          &gt;
+            The wallet balance has been updated.
+          &lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+ ❯ waitForWrapper frontend-sdk/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx:31:33
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-2: a valid submit announces while pending, then reaches the success surface" time="1.016406211">
+            <failure message="Unable to find role=&quot;button&quot;
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;div[39m
+        [33mstyle[39m=[32m&quot;max-width: 720px; margin: 0px auto;&quot;[39m
+      [36m&gt;[39m
+        [36m&lt;div[39m
+          [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 24px;&quot;[39m
+        [36m&gt;[39m
+          [36m&lt;h2[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;[39m
+          [36m&gt;[39m
+            [0mDeposit complete[0m
+          [36m&lt;/h2&gt;[39m
+          [36m&lt;p[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 16px; line-height: 24px; font-weight: 400; color: rgb(100, 116, 139);&quot;[39m
+          [36m&gt;[39m
+            [0mThe wallet balance has been updated.[0m
+          [36m&lt;/p&gt;[39m
+        [36m&lt;/div&gt;[39m
+      [36m&lt;/div&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m
+
+Ignored nodes: comments, script, style
+[36m&lt;html&gt;[39m
+  [36m&lt;head /&gt;[39m
+  [36m&lt;body&gt;[39m
+    [36m&lt;div&gt;[39m
+      [36m&lt;div[39m
+        [33mstyle[39m=[32m&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;[39m
+      [36m&gt;[39m
+        [36m&lt;div[39m
+          [33mstyle[39m=[32m&quot;max-width: 720px; margin: 0px auto;&quot;[39m
+        [36m&gt;[39m
+          [36m&lt;div[39m
+            [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 24px;&quot;[39m
+          [36m&gt;[39m
+            [36m&lt;h2[39m
+              [33mstyle[39m=[32m&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;[39m
+            [36m&gt;[39m
+              [0mDeposit complete[0m
+            [36m&lt;/h2&gt;[39m
+            [36m&lt;p[39m
+              [33mstyle[39m=[32m&quot;margin: 0px; font-size: 16px; line-height: 24px; font-weight: 400; color: rgb(100, 116, 139);&quot;[39m
+            [36m&gt;[39m
+              [0mThe wallet balance has been updated.[0m
+            [36m&lt;/p&gt;[39m
+          [36m&lt;/div&gt;[39m
+        [36m&lt;/div&gt;[39m
+      [36m&lt;/div&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/body&gt;[39m
+[36m&lt;/html&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Unable to find role=&quot;button&quot;
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;
+    &gt;
+      &lt;div
+        style=&quot;max-width: 720px; margin: 0px auto;&quot;
+      &gt;
+        &lt;div
+          style=&quot;display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 24px;&quot;
+        &gt;
+          &lt;h2
+            style=&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;
+          &gt;
+            Deposit complete
+          &lt;/h2&gt;
+          &lt;p
+            style=&quot;margin: 0px; font-size: 16px; line-height: 24px; font-weight: 400; color: rgb(100, 116, 139);&quot;
+          &gt;
+            The wallet balance has been updated.
+          &lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+
+Ignored nodes: comments, script, style
+&lt;html&gt;
+  &lt;head /&gt;
+  &lt;body&gt;
+    &lt;div&gt;
+      &lt;div
+        style=&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;
+      &gt;
+        &lt;div
+          style=&quot;max-width: 720px; margin: 0px auto;&quot;
+        &gt;
+          &lt;div
+            style=&quot;display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 24px;&quot;
+          &gt;
+            &lt;h2
+              style=&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;
+            &gt;
+              Deposit complete
+            &lt;/h2&gt;
+            &lt;p
+              style=&quot;margin: 0px; font-size: 16px; line-height: 24px; font-weight: 400; color: rgb(100, 116, 139);&quot;
+            &gt;
+              The wallet balance has been updated.
+            &lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+ ❯ waitForWrapper frontend-sdk/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx:41:11
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-3: a command failure surfaces as a role=alert block and keeps the form" time="1.011993495">
+            <failure message="Unable to find an element with the text: We couldn&apos;t complete the deposit. Try again.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;div[39m
+        [33mstyle[39m=[32m&quot;max-width: 720px; margin: 0px auto;&quot;[39m
+      [36m&gt;[39m
+        [36m&lt;div[39m
+          [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 16px;&quot;[39m
+        [36m&gt;[39m
+          [36m&lt;h1[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 25px; line-height: 32px; font-weight: 600; color: rgb(15, 23, 42);&quot;[39m
+          [36m&gt;[39m
+            [0mDeposit[0m
+          [36m&lt;/h1&gt;[39m
+          [36m&lt;div[39m
+            [33mstyle[39m=[32m&quot;background-color: rgb(255, 255, 255); border-width: 1px; border-style: solid; border-color: rgb(226, 232, 240); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); padding: 16px;&quot;[39m
+          [36m&gt;[39m
+            [36m&lt;div[39m
+              [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 12px;&quot;[39m
+            [36m&gt;[39m
+              [36m&lt;div[39m
+                [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 4px;&quot;[39m
+              [36m&gt;[39m
+                [36m&lt;label[39m
+                  [33mfor[39m=[32m&quot;walletId&quot;[39m
+                  [33mstyle[39m=[32m&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;[39m
+                [36m&gt;[39m
+                  [0mWallet[0m
+                [36m&lt;/label&gt;[39m
+                [36m&lt;input[39m
+                  [33maria-describedby[39m=[32m&quot;walletId-hint&quot;[39m
+                  [33mid[39m=[32m&quot;walletId&quot;[39m
+                  [33mplaceholder[39m=[32m&quot;00000000-0000-0000-0000-000000000001&quot;[39m
+                  [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;[39m
+                  [33mtype[39m=[32m&quot;text&quot;[39m
+                  [33mvalue[39m=[32m&quot;99999999-9999-4999-8999-999999999999&quot;[39m
+                [36m/&gt;[39m
+                [36m&lt;span[39m
+                  [33mid[39m=[32m&quot;walletId-hint&quot;[39m
+                  [33mstyle[39m=[32m&quot;font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(100, 116, 139);&quot;[39m
+                [36m&gt;[39m
+                  [0mThe destination wallet&apos;s identifier (UUID).[0m
+                [36m&lt;/span&gt;[39m
+              [36m&lt;/div&gt;[39m
+              [36m&lt;div[39m
+                [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 4px;&quot;[39m
+              [36m&gt;[39m
+                [36m&lt;label[39m
+                  [33mfor[39m=[32m&quot;amount&quot;[39m
+                  [33mstyle[39m=[32m&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;[39m
+                [36m&gt;[39m
+                  [0mAmount[0m
+                [36m&lt;/label&gt;[39m
+                [36m&lt;input[39m
+                  [33mid[39m=[32m&quot;amount&quot;[39m
+                  [33minputmode[39m=[32m&quot;numeric&quot;[39m
+                  [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;[39m
+                  [33mtype[39m=[32m&quot;text&quot;[39m
+                  [33mvalue[39m=[32m&quot;50&quot;[39m
+                [36m/&gt;[39m
+              [36m&lt;/div&gt;[39m
+              [36m&lt;button[39m
+                [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 16px; padding-right: 16px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: transparent; background-color: rgb(37, 99, 235); color: rgb(255, 255, 255); font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer; transition: background-color 100ms ease; outline: none; box-shadow: none;&quot;[39m
+                [33mtype[39m=[32m&quot;button&quot;[39m
+              [36m&gt;[39m
+                [0mDeposit[0m
+              [36m&lt;/button&gt;[39m
+            [36m&lt;/div&gt;[39m
+          [36m&lt;/div&gt;[39m
+        [36m&lt;/div&gt;[39m
+      [36m&lt;/div&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;div[39m
+        [33mstyle[39m=[32m&quot;max-width: 720px; margin: 0px auto;&quot;[39m
+      [36m&gt;[39m
+        [36m&lt;div[39m
+          [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 16px;&quot;[39m
+        [36m&gt;[39m
+          [36m&lt;h1[39m
+            [33mstyle[39m=[32m&quot;margin: 0px; font-size: 25px; line-height: 32px; font-weight: 600; color: rgb(15, 23, 42);&quot;[39m
+          [36m&gt;[39m
+            [0mDeposit[0m
+          [36m&lt;/h1&gt;[39m
+          [36m&lt;div[39m
+            [33mstyle[39m=[32m&quot;background-color: rgb(255, 255, 255); border-width: 1px; border-style: solid; border-color: rgb(226, 232, 240); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); padding: 16px;&quot;[39m
+          [36m&gt;[39m
+            [36m&lt;div[39m
+              [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 12px;&quot;[39m
+            [36m&gt;[39m
+              [36m&lt;div[39m
+                [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 4px;&quot;[39m
+              [36m&gt;[39m
+                [36m&lt;label[39m
+                  [33mfor[39m=[32m&quot;walletId&quot;[39m
+                  [33mstyle[39m=[32m&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;[39m
+                [36m&gt;[39m
+                  [0mWallet[0m
+                [36m&lt;/label&gt;[39m
+                [36m&lt;input[39m
+                  [33maria-describedby[39m=[32m&quot;walletId-hint&quot;[39m
+                  [33mid[39m=[32m&quot;walletId&quot;[39m
+                  [33mplaceholder[39m=[32m&quot;00000000-0000-0000-0000-000000000001&quot;[39m
+                  [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;[39m
+                  [33mtype[39m=[32m&quot;text&quot;[39m
+                  [33mvalue[39m=[32m&quot;99999999-9999-4999-8999-999999999999&quot;[39m
+                [36m/&gt;[39m
+                [36m&lt;span[39m
+                  [33mid[39m=[32m&quot;walletId-hint&quot;[39m
+                  [33mstyle[39m=[32m&quot;font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(100, 116, 139);&quot;[39m
+                [36m&gt;[39m
+                  [0mThe destination wallet&apos;s identifier (UUID).[0m
+                [36m&lt;/span&gt;[39m
+              [36m&lt;/div&gt;[39m
+              [36m&lt;div[39m
+                [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 4px;&quot;[39m
+              [36m&gt;[39m
+                [36m&lt;label[39m
+                  [33mfor[39m=[32m&quot;amount&quot;[39m
+                  [33mstyle[39m=[32m&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;[39m
+                [36m&gt;[39m
+                  [0mAmount[0m
+                [36m&lt;/label&gt;[39m
+                [36m&lt;input[39m
+                  [33mid[39m=[32m&quot;amount&quot;[39m
+                  [33minputmode[39m=[32m&quot;numeric&quot;[39m
+                  [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;[39m
+                  [33mtype[39m=[32m&quot;text&quot;[39m
+                  [33mvalue[39m=[32m&quot;50&quot;[39m
+                [36m/&gt;[39m
+              [36m&lt;/div&gt;[39m
+              [36m&lt;button[39m
+                [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 16px; padding-right: 16px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: transparent; background-color: rgb(37, 99, 235); color: rgb(255, 255, 255); font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer; transition: background-color 100ms ease; outline: none; box-shadow: none;&quot;[39m
+                [33mtype[39m=[32m&quot;button&quot;[39m
+              [36m&gt;[39m
+                [0mDeposit[0m
+              [36m&lt;/button&gt;[39m
+            [36m&lt;/div&gt;[39m
+          [36m&lt;/div&gt;[39m
+        [36m&lt;/div&gt;[39m
+      [36m&lt;/div&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Unable to find an element with the text: We couldn&apos;t complete the deposit. Try again.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;
+    &gt;
+      &lt;div
+        style=&quot;max-width: 720px; margin: 0px auto;&quot;
+      &gt;
+        &lt;div
+          style=&quot;display: flex; flex-direction: column; gap: 16px;&quot;
+        &gt;
+          &lt;h1
+            style=&quot;margin: 0px; font-size: 25px; line-height: 32px; font-weight: 600; color: rgb(15, 23, 42);&quot;
+          &gt;
+            Deposit
+          &lt;/h1&gt;
+          &lt;div
+            style=&quot;background-color: rgb(255, 255, 255); border-width: 1px; border-style: solid; border-color: rgb(226, 232, 240); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); padding: 16px;&quot;
+          &gt;
+            &lt;div
+              style=&quot;display: flex; flex-direction: column; gap: 12px;&quot;
+            &gt;
+              &lt;div
+                style=&quot;display: flex; flex-direction: column; gap: 4px;&quot;
+              &gt;
+                &lt;label
+                  for=&quot;walletId&quot;
+                  style=&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;
+                &gt;
+                  Wallet
+                &lt;/label&gt;
+                &lt;input
+                  aria-describedby=&quot;walletId-hint&quot;
+                  id=&quot;walletId&quot;
+                  placeholder=&quot;00000000-0000-0000-0000-000000000001&quot;
+                  style=&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;
+                  type=&quot;text&quot;
+                  value=&quot;99999999-9999-4999-8999-999999999999&quot;
+                /&gt;
+                &lt;span
+                  id=&quot;walletId-hint&quot;
+                  style=&quot;font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(100, 116, 139);&quot;
+                &gt;
+                  The destination wallet&apos;s identifier (UUID).
+                &lt;/span&gt;
+              &lt;/div&gt;
+              &lt;div
+                style=&quot;display: flex; flex-direction: column; gap: 4px;&quot;
+              &gt;
+                &lt;label
+                  for=&quot;amount&quot;
+                  style=&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;
+                &gt;
+                  Amount
+                &lt;/label&gt;
+                &lt;input
+                  id=&quot;amount&quot;
+                  inputmode=&quot;numeric&quot;
+                  style=&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;
+                  type=&quot;text&quot;
+                  value=&quot;50&quot;
+                /&gt;
+              &lt;/div&gt;
+              &lt;button
+                style=&quot;min-height: 44px; padding-left: 16px; padding-right: 16px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: transparent; background-color: rgb(37, 99, 235); color: rgb(255, 255, 255); font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer; transition: background-color 100ms ease; outline: none; box-shadow: none;&quot;
+                type=&quot;button&quot;
+              &gt;
+                Deposit
+              &lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;min-height: 100%; background-color: rgb(248, 250, 252); padding: 16px;&quot;
+    &gt;
+      &lt;div
+        style=&quot;max-width: 720px; margin: 0px auto;&quot;
+      &gt;
+        &lt;div
+          style=&quot;display: flex; flex-direction: column; gap: 16px;&quot;
+        &gt;
+          &lt;h1
+            style=&quot;margin: 0px; font-size: 25px; line-height: 32px; font-weight: 600; color: rgb(15, 23, 42);&quot;
+          &gt;
+            Deposit
+          &lt;/h1&gt;
+          &lt;div
+            style=&quot;background-color: rgb(255, 255, 255); border-width: 1px; border-style: solid; border-color: rgb(226, 232, 240); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); padding: 16px;&quot;
+          &gt;
+            &lt;div
+              style=&quot;display: flex; flex-direction: column; gap: 12px;&quot;
+            &gt;
+              &lt;div
+                style=&quot;display: flex; flex-direction: column; gap: 4px;&quot;
+              &gt;
+                &lt;label
+                  for=&quot;walletId&quot;
+                  style=&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;
+                &gt;
+                  Wallet
+                &lt;/label&gt;
+                &lt;input
+                  aria-describedby=&quot;walletId-hint&quot;
+                  id=&quot;walletId&quot;
+                  placeholder=&quot;00000000-0000-0000-0000-000000000001&quot;
+                  style=&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;
+                  type=&quot;text&quot;
+                  value=&quot;99999999-9999-4999-8999-999999999999&quot;
+                /&gt;
+                &lt;span
+                  id=&quot;walletId-hint&quot;
+                  style=&quot;font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(100, 116, 139);&quot;
+                &gt;
+                  The destination wallet&apos;s identifier (UUID).
+                &lt;/span&gt;
+              &lt;/div&gt;
+              &lt;div
+                style=&quot;display: flex; flex-direction: column; gap: 4px;&quot;
+              &gt;
+                &lt;label
+                  for=&quot;amount&quot;
+                  style=&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;
+                &gt;
+                  Amount
+                &lt;/label&gt;
+                &lt;input
+                  id=&quot;amount&quot;
+                  inputmode=&quot;numeric&quot;
+                  style=&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;
+                  type=&quot;text&quot;
+                  value=&quot;50&quot;
+                /&gt;
+              &lt;/div&gt;
+              &lt;button
+                style=&quot;min-height: 44px; padding-left: 16px; padding-right: 16px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: transparent; background-color: rgb(37, 99, 235); color: rgb(255, 255, 255); font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer; transition: background-color 100ms ease; outline: none; box-shadow: none;&quot;
+                type=&quot;button&quot;
+              &gt;
+                Deposit
+              &lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+ ❯ waitForWrapper frontend-sdk/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx:49:32
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

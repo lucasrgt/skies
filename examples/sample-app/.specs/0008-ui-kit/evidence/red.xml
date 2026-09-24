@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="14" failures="11" errors="0" time="0.130571319">
+    <testsuite name="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" timestamp="2026-09-24T05:21:52.264Z" hostname="omarchy" tests="14" failures="11" errors="0" skipped="0" time="0.130571319">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-1: the label is the accessible name and a press fires the action" time="0.064256882">
+            <failure message="expected &quot;vi.fn()&quot; to be called 1 times, but got 0 times" type="AssertionError">
+AssertionError: expected &quot;vi.fn()&quot; to be called 1 times, but got 0 times
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:25:21
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a loading button blocks the action and announces itself" time="0.006047474">
+            <failure message="expected &quot;vi.fn()&quot; to be called +0 times, but got 1 times" type="AssertionError">
+AssertionError: expected &quot;vi.fn()&quot; to be called +0 times, but got 1 times
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:33:21
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a disabled button blocks the action" time="0.006838326">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-3: focus shows the focus ring and blur drops it, never outline:none alone" time="0.006261072">
+            <failure message="expected &apos;none&apos; to be &apos;0 0 0 2px #2563eb&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;none&apos; to be &apos;0 0 0 2px #2563eb&apos; // Object.is equality
+
+Expected: &quot;0 0 0 2px #2563eb&quot;
+Received: &quot;none&quot;
+
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:49:33
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: the label is associated and describedby points at the hint" time="0.007185634">
+            <failure message="Found a label with the text of: Email, however no form control was found associated to that label. Make sure you&apos;re using the &quot;for&quot; attribute or &quot;aria-labelledby&quot; attribute correctly.
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 4px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;label[39m
+        [33mstyle[39m=[32m&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;[39m
+      [36m&gt;[39m
+        [0mEmail[0m
+      [36m&lt;/label&gt;[39m
+      [36m&lt;input[39m
+        [33maria-describedby[39m=[32m&quot;email-hint&quot;[39m
+        [33mid[39m=[32m&quot;email&quot;[39m
+        [33minputmode[39m=[32m&quot;email&quot;[39m
+        [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;[39m
+        [33mtype[39m=[32m&quot;email&quot;[39m
+        [33mvalue[39m=[32m&quot;&quot;[39m
+      [36m/&gt;[39m
+      [36m&lt;span[39m
+        [33mid[39m=[32m&quot;email-hint&quot;[39m
+        [33mstyle[39m=[32m&quot;font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(100, 116, 139);&quot;[39m
+      [36m&gt;[39m
+        [0mWe never share it[0m
+      [36m&lt;/span&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Found a label with the text of: Email, however no form control was found associated to that label. Make sure you&apos;re using the &quot;for&quot; attribute or &quot;aria-labelledby&quot; attribute correctly.
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;display: flex; flex-direction: column; gap: 4px;&quot;
+    &gt;
+      &lt;label
+        style=&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;
+      &gt;
+        Email
+      &lt;/label&gt;
+      &lt;input
+        aria-describedby=&quot;email-hint&quot;
+        id=&quot;email&quot;
+        inputmode=&quot;email&quot;
+        style=&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;
+        type=&quot;email&quot;
+        value=&quot;&quot;
+      /&gt;
+      &lt;span
+        id=&quot;email-hint&quot;
+        style=&quot;font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(100, 116, 139);&quot;
+      &gt;
+        We never share it
+      &lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+ ❯ Object.getElementError frontend-sdk/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getAllByLabelText frontend-sdk/node_modules/@testing-library/dom/dist/queries/label-text.js:108:40
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:62:26
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: an error replaces the hint as a role=alert and flips the control invalid" time="0.015406001">
+            <failure message="Unable to find an accessible element with the role &quot;alert&quot;
+
+Here are the accessible roles:
+
+  textbox:
+
+  Name &quot;&quot;:
+  [36m&lt;input[39m
+    [33maria-describedby[39m=[32m&quot;email-error&quot;[39m
+    [33maria-invalid[39m=[32m&quot;true&quot;[39m
+    [33mid[39m=[32m&quot;email&quot;[39m
+    [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(220, 38, 38); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;[39m
+    [33mtype[39m=[32m&quot;text&quot;[39m
+    [33mvalue[39m=[32m&quot;&quot;[39m
+  [36m/&gt;[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 4px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;label[39m
+        [33mstyle[39m=[32m&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;[39m
+      [36m&gt;[39m
+        [0mEmail[0m
+      [36m&lt;/label&gt;[39m
+      [36m&lt;input[39m
+        [33maria-describedby[39m=[32m&quot;email-error&quot;[39m
+        [33maria-invalid[39m=[32m&quot;true&quot;[39m
+        [33mid[39m=[32m&quot;email&quot;[39m
+        [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(220, 38, 38); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;[39m
+        [33mtype[39m=[32m&quot;text&quot;[39m
+        [33mvalue[39m=[32m&quot;&quot;[39m
+      [36m/&gt;[39m
+      [36m&lt;span[39m
+        [33mid[39m=[32m&quot;email-error&quot;[39m
+        [33mstyle[39m=[32m&quot;font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(220, 38, 38);&quot;[39m
+      [36m&gt;[39m
+        [0mRequired[0m
+      [36m&lt;/span&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Unable to find an accessible element with the role &quot;alert&quot;
+
+Here are the accessible roles:
+
+  textbox:
+
+  Name &quot;&quot;:
+  &lt;input
+    aria-describedby=&quot;email-error&quot;
+    aria-invalid=&quot;true&quot;
+    id=&quot;email&quot;
+    style=&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(220, 38, 38); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;
+    type=&quot;text&quot;
+    value=&quot;&quot;
+  /&gt;
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;display: flex; flex-direction: column; gap: 4px;&quot;
+    &gt;
+      &lt;label
+        style=&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;
+      &gt;
+        Email
+      &lt;/label&gt;
+      &lt;input
+        aria-describedby=&quot;email-error&quot;
+        aria-invalid=&quot;true&quot;
+        id=&quot;email&quot;
+        style=&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(220, 38, 38); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;
+        type=&quot;text&quot;
+        value=&quot;&quot;
+      /&gt;
+      &lt;span
+        id=&quot;email-error&quot;
+        style=&quot;font-size: 12px; line-height: 16px; font-weight: 400; color: rgb(220, 38, 38);&quot;
+      &gt;
+        Required
+      &lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+ ❯ Object.getElementError frontend-sdk/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:74:26
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-5: the input hands the View a string through onChangeText, not an event" time="0.003113845">
+            <failure message="Found a label with the text of: Name, however no form control was found associated to that label. Make sure you&apos;re using the &quot;for&quot; attribute or &quot;aria-labelledby&quot; attribute correctly.
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; gap: 4px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;label[39m
+        [33mstyle[39m=[32m&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;[39m
+      [36m&gt;[39m
+        [0mName[0m
+      [36m&lt;/label&gt;[39m
+      [36m&lt;input[39m
+        [33mid[39m=[32m&quot;name&quot;[39m
+        [33mstyle[39m=[32m&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;[39m
+        [33mtype[39m=[32m&quot;text&quot;[39m
+        [33mvalue[39m=[32m&quot;&quot;[39m
+      [36m/&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Found a label with the text of: Name, however no form control was found associated to that label. Make sure you&apos;re using the &quot;for&quot; attribute or &quot;aria-labelledby&quot; attribute correctly.
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;display: flex; flex-direction: column; gap: 4px;&quot;
+    &gt;
+      &lt;label
+        style=&quot;font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(15, 23, 42);&quot;
+      &gt;
+        Name
+      &lt;/label&gt;
+      &lt;input
+        id=&quot;name&quot;
+        style=&quot;min-height: 44px; padding-left: 12px; padding-right: 12px; border-radius: 8px; border-width: 1px; border-style: solid; border-color: rgb(203, 213, 225); background-color: rgb(255, 255, 255); color: rgb(15, 23, 42); font-size: 16px; line-height: 24px; outline: none; box-shadow: none;&quot;
+        type=&quot;text&quot;
+        value=&quot;&quot;
+      /&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+ ❯ Object.getElementError frontend-sdk/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getAllByLabelText frontend-sdk/node_modules/@testing-library/dom/dist/queries/label-text.js:108:40
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:90:29
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a role maps to its type scale and the document outline" time="0.001911805">
+            <failure message="expected &apos;SPAN&apos; to be &apos;H1&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;SPAN&apos; to be &apos;H1&apos; // Object.is equality
+
+Expected: &quot;H1&quot;
+Received: &quot;SPAN&quot;
+
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:99:24
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a tone maps to its semantic color role" time="0.001852756">
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: the alert flag announces the text, the command-error surface" time="0.004264837">
+            <failure message="Unable to find an accessible element with the role &quot;alert&quot;
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;span[39m
+      [33mstyle[39m=[32m&quot;margin: 0px; font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(220, 38, 38);&quot;[39m
+    [36m&gt;[39m
+      [0mFailed[0m
+    [36m&lt;/span&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Unable to find an accessible element with the role &quot;alert&quot;
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;span
+      style=&quot;margin: 0px; font-size: 14px; line-height: 20px; font-weight: 500; color: rgb(220, 38, 38);&quot;
+    &gt;
+      Failed
+    &lt;/span&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+ ❯ Object.getElementError frontend-sdk/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:116:19
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Stack, rhythm from the scale &gt; FM-7: children are spaced by the gap scale and carry no margin" time="0.002525701">
+            <failure message="expected &apos;&apos; to be &apos;16px&apos; // Object.is equality" type="AssertionError">
+AssertionError: expected &apos;&apos; to be &apos;16px&apos; // Object.is equality
+
+- Expected
++ Received
+
+- 16px
+
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:129:29
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the empty state renders its title and description" time="0.002252643">
+            <failure message="Unable to find an element with the text: Create one. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; align-items: center; padding: 24px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;h2[39m
+        [33mstyle[39m=[32m&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;[39m
+      [36m&gt;[39m
+        [0mNothing yet[0m
+      [36m&lt;/h2&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Unable to find an element with the text: Create one. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;display: flex; flex-direction: column; align-items: center; padding: 24px;&quot;
+    &gt;
+      &lt;h2
+        style=&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(15, 23, 42);&quot;
+      &gt;
+        Nothing yet
+      &lt;/h2&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+ ❯ Object.getElementError frontend-sdk/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:138:19
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the error state offers its retry action" time="0.005535157">
+            <failure message="Unable to find an accessible element with the role &quot;button&quot; and name &quot;Try again&quot;
+
+Here are the accessible roles:
+
+  heading:
+
+  Name &quot;Boom&quot;:
+  [36m&lt;h2[39m
+    [33mstyle[39m=[32m&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(220, 38, 38);&quot;[39m
+  [36m/&gt;[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m&lt;body&gt;[39m
+  [36m&lt;div&gt;[39m
+    [36m&lt;div[39m
+      [33mstyle[39m=[32m&quot;display: flex; flex-direction: column; align-items: center; padding: 24px;&quot;[39m
+    [36m&gt;[39m
+      [36m&lt;h2[39m
+        [33mstyle[39m=[32m&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(220, 38, 38);&quot;[39m
+      [36m&gt;[39m
+        [0mBoom[0m
+      [36m&lt;/h2&gt;[39m
+    [36m&lt;/div&gt;[39m
+  [36m&lt;/div&gt;[39m
+[36m&lt;/body&gt;[39m" type="TestingLibraryElementError">
+TestingLibraryElementError: Unable to find an accessible element with the role &quot;button&quot; and name &quot;Try again&quot;
+
+Here are the accessible roles:
+
+  heading:
+
+  Name &quot;Boom&quot;:
+  &lt;h2
+    style=&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(220, 38, 38);&quot;
+  /&gt;
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+&lt;body&gt;
+  &lt;div&gt;
+    &lt;div
+      style=&quot;display: flex; flex-direction: column; align-items: center; padding: 24px;&quot;
+    &gt;
+      &lt;h2
+        style=&quot;margin: 0px; font-size: 20px; line-height: 28px; font-weight: 600; color: rgb(220, 38, 38);&quot;
+      &gt;
+        Boom
+      &lt;/h2&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+ ❯ Object.getElementError frontend-sdk/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ frontend-sdk/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:144:28
+            </failure>
+        </testcase>
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="FM-9: the prop surface stays closed, with no className or style passthrough" time="0.000443526">
+        </testcase>
+    </testsuite>
+</testsuites>
