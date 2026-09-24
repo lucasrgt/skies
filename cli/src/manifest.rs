@@ -95,11 +95,17 @@ impl Project {
         while let Some(candidate) = dir {
             let path = candidate.join(FILE_NAME);
             if path.is_file() {
-                return Ok(Project { root: candidate.to_path_buf(), manifest: load(&path)? });
+                return Ok(Project {
+                    root: candidate.to_path_buf(),
+                    manifest: load(&path)?,
+                });
             }
             dir = candidate.parent();
         }
-        bail!("no {FILE_NAME} in {} or any parent directory", start.display())
+        bail!(
+            "no {FILE_NAME} in {} or any parent directory",
+            start.display()
+        )
     }
 
     pub fn from_cwd() -> Result<Project> {
@@ -109,13 +115,17 @@ impl Project {
     pub fn runner(&self, name: &str) -> Result<&Runner> {
         self.manifest.runners.get(name).with_context(|| {
             let known: Vec<&str> = self.manifest.runners.keys().map(String::as_str).collect();
-            format!("runner '{name}' is not declared in {FILE_NAME} (declared: {})", known.join(", "))
+            format!(
+                "runner '{name}' is not declared in {FILE_NAME} (declared: {})",
+                known.join(", ")
+            )
         })
     }
 }
 
 pub fn load(path: &Path) -> Result<Manifest> {
-    let text = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    let text =
+        std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))
 }
 
@@ -142,13 +152,18 @@ mod tests {
 
         let app = &manifest.products["app"];
         assert_eq!(app.backend.as_deref(), Some("src/Demo.Api"));
-        assert_eq!(app.frontend.iter().collect::<Vec<_>>(), ["clients/web", "clients/mobile"]);
+        assert_eq!(
+            app.frontend.iter().collect::<Vec<_>>(),
+            ["clients/web", "clients/mobile"]
+        );
         assert!(manifest.runners["api"].report.is_none());
     }
 
     #[test]
     fn rejects_unknown_keys() {
-        let error = toml::from_str::<Manifest>("[workspace]\nname = \"x\"\n[gate]\nmode = \"ci\"\n").unwrap_err();
+        let error =
+            toml::from_str::<Manifest>("[workspace]\nname = \"x\"\n[gate]\nmode = \"ci\"\n")
+                .unwrap_err();
         assert!(error.to_string().contains("gate"));
     }
 }
