@@ -14,7 +14,8 @@
 #            anonymous module group.
 #   Single — g auth --skip-tenancy --skip-cookies.
 #   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, and an app-wide entity with its own crud,
-#            with no edit to the generated code after crud.
+#            with no edit to the generated code after crud. Its spec drives the crud over HTTP: another org's row is
+#            a not-found, a stale version is a conflict, and only an app admin writes the app-wide entity.
 # The owner's part is done by hand, as an author would: each generated module's ctx gets real boundaries and design
 # notes (the doctor refuses the skeleton), and each crud entity gets its domain state before crud reads it.
 #
@@ -209,7 +210,7 @@ g auth; g module Catalog; g entity Catalog Product; g entity Catalog Tag
 # `g entity` leaves it) and Product its tenancy. crud then registers each DbSet in AppDb and writes Open/Update/
 # RowVersion into the entity, its view record, the slices, and the module's route group; nothing is edited after it.
 ENTITY="$API/Modules/Catalog/Product.cs"
-sed -i '1i using Crud.Api.Tenancy;\n' "$ENTITY"
+sed -i '1i using Skies.Framework.EntityFrameworkCore;\n' "$ENTITY"
 sed -i 's#^public class Product$#public class Product : ITenantScoped#' "$ENTITY"
 cat > "$WORK/product-fields.cs" <<'EOF'
 
@@ -258,6 +259,9 @@ cat > "$WORK/Crud/.specs/9999-crud/spec.md" <<'EOF'
 ## Failure modes
 - FM-[rejected-update]: invalid input changes an existing entity.
 - FM-[accepted-update]: valid input fails to update an existing entity.
+- FM-[foreign-org]: a signed-in user reads or changes another org's product.
+- FM-[stale-write]: an update or delete made against a version someone else changed since overwrites their change.
+- FM-[app-wide-write]: a signed-in member creates or deletes a tag every org shares.
 EOF
 cat > "$WORK/Crud/.specs/9999-crud/e2e/Mutation.cs" <<'EOF'
 using Crud.Api.Modules.Catalog;
@@ -293,6 +297,104 @@ public class Mutation
         Assert.Equal("Updated", item.Name);
         Assert.Equal(20m, item.Price);
         Assert.Equal(now.AddMinutes(1), item.UpdatedAt);
+    }
+}
+EOF
+
+cat > "$WORK/Crud/.specs/9999-crud/e2e/CatalogOverHttp.cs" <<'EOF'
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using Crud.Api;
+using Crud.Api.BuildingBlocks;
+using Crud.Api.Modules.Account;
+using Crud.Tests;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Specs.S9999;
+
+public class CatalogOverHttp
+{
+    private sealed record Written(Guid Id, Guid Version);
+
+    private sealed record Tokens(string AccessToken);
+
+    [Fact(DisplayName = "FM-[foreign-org]: another org's product is a not-found to read, list, and update")]
+    public async Task Another_orgs_product_is_not_found()
+    {
+        await using var app = new TestApp();
+        var alice = await SignedIn(app, "alice@example.com");
+        var bob = await SignedIn(app, "bob@example.com");
+
+        var lamp = await Write(await alice.PostAsJsonAsync("/catalog/products", new { name = "Lamp", price = 10m }));
+
+        Assert.Equal(HttpStatusCode.NotFound, (await bob.GetAsync($"/catalog/products/{lamp.Id}")).StatusCode);
+        Assert.DoesNotContain("Lamp", await bob.GetStringAsync("/catalog/products"), StringComparison.Ordinal);
+        var takeover = await bob.PutAsJsonAsync($"/catalog/products/{lamp.Id}", new { name = "Mine", price = 1m, version = lamp.Version });
+        Assert.Equal(HttpStatusCode.NotFound, takeover.StatusCode);
+        Assert.Contains("Lamp", await alice.GetStringAsync("/catalog/products"), StringComparison.Ordinal);
+    }
+
+    [Fact(DisplayName = "FM-[stale-write]: a write against an outdated version is a conflict and the newer change survives")]
+    public async Task A_stale_version_is_a_conflict()
+    {
+        await using var app = new TestApp();
+        var alice = await SignedIn(app, "alice@example.com");
+        var lamp = await Write(await alice.PostAsJsonAsync("/catalog/products", new { name = "Lamp", price = 10m }));
+        var renamed = await Write(await alice.PutAsJsonAsync($"/catalog/products/{lamp.Id}", new { name = "Desk lamp", price = 12m, version = lamp.Version }));
+
+        var staleUpdate = await alice.PutAsJsonAsync($"/catalog/products/{lamp.Id}", new { name = "Lost", price = 1m, version = lamp.Version });
+        var staleDelete = await alice.DeleteAsync($"/catalog/products/{lamp.Id}?version={lamp.Version}");
+
+        Assert.Equal(HttpStatusCode.Conflict, staleUpdate.StatusCode);
+        Assert.Contains("catalog.product_changed", await staleUpdate.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.Conflict, staleDelete.StatusCode);
+        Assert.Contains("Desk lamp", await alice.GetStringAsync($"/catalog/products/{lamp.Id}"), StringComparison.Ordinal);
+        (await alice.DeleteAsync($"/catalog/products/{lamp.Id}?version={renamed.Version}")).EnsureSuccessStatusCode();
+    }
+
+    [Fact(DisplayName = "FM-[app-wide-write]: a member reads tags but cannot write them; an app admin can")]
+    public async Task Only_an_app_admin_writes_app_wide_tags()
+    {
+        await using var app = new TestApp();
+        var member = await SignedIn(app, "member@example.com");
+        var admin = await SignedIn(app, "admin@example.com", asAdmin: true);
+
+        var denied = await member.PostAsJsonAsync("/catalog/tags", new { label = "sale" });
+        var sale = await Write(await admin.PostAsJsonAsync("/catalog/tags", new { label = "sale" }));
+        var deniedDelete = await member.DeleteAsync($"/catalog/tags/{sale.Id}?version={sale.Version}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, deniedDelete.StatusCode);
+        Assert.Contains("sale", await member.GetStringAsync("/catalog/tags"), StringComparison.Ordinal);
+    }
+
+    private static async Task<Written> Write(HttpResponseMessage response)
+    {
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<Written>(AppJson.Options))!;
+    }
+
+    // The operator's part of making an admin: the role is assigned out of band, never through the API.
+    private static async Task<HttpClient> SignedIn(TestApp app, string email, bool asAdmin = false)
+    {
+        var client = app.CreateClient();
+        (await client.PostAsJsonAsync("/account/register", new { email, password = "password1" })).EnsureSuccessStatusCode();
+        if (asAdmin)
+        {
+            await using var scope = app.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+            var address = Email.FromStored(email);
+            var user = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.Email == address);
+            db.Entry(user).Property(u => u.Role).CurrentValue = Role.Admin;
+            await db.SaveChangesAsync();
+        }
+        var login = await client.PostAsJsonAsync("/account/login", new { email, password = "password1" });
+        login.EnsureSuccessStatusCode();
+        var tokens = (await login.Content.ReadFromJsonAsync<Tokens>(AppJson.Options))!;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
+        return client;
     }
 }
 EOF
