@@ -3,6 +3,7 @@ using Golden.Api;
 using Golden.Api.Modules.Account;
 using Golden.Tests;
 using Microsoft.Extensions.DependencyInjection;
+using Skies.Framework.Auth;
 
 namespace Specs.S0001;
 
@@ -23,8 +24,8 @@ public class SessionManagement
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-            var expiredAt = DateTime.UtcNow - SessionToken.Lifetime - TimeSpan.FromDays(1);
-            db.UserSessions.Add(UserSession.Start(userId, Guid.NewGuid(), "expired-slot", expiredAt).Value);
+            var expiredAt = DateTime.UtcNow - RefreshSessionOptions.Default.Lifetime - TimeSpan.FromDays(1);
+            db.UserSessions.Add(UserSession.Start(userId, Guid.NewGuid(), "expired-slot", expiredAt, expiredAt + RefreshSessionOptions.Default.Lifetime).Value);
             await db.SaveChangesAsync();
         }
 

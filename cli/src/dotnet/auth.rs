@@ -1,9 +1,11 @@
 //! `skies g auth [--skip-tenancy] [--skip-cookies]`: the Account module from the proven blueprint.
 //!
-//! Register, login, refresh (rotating, with family burn on replay), logout, me, and session management, plus the
-//! password building block and, unless opted out, multi-tenant scoping and web-cookie refresh delivery. The auth
-//! *mechanism* (reading the caller, minting and validating JWTs, the refresh cookie) is not emitted: it is the
-//! `Skies.Framework.Auth` package, wired by one call in `AccountSetup`. What is emitted is plain C# the app owns.
+//! Register, login, refresh, logout, me, and session management, plus, unless opted out, multi-tenant scoping and
+//! web-cookie refresh delivery. The auth *mechanism* is not emitted: reading the caller, minting and validating JWTs,
+//! password hashing, refresh rotation with the family burn on replay, revocation, and cookie delivery are the
+//! `Skies.Framework.Auth` package, wired by one `AddSkiesAuth` call in `AccountSetup`, so a security fix reaches the
+//! app through a package version. What is emitted is plain C# the app owns: the slices (input, output, error codes,
+//! auth posture), the entities, and the small store that keeps the session table.
 //!
 //! The blueprint's tests arrive as a spec, `.specs/<id>-auth/`: the failure modes an auth module can have and
 //! the E2E cases that prove this one does not, so the app starts with a receipt-ready proof of its riskiest code.
@@ -96,14 +98,13 @@ fn wire_program(project: &ApiProject) -> Result<()> {
     Ok(())
 }
 
-/// The data and crypto the Account module needs, plus `Skies.Framework.Auth`, which carries the JWT mechanism
-/// (and JwtBearer transitively) so the app names no JWT package itself.
+/// The data packages the Account module needs, plus `Skies.Framework.Auth`, which carries the auth mechanism (and
+/// JwtBearer and argon2id transitively) so the app names no JWT or crypto package itself.
 fn wire_api_project(csproj: &Path) -> Result<()> {
     let current = text::read(csproj)?;
     let packages = [
         ("Microsoft.EntityFrameworkCore", "10.0.8"),
         ("Microsoft.EntityFrameworkCore.InMemory", "10.0.8"),
-        ("Konscious.Security.Cryptography.Argon2", "1.3.1"),
         ("Skies.Framework.Auth", FRAMEWORK_VERSION),
     ];
     let missing = missing_package_lines(&current, &packages);
@@ -144,7 +145,7 @@ fn wire_test_project(test_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// The Account module's value objects (`Email`, `PasswordHash`) live in `BuildingBlocks`, which every slice uses.
+/// The Account module's `Email` value object lives in `BuildingBlocks`, which every slice uses.
 fn wire_global_usings(project: &ApiProject) -> Result<()> {
     let path = project.root.join("GlobalUsings.cs");
     let line = format!("global using {}.Api.BuildingBlocks;", project.app_name());

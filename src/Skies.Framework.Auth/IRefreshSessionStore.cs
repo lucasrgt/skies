@@ -3,7 +3,8 @@ namespace Skies.Framework.Auth;
 /// <summary>One refresh-token slot as <see cref="RefreshSessions"/> sees it: a row of the app's own session table.
 /// A login opens a <paramref name="FamilyId"/> (the session, carried as the access token's <c>sid</c>); every
 /// rotation spends the presented slot and appends the next one to the same family.</summary>
-/// <param name="Id">The slot's identity, assigned by <see cref="RefreshSessions"/> when it is minted.</param>
+/// <param name="Id">The row's identity. The service only ever hands back an id the store itself returned, so a store
+/// may keep its own ids and ignore the one on a slot it is asked to add.</param>
 /// <param name="UserId">The user the session belongs to.</param>
 /// <param name="FamilyId">The lineage the slot belongs to; revocation and reuse detection act on it.</param>
 /// <param name="TokenHash">The token's <see cref="OpaqueTokens.Hash"/>; the raw token is never stored.</param>

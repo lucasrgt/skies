@@ -1,3 +1,4 @@
+using Skies.Framework.Auth;
 
 namespace Golden.Api.Modules.Account;
 
@@ -18,7 +19,8 @@ public class User
     /// <summary>The display name. Defaults to the email at registration; a profile slice may change it later.</summary>
     public string Name { get; private set; } = "";
 
-    /// <summary>The argon2id password hash. Changed only through <see cref="ResetPassword"/>.</summary>
+    /// <summary>The password hash, produced and checked by the framework's <c>IPasswordHasher</c>. Changed only through
+    /// <see cref="ResetPassword"/>.</summary>
     public PasswordHash PasswordHash { get; private set; }
 
     /// <summary>Where the user is in multistep registration. Login does not block on it — it returns the step

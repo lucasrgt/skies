@@ -16,9 +16,9 @@ public static class LoginWithGoogle
 
     public record Output(string AccessToken, string RefreshToken, RegistrationStep Step, Role? Role);
 
-    public static async Task<Result<Output>> Handle(Input input, AppDb db, IExternalIdentity oauth, IAccessTokens tokens, TimeProvider clock, CancellationToken ct)
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, IExternalIdentityVerifier google, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct)
     {
-        var identity = oauth.Verify(input.IdToken);
+        var identity = await google.VerifyAsync(input.IdToken, ct);
         if (identity.IsFailure)
             return identity.Error;
 
@@ -30,14 +30,14 @@ public static class LoginWithGoogle
         if (user is null)
             return Error.Unauthorized(AccountErrorCodes.NoAccount, "no account for this google identity");
 
-        var now = clock.GetUtcNow().UtcDateTime;
-        var (access, refresh) = await Sessions.Issue(db, tokens, user, now, ct);
-        return new Output(access, refresh, user.RegistrationStep, user.Role);
+        var session = await sessions.StartAsync(user.Id, ct);
+        var access = tokens.Issue(user.Id, user.OrgId, user.Role?.ToString(), session.FamilyId, user.Name);
+        return new Output(access, session.Token, user.RegistrationStep, user.Role);
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/login/google", async (Input input, AppDb db, IExternalIdentity oauth, IAccessTokens tokens, TimeProvider clock, CancellationToken ct) =>
-            (await Handle(input, db, oauth, tokens, clock, ct)).ToHttp())
+        app.MapPost("/login/google", async (Input input, AppDb db, IExternalIdentityVerifier google, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct) =>
+            (await Handle(input, db, google, sessions, tokens, ct)).ToHttp())
             .WithName(nameof(LoginWithGoogle))
             .AllowAnonymous();   // public: signing in with Google is how you get a token (SKY0022 — the decision, made visible)
 }

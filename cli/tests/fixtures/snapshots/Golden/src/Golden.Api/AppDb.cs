@@ -1,6 +1,7 @@
 using Golden.Api.Tenancy;
 using Golden.Api.Modules.Account;
 using Microsoft.EntityFrameworkCore;
+using Skies.Framework.Auth;
 
 namespace Golden.Api;
 
@@ -15,11 +16,7 @@ public class AppDb(DbContextOptions<AppDb> options, ITenant tenant) : TenantDbCo
 
     public DbSet<UserSession> UserSessions => Set<UserSession>();
 
-    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
-
-    public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
-
-    public DbSet<PhoneOtp> PhoneOtps => Set<PhoneOtp>();
+    public DbSet<VerificationToken> VerificationTokens => Set<VerificationToken>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -34,10 +31,8 @@ public class AppDb(DbContextOptions<AppDb> options, ITenant tenant) : TenantDbCo
         session.HasIndex(s => s.TokenHash);
         session.HasIndex(s => s.FamilyId);
 
-        model.Entity<PasswordResetToken>().HasIndex(t => t.TokenHash);
+        model.Entity<VerificationToken>().HasIndex(t => new { t.UserId, t.Purpose });
 
-        model.Entity<EmailVerificationToken>().HasIndex(t => t.TokenHash);
-
-        model.Entity<PhoneOtp>().HasIndex(o => o.UserId);
+        model.Entity<VerificationToken>().HasIndex(t => t.SecretHash);
     }
 }

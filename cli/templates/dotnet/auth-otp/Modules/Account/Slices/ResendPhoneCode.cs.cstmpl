@@ -1,11 +1,11 @@
-using System.Security.Cryptography;
 using Skies.Framework.Auth;
 using Skies.Framework.Sms;
 
 namespace MyApp.Api.Modules.Account;
 
-/// <summary>Send a fresh 6-digit verification code to the caller's phone. The code is stored
-/// argon2-hashed (low-entropy → verified, never looked up) and expires in 10 minutes.</summary>
+/// <summary>Send a fresh 6-digit verification code to the caller's phone. The framework's
+/// <see cref="VerificationTokens"/> mints it and stores it slow-hashed (low-entropy, so verified, never looked up); this
+/// slice owns how long it lives and the message that carries it.</summary>
 [Slice]
 public static class ResendPhoneCode
 {
@@ -13,20 +13,18 @@ public static class ResendPhoneCode
 
     public record Output();
 
-    public static async Task<Result<Output>> Handle(Input input, AppDb db, ISmsSender sms, ICurrentUser current, TimeProvider clock, CancellationToken ct)
-    {
-        var now = clock.GetUtcNow().UtcDateTime;
-        var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
-        db.PhoneOtps.Add(PhoneOtp.Issue(current.UserId, input.Phone, PasswordHash.Create(code).Value, now).Value);
-        await db.SaveChangesAsync(ct);
+    private static readonly TimeSpan CodeLifetime = TimeSpan.FromMinutes(10);
 
+    public static async Task<Result<Output>> Handle(Input input, VerificationTokens verification, ISmsSender sms, ICurrentUser current, CancellationToken ct)
+    {
+        var code = await verification.IssueCodeAsync(current.UserId, VerificationPurpose.Phone, input.Phone, CodeLifetime, ct);
         await sms.SendAsync(input.Phone, $"Your MyApp code is {code}", ct);
         return new Output();
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/phone-code", async (Input input, AppDb db, ISmsSender sms, ICurrentUser current, TimeProvider clock, CancellationToken ct) =>
-            (await Handle(input, db, sms, current, clock, ct)).ToHttp())
+        app.MapPost("/phone-code", async (Input input, VerificationTokens verification, ISmsSender sms, ICurrentUser current, CancellationToken ct) =>
+            (await Handle(input, verification, sms, current, ct)).ToHttp())
             .WithName(nameof(ResendPhoneCode))
             .RequireAuthorization();
 }

@@ -1,10 +1,12 @@
+using Skies.Framework.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace Golden.Api.Modules.Account;
 
 /// <summary>
 /// Register a new account with an email and password. Public. Email is unique globally, so a taken
-/// email is taken everywhere. The password is hashed (argon2id) before it ever reaches storage.
+/// email is taken everywhere. The password rule (the minimum length) is this slice's policy; the hashing is the
+/// framework's <see cref="IPasswordHasher"/>, so the plaintext never reaches storage.
 /// </summary>
 /// <remarks>Security contract: the sad path (a taken email) guards the one-human-one-account identity invariant.
 /// If a duplicate were silently created, login-by-email becomes ambiguous — an identity breach in the
@@ -16,7 +18,7 @@ public static class Register
 
     public record Output(Guid UserId);
 
-    public static async Task<Result<Output>> Handle(Input input, AppDb db, TimeProvider clock, CancellationToken ct)
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, IPasswordHasher hasher, TimeProvider clock, CancellationToken ct)
     {
         var email = Email.From(input.Email);
         var validation = new Validation()
@@ -32,7 +34,7 @@ public static class Register
             return Error.Conflict(AccountErrorCodes.EmailTaken, "an account with this email already exists");
 
         var now = clock.GetUtcNow().UtcDateTime;
-        var created = User.Register(email.Value, PasswordHash.Create(input.Password), now);
+        var created = User.Register(email.Value, hasher.Hash(input.Password), now);
         if (created.IsFailure)
             return created.Error;
         db.Users.Add(created.Value);
@@ -42,8 +44,8 @@ public static class Register
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/register", async (Input input, AppDb db, TimeProvider clock, CancellationToken ct) =>
-            (await Handle(input, db, clock, ct)).ToHttp())
+        app.MapPost("/register", async (Input input, AppDb db, IPasswordHasher hasher, TimeProvider clock, CancellationToken ct) =>
+            (await Handle(input, db, hasher, clock, ct)).ToHttp())
             .WithName(nameof(Register))
             .AllowAnonymous();   // public: registering is pre-identity (SKY0022 — the decision, made visible)
 }

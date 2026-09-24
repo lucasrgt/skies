@@ -12,6 +12,10 @@ Role is optional at registration — chosen later, after sign-in.
 
 ## Wiring
 
+- The auth **mechanism** is the `Skies.Framework.Auth` package, registered by the one `AddSkiesAuth` call in
+  `AccountSetup`: token minting and validation, `IPasswordHasher`, `RefreshSessions` (over this module's
+  `UserSessionStore`), and `RefreshCookie`. A security fix there reaches this app through a package version, so
+  nothing below re-implements it; see "Mechanism and policy".
 - `org` provides tenancy: every `ITenantScoped` entity carries an `OrgId` and is scoped to it (auth
   artifacts like `UserSession` are the deliberate exception — see the auth-bootstrap note).
 - The authenticated caller is `ICurrentUser`, resolved from the access-token claims.
@@ -57,29 +61,37 @@ JwtBearer is configured with `MapInboundClaims = false`. The default remaps `sub
 `ClaimTypes.NameIdentifier`, which makes `FindFirst("sub")` null and breaks `ICurrentUser`. The
 integration test in `AuthFlow.Tests` guards against a regression here.
 
-### Password vs session-token hashing
-A **password** is low-entropy → argon2id (Konscious): slow, salted, verified, never reversible. A
-**session/refresh token** is high-entropy random → SHA-256: fast and deterministic so it can be
-looked up by hash. Hashing a token with argon2 (random salt) would make it impossible to look up. A wrong
-password never signs in (`0001-auth#FM-6`).
+### Mechanism and policy
+The split is deliberate: what an edit could silently weaken lives in the package; what the product decides lives
+here, in plain sight.
 
-The framework ships **no** crypto. argon2id is the chosen default, living in your own
-`BuildingBlocks/PasswordHash.cs`; Konscious is a dependency of *your* project, not Skies — the same way
-Rails adds bcrypt to your Gemfile rather than baking it in. That file is the swap point: to move to
-bcrypt / scrypt / a managed KMS, rewrite `PasswordHash` and nothing else in the module knows the
-algorithm.
+- **The package (mechanism):** hashing and verifying passwords and codes (argon2id, constant-time, the dummy
+  verification that equalizes timing), minting and hashing opaque tokens, refresh rotation with reuse detection and
+  the family burn, the sliding lifetime and absolute ceiling, revocation, the refresh cookie's flags and delivery,
+  single use, expiry, and the attempt cap of verification secrets.
+- **This module (policy and domain):** the entities and their tables (`User`, `UserSession`, the stores that adapt
+  them), the password rule (minimum length), the role model and tenancy, which error code each refusal maps to, who
+  may revoke what (`RevokeSession` checks ownership before the package burns the family), each secret's lifetime and
+  message, and every endpoint's auth posture.
+
+### Password vs session-token hashing
+A **password** is low-entropy → argon2id through `IPasswordHasher`: slow, salted, verified, never reversible. A
+**session/refresh token** is high-entropy random → SHA-256: fast and deterministic so it can be looked up by hash.
+Hashing a token with argon2 (random salt) would make it impossible to look up. A wrong password never signs in
+(`0001-auth#FM-6`). `User` stores the hash as the package's opaque `PasswordHash`; to move to
+another algorithm, register a different `IPasswordHasher` after `AddSkiesAuth` and no slice changes.
 
 ### Multistep registration
 Register lands a user at `EmailPending`. Login does **not** block on an incomplete step — it returns
 the step so the client routes to what's next.
 
 ### Refresh rotation with theft detection
-Login mints a 14-day refresh token and opens a **family** (`UserSession.FamilyId`). `Refresh` marks the
-presented slot `UsedAt` and adds a new slot to the same family — the old token is dead after one use
-(`0001-auth#FM-10`).
+Login mints a 14-day refresh token and opens a **family** (`UserSession.FamilyId`) through `RefreshSessions`.
+`Refresh` spends the presented slot (`UsedAt`) and adds a new slot to the same family — the old token is dead after
+one use (`0001-auth#FM-10`).
 If a *spent* slot is presented again (`UsedAt != null`), that token leaked: the legit client still holds
-the live one, so a second use of a rotated one is **theft**. The response is to burn the whole family
-(`RevokeFamily`) — thief's and victim's tokens alike — forcing a fresh login
+the live one, so a second use of a rotated one is **theft**. The package burns the whole family — thief's and
+victim's tokens alike — forcing a fresh login, and `Refresh` answers `SessionRevoked`
 (`0001-auth#FM-11`). `Logout` revokes the family too (`0001-auth#FM-14`).
 (Tokens are Base64Url so they are cookie/URL-safe; the chain grows append-only — pruning spent/expired rows
 is a future job.)
@@ -89,23 +101,24 @@ immediately. A genuinely simultaneous refresh is distinguished structurally inst
 guards the rotation save with optimistic concurrency. The racer that loses the write gets a
 `DbUpdateConcurrencyException`, caught and mapped to `SessionRetry`; the winner already delivered the live
 replacement. Thus concurrent use yields one winner and one retry, while every replay observed after rotation
-is theft. (The exception path is enforced only by a relational provider; the in-memory store never raises it.)
+is theft. (`UserSessionStore` turns the exception into that answer; only a relational provider raises it, the
+in-memory store never does.)
 
-A family also has an **absolute ceiling** (`SessionToken.FamilyMaxAge`, 90 days): a session may slide
-(rotate) freely within that window, but `Refresh` retires the family once its first token is older than
+A family also has an **absolute ceiling** (`RefreshSessionOptions`, 90 days by default): a session may slide
+(rotate) freely within that window, but the package retires the family once its first token is older than
 the ceiling — so a silently-rotating session cannot live forever, no matter how often it refreshes
-(`0001-auth#FM-13`).
+(`0001-auth#FM-13`). Both lifetimes are this app's policy, set on `AddSkiesAuth`.
 
 ### Security posture (the deliberate choices)
-- **No user enumeration by timing.** `Login` verifies the password against a fixed dummy argon2 hash when
-  no account matches, so a missing email costs the same work as a wrong one, and the two return the *same*
-  error. The absence of an account is observable through neither the response nor its timing
+- **No user enumeration by timing.** `Login` hands the hasher the found user's hash or none at all; with none,
+  `IPasswordHasher` verifies against a fixed dummy, so a missing email costs the same work as a wrong one, and the
+  two return the *same* error. The absence of an account is observable through neither the response nor its timing
   (`0001-auth#FM-7`).
 - **A credential change ends every session.** When a password reset (the email flow) or any future
-  password change succeeds, it revokes **all** of the user's refresh families (`Refresh.RevokeAllForUser`),
-  not just the caller's — so a takeover recovery also evicts the attacker.
-- **OTP codes are brute-force-capped.** When the phone flow is added, its verify slice locks a 6-digit
-  code after a small number of wrong guesses (consuming the OTP), so the 10⁶ space cannot be walked.
+  password change succeeds, it revokes **all** of the user's refresh families through `RefreshSessions`, not
+  just the caller's — so a takeover recovery also evicts the attacker.
+- **OTP codes are brute-force-capped.** When the phone flow is added, the package's `VerificationTokens` locks a
+  6-digit code after five wrong guesses (consuming it), so the 10⁶ space cannot be walked.
 - **Registration accepts email-existence disclosure.** A duplicate registration returns `409 Conflict`
   (an explicit `EmailTaken`) rather than masking it — a conscious UX trade-off; the mitigation for
   enumeration/abuse is edge rate-limiting, not a vague error. The first account is never damaged by the
@@ -129,11 +142,12 @@ Same endpoints serve both clients; the request opts in with `X-Client: web`. **W
 token in an httpOnly, Secure, SameSite=Strict cookie scoped to `/account` — invisible to JS, so XSS
 can't exfiltrate it — and never in the body; `Refresh`/`Logout` read it back from the cookie. **Mobile/
 API** gets the refresh in the body and keeps it in secure storage. The access token always rides in the
-body for the `Authorization` header. This shaping lives in the route's `Respond` helper (delivery, not
-logic — the route stays an expression, `Handle` stays pure and host-free); the cookie policy is the
-framework's `RefreshCookie` service (httpOnly/Secure/SameSite are its opinion; the app sets only the
-cookie name and path via `AddRefreshCookie`). A web client never sees the refresh token in a body
-(`0001-auth#FM-21`, `0001-auth#FM-22`).
+body for the `Authorization` header. The route's `Respond` helper keeps the failure path and picks the two
+bodies (delivery, not logic — the route stays an expression, `Handle` stays pure and host-free); the framework's
+`RefreshCookie` decides which body leaves and plants the cookie (httpOnly/Secure/SameSite are its opinion; the app
+sets only the cookie name and path on `AddSkiesAuth`, and the cookie lives exactly as long as the session). A web
+client never sees the refresh token in a body (`0001-auth#FM-21`,
+`0001-auth#FM-22`).
 
 ## Not yet ported
 Email verification, phone OTP, OAuth, password reset. The first three need providers (SMTP / SMS / OAuth).

@@ -3,6 +3,7 @@ using MyApp.Api.Tenancy;
 //</lz:tenancy>
 using MyApp.Api.Modules.Account;
 using Microsoft.EntityFrameworkCore;
+using Skies.Framework.Auth;
 
 namespace MyApp.Api;
 

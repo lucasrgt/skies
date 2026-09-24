@@ -1,11 +1,13 @@
+using Skies.Framework.Auth;
 using Skies.Framework.Mail;
 using Microsoft.EntityFrameworkCore;
 
 namespace Golden.Api.Modules.Account;
 
 /// <summary>Start a password reset. Public. Finds the user by email across the tenant filter (the caller
-/// is anonymous), mints a reset token (valid 1h, only the hash stored), and emails the raw token. Always
-/// returns success — a missing or invalid email must not reveal whether an account exists.</summary>
+/// is anonymous), has the framework's <see cref="VerificationTokens"/> mint a reset token (valid 1h, only the hash
+/// stored), and emails the raw token. Always returns success — a missing or invalid email must not reveal whether an
+/// account exists.</summary>
 [Slice]
 public static class RequestPasswordReset
 {
@@ -13,7 +15,9 @@ public static class RequestPasswordReset
 
     public record Output();
 
-    public static async Task<Result<Output>> Handle(Input input, AppDb db, IEmailSender email, TimeProvider clock, CancellationToken ct)
+    private static readonly TimeSpan Lifetime = TimeSpan.FromHours(1);
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, VerificationTokens verification, IEmailSender email, CancellationToken ct)
     {
         var address = Email.From(input.Email);
         if (address.IsFailure)
@@ -23,10 +27,7 @@ public static class RequestPasswordReset
         if (user is null)
             return new Output();   // never reveal that no account exists
 
-        var now = clock.GetUtcNow().UtcDateTime;
-        var (raw, hash) = SessionToken.Issue();
-        db.PasswordResetTokens.Add(PasswordResetToken.Issue(user.Id, hash, now).Value);
-        await db.SaveChangesAsync(ct);
+        var raw = await verification.IssueLinkAsync(user.Id, VerificationPurpose.PasswordReset, Lifetime, ct);
 
         await email.SendAsync(new EmailMessage(
             user.Email.Value,
@@ -36,8 +37,8 @@ public static class RequestPasswordReset
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/password-reset/request", async (Input input, AppDb db, IEmailSender email, TimeProvider clock, CancellationToken ct) =>
-            (await Handle(input, db, email, clock, ct)).ToHttp())
+        app.MapPost("/password-reset/request", async (Input input, AppDb db, VerificationTokens verification, IEmailSender email, CancellationToken ct) =>
+            (await Handle(input, db, verification, email, ct)).ToHttp())
             .WithName(nameof(RequestPasswordReset))
             .AllowAnonymous();   // public: a locked-out user has no token (SKY0022 — the decision, made visible)
 }

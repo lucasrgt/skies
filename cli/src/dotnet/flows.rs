@@ -62,11 +62,12 @@ pub fn generate(root: &Path, flow: Flow) -> Result<u8> {
     Ok(0)
 }
 
-/// Emits the flow's files into the API project. A file that already exists (the shared `Sessions.cs` when a
-/// second flow needs it) is skipped, never clobbered.
+/// Emits the flow's files, then its shared folders' files, into the API project. A file that already exists (the
+/// shared verification entity and store when a second flow needs them) is skipped, never clobbered.
 fn emit_templates(project: &ApiProject, spec: &FlowSpec) -> Result<()> {
     let (app_name, app_lower) = (project.app_name(), project.app_lower());
-    for (logical, body) in embedded::dotnet_folder(spec.folder) {
+    let folders = std::iter::once(spec.folder).chain(spec.shared_folders.iter().copied());
+    for (logical, body) in folders.flat_map(embedded::dotnet_folder) {
         let destination = project
             .root
             .join(blueprint::render_path(&logical, app_name, &app_lower));
@@ -231,11 +232,14 @@ fn augment_account_module(module_file: &Path, spec: &FlowSpec) -> Result<()> {
     Ok(())
 }
 
-/// The dev provider registers in the module's composition, beside `AddAuthorization()`, with its using grouped
-/// after `Skies.Framework.Auth`.
+/// The flow's registrations join the module's composition after `AddAuthorization()`, with the provider's using
+/// grouped after `Skies.Framework.Auth`. A line already present (the verification service a second flow shares) is
+/// kept as is.
 fn augment_account_setup(setup_file: &Path, spec: &FlowSpec) -> Result<()> {
     if !setup_file.exists() {
-        println!("note: no AccountSetup.cs — register `{}` in AddAccount.", spec.di_line);
+        for line in spec.di_lines {
+            println!("note: no AccountSetup.cs — register `{line}` in AddAccount.");
+        }
         return Ok(());
     }
     let mut source = text::read(setup_file)?;
@@ -251,13 +255,21 @@ fn augment_account_setup(setup_file: &Path, spec: &FlowSpec) -> Result<()> {
         );
         changed = true;
     }
-    if !source.contains(spec.di_line) {
-        const ANCHOR: &str = "        builder.Services.AddAuthorization();";
-        if source.contains(ANCHOR) {
-            source = text::replace_first(&source, ANCHOR, &format!("{ANCHOR}{nl}        {}", spec.di_line));
+    let mut after = "        builder.Services.AddAuthorization();".to_string();
+    let missing: Vec<&str> = spec
+        .di_lines
+        .iter()
+        .copied()
+        .filter(|line| !source.contains(line))
+        .collect();
+    for line in missing {
+        if source.contains(&after) {
+            let inserted = format!("{after}{nl}        {line}");
+            source = text::replace_first(&source, &after, &inserted);
+            after = format!("        {line}");
             changed = true;
         } else {
-            println!("note: add `{}` to AddAccount in AccountSetup.cs", spec.di_line);
+            println!("note: add `{line}` to AddAccount in AccountSetup.cs");
         }
     }
 

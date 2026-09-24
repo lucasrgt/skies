@@ -4,7 +4,8 @@ namespace Skies.Framework.Auth;
 /// table. Two kinds share the shape. A <em>link</em> token (email confirmation, password reset) is high-entropy and
 /// stored as an <see cref="OpaqueTokens.Hash"/>, so it is found by that hash. A <em>code</em> (a 6-digit SMS code) is
 /// low-entropy, so it is stored through <see cref="IPasswordHasher"/> and found by user and purpose instead.</summary>
-/// <param name="Id">The record's identity, assigned by <see cref="VerificationTokens"/> when it is issued.</param>
+/// <param name="Id">The row's identity. The service only ever hands back an id the store itself returned, so a store
+/// may keep its own ids and ignore the one on a record it is asked to add.</param>
 /// <param name="UserId">The user the secret was issued to.</param>
 /// <param name="Purpose">What the secret proves (the app's vocabulary, e.g. <c>password-reset</c>). A secret only
 /// ever verifies for the purpose it was issued for.</param>
