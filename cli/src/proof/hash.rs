@@ -10,7 +10,7 @@ use anyhow::{Context, Result};
 use globset::{Glob, GlobSetBuilder};
 use rayon::prelude::*;
 
-use super::spec::{E2E_DIR, SPEC_FILE, SPECS_DIR, SpecDir};
+use super::spec::{E2E_DIR, EVIDENCE_DIR, SPEC_FILE, SPECS_DIR, SpecDir};
 
 /// Lockfiles at the project root that pin what the E2E runs against. A dependency bump changes behavior as
 /// surely as a source edit, so they are inputs of every receipt.
@@ -67,6 +67,23 @@ pub fn input_paths(root: &Path, spec: &SpecDir) -> Result<BTreeSet<String>> {
             .map(|name| name.to_string()),
     );
     Ok(paths)
+}
+
+/// Every file under the spec's evidence/, keyed relative to the spec folder (`evidence/green.trx`). The walk honors
+/// `.gitignore`, so regenerable artifacts a team keeps out of git (traces, videos) are not part of the record and a
+/// fresh clone without them is not reported as tampered.
+pub fn evidence(spec: &SpecDir) -> Result<Hashes> {
+    let dir = spec.file(EVIDENCE_DIR);
+    let mut paths = BTreeSet::new();
+    if dir.is_dir() {
+        for entry in walk(&dir) {
+            let entry = entry.with_context(|| format!("walking {}", dir.display()))?;
+            if entry.file_type().is_some_and(|kind| kind.is_file()) {
+                paths.insert(relative(&spec.path, entry.path()));
+            }
+        }
+    }
+    Ok(hash_all(&spec.path, &paths))
 }
 
 /// Files under `root` matching the spec's `touches` globs, honoring `.gitignore` so build output never lands in

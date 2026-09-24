@@ -13,13 +13,24 @@ passing after it. Nothing else is required: no tags, no manifests, no gate.
   spec.md        behavior + failure modes (FM-1..n) + out of scope
   e2e/           black-box tests, each case titled "FM-n: …"
   receipt.json   written by `skies proof record`
-  evidence/      report + small artifacts the runner saves to {evidence}
+  evidence/      report + artifacts tests save to $SKIES_EVIDENCE (hashed by the receipt)
 ```
 
 ## 1. Understand
 
 Read the module's `<Module>.ctx.md` and the slices or screens the change touches. Check `Skies.toml` for the
 runners available (`[runners.*]`). If the request is ambiguous about behavior, ask before writing the spec.
+
+Then find the specs your change can break:
+
+```bash
+skies proof impact <files or folders you expect to touch>
+skies proof verify <the impacted ids>      # baseline: they must pass before you change anything
+```
+
+`impact` reads every receipt's footprint and prints each impacted spec with its failure modes. Read them: they are
+behavior other features rely on, and your failure modes must not contradict them. If a baseline verify already
+fails, report it before starting; it is not yours to hide.
 
 ## 2. Write the spec (before any code)
 
@@ -51,6 +62,11 @@ Walk this checklist and keep only what applies:
 | Sessions | Do tokens rotate and expire as promised; are wrong credentials denied? |
 | Callbacks | Are webhooks verified and bound to the right environment? |
 
+When a failure mode matches an archetype in the AVP catalog (request idempotency, authorization, money integrity,
+pagination…), decide it with that Assay verifier instead of a hand-rolled check, and tag the line with the criterion
+id: `- FM-5 A retry with the same key credits twice [avp: idempotency-key-honored]`. The tag is optional; use it
+only when an archetype fits.
+
 **Stop and show the failure modes to the human.** They are the point of review; the rest follows from them.
 
 ## 3. Write the E2E and watch it fail
@@ -63,6 +79,10 @@ In `e2e/`, write black-box tests that drive the feature from outside: HTTP again
 - .NET spec tests live in namespace `Specs.S<id>` so the runner filter selects exactly this spec.
 - Assert the observable outcome and, for rejections, that state did not change.
 - Seed through the app's own services or endpoints; never mock the thing the failure mode is about.
+- For a tagged failure mode, run the Assay verifier against the real app and save its verdict before asserting:
+  `SpecEvidence.Save("avp-FM-5.json", verdict)` in .NET (`Skies.Framework.Testing`; pass
+  `transport: app.CreateClient` to `Runner.Run` to use the test host), or write `verdictToJsonLine(verdict)` to
+  `$SKIES_EVIDENCE/avp-FM-5.json` in TypeScript. The mode passes only when the verdict does.
 
 Run them now. Every case must fail for the right reason (missing endpoint, wrong status, missing effect).
 
@@ -75,11 +95,15 @@ calculation), and only after writing its failure modes.
 ## 5. Record the receipt
 
 ```bash
-skies proof record <id>
+skies proof record <id> --with-impacted
 ```
 
 It runs the E2E against the merge-base (every FM must fail) and against the working tree (every FM must pass),
-then writes `receipt.json` and copies the report into `evidence/`. If the E2E cannot even build on the merge-base
+then writes `receipt.json` and copies the report and saved artifacts into `evidence/`. A tagged FM passes only when
+its cases pass and its verdict reports every tagged criterion as pass. `--with-impacted` then reruns green for every
+other spec whose files overlap yours and names the ones that passed in `verified_with`; if one fails, your change
+broke it: fix the code, not the other spec. Never edit `evidence/` by hand; `skies proof status` reports it as
+tampered. If the E2E cannot even build on the merge-base
 (it uses code the feature adds), every FM counts as failing and the build output is kept as `evidence/red.log`.
 If a failure mode already passes on the merge-base, either the test does not discriminate (fix the test) or the behavior already existed (add a
 `## Non-discriminating` section to `spec.md` explaining why).
@@ -89,6 +113,6 @@ and record against it.
 
 ## 6. Report
 
-Report the spec path, the failure modes, the receipt summary (red/green per FM), and `skies doctor` status. If
-other receipts went stale because of your change (`skies proof status`), say so and rerun them with
-`skies proof verify <ids>` when the change could affect them.
+Report the spec path, the failure modes (with their `[avp: …]` tags), the receipt summary (red/green per FM), the
+impacted specs and whether they still pass (`verified_with`), and `skies doctor` status. If other receipts went
+stale because of your change (`skies proof status`), say so and rerun them with `skies proof verify <ids>`.

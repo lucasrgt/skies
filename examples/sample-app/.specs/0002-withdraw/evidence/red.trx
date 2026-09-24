@@ -1,99 +1,97 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TestRun id="7928efa3-a892-4424-a527-f50fbea16245" name="@omarchy 2026-09-23 22:21:16" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2026-09-23T22:21:16.6549226-03:00" queuing="2026-09-23T22:21:16.6549226-03:00" start="2026-09-23T22:21:15.7124392-03:00" finish="2026-09-23T22:21:16.6584670-03:00" />
-  <TestSettings name="default" id="9cfd9ff2-79e2-4d03-af9f-ab549f8ef516">
-    <Deployment runDeploymentRoot="_omarchy_2026-09-23_22_21_16" />
+<TestRun id="aff38653-7d1e-4de9-821b-9bd184f2f661" name="@omarchy 2026-09-24 02:18:17" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-24T02:18:17.5939953-03:00" queuing="2026-09-24T02:18:17.5939953-03:00" start="2026-09-24T02:18:16.6407921-03:00" finish="2026-09-24T02:18:17.5992972-03:00" />
+  <TestSettings name="default" id="8ee4856f-22e9-44d6-aa25-f41020ec7e14">
+    <Deployment runDeploymentRoot="_omarchy_2026-09-24_02_18_17" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="cbd743fb-a6e4-45a6-ab13-7cf0fa984ab0" testId="3c4f35f6-7b88-ebda-db01-74ee23abe957" testName="FM-5: a retry with the same Idempotency-Key debits once" computerName="omarchy" duration="00:00:00.4629907" startTime="2026-09-23T22:21:16.0372190-03:00" endTime="2026-09-23T22:21:16.5086118-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cbd743fb-a6e4-45a6-ab13-7cf0fa984ab0">
-      <Output>
-        <ErrorInfo>
-          <Message>Assert.Equal() Failure: Values differ
-Expected: 30
-Actual:   50</Message>
-          <StackTrace>   at Specs.S0002.WithdrawSpec.Same_key_debits_once() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 73
-   at Specs.S0002.WithdrawSpec.Same_key_debits_once() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 73
---- End of stack trace from previous location ---</StackTrace>
-        </ErrorInfo>
-      </Output>
-    </UnitTestResult>
-    <UnitTestResult executionId="22f8de2f-3613-40df-8f7f-31f13099f090" testId="445a8336-9eb4-c0e2-8c64-70e1931717f9" testName="FM-1: a withdrawal is reflected by the next balance read" computerName="omarchy" duration="00:00:00.0119173" startTime="2026-09-23T22:21:16.5552522-03:00" endTime="2026-09-23T22:21:16.5671275-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="22f8de2f-3613-40df-8f7f-31f13099f090">
+    <UnitTestResult executionId="98055cea-26b8-492c-80bc-d26f5b2f3c18" testId="445a8336-9eb4-c0e2-8c64-70e1931717f9" testName="FM-1: a withdrawal is reflected by the next balance read" computerName="omarchy" duration="00:00:00.0238593" startTime="2026-09-24T02:18:17.4857338-03:00" endTime="2026-09-24T02:18:17.5095305-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="98055cea-26b8-492c-80bc-d26f5b2f3c18">
       <Output>
         <ErrorInfo>
           <Message>Assert.Equal() Failure: Values differ
 Expected: 30
 Actual:   0</Message>
-          <StackTrace>   at Specs.S0002.WithdrawSpec.Withdrawal_is_reflected_by_the_balance() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 22
-   at Specs.S0002.WithdrawSpec.Withdrawal_is_reflected_by_the_balance() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 23
+          <StackTrace>   at Specs.S0002.WithdrawSpec.Withdrawal_is_reflected_by_the_balance() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 24
+   at Specs.S0002.WithdrawSpec.Withdrawal_is_reflected_by_the_balance() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 25
 --- End of stack trace from previous location ---</StackTrace>
         </ErrorInfo>
       </Output>
     </UnitTestResult>
-    <UnitTestResult executionId="112057c9-4fdb-49b5-a9bb-bcaaebddd3d5" testId="e3edbb30-2a95-daf2-47fd-b436b16fda1c" testName="FM-2: overdrawing answers 422 and leaves the balance untouched" computerName="omarchy" duration="00:00:00.0119620" startTime="2026-09-23T22:21:16.5429674-03:00" endTime="2026-09-23T22:21:16.5548539-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="112057c9-4fdb-49b5-a9bb-bcaaebddd3d5">
-      <Output>
-        <ErrorInfo>
-          <Message>Assert.Equal() Failure: Values differ
-Expected: UnprocessableEntity
-Actual:   OK</Message>
-          <StackTrace>   at Specs.S0002.WithdrawSpec.Overdraw_is_refused() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 35
-   at Specs.S0002.WithdrawSpec.Overdraw_is_refused() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 36
---- End of stack trace from previous location ---</StackTrace>
-        </ErrorInfo>
-      </Output>
-    </UnitTestResult>
-    <UnitTestResult executionId="a8b4d24b-cdd3-4f3a-8469-59102e87f80a" testId="325f1266-9b16-9cf4-ad6c-df2daf445989" testName="FM-3: a negative amount answers 400 with an amount field error" computerName="omarchy" duration="00:00:00.0090664" startTime="2026-09-23T22:21:16.5337864-03:00" endTime="2026-09-23T22:21:16.5425543-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a8b4d24b-cdd3-4f3a-8469-59102e87f80a">
+    <UnitTestResult executionId="b2c17266-5c77-4e9d-bfcd-09c6d4fd20a1" testId="325f1266-9b16-9cf4-ad6c-df2daf445989" testName="FM-3: a negative amount answers 400 with an amount field error" computerName="omarchy" duration="00:00:00.0086940" startTime="2026-09-24T02:18:17.4645178-03:00" endTime="2026-09-24T02:18:17.4727833-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b2c17266-5c77-4e9d-bfcd-09c6d4fd20a1">
       <Output>
         <ErrorInfo>
           <Message>Assert.Equal() Failure: Values differ
 Expected: BadRequest
 Actual:   OK</Message>
-          <StackTrace>   at Specs.S0002.WithdrawSpec.Negative_amount_is_rejected() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 47
-   at Specs.S0002.WithdrawSpec.Negative_amount_is_rejected() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 48
+          <StackTrace>   at Specs.S0002.WithdrawSpec.Negative_amount_is_rejected() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 49
+   at Specs.S0002.WithdrawSpec.Negative_amount_is_rejected() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 50
 --- End of stack trace from previous location ---</StackTrace>
         </ErrorInfo>
       </Output>
     </UnitTestResult>
-    <UnitTestResult executionId="f4f4ab0b-6c5e-413c-9c28-45f184de4eb9" testId="d3726388-1d24-a53f-4c55-25759774781f" testName="FM-4: a missing wallet answers 404" computerName="omarchy" duration="00:00:00.0234876" startTime="2026-09-23T22:21:16.5171514-03:00" endTime="2026-09-23T22:21:16.5331481-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f4f4ab0b-6c5e-413c-9c28-45f184de4eb9">
+    <UnitTestResult executionId="0822b007-aae8-4c3f-80e5-25066e511a5c" testId="d3726388-1d24-a53f-4c55-25759774781f" testName="FM-4: a missing wallet answers 404" computerName="omarchy" duration="00:00:00.0329107" startTime="2026-09-24T02:18:17.4375133-03:00" endTime="2026-09-24T02:18:17.4637418-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0822b007-aae8-4c3f-80e5-25066e511a5c">
       <Output>
         <ErrorInfo>
           <Message>Assert.Equal() Failure: Values differ
 Expected: NotFound
 Actual:   OK</Message>
-          <StackTrace>   at Specs.S0002.WithdrawSpec.Missing_wallet_is_not_found() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 59
-   at Specs.S0002.WithdrawSpec.Missing_wallet_is_not_found() in /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 59
+          <StackTrace>   at Specs.S0002.WithdrawSpec.Missing_wallet_is_not_found() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 61
+   at Specs.S0002.WithdrawSpec.Missing_wallet_is_not_found() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 61
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="1194792d-f76e-4474-9a9d-7323d8291c8b" testId="3c4f35f6-7b88-ebda-db01-74ee23abe957" testName="FM-5: a retry with the same Idempotency-Key debits once" computerName="omarchy" duration="00:00:00.4581805" startTime="2026-09-24T02:18:16.9630638-03:00" endTime="2026-09-24T02:18:17.4297325-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1194792d-f76e-4474-9a9d-7323d8291c8b">
+      <Output>
+        <ErrorInfo>
+          <Message>two different idempotency keys collapsed to one 'balance' value ('0') — a distinct key must apply again, not dedup regardless of the key.</Message>
+          <StackTrace>   at Specs.S0002.WithdrawSpec.Same_key_debits_once() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 83
+   at Specs.S0002.WithdrawSpec.Same_key_debits_once() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 84
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="7bc04a48-bcfa-4085-96fe-ed76326e3603" testId="e3edbb30-2a95-daf2-47fd-b436b16fda1c" testName="FM-2: overdrawing answers 422 and leaves the balance untouched" computerName="omarchy" duration="00:00:00.0120714" startTime="2026-09-24T02:18:17.4730927-03:00" endTime="2026-09-24T02:18:17.4852511-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7bc04a48-bcfa-4085-96fe-ed76326e3603">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: UnprocessableEntity
+Actual:   OK</Message>
+          <StackTrace>   at Specs.S0002.WithdrawSpec.Overdraw_is_refused() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 37
+   at Specs.S0002.WithdrawSpec.Overdraw_is_refused() in /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs:line 38
 --- End of stack trace from previous location ---</StackTrace>
         </ErrorInfo>
       </Output>
     </UnitTestResult>
   </Results>
   <TestDefinitions>
-    <UnitTest name="FM-2: overdrawing answers 422 and leaves the balance untouched" storage="/tmp/skies-red-flz0mw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="e3edbb30-2a95-daf2-47fd-b436b16fda1c">
-      <Execution id="112057c9-4fdb-49b5-a9bb-bcaaebddd3d5" />
-      <TestMethod codeBase="/tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Overdraw_is_refused" />
+    <UnitTest name="FM-2: overdrawing answers 422 and leaves the balance untouched" storage="/tmp/skies-red-nsml8q/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="e3edbb30-2a95-daf2-47fd-b436b16fda1c">
+      <Execution id="7bc04a48-bcfa-4085-96fe-ed76326e3603" />
+      <TestMethod codeBase="/tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Overdraw_is_refused" />
     </UnitTest>
-    <UnitTest name="FM-3: a negative amount answers 400 with an amount field error" storage="/tmp/skies-red-flz0mw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="325f1266-9b16-9cf4-ad6c-df2daf445989">
-      <Execution id="a8b4d24b-cdd3-4f3a-8469-59102e87f80a" />
-      <TestMethod codeBase="/tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Negative_amount_is_rejected" />
+    <UnitTest name="FM-3: a negative amount answers 400 with an amount field error" storage="/tmp/skies-red-nsml8q/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="325f1266-9b16-9cf4-ad6c-df2daf445989">
+      <Execution id="b2c17266-5c77-4e9d-bfcd-09c6d4fd20a1" />
+      <TestMethod codeBase="/tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Negative_amount_is_rejected" />
     </UnitTest>
-    <UnitTest name="FM-1: a withdrawal is reflected by the next balance read" storage="/tmp/skies-red-flz0mw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="445a8336-9eb4-c0e2-8c64-70e1931717f9">
-      <Execution id="22f8de2f-3613-40df-8f7f-31f13099f090" />
-      <TestMethod codeBase="/tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Withdrawal_is_reflected_by_the_balance" />
+    <UnitTest name="FM-1: a withdrawal is reflected by the next balance read" storage="/tmp/skies-red-nsml8q/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="445a8336-9eb4-c0e2-8c64-70e1931717f9">
+      <Execution id="98055cea-26b8-492c-80bc-d26f5b2f3c18" />
+      <TestMethod codeBase="/tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Withdrawal_is_reflected_by_the_balance" />
     </UnitTest>
-    <UnitTest name="FM-5: a retry with the same Idempotency-Key debits once" storage="/tmp/skies-red-flz0mw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="3c4f35f6-7b88-ebda-db01-74ee23abe957">
-      <Execution id="cbd743fb-a6e4-45a6-ab13-7cf0fa984ab0" />
-      <TestMethod codeBase="/tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Same_key_debits_once" />
+    <UnitTest name="FM-5: a retry with the same Idempotency-Key debits once" storage="/tmp/skies-red-nsml8q/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="3c4f35f6-7b88-ebda-db01-74ee23abe957">
+      <Execution id="1194792d-f76e-4474-9a9d-7323d8291c8b" />
+      <TestMethod codeBase="/tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Same_key_debits_once" />
     </UnitTest>
-    <UnitTest name="FM-4: a missing wallet answers 404" storage="/tmp/skies-red-flz0mw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="d3726388-1d24-a53f-4c55-25759774781f">
-      <Execution id="f4f4ab0b-6c5e-413c-9c28-45f184de4eb9" />
-      <TestMethod codeBase="/tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Missing_wallet_is_not_found" />
+    <UnitTest name="FM-4: a missing wallet answers 404" storage="/tmp/skies-red-nsml8q/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="d3726388-1d24-a53f-4c55-25759774781f">
+      <Execution id="0822b007-aae8-4c3f-80e5-25066e511a5c" />
+      <TestMethod codeBase="/tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0002.WithdrawSpec" name="Missing_wallet_is_not_found" />
     </UnitTest>
   </TestDefinitions>
   <TestEntries>
-    <TestEntry testId="3c4f35f6-7b88-ebda-db01-74ee23abe957" executionId="cbd743fb-a6e4-45a6-ab13-7cf0fa984ab0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="445a8336-9eb4-c0e2-8c64-70e1931717f9" executionId="22f8de2f-3613-40df-8f7f-31f13099f090" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="e3edbb30-2a95-daf2-47fd-b436b16fda1c" executionId="112057c9-4fdb-49b5-a9bb-bcaaebddd3d5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="325f1266-9b16-9cf4-ad6c-df2daf445989" executionId="a8b4d24b-cdd3-4f3a-8469-59102e87f80a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="d3726388-1d24-a53f-4c55-25759774781f" executionId="f4f4ab0b-6c5e-413c-9c28-45f184de4eb9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="445a8336-9eb4-c0e2-8c64-70e1931717f9" executionId="98055cea-26b8-492c-80bc-d26f5b2f3c18" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="325f1266-9b16-9cf4-ad6c-df2daf445989" executionId="b2c17266-5c77-4e9d-bfcd-09c6d4fd20a1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d3726388-1d24-a53f-4c55-25759774781f" executionId="0822b007-aae8-4c3f-80e5-25066e511a5c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3c4f35f6-7b88-ebda-db01-74ee23abe957" executionId="1194792d-f76e-4474-9a9d-7323d8291c8b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e3edbb30-2a95-daf2-47fd-b436b16fda1c" executionId="7bc04a48-bcfa-4085-96fe-ed76326e3603" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
     <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
@@ -113,17 +111,15 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Api
+      Content root path: /tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Api
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
-[xUnit.net 00:00:00.56]       Assert.Equal() Failure: Values differ
-[xUnit.net 00:00:00.56]       Expected: 30
-[xUnit.net 00:00:00.56]       Actual:   50
-[xUnit.net 00:00:00.56]       Stack Trace:
-[xUnit.net 00:00:00.56]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(73,0): at Specs.S0002.WithdrawSpec.Same_key_debits_once()
-[xUnit.net 00:00:00.56]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(73,0): at Specs.S0002.WithdrawSpec.Same_key_debits_once()
+[xUnit.net 00:00:00.55]       two different idempotency keys collapsed to one 'balance' value ('0') — a distinct key must apply again, not dedup regardless of the key.
+[xUnit.net 00:00:00.55]       Stack Trace:
+[xUnit.net 00:00:00.55]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(83,0): at Specs.S0002.WithdrawSpec.Same_key_debits_once()
+[xUnit.net 00:00:00.56]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(84,0): at Specs.S0002.WithdrawSpec.Same_key_debits_once()
 [xUnit.net 00:00:00.56]         --- End of stack trace from previous location ---
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
@@ -132,32 +128,15 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Api
-info: Microsoft.Hosting.Lifetime[0]
-      Application is shutting down...
-[xUnit.net 00:00:00.58]       Assert.Equal() Failure: Values differ
-[xUnit.net 00:00:00.58]       Expected: NotFound
-[xUnit.net 00:00:00.58]       Actual:   OK
-[xUnit.net 00:00:00.58]       Stack Trace:
-[xUnit.net 00:00:00.58]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(59,0): at Specs.S0002.WithdrawSpec.Missing_wallet_is_not_found()
-[xUnit.net 00:00:00.58]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(59,0): at Specs.S0002.WithdrawSpec.Missing_wallet_is_not_found()
-[xUnit.net 00:00:00.58]         --- End of stack trace from previous location ---
-info: Microsoft.EntityFrameworkCore.Update[30100]
-      Saved 1 entities to in-memory store.
-info: Microsoft.Hosting.Lifetime[0]
-      Application started. Press Ctrl+C to shut down.
-info: Microsoft.Hosting.Lifetime[0]
-      Hosting environment: Development
-info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Api
+      Content root path: /tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Api
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
 [xUnit.net 00:00:00.59]       Assert.Equal() Failure: Values differ
-[xUnit.net 00:00:00.59]       Expected: BadRequest
+[xUnit.net 00:00:00.59]       Expected: NotFound
 [xUnit.net 00:00:00.59]       Actual:   OK
 [xUnit.net 00:00:00.59]       Stack Trace:
-[xUnit.net 00:00:00.59]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(47,0): at Specs.S0002.WithdrawSpec.Negative_amount_is_rejected()
-[xUnit.net 00:00:00.59]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(48,0): at Specs.S0002.WithdrawSpec.Negative_amount_is_rejected()
+[xUnit.net 00:00:00.59]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(61,0): at Specs.S0002.WithdrawSpec.Missing_wallet_is_not_found()
+[xUnit.net 00:00:00.59]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(61,0): at Specs.S0002.WithdrawSpec.Missing_wallet_is_not_found()
 [xUnit.net 00:00:00.59]         --- End of stack trace from previous location ---
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
@@ -166,7 +145,24 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Api
+      Content root path: /tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.60]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.60]       Expected: BadRequest
+[xUnit.net 00:00:00.60]       Actual:   OK
+[xUnit.net 00:00:00.60]       Stack Trace:
+[xUnit.net 00:00:00.60]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(49,0): at Specs.S0002.WithdrawSpec.Negative_amount_is_rejected()
+[xUnit.net 00:00:00.60]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(50,0): at Specs.S0002.WithdrawSpec.Negative_amount_is_rejected()
+[xUnit.net 00:00:00.60]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Api
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
@@ -175,8 +171,8 @@ info: Microsoft.Hosting.Lifetime[0]
 [xUnit.net 00:00:00.61]       Expected: UnprocessableEntity
 [xUnit.net 00:00:00.61]       Actual:   OK
 [xUnit.net 00:00:00.61]       Stack Trace:
-[xUnit.net 00:00:00.61]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(35,0): at Specs.S0002.WithdrawSpec.Overdraw_is_refused()
-[xUnit.net 00:00:00.61]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(36,0): at Specs.S0002.WithdrawSpec.Overdraw_is_refused()
+[xUnit.net 00:00:00.61]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(37,0): at Specs.S0002.WithdrawSpec.Overdraw_is_refused()
+[xUnit.net 00:00:00.61]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(38,0): at Specs.S0002.WithdrawSpec.Overdraw_is_refused()
 [xUnit.net 00:00:00.61]         --- End of stack trace from previous location ---
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
@@ -185,36 +181,36 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/backend/Sample.Api
+      Content root path: /tmp/skies-red-nSml8q/checkout/examples/sample-app/backend/Sample.Api
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
-[xUnit.net 00:00:00.62]       Assert.Equal() Failure: Values differ
-[xUnit.net 00:00:00.62]       Expected: 30
-[xUnit.net 00:00:00.62]       Actual:   0
-[xUnit.net 00:00:00.62]       Stack Trace:
-[xUnit.net 00:00:00.62]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(22,0): at Specs.S0002.WithdrawSpec.Withdrawal_is_reflected_by_the_balance()
-[xUnit.net 00:00:00.62]         /tmp/skies-red-fLZ0MW/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(23,0): at Specs.S0002.WithdrawSpec.Withdrawal_is_reflected_by_the_balance()
-[xUnit.net 00:00:00.62]         --- End of stack trace from previous location ---
-[xUnit.net 00:00:00.62]   Finished:    Sample.Tests
+[xUnit.net 00:00:00.63]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.63]       Expected: 30
+[xUnit.net 00:00:00.63]       Actual:   0
+[xUnit.net 00:00:00.63]       Stack Trace:
+[xUnit.net 00:00:00.63]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(24,0): at Specs.S0002.WithdrawSpec.Withdrawal_is_reflected_by_the_balance()
+[xUnit.net 00:00:00.63]         /tmp/skies-red-nSml8q/checkout/examples/sample-app/.specs/0002-withdraw/e2e/WithdrawSpec.cs(25,0): at Specs.S0002.WithdrawSpec.Withdrawal_is_reflected_by_the_balance()
+[xUnit.net 00:00:00.63]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.64]   Finished:    Sample.Tests
 </StdOut>
     </Output>
     <RunInfos>
-      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:16.5104083-03:00">
-        <Text>[xUnit.net 00:00:00.56]     FM-5: a retry with the same Idempotency-Key debits once [FAIL]</Text>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:18:17.4316015-03:00">
+        <Text>[xUnit.net 00:00:00.55]     FM-5: a retry with the same Idempotency-Key debits once [FAIL]</Text>
       </RunInfo>
-      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:16.5334346-03:00">
-        <Text>[xUnit.net 00:00:00.58]     FM-4: a missing wallet answers 404 [FAIL]</Text>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:18:17.4640324-03:00">
+        <Text>[xUnit.net 00:00:00.59]     FM-4: a missing wallet answers 404 [FAIL]</Text>
       </RunInfo>
-      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:16.5428130-03:00">
-        <Text>[xUnit.net 00:00:00.59]     FM-3: a negative amount answers 400 with an amount field error [FAIL]</Text>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:18:17.4729729-03:00">
+        <Text>[xUnit.net 00:00:00.60]     FM-3: a negative amount answers 400 with an amount field error [FAIL]</Text>
       </RunInfo>
-      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:16.5551319-03:00">
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:18:17.4854806-03:00">
         <Text>[xUnit.net 00:00:00.61]     FM-2: overdrawing answers 422 and leaves the balance untouched [FAIL]</Text>
       </RunInfo>
-      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:21:16.5673754-03:00">
-        <Text>[xUnit.net 00:00:00.62]     FM-1: a withdrawal is reflected by the next balance read [FAIL]</Text>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-24T02:18:17.5097859-03:00">
+        <Text>[xUnit.net 00:00:00.63]     FM-1: a withdrawal is reflected by the next balance read [FAIL]</Text>
       </RunInfo>
     </RunInfos>
   </ResultSummary>

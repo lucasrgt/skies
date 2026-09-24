@@ -31,7 +31,12 @@
 - `skies i18n [--package <dir>]` — assemble per-feature catalogs.
 - `skies doctor [build args]` — dotnet build (SKY*), eslint (SKYFE*), Flutter rules (SKYFL*), in parallel.
 - `skies spec new <slug> [--runner <name>]` — create `.specs/<id>-<slug>/`.
-- `skies proof record <id> [--red <rev>] [--red-patch <file>]` — red then green; writes `receipt.json`.
-- `skies proof status` — which receipts are current or stale (hashes only).
+- `skies proof record <id> [--red <rev>] [--red-patch <file>] [--with-impacted]` — red then green; writes
+  `receipt.json`. `--with-impacted` then reruns green for every other spec whose footprint overlaps and records the
+  ones that passed in `verified_with` (exit 1 if any fails).
+- `skies proof status` — which receipts are current, stale (files changed), or tampered (evidence edited); hashes only.
+- `skies proof impact [<paths>…] [--diff [<rev>]]` — the specs a change reaches, from receipt footprints and
+  `touches`, with their failure modes (and `[avp: …]` tags) and receipt state. No paths: files changed since the
+  merge-base, plus uncommitted and untracked ones.
 - `skies proof verify <ids…> | --stale | --all` — rerun and refresh green evidence.
 - `skies migrate 5 [--dry-run]` — move a 4.x app onto Skies 5.

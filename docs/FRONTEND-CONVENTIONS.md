@@ -624,6 +624,12 @@ The E2E engine is the app's: Playwright on web, Maestro or `integration_test` on
 covers (`test("FM-3: an expired session lands on sign-in")`). Nothing in the ViewModel, the View, or a JSON
 manifest points at the spec.
 
+Every runner gets `SKIES_EVIDENCE` and `SKIES_SPEC` in its environment; a test writes artifacts to
+`process.env.SKIES_EVIDENCE` when it is set, and they become the spec's hashed `evidence/`. When an Assay archetype
+decides a failure mode, tag its spec.md line (`- FM-4 … [avp: <criterion-id>]`) and have the case write the verdict
+with `verdictToJsonLine(verdict)` to `$SKIES_EVIDENCE/avp-FM-4.json`: the mode then passes only with a passing
+verdict. The tag is optional.
+
 ---
 
 ## Code comments — the code speaks for itself

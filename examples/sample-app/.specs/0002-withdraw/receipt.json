@@ -2,7 +2,7 @@
   "spec": "0002-withdraw",
   "runner": "api",
   "red": {
-    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:244639ea66c85c8fd6153a8fa7d837e02044f50472dc5035a3bad94634afc0ee"
@@ -12,19 +12,31 @@
       "FM-2": "fail",
       "FM-3": "fail",
       "FM-4": "fail",
-      "FM-5": "fail"
+      "FM-5": {
+        "result": "fail",
+        "avp": [
+          "idempotency-key-honored"
+        ],
+        "verdict": "evidence/red.avp-FM-5.json"
+      }
     },
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
       "FM-2": "pass",
       "FM-3": "pass",
       "FM-4": "pass",
-      "FM-5": "pass"
+      "FM-5": {
+        "result": "pass",
+        "avp": [
+          "idempotency-key-honored"
+        ],
+        "verdict": "evidence/avp-FM-5.json"
+      }
     },
     "report": "evidence/green.trx"
   },
@@ -35,7 +47,17 @@
     "backend/Sample.Api/Platform.Idempotency.cs": "blake3:0d6785d4534506b9d17d3241a53f0b9aaac333440aa4be639504e06b3fb4b99a"
   },
   "inputs": {
-    ".specs/0002-withdraw/e2e/WithdrawSpec.cs": "blake3:865ee663e5b94ff0acb96c87da6a115d6ba0d949483f13f7276524ef6a6207bb",
-    ".specs/0002-withdraw/spec.md": "blake3:4a79971992118114025c6affba5f54abf438be0d037d0acd754881cbef6c6f11"
+    ".specs/0002-withdraw/e2e/WithdrawSpec.cs": "blake3:7b953fb1f7ac182dffda463fa20951f07cc1d24972f5044d5cdd640d537f365d",
+    ".specs/0002-withdraw/spec.md": "blake3:ed70731732ef1d7152a5418e3073283b69d63000b0bf22a930c3688fbbd8345a"
+  },
+  "evidence": {
+    "evidence/avp-FM-5.json": "blake3:e302a0c3c04b52bacd16f3d853593c28441b39f24a82e4c0049c93f31d70254b",
+    "evidence/green.trx": "blake3:114ef8b10556e8a7e289d14d67451a38eec9472eedf26403b1246dd7e88f125b",
+    "evidence/red.avp-FM-5.json": "blake3:0ce3008b3d166b1c8527c041ec5e68c9f64d487fa02a0ef99b86a6a1c02d86fe",
+    "evidence/red.trx": "blake3:61d739e739702754a4ce36f42106a4418d605fda03ec69371d869cc401eef8a0"
+  },
+  "verified_with": {
+    "0001-deposit": "blake3:79a56dc3377635dca66aa20d61c85c28ae310384214908488c6896b819cc7995",
+    "0003-wallet-reads": "blake3:0540b3849abbb67582a9c8b2fe6b3424abec30a9247bda0039a23fd54e0441ce"
   }
 }

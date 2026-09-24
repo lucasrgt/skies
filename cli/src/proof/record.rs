@@ -10,14 +10,24 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, bail};
 
 use super::git::Repo;
+use super::green::{self, GreenOutcome, join};
 use super::hash;
-use super::receipt::{Green, GreenCase, Patch, Receipt, Red, RedCase};
+use super::receipt::{Entry, Green, Patch, Receipt, Red, RedCase};
 use super::report::{self, FmId, Report};
 use super::runner::{Job, NoReport, Session};
 use super::spec::{self, E2E_DIR, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
+use super::{avp, impact, verify};
 use crate::manifest::Project;
 
-pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) -> Result<u8> {
+/// What `skies proof record` was asked to do.
+pub struct Options<'a> {
+    pub red: Option<&'a str>,
+    pub red_patch: Option<&'a Path>,
+    /// Re-prove green for every other spec whose footprint overlaps this one's, and name them in the receipt.
+    pub with_impacted: bool,
+}
+
+pub fn record(key: &str, options: &Options) -> Result<u8> {
     let project = Project::from_cwd()?;
     let root = project.root.as_path();
     let spec = spec::find(root, key)?;
@@ -26,9 +36,9 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
     let runner = project.runner(runner_name)?;
     let repo = Repo::open(root)?;
 
-    let patch = red_patch(&spec, red_flag, red_patch_flag)?;
+    let patch = red_patch(&spec, options.red, options.red_patch)?;
     let head = repo.head()?;
-    let red_commit = match (red_flag, &patch) {
+    let red_commit = match (options.red, &patch) {
         (Some(rev), _) => repo.resolve(rev)?,
         (None, Some(_)) => head.clone(),
         (None, None) => repo.fork_point()?,
@@ -54,7 +64,9 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
     println!("record {} (runner {runner_name})", spec.name);
     println!("  red    {}{patch_note}", short(&red_commit));
 
-    // Red, in a worktree that is gone again before green starts.
+    // Red, in a worktree that is gone again before green starts. Its `{evidence}` lives in scratch, so an Assay
+    // verdict a red case saved survives the worktree.
+    let red_evidence = scratch.path().join("red-evidence");
     let red_run = {
         let worktree = repo.temp_worktree(&red_commit)?;
         let red_root = worktree.path.join(&repo.prefix);
@@ -66,13 +78,12 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
         if let Some(patch) = &patch {
             repo.apply(&worktree.path, patch)?;
         }
-        let evidence = scratch.path().join("red-evidence");
         let run = session.run(&Job {
             runner_name,
             runner,
             spec: &red_spec,
             root: &red_root,
-            evidence: &evidence,
+            evidence: &red_evidence,
             scratch: scratch.path(),
             label: "red",
         });
@@ -93,13 +104,17 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
             },
         }
     };
-    let (red_cases, red_file, red_report): (BTreeMap<FmId, RedCase>, PathBuf, String) = match red_run {
+    let (red_cases, red_file, red_report): (BTreeMap<FmId, Entry<RedCase>>, PathBuf, String) = match red_run {
         RedRun::DidNotBuild(log) => {
             println!(
                 "  red did not build at {}: every failure mode counts as failing (build output in {EVIDENCE_DIR}/red.log)",
                 short(&red_commit)
             );
-            let cases = doc.failure_modes.iter().map(|id| (*id, RedCase::DidNotBuild)).collect();
+            let cases = doc
+                .failure_modes
+                .iter()
+                .map(|id| (*id, Entry::new(RedCase::DidNotBuild, doc.avp(*id), None)))
+                .collect();
             (cases, log, format!("{EVIDENCE_DIR}/red.log"))
         }
         RedRun::Report(report, file) => {
@@ -113,23 +128,14 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
             let cases = red_eval
                 .passed
                 .iter()
-                .map(|(id, passed)| {
-                    (
-                        *id,
-                        if *passed {
-                            RedCase::NonDiscriminating
-                        } else {
-                            RedCase::Fail
-                        },
-                    )
-                })
+                .map(|(id, passed)| (*id, red_entry(&doc, *id, *passed, &red_evidence)))
                 .collect();
             (cases, file, format!("{EVIDENCE_DIR}/red.{}", report.format.extension()))
         }
     };
     let unjustified: Vec<FmId> = red_cases
         .iter()
-        .filter(|(id, case)| **case == RedCase::NonDiscriminating && !doc.justified.contains(id))
+        .filter(|(id, case)| case.result() == RedCase::NonDiscriminating && !doc.justified.contains(id))
         .map(|(id, _)| *id)
         .collect();
     if !unjustified.is_empty() {
@@ -152,8 +158,8 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
 
     let dirty = repo.dirty()?;
     println!("  green  {}{}", short(&head), if dirty { " (dirty)" } else { "" });
-    let green = match run_green(root, &spec, &doc, &project, &mut session, scratch.path())? {
-        GreenOutcome::Proven(green) => green,
+    let proven = match green::run_green(root, &spec, &doc, &project, &mut session, scratch.path())? {
+        GreenOutcome::Proven(proven) => proven,
         GreenOutcome::Refuted(message) => {
             eprintln!("{}: {message}", spec.name);
             return Ok(1);
@@ -161,15 +167,20 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
     };
     print_cases(&red_cases);
 
-    publish_evidence(
-        &spec,
-        &green.staged,
-        &[(&red_file, &red_report), (&green.file, &green.report)],
-        false,
-    )?;
+    let mut files = vec![
+        (red_file, red_report.clone()),
+        (proven.file.clone(), proven.report.clone()),
+    ];
+    for id in &doc.failure_modes {
+        let name = avp::verdict_file(*id);
+        if !doc.avp(*id).is_empty() && red_evidence.join(&name).is_file() {
+            files.push((red_evidence.join(&name), format!("{EVIDENCE_DIR}/red.{name}")));
+        }
+    }
+    green::publish_evidence(&spec, &proven.staged, &files, false)?;
 
     let footprint_paths = footprint(&repo, root, &doc, &red_commit, patch.as_deref())?;
-    let receipt = Receipt {
+    let mut receipt = Receipt {
         spec: spec.name.clone(),
         runner: runner_name.to_string(),
         red: Red {
@@ -184,20 +195,87 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
         green: Green {
             commit: head,
             dirty,
-            cases: green.cases,
-            report: green.report,
+            cases: proven.cases,
+            report: proven.report,
         },
         footprint: hash::hash_all(root, &footprint_paths),
         inputs: hash::hash_all(root, &hash::input_paths(root, &spec)?),
+        evidence: Some(green::evidence_hashes(&spec, None)?),
+        verified_with: BTreeMap::new(),
     };
     receipt.save(&spec)?;
     println!(
-        "wrote {}/receipt.json (footprint {} files, inputs {} files)",
+        "wrote {}/receipt.json (footprint {} files, inputs {} files, evidence {} files)",
         spec.rel(),
         receipt.footprint.len(),
-        receipt.inputs.len()
+        receipt.inputs.len(),
+        receipt.evidence.as_ref().map_or(0, |evidence| evidence.len())
     );
-    Ok(0)
+    impacted(&project, &spec, &mut receipt, options.with_impacted)
+}
+
+/// Lists the other specs this receipt's footprint reaches and, with `--with-impacted`, re-proves them green. The
+/// new receipt is already written; `verified_with` is added only for specs that passed, and any failure makes the
+/// exit code 1 so the author sees that the change broke a neighbor.
+fn impacted(project: &Project, spec: &SpecDir, receipt: &mut Receipt, rerun: bool) -> Result<u8> {
+    let index = impact::index(&project.root)?;
+    let paths: BTreeSet<String> = receipt.footprint.keys().cloned().collect();
+    let specs: Vec<SpecDir> = impact::impacted_by(&index, &spec.name, &paths)
+        .into_iter()
+        .map(|entry| entry.spec.clone())
+        .collect();
+    if specs.is_empty() {
+        return Ok(0);
+    }
+    let names: Vec<&str> = specs.iter().map(|spec| spec.name.as_str()).collect();
+    if !rerun {
+        println!("impacted: {} share files with this footprint", names.join(", "));
+        println!(
+            "  rerun them with `skies proof record {} --with-impacted` (or `skies proof verify {}`)",
+            spec.id,
+            specs.iter().map(|spec| spec.id.as_str()).collect::<Vec<_>>().join(" ")
+        );
+        return Ok(0);
+    }
+    println!("verify impacted: {}", names.join(", "));
+    let outcomes = verify::verify_specs(project, &specs)?;
+    verify::print_outcomes(&outcomes);
+    receipt.verified_with = outcomes
+        .iter()
+        .filter_map(|outcome| Some((outcome.name.clone(), outcome.result.as_ref().ok()?.receipt.clone())))
+        .collect();
+    receipt.save(spec)?;
+    let failed: Vec<&str> = outcomes
+        .iter()
+        .filter(|outcome| outcome.result.is_err())
+        .map(|outcome| outcome.name.as_str())
+        .collect();
+    if failed.is_empty() {
+        return Ok(0);
+    }
+    eprintln!(
+        "{}: recorded, but this change breaks impacted spec{} {} (their receipts are unchanged)",
+        spec.name,
+        if failed.len() == 1 { "" } else { "s" },
+        failed.join(", ")
+    );
+    Ok(1)
+}
+
+/// A failure mode passes red, and so bites nothing, only as green would count it passing: every case passed and,
+/// for a tagged mode, the verdict passed too. A missing verdict on red is simply a failure.
+fn red_entry(doc: &SpecDoc, id: FmId, cases_passed: bool, evidence: &Path) -> Entry<RedCase> {
+    let result = if cases_passed && avp::check(doc, id, evidence).is_ok() {
+        RedCase::NonDiscriminating
+    } else {
+        RedCase::Fail
+    };
+    let name = avp::verdict_file(id);
+    let verdict = evidence
+        .join(&name)
+        .is_file()
+        .then(|| format!("{EVIDENCE_DIR}/red.{name}"));
+    Entry::new(result, doc.avp(id), verdict)
 }
 
 /// What the red revision produced: a report to evaluate, or a build that never got that far.
@@ -236,7 +314,7 @@ fn copy_spec_sources(from: &SpecDir, to: &SpecDir) -> Result<()> {
     std::fs::create_dir_all(&to.path)?;
     std::fs::copy(from.file(SPEC_FILE), to.file(SPEC_FILE))?;
     if from.file(E2E_DIR).is_dir() {
-        copy_dir(&from.file(E2E_DIR), &e2e)?;
+        green::copy_dir(&from.file(E2E_DIR), &e2e)?;
     }
     Ok(())
 }
@@ -253,132 +331,23 @@ fn footprint(repo: &Repo, root: &Path, doc: &SpecDoc, red: &str, patch: Option<&
     Ok(paths)
 }
 
-pub struct ProvenGreen {
-    pub cases: BTreeMap<FmId, GreenCase>,
-    /// The report file name inside evidence/, relative to the spec folder.
-    pub report: String,
-    /// The report as the runner wrote it.
-    pub file: PathBuf,
-    /// Artifacts the runner wrote to `{evidence}`, staged until the run is known to be good.
-    pub staged: PathBuf,
-}
-
-pub enum GreenOutcome {
-    Proven(ProvenGreen),
-    /// The run finished but does not prove the spec; the message says why.
-    Refuted(String),
-}
-
-/// Runs the spec on the working tree. Evidence is staged in `scratch` so a failing run never overwrites the
-/// evidence of the last good one.
-pub fn run_green(
-    root: &Path,
-    spec: &SpecDir,
-    doc: &SpecDoc,
-    project: &Project,
-    session: &mut Session,
-    scratch: &Path,
-) -> Result<GreenOutcome> {
-    let runner_name = doc.runner(spec)?;
-    let staged = scratch.join(format!("{}-evidence", spec.name));
-    let run = session.run(&Job {
-        runner_name,
-        runner: project.runner(runner_name)?,
-        spec,
-        root,
-        evidence: &staged,
-        scratch,
-        label: "green",
-    })?;
-    let evaluation = match report::evaluate(&doc.failure_modes, &run.report.cases) {
-        Ok(evaluation) => evaluation,
-        Err(problems) => {
-            return Ok(GreenOutcome::Refuted(format!(
-                "the green run does not match spec.md:\n{problems}"
-            )));
-        }
-    };
-    let failing: Vec<FmId> = evaluation
-        .passed
-        .iter()
-        .filter(|(_, passed)| !**passed)
-        .map(|(id, _)| *id)
-        .collect();
-    if !failing.is_empty() {
-        return Ok(GreenOutcome::Refuted(format!(
-            "{} not passing on the working tree (a failed or skipped case counts as not passing)",
-            join(&failing)
-        )));
-    }
-    Ok(GreenOutcome::Proven(ProvenGreen {
-        cases: evaluation.passed.keys().map(|id| (*id, GreenCase::Pass)).collect(),
-        report: format!("{EVIDENCE_DIR}/green.{}", run.report.format.extension()),
-        file: run.file,
-        staged,
-    }))
-}
-
-/// Replaces evidence/ with the staged runner artifacts plus the given reports (`(source, path in spec folder)`).
-/// With `keep_red`, the red report of the original recording survives, since `verify` never reruns red.
-pub fn publish_evidence(spec: &SpecDir, staged: &Path, reports: &[(&Path, &str)], keep_red: bool) -> Result<()> {
-    let evidence = spec.file(EVIDENCE_DIR);
-    let mut kept: Vec<(String, Vec<u8>)> = Vec::new();
-    if keep_red && evidence.is_dir() {
-        for entry in std::fs::read_dir(&evidence)? {
-            let entry = entry?;
-            let name = entry.file_name().to_string_lossy().into_owned();
-            if name.starts_with("red.") && entry.path().is_file() {
-                kept.push((name, std::fs::read(entry.path())?));
-            }
-        }
-    }
-    if evidence.exists() {
-        std::fs::remove_dir_all(&evidence).with_context(|| format!("clearing {}", evidence.display()))?;
-    }
-    std::fs::create_dir_all(&evidence)?;
-    if staged.is_dir() {
-        copy_dir(staged, &evidence)?;
-    }
-    for (name, bytes) in kept {
-        std::fs::write(evidence.join(name), bytes)?;
-    }
-    for (source, target) in reports {
-        std::fs::copy(source, spec.path.join(target)).with_context(|| format!("copying the report to {target}"))?;
-    }
-    Ok(())
-}
-
-pub fn copy_dir(from: &Path, to: &Path) -> Result<()> {
-    std::fs::create_dir_all(to)?;
-    for entry in std::fs::read_dir(from).with_context(|| format!("reading {}", from.display()))? {
-        let entry = entry?;
-        let target = to.join(entry.file_name());
-        if entry.file_type()?.is_dir() {
-            copy_dir(&entry.path(), &target)?;
-        } else {
-            std::fs::copy(entry.path(), &target).with_context(|| format!("copying {}", entry.path().display()))?;
-        }
-    }
-    Ok(())
-}
-
 /// Red outcome per failure mode; green is only printed on success, where every one of them passed.
-fn print_cases(red: &BTreeMap<FmId, RedCase>) {
+fn print_cases(red: &BTreeMap<FmId, Entry<RedCase>>) {
     println!("  {:<6}{:<20}green", "FM", "red");
     for (id, case) in red {
-        let red_text = match case {
+        let red_text = match case.result() {
             RedCase::Fail => "fail",
             RedCase::DidNotBuild => "did not build",
             RedCase::NonDiscriminating => "non-discriminating",
         };
-        println!("  {:<6}{red_text:<20}pass", id.to_string());
+        let tag = match case {
+            Entry::Avp(entry) => format!("  [avp: {}]", entry.avp.join(", ")),
+            Entry::Plain(_) => String::new(),
+        };
+        println!("  {:<6}{red_text:<20}pass{tag}", id.to_string());
     }
 }
 
 pub fn short(commit: &str) -> &str {
     &commit[..commit.len().min(7)]
-}
-
-pub fn join(ids: &[FmId]) -> String {
-    ids.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
 }
