@@ -9,10 +9,13 @@ public static class Platform
     public static IServiceCollection AddPlatform(this IServiceCollection services, IConfiguration configuration,
         IHostEnvironment environment)
     {
-        // `dotnet build` boots the app only to write the OpenAPI contract, and never opens the database.
-        if (!environment.IsDevelopment() && !SkiesExtensions.IsGeneratingOpenApiDocument)
-            throw new InvalidOperationException(
-                "Configure a persistent AppDb provider in Platform.AddPlatform before running outside Development.");
+        // `dotnet build` also boots the app, only to write the OpenAPI contract; that boot never opens the database.
+        if (!environment.IsDevelopment())
+        {
+            if (!SkiesExtensions.IsGeneratingOpenApiDocument)
+                throw new InvalidOperationException(
+                    "Configure a persistent AppDb provider in Platform.AddPlatform before running outside Development.");
+        }
 
         configuration["Jwt:Secret"] ??= "myapp-local-development-key-not-for-deployment";
         services.AddDbContext<AppDb>(options => options.UseInMemoryDatabase("myapp"));

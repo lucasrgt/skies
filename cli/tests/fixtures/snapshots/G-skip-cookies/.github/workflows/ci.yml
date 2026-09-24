@@ -7,13 +7,21 @@ on:
 
 jobs:
   build:
-    name: restore, build, test
+    name: build, test, doctor
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
       - run: dotnet restore
       - run: dotnet build --no-restore
       - run: dotnet test --no-build
+      # The skies binary at the version of this app's Skies packages; the npm wrapper installs the platform's build.
+      - run: npm install --global @skiesjs/cli@5.0.0-rc.1
+      # The doctor lints and typechecks every web package, so each one's dependencies are installed first
+      # (`skies g web-app` adds its line here).
+      - run: skies doctor

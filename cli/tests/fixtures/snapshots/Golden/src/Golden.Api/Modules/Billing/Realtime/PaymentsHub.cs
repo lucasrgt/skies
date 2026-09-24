@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace Golden.Api.Modules.Billing.Realtime;
 
-/// <summary>PaymentsHub — the live layer for Billing. Wire, not logic: a hub method persists nothing
-/// itself; it calls the matching slice (the one source of the write + its rules) and fans the result out
-/// to the room. Ephemeral signals (typing, presence) ride the hub and never touch the database. The
+/// <summary>PaymentsHub — the live layer for Billing. Keep it wire, not logic: a hub method persists nothing
+/// itself; a durable write goes through the matching slice (the one source of the write and its rules) and the hub
+/// fans the result out to the room. Ephemeral signals (typing, presence) ride the hub and never touch the database. The
 /// connection is JWT-authenticated, so the caller comes from <c>Context.User</c> via
 /// <see cref="ClaimsCurrentUser"/> — the request-scoped <c>ICurrentUser</c> reads the HTTP context, which
 /// a hub method does not have.</summary>

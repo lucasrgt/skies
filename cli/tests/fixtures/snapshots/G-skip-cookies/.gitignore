@@ -15,3 +15,6 @@ TestResults/
 .specs/**/evidence/*.webm
 .specs/**/evidence/*.mp4
 .specs/**/evidence/trace*
+
+# A web package's dependencies (each package ignores its own build output too).
+node_modules/

@@ -4,11 +4,16 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- `dotnet build` writes the OpenAPI contract here (the GetDocument tool, no running server). Commit it: the
+         typed clients (`skies g client`) and the feature scaffolds generate from it, and its diff shows a contract
+         change in review. -->
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/contract</OpenApiDocumentsDirectory>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Skies.Framework.Abstractions" Version="5.0.0-rc.1" />
     <PackageReference Include="Skies.Framework.AspNetCore" Version="5.0.0-rc.1" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.0" PrivateAssets="all" />
     <!-- The doctor rides along as a build analyzer. Remove it and the app still compiles and runs
          (Law 2) — you only lose the enforcement. -->
     <PackageReference Include="Skies.Framework.Doctor" Version="5.0.0-rc.1" PrivateAssets="all" />

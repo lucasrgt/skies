@@ -9,9 +9,13 @@ public static class Platform
     public static IServiceCollection AddPlatform(this IServiceCollection services, IConfiguration configuration,
         IHostEnvironment environment)
     {
+        // `dotnet build` also boots the app, only to write the OpenAPI contract; that boot never opens the database.
         if (!environment.IsDevelopment())
-            throw new InvalidOperationException(
-                "Configure a persistent AppDb provider in Platform.AddPlatform before running outside Development.");
+        {
+            if (!SkiesExtensions.IsGeneratingOpenApiDocument)
+                throw new InvalidOperationException(
+                    "Configure a persistent AppDb provider in Platform.AddPlatform before running outside Development.");
+        }
 
         configuration["Jwt:Secret"] ??= "golden-local-development-key-not-for-deployment";
         services.AddDbContext<AppDb>(options => options.UseInMemoryDatabase("golden"));

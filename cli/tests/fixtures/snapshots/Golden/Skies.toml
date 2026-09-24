@@ -5,7 +5,10 @@
 name = "Golden"
 # Everything allowed at the repository root; `skies doctor` flags anything else (SKYWS001). A trailing / names a
 # folder, no slash a file, and globs work (*.slnx). A new file belongs under an existing folder; add a line here only
-# for a new top-level concern (e.g. "clients/" with your first frontend). Skies.toml and .git are always allowed.
+# for a new top-level concern (`skies g web-app --path clients/web` adds "clients/"). The usual root files join the
+# list when you create them, not before: the doctor also warns on a line that matches nothing (SKYWS002). Add them as
+# they arrive: "LICENSE", ".env.example", "docker-compose.yml", "global.json", "nuget.config". Skies.toml and .git are
+# always allowed.
 root = [
   ".claude/",
   ".github/",
@@ -17,13 +20,14 @@ root = [
   "AGENTS.md",
   "CLAUDE.md",
   "Directory.Build.props",
+  "README.md",
   "*.slnx",
 ]
 
 [products.app]
 backend = "src/Golden.Api"   # .NET vertical slices; the SKY* analyzers run in its build
 tests = "tests/Golden.Tests" # compiles every spec's e2e/; `skies doctor` builds it (and the backend)
-# frontend = "clients/web"                     # a React or Flutter package, declared when you add one
+# frontend = "clients/web"                     # a React or Flutter package (`skies g web-app` declares its own)
 
 # Every test lives in a spec: .specs/<id>-<slug>/e2e/ holds its cases, titled "FM-<n>: ...". There is no other
 # place for a test, unit or not (SKY0029, SKYFE036, SKYFL036); an isolated system gets its own spec.
