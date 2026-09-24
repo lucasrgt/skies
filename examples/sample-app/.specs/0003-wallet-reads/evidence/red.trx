@@ -1,0 +1,223 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="d9815d03-6296-4d7c-bd96-75b0b51161cd" name="@omarchy 2026-09-23 22:20:54" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-23T22:20:54.0072147-03:00" queuing="2026-09-23T22:20:54.0072148-03:00" start="2026-09-23T22:20:52.9798942-03:00" finish="2026-09-23T22:20:54.0112039-03:00" />
+  <TestSettings name="default" id="fb59f32d-d751-43c4-9886-fdb46e9f68ec">
+    <Deployment runDeploymentRoot="_omarchy_2026-09-23_22_20_54" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="425ed360-9a51-4a0f-96b3-862dad6556e0" testId="69a0ef7f-8e1b-f74c-dc04-e15c39a6b1a5" testName="FM-1: the balance read returns the stored balance" computerName="omarchy" duration="00:00:00.0177398" startTime="2026-09-23T22:20:53.8628911-03:00" endTime="2026-09-23T22:20:53.8801447-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="425ed360-9a51-4a0f-96b3-862dad6556e0">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 42
+Actual:   0</Message>
+          <StackTrace>   at Specs.S0003.WalletReadsSpec.Balance_reflects_the_store() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 21
+   at Specs.S0003.WalletReadsSpec.Balance_reflects_the_store() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 21
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5c0ad901-274f-43a7-b143-af6b13f397eb" testId="1d64df9c-9bca-97b1-5588-6cfd9667c3d6" testName="FM-4: hostile paging input is clamped server-side" computerName="omarchy" duration="00:00:00.0132447" startTime="2026-09-23T22:20:53.8806893-03:00" endTime="2026-09-23T22:20:53.8937912-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5c0ad901-274f-43a7-b143-af6b13f397eb">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 1
+Actual:   -2</Message>
+          <StackTrace>   at Specs.S0003.WalletReadsSpec.Hostile_paging_is_clamped() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 56
+   at Specs.S0003.WalletReadsSpec.Hostile_paging_is_clamped() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 58
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="9f5383c7-bed0-4f8d-94e2-b811df4a6b52" testId="b7f02797-4f97-a4a6-e52a-c47bd922f3fe" testName="FM-2: a balance read for a missing wallet answers 404" computerName="omarchy" duration="00:00:00.0358473" startTime="2026-09-23T22:20:53.8360207-03:00" endTime="2026-09-23T22:20:53.8620196-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9f5383c7-bed0-4f8d-94e2-b811df4a6b52">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: NotFound
+Actual:   OK</Message>
+          <StackTrace>   at Specs.S0003.WalletReadsSpec.Missing_wallet_is_not_found() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 31
+   at Specs.S0003.WalletReadsSpec.Missing_wallet_is_not_found() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 31
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5cd4ba96-1256-46e0-9fb5-ad5f9a427ea1" testId="ce9d2cae-80ac-7577-6d63-65b2cfc35262" testName="FM-5: consecutive pages neither overlap nor skip" computerName="omarchy" duration="00:00:00.0148720" startTime="2026-09-23T22:20:53.8943007-03:00" endTime="2026-09-23T22:20:53.9091463-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5cd4ba96-1256-46e0-9fb5-ad5f9a427ea1">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 7
+Actual:   0</Message>
+          <StackTrace>   at Specs.S0003.WalletReadsSpec.Pages_partition_the_set() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 71
+   at Specs.S0003.WalletReadsSpec.Pages_partition_the_set() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 72
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="2d10ae37-c590-4db3-bf36-4b9a0f59f844" testId="7de1929c-d6ed-aea6-fa9e-65cd9c86f859" testName="FM-3: a page carries its items and the count of the whole set" computerName="omarchy" duration="00:00:00.4636702" startTime="2026-09-23T22:20:53.3505167-03:00" endTime="2026-09-23T22:20:53.8249331-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2d10ae37-c590-4db3-bf36-4b9a0f59f844">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 2
+Actual:   0</Message>
+          <StackTrace>   at Specs.S0003.WalletReadsSpec.Page_carries_items_and_total() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 42
+   at Specs.S0003.WalletReadsSpec.Page_carries_items_and_total() in /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs:line 45
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="FM-5: consecutive pages neither overlap nor skip" storage="/tmp/skies-red-jawljw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="ce9d2cae-80ac-7577-6d63-65b2cfc35262">
+      <Execution id="5cd4ba96-1256-46e0-9fb5-ad5f9a427ea1" />
+      <TestMethod codeBase="/tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Pages_partition_the_set" />
+    </UnitTest>
+    <UnitTest name="FM-1: the balance read returns the stored balance" storage="/tmp/skies-red-jawljw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="69a0ef7f-8e1b-f74c-dc04-e15c39a6b1a5">
+      <Execution id="425ed360-9a51-4a0f-96b3-862dad6556e0" />
+      <TestMethod codeBase="/tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Balance_reflects_the_store" />
+    </UnitTest>
+    <UnitTest name="FM-4: hostile paging input is clamped server-side" storage="/tmp/skies-red-jawljw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="1d64df9c-9bca-97b1-5588-6cfd9667c3d6">
+      <Execution id="5c0ad901-274f-43a7-b143-af6b13f397eb" />
+      <TestMethod codeBase="/tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Hostile_paging_is_clamped" />
+    </UnitTest>
+    <UnitTest name="FM-3: a page carries its items and the count of the whole set" storage="/tmp/skies-red-jawljw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="7de1929c-d6ed-aea6-fa9e-65cd9c86f859">
+      <Execution id="2d10ae37-c590-4db3-bf36-4b9a0f59f844" />
+      <TestMethod codeBase="/tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Page_carries_items_and_total" />
+    </UnitTest>
+    <UnitTest name="FM-2: a balance read for a missing wallet answers 404" storage="/tmp/skies-red-jawljw/checkout/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b7f02797-4f97-a4a6-e52a-c47bd922f3fe">
+      <Execution id="9f5383c7-bed0-4f8d-94e2-b811df4a6b52" />
+      <TestMethod codeBase="/tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0003.WalletReadsSpec" name="Missing_wallet_is_not_found" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="69a0ef7f-8e1b-f74c-dc04-e15c39a6b1a5" executionId="425ed360-9a51-4a0f-96b3-862dad6556e0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1d64df9c-9bca-97b1-5588-6cfd9667c3d6" executionId="5c0ad901-274f-43a7-b143-af6b13f397eb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b7f02797-4f97-a4a6-e52a-c47bd922f3fe" executionId="9f5383c7-bed0-4f8d-94e2-b811df4a6b52" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ce9d2cae-80ac-7577-6d63-65b2cfc35262" executionId="5cd4ba96-1256-46e0-9fb5-ad5f9a427ea1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7de1929c-d6ed-aea6-fa9e-65cd9c86f859" executionId="2d10ae37-c590-4db3-bf36-4b9a0f59f844" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="5" executed="5" passed="0" failed="5" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.04]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.07]   Discovered:  Sample.Tests
+[xUnit.net 00:00:00.09]   Starting:    Sample.Tests
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 4 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.58]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.58]       Expected: 2
+[xUnit.net 00:00:00.58]       Actual:   0
+[xUnit.net 00:00:00.58]       Stack Trace:
+[xUnit.net 00:00:00.58]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(42,0): at Specs.S0003.WalletReadsSpec.Page_carries_items_and_total()
+[xUnit.net 00:00:00.58]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(45,0): at Specs.S0003.WalletReadsSpec.Page_carries_items_and_total()
+[xUnit.net 00:00:00.58]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.62]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.62]       Expected: NotFound
+[xUnit.net 00:00:00.62]       Actual:   OK
+[xUnit.net 00:00:00.62]       Stack Trace:
+[xUnit.net 00:00:00.62]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(31,0): at Specs.S0003.WalletReadsSpec.Missing_wallet_is_not_found()
+[xUnit.net 00:00:00.62]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(31,0): at Specs.S0003.WalletReadsSpec.Missing_wallet_is_not_found()
+[xUnit.net 00:00:00.62]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.64]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.64]       Expected: 42
+[xUnit.net 00:00:00.64]       Actual:   0
+[xUnit.net 00:00:00.64]       Stack Trace:
+[xUnit.net 00:00:00.64]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(21,0): at Specs.S0003.WalletReadsSpec.Balance_reflects_the_store()
+[xUnit.net 00:00:00.64]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(21,0): at Specs.S0003.WalletReadsSpec.Balance_reflects_the_store()
+[xUnit.net 00:00:00.64]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 2 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.65]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.65]       Expected: 1
+[xUnit.net 00:00:00.65]       Actual:   -2
+[xUnit.net 00:00:00.65]       Stack Trace:
+[xUnit.net 00:00:00.65]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(56,0): at Specs.S0003.WalletReadsSpec.Hostile_paging_is_clamped()
+[xUnit.net 00:00:00.65]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(58,0): at Specs.S0003.WalletReadsSpec.Hostile_paging_is_clamped()
+[xUnit.net 00:00:00.65]         --- End of stack trace from previous location ---
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /tmp/skies-red-jAwLjW/checkout/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 6 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.67]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:00.67]       Expected: 7
+[xUnit.net 00:00:00.67]       Actual:   0
+[xUnit.net 00:00:00.67]       Stack Trace:
+[xUnit.net 00:00:00.67]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(71,0): at Specs.S0003.WalletReadsSpec.Pages_partition_the_set()
+[xUnit.net 00:00:00.67]         /tmp/skies-red-jAwLjW/checkout/examples/sample-app/.specs/0003-wallet-reads/e2e/WalletReadsSpec.cs(72,0): at Specs.S0003.WalletReadsSpec.Pages_partition_the_set()
+[xUnit.net 00:00:00.67]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:00.67]   Finished:    Sample.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:20:53.8269955-03:00">
+        <Text>[xUnit.net 00:00:00.58]     FM-3: a page carries its items and the count of the whole set [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:20:53.8623472-03:00">
+        <Text>[xUnit.net 00:00:00.62]     FM-2: a balance read for a missing wallet answers 404 [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:20:53.8804708-03:00">
+        <Text>[xUnit.net 00:00:00.64]     FM-1: the balance read returns the stored balance [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:20:53.8941216-03:00">
+        <Text>[xUnit.net 00:00:00.65]     FM-4: hostile paging input is clamped server-side [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="omarchy" outcome="Error" timestamp="2026-09-23T22:20:53.9094392-03:00">
+        <Text>[xUnit.net 00:00:00.67]     FM-5: consecutive pages neither overlap nor skip [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

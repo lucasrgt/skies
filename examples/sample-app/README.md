@@ -2,6 +2,8 @@
 
 A small wallet product that shows the Skies 5 shape end to end:
 
+- **[`Skies.toml`](Skies.toml)** — makes this folder a self-contained Skies app: its backend and the `api` runner
+  that executes spec E2E.
 - **`backend/Sample.Api`** — the .NET API: a `Wallets` module with `Deposit`, `Withdraw`, `GetBalance`, and
   `ListWallets` slices, a rich `Wallet` entity, the `Money` value object, and the module's `Wallets.ctx.md`. The
   `SKY*` analyzers run in its build.
@@ -19,7 +21,8 @@ A small wallet product that shows the Skies 5 shape end to end:
 
 ```bash
 dotnet test examples/sample-app/backend/Sample.Tests
-skies proof status              # from examples/sample-app
+cd examples/sample-app
+skies proof status              # hashes only
 skies proof verify --all
 npm --prefix frontend-sdk run check   # typechecks, lints, and tests the frontend sample
 ```

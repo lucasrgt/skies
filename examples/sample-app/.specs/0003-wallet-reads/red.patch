@@ -1,0 +1,41 @@
+diff --git a/backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs b/backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs
+index d1fb635..14317f6 100644
+--- a/backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs
++++ b/backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs
+@@ -10,13 +10,9 @@ public static class GetBalance
+ 
+     public record Output(Guid WalletId, decimal Balance);
+ 
+-    public static async Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct)
+-    {
+-        var wallet = await db.Wallets.FindAsync([input.WalletId], ct);
+-        return wallet is null
+-            ? Error.NotFound(WalletsErrorCodes.NotFound, $"wallet {input.WalletId} not found")
+-            : new Output(wallet.Id, wallet.Balance.Amount);
+-    }
++    public static Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct) =>
++        // Red: balance reads are not implemented yet; every wallet reads as an empty one.
++        Task.FromResult<Result<Output>>(new Output(input.WalletId, 0m));
+ 
+     public static void Map(IEndpointRouteBuilder app) =>
+         app.MapGet("/{walletId:guid}/balance",
+diff --git a/backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs b/backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs
+index 4182dad..3ede61b 100644
+--- a/backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs
++++ b/backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs
+@@ -20,12 +20,9 @@ public static class ListWallets
+ 
+     private const int MaxPageSize = 100;
+ 
+-    public static async Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct)
+-    {
+-        var wallets = await db.Wallets.OrderBy(w => w.Id)
+-            .ToPageAsync(input.Page, input.PageSize, MaxPageSize, ct);
+-        return new Output(wallets.Select(w => new WalletView(w.Id, w.Balance.Amount, w.LastDeposit)));
+-    }
++    public static Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct) =>
++        // Red: listing is not implemented yet; every page is empty and echoes the raw paging input.
++        Task.FromResult<Result<Output>>(new Output(new Page<WalletView>([], 0, input.Page, input.PageSize)));
+ 
+     public static void Map(IEndpointRouteBuilder app) =>
+         app.MapGet("/", async (int? page, int? pageSize, AppDb db, CancellationToken ct) =>
