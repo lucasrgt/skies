@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using Assay.Net;
+using Assay.Net.Archetypes;
 using Sample.Api.Modules.Wallets;
 using Sample.Tests;
 
@@ -60,41 +62,46 @@ public class DepositSpec
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // FM-5 and FM-6 are the two halves of one AVP criterion, idempotency-key-honored: Assay's request-idempotency
+    // verifier posts twice with one key (must replay the balance) and once with another (must credit again) against
+    // the real app. Each case saves the verdict before asserting, so a failing run leaves the reason in evidence/.
+
     [Fact(DisplayName = "FM-5: a retry with the same Idempotency-Key credits once")]
     public async Task Same_key_credits_once()
     {
         await using var app = new TestApp();
-        var client = app.CreateClient();
 
-        var first = await Post(client, "retry-1", 10m);
-        var retry = await Post(client, "retry-1", 10m);
+        var verdict = await IdempotencyVerdict(app);
+        SpecEvidence.Save("avp-FM-5.json", verdict);
 
-        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
-        Assert.Equal(10m, (await retry.Content.ReadFromJsonAsync<Deposit.Output>())!.Balance);
-        Assert.Equal(10m, await BalanceOf(client, Seeded));
+        AssertHonored(verdict);
+        Assert.Equal(20m, await BalanceOf(app.CreateClient(), Seeded));
     }
 
     [Fact(DisplayName = "FM-6: a new Idempotency-Key credits again")]
     public async Task New_key_credits_again()
     {
         await using var app = new TestApp();
-        var client = app.CreateClient();
 
-        await Post(client, "key-a", 10m);
-        await Post(client, "key-b", 10m);
+        var verdict = await IdempotencyVerdict(app);
+        SpecEvidence.Save("avp-FM-6.json", verdict);
 
-        Assert.Equal(20m, await BalanceOf(client, Seeded));
+        AssertHonored(verdict);
+        Assert.Equal(20m, await BalanceOf(app.CreateClient(), Seeded));
     }
 
-    private static Task<HttpResponseMessage> Post(HttpClient client, string key, decimal amount)
+    private static Task<Verdict> IdempotencyVerdict(TestApp app) =>
+        Runner.Run(
+            Catalog.LoadDefault(),
+            new RequestIdempotency(),
+            nameof(Deposit),
+            new RequestIdempotencySubject("http://localhost", "/wallets/deposit", new { walletId = Seeded, amount = 10m }, IdField: "balance"),
+            transport: app.CreateClient);
+
+    private static void AssertHonored(Verdict verdict)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/wallets/deposit")
-        {
-            Content = JsonContent.Create(new { walletId = Seeded, amount }),
-        };
-        request.Headers.Add("Idempotency-Key", key);
-        return client.SendAsync(request);
+        var result = verdict.Results.Single(r => r.CriterionId == "idempotency-key-honored");
+        Assert.True(result.Status == VerdictStatus.Pass, result.Reason);
     }
 
     private static async Task<decimal> BalanceOf(HttpClient client, Guid walletId) =>

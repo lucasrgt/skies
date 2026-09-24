@@ -24,6 +24,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Skies.Framework.AspNetCore\Skies.Framework.AspNetCore.csproj" />
+    <!-- Skies.Framework.Testing has no test project of its own; its one IO helper, SpecEvidence, is tested here. -->
+    <ProjectReference Include="..\..\src\Skies.Framework.Testing\Skies.Framework.Testing.csproj" />
   </ItemGroup>
 
 </Project>

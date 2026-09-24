@@ -3,6 +3,7 @@
 //! The frontmatter is deliberately a tiny YAML subset (`key: value`, inline or dashed lists) so the file stays
 //! hand-editable and the parser stays a few lines instead of a YAML dependency.
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
@@ -93,6 +94,16 @@ fn id_number(id: &str) -> u64 {
     id.parse().unwrap_or(u64::MAX)
 }
 
+/// One `- FM-n text [avp: criterion, …]` line. The tag is optional and never required by the framework: it says
+/// that a verifier from the AVP catalog decides this failure mode, so the receipt also demands its verdict.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct FailureMode {
+    /// The line's text after the id, without the tag.
+    pub text: String,
+    /// AVP criterion ids from the tag, in the order written.
+    pub avp: Vec<String>,
+}
+
 /// The parts of spec.md the engine acts on. Everything else in the file is for people.
 #[derive(Debug, Default)]
 pub struct SpecDoc {
@@ -100,6 +111,8 @@ pub struct SpecDoc {
     pub runner: Option<String>,
     pub touches: Vec<String>,
     pub failure_modes: Vec<FmId>,
+    /// Each failure mode's line as a reader sees it, and the Assay criteria that must also pass for it.
+    pub modes: BTreeMap<FmId, FailureMode>,
     /// Failure modes the `## Non-discriminating` section justifies passing on red.
     pub justified: Vec<FmId>,
 }
@@ -119,6 +132,11 @@ impl SpecDoc {
             );
         }
         Ok(doc)
+    }
+
+    /// The AVP criteria tagged on a failure mode; empty when it is decided by its cases alone.
+    pub fn avp(&self, id: FmId) -> &[String] {
+        self.modes.get(&id).map(|mode| mode.avp.as_slice()).unwrap_or_default()
     }
 
     pub fn runner(&self, spec: &SpecDir) -> Result<&str> {
@@ -145,11 +163,12 @@ pub fn parse(text: &str) -> Result<SpecDoc> {
         }
         match section.as_str() {
             "failure modes" => {
-                if let Some(id) = failure_mode_line(line) {
+                if let Some((id, mode)) = failure_mode_line(line)? {
                     if doc.failure_modes.contains(&id) {
                         bail!("{id} is listed twice under ## Failure modes");
                     }
                     doc.failure_modes.push(id);
+                    doc.modes.insert(id, mode);
                 }
             }
             "non-discriminating" => doc.justified.extend(fm_ids(line)),
@@ -161,13 +180,45 @@ pub fn parse(text: &str) -> Result<SpecDoc> {
 
 /// `- FM-3 text` (or `* FM-3: text`): the id must lead the bullet, so prose that merely mentions a failure mode
 /// inside the section does not declare one.
-fn failure_mode_line(line: &str) -> Option<FmId> {
-    let item = line.trim_start().strip_prefix(['-', '*'])?.trim_start();
-    let head = item.split_whitespace().next()?;
-    match fm_ids(head).as_slice() {
-        [id] if head.to_ascii_uppercase().starts_with("FM") => Some(*id),
-        _ => None,
+fn failure_mode_line(line: &str) -> Result<Option<(FmId, FailureMode)>> {
+    let Some(item) = line.trim_start().strip_prefix(['-', '*']).map(str::trim_start) else {
+        return Ok(None);
+    };
+    let Some(head) = item.split_whitespace().next() else {
+        return Ok(None);
+    };
+    let id = match fm_ids(head).as_slice() {
+        [id] if head.to_ascii_uppercase().starts_with("FM") => *id,
+        _ => return Ok(None),
+    };
+    let rest = item[head.len()..].trim_start_matches(':').trim();
+    let (text, avp) = avp_tag(rest).with_context(|| format!("{id}: malformed [avp: …] tag"))?;
+    Ok(Some((id, FailureMode { text, avp })))
+}
+
+/// Splits `text [avp: a, b]` into the text and the criterion ids. A criterion id is kebab-case, as in the AVP
+/// catalog, so a typo like `[avp: ]` or a missing bracket is an error instead of a silently untagged mode.
+fn avp_tag(rest: &str) -> Result<(String, Vec<String>)> {
+    let Some(start) = rest.to_ascii_lowercase().find("[avp:") else {
+        return Ok((rest.to_string(), Vec::new()));
+    };
+    let end = rest[start..]
+        .find(']')
+        .map(|offset| start + offset)
+        .context("the tag has no closing ]")?;
+    let ids: Vec<String> = rest[start + "[avp:".len()..end]
+        .split(',')
+        .map(|id| id.trim().to_string())
+        .filter(|id| !id.is_empty())
+        .collect();
+    if ids.is_empty() {
+        bail!("the tag names no criterion (expected e.g. [avp: idempotency-key-honored])");
     }
+    if let Some(bad) = ids.iter().find(|id| validate_slug(id).is_err()) {
+        bail!("'{bad}' is not an AVP criterion id (kebab-case, e.g. idempotency-key-honored)");
+    }
+    let text = format!("{} {}", rest[..start].trim_end(), rest[end + 1..].trim_start());
+    Ok((text.trim().to_string(), ids))
 }
 
 fn split_frontmatter(text: &str) -> Option<(&str, &str)> {
@@ -320,6 +371,29 @@ mod tests {
         assert_eq!(doc.touches, ["src/Res/**", "src/Pay.cs"]);
         assert_eq!(doc.failure_modes, [FmId(1), FmId(2), FmId(3)]);
         assert_eq!(doc.justified, [FmId(2)]);
+    }
+
+    #[test]
+    fn reads_avp_tags_and_keeps_them_out_of_the_text() {
+        let doc = parse(
+            "## Failure modes\n- FM-1 plain\n- FM-5: a retry credits twice [avp: idempotency-key-honored]\n\
+             - FM-6 two tags [AVP: a-b, c] trailing\n",
+        )
+        .unwrap();
+        assert!(doc.modes[&FmId(1)].avp.is_empty());
+        assert_eq!(doc.modes[&FmId(1)].text, "plain");
+        assert_eq!(doc.modes[&FmId(5)].text, "a retry credits twice");
+        assert_eq!(doc.modes[&FmId(5)].avp, ["idempotency-key-honored"]);
+        assert_eq!(doc.modes[&FmId(6)].avp, ["a-b", "c"]);
+        assert_eq!(doc.modes[&FmId(6)].text, "two tags trailing");
+    }
+
+    #[test]
+    fn rejects_malformed_avp_tags() {
+        for line in ["- FM-1 x [avp: ]", "- FM-1 x [avp: Not Kebab]", "- FM-1 x [avp: a"] {
+            let error = parse(&format!("## Failure modes\n{line}\n")).unwrap_err();
+            assert!(format!("{error:#}").contains("FM-1"), "{line}: {error:#}");
+        }
     }
 
     #[test]

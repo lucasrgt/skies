@@ -643,6 +643,12 @@ point the paths at the package (`npm --prefix clients/web ci`, `clients/web/node
 include `.specs/*/e2e/**/*.test.{ts,tsx}` in the Vitest config, the tsconfig the cases compile under, and the
 ESLint `files`.
 
+Every runner gets `SKIES_EVIDENCE` and `SKIES_SPEC` in its environment; a test writes artifacts to
+`process.env.SKIES_EVIDENCE` when it is set, and they become the spec's hashed `evidence/`. When an Assay archetype
+decides a failure mode, tag its spec.md line (`- FM-4 … [avp: <criterion-id>]`) and have the case write the verdict
+with `verdictToJsonLine(verdict)` to `$SKIES_EVIDENCE/avp-FM-4.json`: the mode then passes only with a passing
+verdict. The tag is optional.
+
 ---
 
 ## Code comments — the code speaks for itself

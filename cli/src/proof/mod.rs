@@ -1,11 +1,14 @@
-//! Specs and receipts: `skies spec new`, `skies proof record|status|verify`.
+//! Specs and receipts: `skies spec new`, `skies proof record|status|verify|impact`.
 //!
 //! A feature is delivered with a receipt in its spec folder: its failure modes failed on a revision without the
 //! feature (red) and pass on the working tree (green). The receipt is a record, not a turnstile; nothing here runs
 //! in a hook or blocks anything by default.
 
+mod avp;
 mod git;
+mod green;
 mod hash;
+mod impact;
 mod receipt;
 mod record;
 mod report;
@@ -18,7 +21,8 @@ use anyhow::{Context, Result, bail};
 use crate::manifest::{FILE_NAME, Project};
 use receipt::Freshness;
 
-pub use record::record;
+pub use impact::impact;
+pub use record::{Options as RecordOptions, record};
 pub use verify::verify;
 
 pub fn spec_new(slug: &str, runner: Option<&str>) -> Result<u8> {
@@ -71,22 +75,26 @@ pub fn status() -> Result<u8> {
     let width = specs.iter().map(|spec| spec.name.len()).max().unwrap_or(0);
     let mut unreadable = false;
     for spec in &specs {
-        let line = match receipt::freshness(root, spec) {
-            Ok(Freshness::Missing) => "no receipt".to_string(),
-            Ok(Freshness::Current) => "current".to_string(),
-            Ok(Freshness::Stale(changed)) => stale_line(&changed),
-            Err(error) => {
-                unreadable = true;
-                format!("unreadable ({error:#})")
-            }
-        };
+        let (line, readable) = freshness_line(root, spec);
+        unreadable |= !readable;
         println!("{:<width$}  {line}", spec.name);
     }
     Ok(if unreadable { 2 } else { 0 })
 }
 
+/// A receipt's standing in one phrase, and whether it could be read at all.
+fn freshness_line(root: &std::path::Path, spec: &spec::SpecDir) -> (String, bool) {
+    match receipt::freshness(root, spec) {
+        Ok(Freshness::Missing) => ("no receipt".to_string(), true),
+        Ok(Freshness::Current) => ("current".to_string(), true),
+        Ok(Freshness::Stale(changed)) => (changed_line("stale", "changed", &changed), true),
+        Ok(Freshness::Tampered(edited)) => (changed_line("tampered", "edited since recording", &edited), true),
+        Err(error) => (format!("unreadable ({error:#})"), false),
+    }
+}
+
 /// `stale (3 files changed: a, b, c)`, naming at most a handful so one line stays one line.
-fn stale_line(changed: &[String]) -> String {
+fn changed_line(state: &str, verb: &str, changed: &[String]) -> String {
     const SHOWN: usize = 4;
     let noun = if changed.len() == 1 { "file" } else { "files" };
     let mut names = changed
@@ -98,7 +106,7 @@ fn stale_line(changed: &[String]) -> String {
     if changed.len() > SHOWN {
         names.push_str(", …");
     }
-    format!("stale ({} {noun} changed: {names})", changed.len())
+    format!("{state} ({} {noun} {verb}: {names})", changed.len())
 }
 
 #[cfg(test)]
@@ -107,8 +115,18 @@ mod tests {
 
     #[test]
     fn stale_lines_stay_short() {
-        assert_eq!(stale_line(&["a".into()]), "stale (1 file changed: a)");
+        assert_eq!(
+            changed_line("stale", "changed", &["a".into()]),
+            "stale (1 file changed: a)"
+        );
         let many: Vec<String> = ["a", "b", "c", "d", "e"].map(String::from).to_vec();
-        assert_eq!(stale_line(&many), "stale (5 files changed: a, b, c, d, …)");
+        assert_eq!(
+            changed_line("stale", "changed", &many),
+            "stale (5 files changed: a, b, c, d, …)"
+        );
+        assert_eq!(
+            changed_line("tampered", "edited since recording", &["evidence/green.xml".into()]),
+            "tampered (1 file edited since recording: evidence/green.xml)"
+        );
     }
 }

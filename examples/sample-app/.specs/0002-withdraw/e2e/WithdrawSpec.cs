@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using Assay.Net;
+using Assay.Net.Archetypes;
 using Sample.Api.Modules.Wallets;
 using Sample.Tests;
 
@@ -59,6 +61,9 @@ public class WithdrawSpec
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // Decided by the AVP criterion idempotency-key-honored: Assay's request-idempotency verifier withdraws twice with
+    // one key (must replay the balance) and once with another (must debit again) against the real app. The verdict
+    // is saved before asserting, so a failing run leaves the reason in evidence/.
     [Fact(DisplayName = "FM-5: a retry with the same Idempotency-Key debits once")]
     public async Task Same_key_debits_once()
     {
@@ -66,21 +71,17 @@ public class WithdrawSpec
         var client = app.CreateClient();
         await client.PostAsJsonAsync("/wallets/deposit", new { walletId = Seeded, amount = 50m });
 
-        await Post(client, "retry-1", 20m);
-        var retry = await Post(client, "retry-1", 20m);
+        var verdict = await Runner.Run(
+            Catalog.LoadDefault(),
+            new RequestIdempotency(),
+            nameof(Withdraw),
+            new RequestIdempotencySubject("http://localhost", "/wallets/withdraw", new { walletId = Seeded, amount = 10m }, IdField: "balance"),
+            transport: app.CreateClient);
+        SpecEvidence.Save("avp-FM-5.json", verdict);
 
-        Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+        var result = verdict.Results.Single(r => r.CriterionId == "idempotency-key-honored");
+        Assert.True(result.Status == VerdictStatus.Pass, result.Reason);
         Assert.Equal(30m, await BalanceOf(client));
-    }
-
-    private static Task<HttpResponseMessage> Post(HttpClient client, string key, decimal amount)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/wallets/withdraw")
-        {
-            Content = JsonContent.Create(new { walletId = Seeded, amount }),
-        };
-        request.Headers.Add("Idempotency-Key", key);
-        return client.SendAsync(request);
     }
 
     private static async Task<decimal> BalanceOf(HttpClient client) =>

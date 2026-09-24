@@ -179,6 +179,12 @@ on-device cases (`IntegrationTestWidgetsFlutterBinding`), copy into `app/integra
 pass the device (`flutter test integration_test/.skies_spec -d <device> …`). `skies proof record` runs red in a fresh
 git worktree; `flutter test` resolves the package there on its own.
 
+Every runner gets `SKIES_EVIDENCE` and `SKIES_SPEC` in its environment. The runner's host process sees them, not
+the device: a host-side test reads `Platform.environment['SKIES_EVIDENCE']`, and an on-device run saves artifacts
+from its host driver (`integration_test_driver`'s `responseDataCallback`). A failure mode an Assay archetype decides
+carries `[avp: <criterion-id>]` on its spec.md line, and its verdict goes to `$SKIES_EVIDENCE/avp-FM-<n>.json`;
+the mode then passes only with a passing verdict. The tag is optional.
+
 Styling, the widget kit, tokens, and layout are the application's. Accessibility is too; Flutter's
 `meetsGuideline` matchers are a good failure-mode check for a spec, not a framework rule.
 

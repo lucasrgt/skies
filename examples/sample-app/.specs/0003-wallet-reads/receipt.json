@@ -2,7 +2,7 @@
   "spec": "0003-wallet-reads",
   "runner": "api",
   "red": {
-    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:8136cd158b0db3a000a3751b35222d877b06d8d6650a7a37dc63d0ca10e34f45"
@@ -17,7 +17,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -36,5 +36,9 @@
   "inputs": {
     ".specs/0003-wallet-reads/e2e/WalletReadsSpec.cs": "blake3:300a20fcd885eda2f17caea5b7cd6a8773d9b2c31497559626265e73422c8fb1",
     ".specs/0003-wallet-reads/spec.md": "blake3:8457fd006b04d19b66fd27e166cbb15e287883564af388eb82c7b69310a243d5"
+  },
+  "evidence": {
+    "evidence/green.trx": "blake3:7a5e696bb71c37835979c2e08d7c6f3c6e4ec3e2054a6fced540ecc2e756c8ba",
+    "evidence/red.trx": "blake3:dc3450be65cb8dc9047685624f0897820963f8f61acbba01acf41a3cb1ae5837"
   }
 }

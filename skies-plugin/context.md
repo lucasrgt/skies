@@ -17,7 +17,8 @@ Hard rules:
 - `skies doctor` findings are fixed in the code, never suppressed.
 
 Nothing runs automatically: there is no gate and no required hook. `skies proof status` shows receipts whose files
-changed; rerun them with `skies proof verify` when the change could affect them.
+changed; rerun them with `skies proof verify` when the change could affect them. `skies proof impact <paths>` lists
+the specs a change reaches, with their failure modes, before you make it.
 
 Reference: `docs/backend-conventions.md`, `docs/frontend-conventions.md`, `docs/doctor-rules.md`, `docs/cli.md`,
 `docs/decisions.md` in this plugin.
