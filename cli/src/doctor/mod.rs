@@ -158,12 +158,14 @@ fn classify_package(path: &Path) -> Target {
     }
 }
 
-/// One target per declared package, in manifest order (products are sorted by name).
+/// One target per declared package, in manifest order (products are sorted by name). A declared tests project
+/// replaces the backend as the .NET target: building it builds the backend too, so the analyzers see both, and two
+/// parallel builds of the same backend would fight over its output.
 pub fn targets(project: &Project) -> Vec<Target> {
     let mut out = Vec::new();
     for product in project.manifest.products.values() {
-        if let Some(backend) = &product.backend {
-            out.push(Target::Dotnet(project.root.join(backend)));
+        if let Some(dotnet) = product.tests.as_ref().or(product.backend.as_ref()) {
+            out.push(Target::Dotnet(project.root.join(dotnet)));
         }
         for frontend in product.frontend.iter() {
             out.push(classify(&project.root.join(frontend)));
@@ -275,7 +277,8 @@ mod tests {
         let root = dir.path();
         std::fs::write(
             root.join("Skies.toml"),
-            "[workspace]\nname = \"d\"\n[products.app]\nbackend = \"api\"\nfrontend = [\"web\", \"mobile\", \"odd\"]\n",
+            "[workspace]\nname = \"d\"\n[products.app]\nbackend = \"api\"\nfrontend = [\"web\", \"mobile\", \"odd\"]\n\
+             [products.tested]\nbackend = \"b/api\"\ntests = \"b/tests\"\n",
         )
         .unwrap();
         for (dir, file) in [("web", "package.json"), ("mobile", "pubspec.yaml")] {
@@ -291,6 +294,7 @@ mod tests {
                 Target::Eslint(root.join("web")),
                 Target::Flutter(root.join("mobile")),
                 Target::Unknown(root.join("odd")),
+                Target::Dotnet(root.join("b/tests")),
             ]
         );
     }

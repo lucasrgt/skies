@@ -7,3 +7,4 @@ name = "skies"
 
 [products.sample]
 backend = "examples/sample-app/backend/Sample.Api"
+tests = "examples/sample-app/backend/Sample.Tests"

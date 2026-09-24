@@ -6,6 +6,7 @@
 //!
 //! [products.app]
 //! backend = "src/Hostpoint.Api"
+//! tests = "tests/Hostpoint.Tests"
 //! frontend = ["clients/web", "clients/hosts"]
 //!
 //! [runners.api]
@@ -41,6 +42,10 @@ pub struct Workspace {
 #[serde(deny_unknown_fields)]
 pub struct Product {
     pub backend: Option<String>,
+    /// The .NET tests project that compiles the spec E2E. When declared, `skies doctor` builds it instead of the
+    /// backend: it references the backend, so one build runs the SKY analyzers over both, and the tests project is
+    /// where SKY0029 sees a test that lives outside `.specs/`.
+    pub tests: Option<String>,
     #[serde(default)]
     pub frontend: Paths,
 }
@@ -141,6 +146,7 @@ mod tests {
 
             [products.app]
             backend = "src/Demo.Api"
+            tests = "tests/Demo.Tests"
             frontend = ["clients/web", "clients/mobile"]
 
             [runners.api]
@@ -151,6 +157,7 @@ mod tests {
 
         let app = &manifest.products["app"];
         assert_eq!(app.backend.as_deref(), Some("src/Demo.Api"));
+        assert_eq!(app.tests.as_deref(), Some("tests/Demo.Tests"));
         assert_eq!(
             app.frontend.iter().collect::<Vec<_>>(),
             ["clients/web", "clients/mobile"]
