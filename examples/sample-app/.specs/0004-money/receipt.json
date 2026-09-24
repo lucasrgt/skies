@@ -2,93 +2,44 @@
   "spec": "0004-money",
   "runner": "api",
   "red": {
-    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
-    "patch": {
-      "file": "red.patch",
-      "hash": "blake3:9bd366ecc6ae53d8a7def06d8e345edd39f4059f882d9ccbaedb85e9dbf3567b"
-    },
-    "cases": {
-      "FM-1": {
-        "result": "fail",
-        "cases": [
-          "FM-1: zero is valid money"
-        ],
-        "message": "Assert.True() Failure\nExpected: True\nActual:   False"
-      },
-      "FM-2": {
-        "result": "fail",
-        "cases": [
-          "FM-2: a positive amount is valid and keeps its value"
-        ],
-        "message": "Assert.True() Failure\nExpected: True\nActual:   False"
-      },
-      "FM-3": {
-        "result": "fail",
-        "cases": [
-          "FM-3: a negative amount is rejected as a validation error"
-        ],
-        "message": "Assert.True() Failure\nExpected: True\nActual:   False"
-      },
-      "FM-4": {
-        "result": "fail",
-        "cases": [
-          "FM-4: adding two amounts produces their sum"
-        ],
-        "message": "System.InvalidOperationException : Result is a failure; no value to read."
-      }
-    },
-    "report": {
-      "file": "evidence/raw/red.trx",
-      "hash": "blake3:45723d87bb6af91484aed2579a741fc1f0c8cc66c95199f7c45368b3bebf08f4"
-    }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91",
+    "patch": "red.patch"
   },
   "green": {
-    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
-    "dirty": false,
-    "cases": {
-      "FM-1": {
-        "result": "pass",
-        "cases": [
-          "FM-1: zero is valid money"
-        ]
-      },
-      "FM-2": {
-        "result": "pass",
-        "cases": [
-          "FM-2: a positive amount is valid and keeps its value"
-        ]
-      },
-      "FM-3": {
-        "result": "pass",
-        "cases": [
-          "FM-3: a negative amount is rejected as a validation error"
-        ]
-      },
-      "FM-4": {
-        "result": "pass",
-        "cases": [
-          "FM-4: adding two amounts produces their sum"
-        ]
-      }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-1: zero is valid money"
+      ],
+      "message": "Assert.True() Failure\nExpected: True\nActual:   False"
     },
-    "report": {
-      "file": "evidence/raw/green.trx",
-      "hash": "blake3:cad482daa70822303e5b907a5fa7f212691a4cda2caf8d8d0223c3a00e955c1a"
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-2: a positive amount is valid and keeps its value"
+      ],
+      "message": "Assert.True() Failure\nExpected: True\nActual:   False"
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-3: a negative amount is rejected as a validation error"
+      ],
+      "message": "Assert.True() Failure\nExpected: True\nActual:   False"
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-4: adding two amounts produces their sum"
+      ],
+      "message": "System.InvalidOperationException : Result is a failure; no value to read."
     }
-  },
-  "footprint": {
-    "backend/Sample.Api/BuildingBlocks/Money.cs": {
-      "lines": "18,20,22,26-28,30",
-      "ranges": "b072c937ab399de8,23ee0ce58c8a090b,afe0d5adc472bc23,c9bdf34b6445d977,a4d0e52be858099d"
-    }
-  },
-  "footprint_source": "coverage",
-  "footprint_changed": [
-    "backend/Sample.Api/BuildingBlocks/Money.cs"
-  ],
-  "inputs": {
-    ".specs/0004-money/e2e/MoneySpec.cs": "blake3:df31b33ffa9cc108b3627c10b349e30df822dd870257ab7cd0b08906e5b9a502",
-    ".specs/0004-money/spec.md": "blake3:16359828112304b5c9e9411806ed9dce2245955b89f5af1026a625ff2f42a7be"
-  },
-  "evidence": {}
+  }
 }

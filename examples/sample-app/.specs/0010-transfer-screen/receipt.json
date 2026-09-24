@@ -2,154 +2,44 @@
   "spec": "0010-transfer-screen",
   "runner": "web",
   "red": {
-    "commit": "cf41f844bde190370e008e0fb40ddfeeaea824b6",
-    "patch": {
-      "file": "red.patch",
-      "hash": "blake3:b7a5292140823af80ada0c825c08020c9cd8f54ab21085b02ec323325e86cb47"
-    },
-    "cases": {
-      "FM-1": {
-        "result": "fail",
-        "cases": [
-          "Transfer screen > FM-1: an empty submit is blocked with three field errors inside the Field anatomy"
-        ],
-        "message": "TestingLibraryElementError: Unable to find role=\"alert\"\nIgnored nodes: comments, script, style\n<body>\n<div>"
-      },
-      "FM-2": {
-        "result": "fail",
-        "cases": [
-          "Transfer screen > FM-2: the same wallet on both sides is reported on the destination and never sent"
-        ],
-        "message": "TestingLibraryElementError: Unable to find an element with the text: Choose a different wallet to send to.. This could be because the text is broken up by multiple elements. In this case, you can pro…\nIgnored nodes: comments, script, style\n<body>\n<div>"
-      },
-      "FM-3": {
-        "result": "fail",
-        "cases": [
-          "Transfer screen > FM-3: a valid submit announces while pending, then reaches the success surface"
-        ],
-        "message": "TestingLibraryElementError: Unable to find role=\"button\"\nIgnored nodes: comments, script, style\n<body>\n<div>"
-      },
-      "FM-4": {
-        "result": "fail",
-        "cases": [
-          "Transfer screen > FM-4: a refused transfer surfaces as a role=alert block and keeps the form"
-        ],
-        "message": "TestingLibraryElementError: Unable to find an element with the text: We couldn't complete the transfer. Check the balance and try again.. This could be because the text is broken up by multiple eleme…\nIgnored nodes: comments, script, style\n<body>\n<div>"
-      }
-    },
-    "report": {
-      "file": "evidence/raw/red.xml",
-      "hash": "blake3:6879488f0a81e6980334233f92df2f9a6ab5d08eb74f49d571886ada98777e6a"
-    }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91",
+    "patch": "red.patch"
   },
   "green": {
-    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
-    "dirty": false,
-    "cases": {
-      "FM-1": {
-        "result": "pass",
-        "cases": [
-          "Transfer screen > FM-1: an empty submit is blocked with three field errors inside the Field anatomy"
-        ]
-      },
-      "FM-2": {
-        "result": "pass",
-        "cases": [
-          "Transfer screen > FM-2: the same wallet on both sides is reported on the destination and never sent"
-        ]
-      },
-      "FM-3": {
-        "result": "pass",
-        "cases": [
-          "Transfer screen > FM-3: a valid submit announces while pending, then reaches the success surface"
-        ]
-      },
-      "FM-4": {
-        "result": "pass",
-        "cases": [
-          "Transfer screen > FM-4: a refused transfer surfaces as a role=alert block and keeps the form"
-        ]
-      }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Transfer screen > FM-1: an empty submit is blocked with three field errors inside the Field anatomy"
+      ],
+      "message": "TestingLibraryElementError: Unable to find role=\"alert\"\nIgnored nodes: comments, script, style\n<body>\n<div>"
     },
-    "report": {
-      "file": "evidence/raw/green.xml",
-      "hash": "blake3:52235d74abef82bc2e90af70a2034ea2f749f61cb8234436b0477ff38f958373"
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Transfer screen > FM-2: the same wallet on both sides is reported on the destination and never sent"
+      ],
+      "message": "TestingLibraryElementError: Unable to find an element with the text: Choose a different wallet to send to.. This could be because the text is broken up by multiple elements. In this case, you can pro…\nIgnored nodes: comments, script, style\n<body>\n<div>"
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Transfer screen > FM-3: a valid submit announces while pending, then reaches the success surface"
+      ],
+      "message": "TestingLibraryElementError: Unable to find role=\"button\"\nIgnored nodes: comments, script, style\n<body>\n<div>"
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Transfer screen > FM-4: a refused transfer surfaces as a role=alert block and keeps the form"
+      ],
+      "message": "TestingLibraryElementError: Unable to find an element with the text: We couldn't complete the transfer. Check the balance and try again.. This could be because the text is broken up by multiple eleme…\nIgnored nodes: comments, script, style\n<body>\n<div>"
     }
-  },
-  "footprint": {
-    "frontend/web/package.json": "blake3:8f309ab6481f644c74f5a5a28af3a69f7390c644c19a8a5f747caee14e6cc863",
-    "frontend/web/src/api.ts": {
-      "lines": "2",
-      "ranges": "8e7e0918124efcc0"
-    },
-    "frontend/web/src/client.gen/sample.ts": "blake3:288508d20320640fffcd1276f0bd64c65a7445300bdfbe6f274f6fa36c1e248e",
-    "frontend/web/src/deposit/Deposit.viewModel.ts": "blake3:9f52c28b9c3a0ded9ade1569a9fcad6761a0c4b11ec3cedaf1b625d20796dc05",
-    "frontend/web/src/deposit/deposit.i18n.ts": {
-      "lines": "2,16,30",
-      "ranges": "b4fcbf7240480bf1,49c5acd9c991b4f7,55b2e168c60319f9"
-    },
-    "frontend/web/src/i18n.ts": {
-      "lines": "8",
-      "ranges": "b560e7b7f50799ab"
-    },
-    "frontend/web/src/i18n/resources.generated.ts": {
-      "lines": "6",
-      "ranges": "775feb43163cf6a2"
-    },
-    "frontend/web/src/items/items.i18n.ts": {
-      "lines": "3,12,21",
-      "ranges": "b4fcbf7240480bf1,49c5acd9c991b4f7,55b2e168c60319f9"
-    },
-    "frontend/web/src/transfer/Transfer.view.tsx": "blake3:c0a5f7667e1a3af882ffaf6403cacbdd81d1b1a900182328f6decee6089cc613",
-    "frontend/web/src/transfer/Transfer.viewModel.ts": "blake3:f997017f5a45a0d49e3a1f3629ac62552b24baaf08761684e15d7dbc799d9848",
-    "frontend/web/src/transfer/transfer.i18n.ts": "blake3:d0db27679c498f52e0599551a96a1e4f5bac500e7f3d9696033c484c05c1d564",
-    "frontend/web/src/ui/Button.tsx": {
-      "lines": "1,11,33-38,40",
-      "ranges": "a26a11ba3249b658,d64ef2a70135ffda,98120cfe48b4416f,55002434f3092575"
-    },
-    "frontend/web/src/ui/Card.tsx": {
-      "lines": "15",
-      "ranges": "55002434f3092575"
-    },
-    "frontend/web/src/ui/Field.tsx": {
-      "lines": "1,13,17,33-34,40",
-      "ranges": "a26a11ba3249b658,c1f2c538506bfda1,332e324d211dd88a,eac287088237f1ce,55002434f3092575"
-    },
-    "frontend/web/src/ui/Input.tsx": {
-      "lines": "1,26-28,30,36",
-      "ranges": "a26a11ba3249b658,e007979c38627320,55002434f3092575,965c4c92eee9cf5a"
-    },
-    "frontend/web/src/ui/Screen.tsx": {
-      "lines": "8",
-      "ranges": "55002434f3092575"
-    },
-    "frontend/web/src/ui/Stack.tsx": {
-      "lines": "4,21",
-      "ranges": "89c76d839f0ae60b,55002434f3092575"
-    },
-    "frontend/web/src/ui/Text.tsx": {
-      "lines": "6,28-31",
-      "ranges": "7d7c9fe60b692281,6995543b93af073c"
-    },
-    "frontend/web/src/ui/theme.ts": {
-      "lines": "7,9,11,20,38,40",
-      "ranges": "665d7008adbdda75,cfb79a92c6135ba2,0699eeaa3e2ba908,3d3ca33170bb5ca3,6876ed9bb6ceb06e,89d24a18fb83dbef"
-    }
-  },
-  "footprint_source": "coverage",
-  "footprint_changed": [
-    "frontend/web/package.json",
-    "frontend/web/src/client.gen/sample.ts",
-    "frontend/web/src/deposit/Deposit.viewModel.ts",
-    "frontend/web/src/i18n.ts",
-    "frontend/web/src/i18n/resources.generated.ts",
-    "frontend/web/src/transfer/Transfer.view.tsx",
-    "frontend/web/src/transfer/Transfer.viewModel.ts",
-    "frontend/web/src/transfer/transfer.i18n.ts"
-  ],
-  "inputs": {
-    ".specs/0010-transfer-screen/e2e/Transfer.test.tsx": "blake3:357b27435a76765cac8eff13499cf94a678700f610c5f066d0bb8bca6673b782",
-    ".specs/0010-transfer-screen/spec.md": "blake3:be0edef9ea5153785836eab35e94ae6d18df8b57895144b42792c92887c068e1"
-  },
-  "evidence": {}
+  }
 }

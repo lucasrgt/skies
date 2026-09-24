@@ -2,165 +2,57 @@
   "spec": "0002-withdraw",
   "runner": "api",
   "red": {
-    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
-    "patch": {
-      "file": "red.patch",
-      "hash": "blake3:244639ea66c85c8fd6153a8fa7d837e02044f50472dc5035a3bad94634afc0ee"
-    },
-    "cases": {
-      "FM-1": {
-        "result": "fail",
-        "cases": [
-          "FM-1: a withdrawal is reflected by the next balance read"
-        ],
-        "message": "Assert.Equal() Failure: Values differ\nExpected: 30\nActual:   0"
-      },
-      "FM-2": {
-        "result": "fail",
-        "cases": [
-          "FM-2: overdrawing answers 422 and leaves the balance untouched"
-        ],
-        "message": "Assert.Equal() Failure: Values differ\nExpected: UnprocessableEntity\nActual:   OK"
-      },
-      "FM-3": {
-        "result": "fail",
-        "cases": [
-          "FM-3: a negative amount answers 400 with an amount field error"
-        ],
-        "message": "Assert.Equal() Failure: Values differ\nExpected: BadRequest\nActual:   OK"
-      },
-      "FM-4": {
-        "result": "fail",
-        "cases": [
-          "FM-4: a missing wallet answers 404"
-        ],
-        "message": "Assert.Equal() Failure: Values differ\nExpected: NotFound\nActual:   OK"
-      },
-      "FM-5": {
-        "result": "fail",
-        "avp": [
-          "idempotency-key-honored"
-        ],
-        "verdict": "evidence/red.avp-FM-5.json",
-        "cases": [
-          "FM-5: a retry with the same Idempotency-Key debits once"
-        ],
-        "message": "two different idempotency keys collapsed to one 'balance' value ('0') — a distinct key must apply again, not dedup regardless of the key."
-      }
-    },
-    "report": {
-      "file": "evidence/raw/red.trx",
-      "hash": "blake3:98c10f7efc6d7d9c87ceca6ba55a854e49be65a93e8446249d1f83709a699ad4"
-    }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91",
+    "patch": "red.patch"
   },
   "green": {
-    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
-    "dirty": false,
-    "cases": {
-      "FM-1": {
-        "result": "pass",
-        "cases": [
-          "FM-1: a withdrawal is reflected by the next balance read"
-        ]
-      },
-      "FM-2": {
-        "result": "pass",
-        "cases": [
-          "FM-2: overdrawing answers 422 and leaves the balance untouched"
-        ]
-      },
-      "FM-3": {
-        "result": "pass",
-        "cases": [
-          "FM-3: a negative amount answers 400 with an amount field error"
-        ]
-      },
-      "FM-4": {
-        "result": "pass",
-        "cases": [
-          "FM-4: a missing wallet answers 404"
-        ]
-      },
-      "FM-5": {
-        "result": "pass",
-        "avp": [
-          "idempotency-key-honored"
-        ],
-        "verdict": "evidence/avp-FM-5.json",
-        "cases": [
-          "FM-5: a retry with the same Idempotency-Key debits once"
-        ]
-      }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-1: a withdrawal is reflected by the next balance read"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 30\nActual:   0"
     },
-    "report": {
-      "file": "evidence/raw/green.trx",
-      "hash": "blake3:8205d6ebc0f2923f653d8096f2f3e9eae45b1c6b53fd8517885d4b50c7d5d95e"
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-2: overdrawing answers 422 and leaves the balance untouched"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: UnprocessableEntity\nActual:   OK"
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-3: a negative amount answers 400 with an amount field error"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: BadRequest\nActual:   OK"
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-4: a missing wallet answers 404"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: NotFound\nActual:   OK"
+    },
+    "FM-5": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-5: a retry with the same Idempotency-Key debits once"
+      ],
+      "message": "two different idempotency keys collapsed to one 'balance' value ('0') — a distinct key must apply again, not dedup regardless of the key.",
+      "avp": [
+        "idempotency-key-honored"
+      ],
+      "verdict": "evidence/avp-FM-5.json",
+      "red_verdict": "evidence/red.avp-FM-5.json"
     }
-  },
-  "footprint": {
-    "backend/Sample.Api/AppDb.cs": {
-      "lines": "15,17,23-26",
-      "ranges": "6e8ca5900c191b2c,3f94eb4e8d4981cc,629dbdcabc73b461"
-    },
-    "backend/Sample.Api/BuildingBlocks/Money.cs": {
-      "lines": "18,20,22,26-28,30,37,39",
-      "ranges": "b072c937ab399de8,23ee0ce58c8a090b,afe0d5adc472bc23,c9bdf34b6445d977,a4d0e52be858099d,dd98750f9b2eba32,417b761177272247"
-    },
-    "backend/Sample.Api/Modules/Modules.cs": {
-      "lines": "12-15,18-20",
-      "ranges": "39c90c551fd01601,faf02a17522bd7cb"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": {
-      "lines": "17,19,23,26-30,35,38-39,44-45,48,51-52,55-58",
-      "ranges": "629733f50bc408ea,f9c6ecdba05fa474,fcd3f1784143c361,9ec1bc08f8fe2737,93f9636686cec698,cc34a085666d00a4,d0d6700db13b8213,6b6d2e6de0edde10,5f885444d76b87cc,9275beef55c3982d"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": {
-      "lines": "9,11,14-19,22-25",
-      "ranges": "d6f5f2a3e81dc7c3,f9c6ecdba05fa474,886b578ca0033b19,702c3dbf43357966"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": {
-      "lines": "31,33",
-      "ranges": "ec467c8f39a9a03f,eea47aa387380f50"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": {
-      "lines": "61-62,64",
-      "ranges": "574ee97db5b496e3,b03741f346d82720"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
-      "lines": "17,19,23-29,33-34,36-38,42-44,46,49-50,52-53,56-59",
-      "ranges": "629733f50bc408ea,f9c6ecdba05fa474,4df98b4da9138676,2e459ea4b96aafc1,9dd15b6a4911052d,24ef311f585969ff,2dcdea5e86fac47e,ce5dbc42002fe215,5f885444d76b87cc,7d446f6eabda0a59"
-    },
-    "backend/Sample.Api/Modules/Wallets/Wallet.cs": {
-      "lines": "14,17,21,33,41,48-51,59-63,65-67,73-77,79-80",
-      "ranges": "9f08426259a265fa,dc7695cbc38c7606,12c75e8d2abea81a,da3ea91cdb6ee61b,c7207d944e55f9a8,497769adf2e81108,c4ed9ef7743174bd,5735e67dc402084f,8610860abea0b31a,08d1cb2a47a7e329"
-    },
-    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
-      "lines": "17,23-24,26-28,31,34,36-41",
-      "ranges": "54d96c8f9de199b8,40c07d166d4c4c2e,e47dff6c35460042,fcd3f1784143c361,f6e4fd77d893c6c5,73936a9eb2147f2f"
-    },
-    "backend/Sample.Api/Platform.Idempotency.cs": {
-      "lines": "30,33,36,39,62-65",
-      "ranges": "1b07797b0703405b,67b660cbf2e14461,ce45505b7571bc14,57336c1cec056381,91e47adb76a62e2f"
-    },
-    "backend/Sample.Api/Platform.cs": {
-      "lines": "15-19",
-      "ranges": "20632c396a9bff0e"
-    },
-    "backend/Sample.Api/Program.cs": {
-      "lines": "6-9,11,13-14,19,21",
-      "ranges": "b7e10816881d8d19,52322576e1410c84,b60a31ef4c4ae920,6a64c9fb150fc8cb,ee79f7afb223c356"
-    }
-  },
-  "footprint_source": "coverage",
-  "footprint_changed": [
-    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs"
-  ],
-  "inputs": {
-    ".specs/0002-withdraw/e2e/WithdrawSpec.cs": "blake3:7b953fb1f7ac182dffda463fa20951f07cc1d24972f5044d5cdd640d537f365d",
-    ".specs/0002-withdraw/spec.md": "blake3:774e0b5572151877ecbb8fc8307ff4b8804c82f1349d7ab3a9a652cb45288225"
-  },
-  "evidence": {
-    "evidence/avp-FM-5.json": "blake3:a048de7af19ab13aecb6723023caad390aad0d7b68f6507f1690999404585bef",
-    "evidence/red.avp-FM-5.json": "blake3:6b544bc741cb6a161d44e7c74c9be016f0a928eb118098f8a9f8d7850e8bc67c"
   }
 }

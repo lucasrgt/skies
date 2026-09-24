@@ -2,155 +2,52 @@
   "spec": "0003-wallet-reads",
   "runner": "api",
   "red": {
-    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
-    "patch": {
-      "file": "red.patch",
-      "hash": "blake3:8136cd158b0db3a000a3751b35222d877b06d8d6650a7a37dc63d0ca10e34f45"
-    },
-    "cases": {
-      "FM-1": {
-        "result": "fail",
-        "cases": [
-          "FM-1: the balance read returns the stored balance"
-        ],
-        "message": "Assert.Equal() Failure: Values differ\nExpected: 42\nActual:   0"
-      },
-      "FM-2": {
-        "result": "fail",
-        "cases": [
-          "FM-2: a balance read for a missing wallet answers 404"
-        ],
-        "message": "Assert.Equal() Failure: Values differ\nExpected: NotFound\nActual:   OK"
-      },
-      "FM-3": {
-        "result": "fail",
-        "cases": [
-          "FM-3: a page carries its items and the count of the whole set"
-        ],
-        "message": "Assert.Equal() Failure: Values differ\nExpected: 2\nActual:   0"
-      },
-      "FM-4": {
-        "result": "fail",
-        "cases": [
-          "FM-4: hostile paging input is clamped server-side"
-        ],
-        "message": "Assert.Equal() Failure: Values differ\nExpected: 1\nActual:   -2"
-      },
-      "FM-5": {
-        "result": "fail",
-        "cases": [
-          "FM-5: consecutive pages neither overlap nor skip"
-        ],
-        "message": "Assert.Equal() Failure: Values differ\nExpected: 7\nActual:   0"
-      }
-    },
-    "report": {
-      "file": "evidence/raw/red.trx",
-      "hash": "blake3:d53411b11b1fd74cf8e234c2a71b2a37eacbccc2428a24e80091b0b065aaa2af"
-    }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91",
+    "patch": "red.patch"
   },
   "green": {
-    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
-    "dirty": false,
-    "cases": {
-      "FM-1": {
-        "result": "pass",
-        "cases": [
-          "FM-1: the balance read returns the stored balance"
-        ]
-      },
-      "FM-2": {
-        "result": "pass",
-        "cases": [
-          "FM-2: a balance read for a missing wallet answers 404"
-        ]
-      },
-      "FM-3": {
-        "result": "pass",
-        "cases": [
-          "FM-3: a page carries its items and the count of the whole set"
-        ]
-      },
-      "FM-4": {
-        "result": "pass",
-        "cases": [
-          "FM-4: hostile paging input is clamped server-side"
-        ]
-      },
-      "FM-5": {
-        "result": "pass",
-        "cases": [
-          "FM-5: consecutive pages neither overlap nor skip"
-        ]
-      }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-1: the balance read returns the stored balance"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 42\nActual:   0"
     },
-    "report": {
-      "file": "evidence/raw/green.trx",
-      "hash": "blake3:fd3f6523ce46d728e7e8b2c3948628a3ea51604989f45ba553419a17debf99b7"
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-2: a balance read for a missing wallet answers 404"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: NotFound\nActual:   OK"
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-3: a page carries its items and the count of the whole set"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 2\nActual:   0"
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-4: hostile paging input is clamped server-side"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 1\nActual:   -2"
+    },
+    "FM-5": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-5: consecutive pages neither overlap nor skip"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 7\nActual:   0"
     }
-  },
-  "footprint": {
-    "backend/Sample.Api/AppDb.cs": {
-      "lines": "15,17,23-26",
-      "ranges": "6e8ca5900c191b2c,3f94eb4e8d4981cc,629dbdcabc73b461"
-    },
-    "backend/Sample.Api/BuildingBlocks/Money.cs": {
-      "lines": "18,20,22,26-28,30,42",
-      "ranges": "b072c937ab399de8,23ee0ce58c8a090b,afe0d5adc472bc23,c9bdf34b6445d977,a4d0e52be858099d,996328427c395fa3"
-    },
-    "backend/Sample.Api/Modules/Modules.cs": {
-      "lines": "12-15,18-20",
-      "ranges": "39c90c551fd01601,faf02a17522bd7cb"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": {
-      "lines": "55-56,58",
-      "ranges": "544dee0f83e3d915,c1c1c1eb204aa662"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": {
-      "lines": "9,11,14-19,22-25",
-      "ranges": "d6f5f2a3e81dc7c3,f9c6ecdba05fa474,886b578ca0033b19,702c3dbf43357966"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": {
-      "lines": "13,17,19,24-28,31-33",
-      "ranges": "2f84c404a782f3a1,7a32e96ab7012909,dafd322b8f605497,948487c12337b07a,d38aa7146d391593"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": {
-      "lines": "61-62,64",
-      "ranges": "574ee97db5b496e3,b03741f346d82720"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
-      "lines": "56-57,59",
-      "ranges": "569c2fe1fd0f82ce,98680c866dfa14a4"
-    },
-    "backend/Sample.Api/Modules/Wallets/Wallet.cs": {
-      "lines": "14,17,21,33,41,48-51,73-77,79-80",
-      "ranges": "9f08426259a265fa,dc7695cbc38c7606,12c75e8d2abea81a,da3ea91cdb6ee61b,c7207d944e55f9a8,497769adf2e81108,8610860abea0b31a,08d1cb2a47a7e329"
-    },
-    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
-      "lines": "17,23-24,26-28,31,34,36-41",
-      "ranges": "54d96c8f9de199b8,40c07d166d4c4c2e,e47dff6c35460042,fcd3f1784143c361,f6e4fd77d893c6c5,73936a9eb2147f2f"
-    },
-    "backend/Sample.Api/Platform.Idempotency.cs": {
-      "lines": "62-65",
-      "ranges": "91e47adb76a62e2f"
-    },
-    "backend/Sample.Api/Platform.cs": {
-      "lines": "15-19",
-      "ranges": "20632c396a9bff0e"
-    },
-    "backend/Sample.Api/Program.cs": {
-      "lines": "6-9,11,13-14,19,21",
-      "ranges": "b7e10816881d8d19,52322576e1410c84,b60a31ef4c4ae920,6a64c9fb150fc8cb,ee79f7afb223c356"
-    }
-  },
-  "footprint_source": "coverage",
-  "footprint_changed": [
-    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs",
-    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs"
-  ],
-  "inputs": {
-    ".specs/0003-wallet-reads/e2e/WalletReadsSpec.cs": "blake3:300a20fcd885eda2f17caea5b7cd6a8773d9b2c31497559626265e73422c8fb1",
-    ".specs/0003-wallet-reads/spec.md": "blake3:accb7cda395cbcf62464610fb3c2813005d505075ce676a1a1c8d7e99895f3e4"
-  },
-  "evidence": {}
+  }
 }

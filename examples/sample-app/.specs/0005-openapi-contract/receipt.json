@@ -2,186 +2,69 @@
   "spec": "0005-openapi-contract",
   "runner": "api",
   "red": {
-    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
-    "patch": {
-      "file": "red.patch",
-      "hash": "blake3:dbf6b140d39d9c279dd98424e3e3fc58f985c3740b99a374254b35908e5a12df"
-    },
-    "cases": {
-      "FM-1": {
-        "result": "fail",
-        "cases": [
-          "FM-1: ErrorBody.code enumerates the app's registry codes"
-        ],
-        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
-      },
-      "FM-2": {
-        "result": "fail",
-        "cases": [
-          "FM-2: a dependency loaded in the process does not widen the contract",
-          "FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes"
-        ],
-        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
-      },
-      "FM-3": {
-        "result": "fail",
-        "cases": [
-          "FM-3: a numeric body property is a plain number"
-        ],
-        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
-      },
-      "FM-4": {
-        "result": "fail",
-        "cases": [
-          "FM-4: a scalar value object reached only through a nullable property mirrors its primitive"
-        ],
-        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
-      },
-      "FM-5": {
-        "result": "fail",
-        "cases": [
-          "FM-5: a numeric query parameter accepts no strings"
-        ],
-        "message": "Assert.DoesNotContain() Failure: Item found in collection\n↓ (pos 1)\nCollection: [\"integer\", \"string\"]\nFound:      \"string\""
-      },
-      "FM-6": {
-        "result": "fail",
-        "cases": [
-          "FM-6: the page's four members are required, plain array and integers"
-        ],
-        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
-      },
-      "FM-7": {
-        "result": "fail",
-        "cases": [
-          "FM-7: a slice's output references its own slice-qualified page"
-        ],
-        "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
-      }
-    },
-    "report": {
-      "file": "evidence/raw/red.trx",
-      "hash": "blake3:d727821f4c6842f35444a098062c87bc642866acb10f928ec0398871ba9fc48b"
-    }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91",
+    "patch": "red.patch"
   },
   "green": {
-    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
-    "dirty": false,
-    "cases": {
-      "FM-1": {
-        "result": "pass",
-        "cases": [
-          "FM-1: ErrorBody.code enumerates the app's registry codes"
-        ]
-      },
-      "FM-2": {
-        "result": "pass",
-        "cases": [
-          "FM-2: a dependency loaded in the process does not widen the contract",
-          "FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes"
-        ]
-      },
-      "FM-3": {
-        "result": "pass",
-        "cases": [
-          "FM-3: a numeric body property is a plain number"
-        ]
-      },
-      "FM-4": {
-        "result": "pass",
-        "cases": [
-          "FM-4: a scalar value object reached only through a nullable property mirrors its primitive"
-        ]
-      },
-      "FM-5": {
-        "result": "pass",
-        "cases": [
-          "FM-5: a numeric query parameter accepts no strings"
-        ]
-      },
-      "FM-6": {
-        "result": "pass",
-        "cases": [
-          "FM-6: the page's four members are required, plain array and integers"
-        ]
-      },
-      "FM-7": {
-        "result": "pass",
-        "cases": [
-          "FM-7: a slice's output references its own slice-qualified page"
-        ]
-      }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-1: ErrorBody.code enumerates the app's registry codes"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
     },
-    "report": {
-      "file": "evidence/raw/green.trx",
-      "hash": "blake3:fbb72abbffe657d16cd4598d1d590489d792547d0e627d4e40789a5d3f2fb8ae"
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-2: a dependency loaded in the process does not widen the contract",
+        "FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-3: a numeric body property is a plain number"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-4: a scalar value object reached only through a nullable property mirrors its primitive"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    },
+    "FM-5": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-5: a numeric query parameter accepts no strings"
+      ],
+      "message": "Assert.DoesNotContain() Failure: Item found in collection\n↓ (pos 1)\nCollection: [\"integer\", \"string\"]\nFound:      \"string\""
+    },
+    "FM-6": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-6: the page's four members are required, plain array and integers"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    },
+    "FM-7": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-7: a slice's output references its own slice-qualified page"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
     }
-  },
-  "footprint": {
-    "backend/Sample.Api/AppDb.cs": {
-      "lines": "15,17,23-26",
-      "ranges": "6e8ca5900c191b2c,3f94eb4e8d4981cc,629dbdcabc73b461"
-    },
-    "backend/Sample.Api/BuildingBlocks/Money.cs": {
-      "lines": "18,20,22,42",
-      "ranges": "b072c937ab399de8,23ee0ce58c8a090b,afe0d5adc472bc23,996328427c395fa3"
-    },
-    "backend/Sample.Api/Modules/Modules.cs": {
-      "lines": "12-15,18-20",
-      "ranges": "39c90c551fd01601,faf02a17522bd7cb"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": {
-      "lines": "55-56,58",
-      "ranges": "544dee0f83e3d915,c1c1c1eb204aa662"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": {
-      "lines": "22-23,25",
-      "ranges": "d6c48b48f7769f5d,ae55871a8f7daa01"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": {
-      "lines": "31,33",
-      "ranges": "ec467c8f39a9a03f,eea47aa387380f50"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": {
-      "lines": "61-62,64",
-      "ranges": "574ee97db5b496e3,b03741f346d82720"
-    },
-    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
-      "lines": "56-57,59",
-      "ranges": "569c2fe1fd0f82ce,98680c866dfa14a4"
-    },
-    "backend/Sample.Api/Modules/Wallets/Wallet.cs": {
-      "lines": "14,17,33,41,73-77,79-80",
-      "ranges": "9f08426259a265fa,dc7695cbc38c7606,da3ea91cdb6ee61b,c7207d944e55f9a8,8610860abea0b31a,08d1cb2a47a7e329"
-    },
-    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
-      "lines": "17,23-24,26-28,31,34,36-41",
-      "ranges": "54d96c8f9de199b8,40c07d166d4c4c2e,e47dff6c35460042,fcd3f1784143c361,f6e4fd77d893c6c5,73936a9eb2147f2f"
-    },
-    "backend/Sample.Api/Platform.Idempotency.cs": {
-      "lines": "62-65",
-      "ranges": "91e47adb76a62e2f"
-    },
-    "backend/Sample.Api/Platform.cs": {
-      "lines": "15-19",
-      "ranges": "20632c396a9bff0e"
-    },
-    "backend/Sample.Api/Program.cs": {
-      "lines": "6-9,11,13-14,19,21",
-      "ranges": "b7e10816881d8d19,52322576e1410c84,b60a31ef4c4ae920,6a64c9fb150fc8cb,ee79f7afb223c356"
-    },
-    "backend/Sample.Api/Sample.Api.csproj": "blake3:d321e56bcf423af630bfcd8788438498f3b28a181cf4fd0c06ff4bf814241f56"
-  },
-  "footprint_source": "coverage",
-  "footprint_changed": [
-    "backend/Sample.Api/Platform.cs",
-    "backend/Sample.Api/Program.cs",
-    "backend/Sample.Api/Sample.Api.csproj"
-  ],
-  "inputs": {
-    ".specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs": "blake3:73806a752bb83eed284575dc57477089fd666afe94fccc49600af7cc63ee5c84",
-    ".specs/0005-openapi-contract/e2e/SchemaContractSpec.cs": "blake3:149fed11b33b145ffab2d99066b7845c992e42c1d5cf9079fcf109d2ca1526b8",
-    ".specs/0005-openapi-contract/spec.md": "blake3:ea2bdf9821350d311c22cd4edd80d65b74f078e647b70916e530acb95ae6eb1b"
-  },
-  "evidence": {}
+  }
 }

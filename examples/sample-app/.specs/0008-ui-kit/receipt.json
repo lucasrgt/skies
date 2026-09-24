@@ -2,198 +2,88 @@
   "spec": "0008-ui-kit",
   "runner": "web",
   "red": {
-    "commit": "1f3fc846faae20ba5f7e6cec54cf7ddbfddd74a2",
-    "patch": {
-      "file": "red.patch",
-      "hash": "blake3:e21a028aaa6e4f8f4423be6cc8f499bf75ba3895ced2d66d0a16fb4118305ae4"
-    },
-    "cases": {
-      "FM-1": {
-        "result": "fail",
-        "cases": [
-          "Button > FM-1: the label is the accessible name and a press fires the action"
-        ],
-        "message": "AssertionError: expected \"vi.fn()\" to be called 1 times, but got 0 times"
-      },
-      "FM-2": {
-        "result": "fail",
-        "cases": [
-          "Button > FM-2: a disabled button blocks the action",
-          "Button > FM-2: a loading button blocks the action and announces itself"
-        ],
-        "message": "AssertionError: expected \"vi.fn()\" to be called +0 times, but got 1 times"
-      },
-      "FM-3": {
-        "result": "fail",
-        "cases": [
-          "Button > FM-3: focus shows the focus ring and blur drops it, never outline:none alone"
-        ],
-        "message": "AssertionError: expected 'none' to be '0 0 0 2px #2563eb' // Object.is equality\nExpected: \"0 0 0 2px #2563eb\"\nReceived: \"none\""
-      },
-      "FM-4": {
-        "result": "fail",
-        "cases": [
-          "Field and Input, the form anatomy > FM-4: an error replaces the hint as a role=alert and flips the control invalid",
-          "Field and Input, the form anatomy > FM-4: the label is associated and describedby points at the hint"
-        ],
-        "message": "TestingLibraryElementError: Unable to find an accessible element with the role \"alert\"\nHere are the accessible roles:\ntextbox:\nName \"\":"
-      },
-      "FM-5": {
-        "result": "fail",
-        "cases": [
-          "Field and Input, the form anatomy > FM-5: the input hands the View a string through onChangeText, not an event"
-        ],
-        "message": "TestingLibraryElementError: Found a label with the text of: Name, however no form control was found associated to that label. Make sure you're using the \"for\" attribute or \"aria-labelledby\" attribute…\nIgnored nodes: comments, script, style\n<body>\n<div>"
-      },
-      "FM-6": {
-        "result": "fail",
-        "cases": [
-          "Text, typography as one decision > FM-6: a role maps to its type scale and the document outline",
-          "Text, typography as one decision > FM-6: a tone maps to its semantic color role",
-          "Text, typography as one decision > FM-6: the alert flag announces the text, the command-error surface"
-        ],
-        "message": "AssertionError: expected 'SPAN' to be 'H1' // Object.is equality\nExpected: \"H1\"\nReceived: \"SPAN\""
-      },
-      "FM-7": {
-        "result": "fail",
-        "cases": [
-          "Stack, rhythm from the scale > FM-7: children are spaced by the gap scale and carry no margin"
-        ],
-        "message": "AssertionError: expected '' to be '16px' // Object.is equality\n- Expected\n+ Received\n- 16px"
-      },
-      "FM-8": {
-        "result": "fail",
-        "cases": [
-          "Async states > FM-8: the empty state renders its title and description",
-          "Async states > FM-8: the error state offers its retry action"
-        ],
-        "message": "TestingLibraryElementError: Unable to find an element with the text: Create one. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your te…\nIgnored nodes: comments, script, style\n<body>\n<div>"
-      },
-      "FM-9": {
-        "result": "non-discriminating",
-        "cases": [
-          "FM-9: the prop surface stays closed, with no className or style passthrough"
-        ]
-      }
-    },
-    "report": {
-      "file": "evidence/raw/red.xml",
-      "hash": "blake3:b297bd06cff55ea9239fb6ed0fabbfbe3d0e8a1b8489f4021847f179d7ec509b"
-    }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91",
+    "patch": "red.patch"
   },
   "green": {
-    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
-    "dirty": false,
-    "cases": {
-      "FM-1": {
-        "result": "pass",
-        "cases": [
-          "Button > FM-1: the label is the accessible name and a press fires the action"
-        ]
-      },
-      "FM-2": {
-        "result": "pass",
-        "cases": [
-          "Button > FM-2: a disabled button blocks the action",
-          "Button > FM-2: a loading button blocks the action and announces itself"
-        ]
-      },
-      "FM-3": {
-        "result": "pass",
-        "cases": [
-          "Button > FM-3: focus shows the focus ring and blur drops it, never outline:none alone"
-        ]
-      },
-      "FM-4": {
-        "result": "pass",
-        "cases": [
-          "Field and Input, the form anatomy > FM-4: an error replaces the hint as a role=alert and flips the control invalid",
-          "Field and Input, the form anatomy > FM-4: the label is associated and describedby points at the hint"
-        ]
-      },
-      "FM-5": {
-        "result": "pass",
-        "cases": [
-          "Field and Input, the form anatomy > FM-5: the input hands the View a string through onChangeText, not an event"
-        ]
-      },
-      "FM-6": {
-        "result": "pass",
-        "cases": [
-          "Text, typography as one decision > FM-6: a role maps to its type scale and the document outline",
-          "Text, typography as one decision > FM-6: a tone maps to its semantic color role",
-          "Text, typography as one decision > FM-6: the alert flag announces the text, the command-error surface"
-        ]
-      },
-      "FM-7": {
-        "result": "pass",
-        "cases": [
-          "Stack, rhythm from the scale > FM-7: children are spaced by the gap scale and carry no margin"
-        ]
-      },
-      "FM-8": {
-        "result": "pass",
-        "cases": [
-          "Async states > FM-8: the empty state renders its title and description",
-          "Async states > FM-8: the error state offers its retry action"
-        ]
-      },
-      "FM-9": {
-        "result": "pass",
-        "cases": [
-          "FM-9: the prop surface stays closed, with no className or style passthrough"
-        ]
-      }
+    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Button > FM-1: the label is the accessible name and a press fires the action"
+      ],
+      "message": "AssertionError: expected \"vi.fn()\" to be called 1 times, but got 0 times"
     },
-    "report": {
-      "file": "evidence/raw/green.xml",
-      "hash": "blake3:b95aefc13bef351346ae8d70b534fc28ffa70072392851c024b8c5f4c3cdf7c4"
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Button > FM-2: a disabled button blocks the action",
+        "Button > FM-2: a loading button blocks the action and announces itself"
+      ],
+      "message": "AssertionError: expected \"vi.fn()\" to be called +0 times, but got 1 times"
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Button > FM-3: focus shows the focus ring and blur drops it, never outline:none alone"
+      ],
+      "message": "AssertionError: expected 'none' to be '0 0 0 2px #2563eb' // Object.is equality\nExpected: \"0 0 0 2px #2563eb\"\nReceived: \"none\""
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Field and Input, the form anatomy > FM-4: an error replaces the hint as a role=alert and flips the control invalid",
+        "Field and Input, the form anatomy > FM-4: the label is associated and describedby points at the hint"
+      ],
+      "message": "TestingLibraryElementError: Unable to find an accessible element with the role \"alert\"\nHere are the accessible roles:\ntextbox:\nName \"\":"
+    },
+    "FM-5": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Field and Input, the form anatomy > FM-5: the input hands the View a string through onChangeText, not an event"
+      ],
+      "message": "TestingLibraryElementError: Found a label with the text of: Name, however no form control was found associated to that label. Make sure you're using the \"for\" attribute or \"aria-labelledby\" attribute…\nIgnored nodes: comments, script, style\n<body>\n<div>"
+    },
+    "FM-6": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Text, typography as one decision > FM-6: a role maps to its type scale and the document outline",
+        "Text, typography as one decision > FM-6: a tone maps to its semantic color role",
+        "Text, typography as one decision > FM-6: the alert flag announces the text, the command-error surface"
+      ],
+      "message": "AssertionError: expected 'SPAN' to be 'H1' // Object.is equality\nExpected: \"H1\"\nReceived: \"SPAN\""
+    },
+    "FM-7": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Stack, rhythm from the scale > FM-7: children are spaced by the gap scale and carry no margin"
+      ],
+      "message": "AssertionError: expected '' to be '16px' // Object.is equality\n- Expected\n+ Received\n- 16px"
+    },
+    "FM-8": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Async states > FM-8: the empty state renders its title and description",
+        "Async states > FM-8: the error state offers its retry action"
+      ],
+      "message": "TestingLibraryElementError: Unable to find an element with the text: Create one. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your te…\nIgnored nodes: comments, script, style\n<body>\n<div>"
+    },
+    "FM-9": {
+      "red": "non-discriminating",
+      "green": "pass",
+      "cases": [
+        "FM-9: the prop surface stays closed, with no className or style passthrough"
+      ]
     }
-  },
-  "footprint": {
-    "frontend/web/src/api.ts": {
-      "lines": "2",
-      "ranges": "8e7e0918124efcc0"
-    },
-    "frontend/web/src/ui/Button.tsx": {
-      "lines": "1,11,33-38,40,53-54",
-      "ranges": "a26a11ba3249b658,d64ef2a70135ffda,98120cfe48b4416f,55002434f3092575,f79386fa18089e93"
-    },
-    "frontend/web/src/ui/Field.tsx": {
-      "lines": "1,13,17,33-34,40",
-      "ranges": "a26a11ba3249b658,c1f2c538506bfda1,332e324d211dd88a,eac287088237f1ce,55002434f3092575"
-    },
-    "frontend/web/src/ui/Input.tsx": {
-      "lines": "1,26-28,30,36",
-      "ranges": "a26a11ba3249b658,e007979c38627320,55002434f3092575,965c4c92eee9cf5a"
-    },
-    "frontend/web/src/ui/Stack.tsx": {
-      "lines": "4,21",
-      "ranges": "89c76d839f0ae60b,55002434f3092575"
-    },
-    "frontend/web/src/ui/Text.tsx": {
-      "lines": "6,28-31",
-      "ranges": "7d7c9fe60b692281,6995543b93af073c"
-    },
-    "frontend/web/src/ui/index.ts": "blake3:52291a3fee7c9a6796c0062564896c9967aa165f039d45d15699f0b90cfa6be0",
-    "frontend/web/src/ui/states.tsx": {
-      "lines": "8,25",
-      "ranges": "55002434f3092575,55002434f3092575"
-    },
-    "frontend/web/src/ui/theme.ts": "blake3:1015317fe0f61dfefa1cfb688bdbc9b3ada56f4e31fa740a0e4302a3beb70a13"
-  },
-  "footprint_source": "coverage",
-  "footprint_changed": [
-    "frontend/web/src/ui/Button.tsx",
-    "frontend/web/src/ui/Field.tsx",
-    "frontend/web/src/ui/Input.tsx",
-    "frontend/web/src/ui/Stack.tsx",
-    "frontend/web/src/ui/Text.tsx",
-    "frontend/web/src/ui/states.tsx"
-  ],
-  "inputs": {
-    ".specs/0008-ui-kit/e2e/UiKit.test.tsx": "blake3:5a7f25bcba0041b0c735dbe20f2df54d2bd3f073023f32a90baff42c60b0abc5",
-    ".specs/0008-ui-kit/spec.md": "blake3:e11309936199987b09add39b88e1a3b7dfaf16289c4fb58f7c60551aaf1bc20b"
-  },
-  "evidence": {}
+  }
 }
