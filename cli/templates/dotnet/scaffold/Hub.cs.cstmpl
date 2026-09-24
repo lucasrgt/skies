@@ -1,0 +1,31 @@
+using Skies.Framework.Auth;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+
+namespace __NAMESPACE__.Modules.__MODULE__.Realtime;
+
+/// <summary>__NAME__Hub — the live layer for __MODULE__. Wire, not logic: a hub method persists nothing
+/// itself; it calls the matching slice (the one source of the write + its rules) and fans the result out
+/// to the room. Ephemeral signals (typing, presence) ride the hub and never touch the database. The
+/// connection is JWT-authenticated, so the caller comes from <c>Context.User</c> via
+/// <see cref="ClaimsCurrentUser"/> — the request-scoped <c>ICurrentUser</c> reads the HTTP context, which
+/// a hub method does not have.</summary>
+[Authorize]
+public sealed class __NAME__Hub : Hub
+{
+    private ICurrentUser Caller => new ClaimsCurrentUser(Context.User);
+
+    /// <summary>Subscribe this connection to a room's live feed. Gate membership on your own
+    /// participation rule (e.g. the caller is in the conversation) before adding the connection.</summary>
+    public Task JoinRoom(string room) =>
+        Groups.AddToGroupAsync(Context.ConnectionId, room);
+
+    /// <summary>Unsubscribe this connection from a room.</summary>
+    public Task LeaveRoom(string room) =>
+        Groups.RemoveFromGroupAsync(Context.ConnectionId, room);
+
+    /// <summary>Broadcast to the rest of a room. For a durable message, call the matching slice first to
+    /// persist it (passing <c>Caller</c> as the ICurrentUser), then broadcast the saved result here.</summary>
+    public Task Broadcast(string room, object payload) =>
+        Clients.OthersInGroup(room).SendAsync("Receive", payload);
+}

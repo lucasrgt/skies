@@ -24,5 +24,6 @@ __UPDATE_ASSIGNMENTS____UPDATE_TODO____UPDATE_TOUCH__        await db.SaveChange
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPut("/__ENTITY_LOWER__", async (Input input, AppDb db, TimeProvider clock, CancellationToken ct) =>
             (await Handle(input, db, clock, ct)).ToHttp())
+            .WithName(nameof(Update__ENTITY__))
             .RequireAuthorization();
 }

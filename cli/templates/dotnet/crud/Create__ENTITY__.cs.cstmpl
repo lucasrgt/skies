@@ -23,5 +23,6 @@ __CREATE_ASSIGNMENTS____USERID_ASSIGNMENT____CREATE_TODO____CREATED_AT_ASSIGN___
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/__ENTITY_LOWER__", async (Input input, AppDb db, __CURRENT_PARAM__TimeProvider clock, CancellationToken ct) =>
             (await Handle(input, db, __CURRENT_ARG__clock, ct)).ToHttp())
+            .WithName(nameof(Create__ENTITY__))
             .RequireAuthorization();
 }
