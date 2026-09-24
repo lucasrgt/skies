@@ -48,14 +48,6 @@ pub fn hash_all<'a>(root: &Path, paths: impl IntoIterator<Item = &'a String>) ->
         .collect()
 }
 
-/// [`hash_all`], taking a path's hash from `known` when it is there.
-pub fn hash_known<'a>(root: &Path, paths: impl IntoIterator<Item = &'a String>, known: &Hashes) -> Hashes {
-    let (hit, miss): (Vec<&String>, Vec<&String>) = paths.into_iter().partition(|path| known.contains_key(*path));
-    let mut hashes = hash_all(root, miss);
-    hashes.extend(hit.into_iter().map(|path| (path.clone(), known[path].clone())));
-    hashes
-}
-
 /// spec.md, every file under e2e/, and the root lockfiles that exist: what the receipt was recorded *from*.
 pub fn input_paths(root: &Path, spec: &SpecDir) -> Result<BTreeSet<String>> {
     let mut paths = BTreeSet::from([format!("{}/{SPEC_FILE}", spec.rel())]);

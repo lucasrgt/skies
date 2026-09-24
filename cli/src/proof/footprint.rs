@@ -1,11 +1,13 @@
 //! The footprint: which files a receipt depends on, so a change to any of them makes it stale.
 //!
 //! With coverage it is every project file the green run executed, plus what changed between red and green (a
-//! deleted file, a config the run reads without executing), plus `touches`. Without coverage it is the diff plus
-//! `touches`, as before, and the receipt says so. Either way spec folders never belong to it, and a module ctx.md
-//! joins only through `touches`: prose is kept fresh by citation (SKY0005), not by hash.
+//! deleted file, a config the run reads without executing), plus `touches`. An executed file is pinned by the lines
+//! the run executed (see `lines`), everything else by the whole file; a `touches` match is always the whole file,
+//! since listing it says every line matters. Without coverage it is the diff plus `touches`, as before, and the
+//! receipt says so. Either way spec folders never belong to it, and a module ctx.md joins only through `touches`:
+//! prose is kept fresh by citation (SKY0005), not by hash.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use anyhow::Result;
@@ -35,6 +37,8 @@ pub struct Footprint {
     pub changed: Vec<String>,
     /// How many files the coverage contributed, for the summary line.
     pub covered: usize,
+    /// The executed lines of each covered file the receipt pins by line; every other path is pinned whole.
+    pub executed: BTreeMap<String, BTreeSet<u32>>,
 }
 
 /// Builds the footprint from the diff (`changed`), `touches`, and the green run's coverage when it has any.
@@ -51,10 +55,17 @@ pub fn build(root: &Path, doc: &SpecDoc, changed: &[String], proven: &ProvenGree
         .into_iter()
         .collect();
     let mut paths: BTreeSet<String> = changed.iter().cloned().collect();
-    paths.extend(hash::touched_paths(root, &doc.touches)?);
+    let touched = hash::touched_paths(root, &doc.touches)?;
+    paths.extend(touched.iter().cloned());
+    let mut executed = BTreeMap::new();
     let (source, covered) = match &proven.coverage {
         Outcome::Covered(covered) => {
-            paths.extend(covered.iter().filter(|path| keep(path)).cloned());
+            for (path, lines) in covered.iter().filter(|(path, _)| keep(path)) {
+                paths.insert(path.clone());
+                if !touched.contains(path) {
+                    executed.insert(path.clone(), lines.clone());
+                }
+            }
             (Source::Coverage, covered.len())
         }
         Outcome::Missing(_) => (Source::Diff, 0),
@@ -70,14 +81,16 @@ pub fn build(root: &Path, doc: &SpecDoc, changed: &[String], proven: &ProvenGree
         source,
         changed,
         covered,
+        executed,
     })
 }
 
-/// One line on how the footprint was found, so a fallback is never silent.
-pub fn describe(footprint: &Footprint, proven: &ProvenGreen) -> String {
+/// One line on how the footprint was found, so a fallback is never silent. `by_lines` is how many of its files
+/// the receipt pins by their executed lines.
+pub fn describe(footprint: &Footprint, proven: &ProvenGreen, by_lines: usize) -> String {
     match &proven.coverage {
         Outcome::Covered(_) => format!(
-            "footprint from coverage: {} executed + {} changed since red + touches = {}",
+            "footprint from coverage: {} executed + {} changed since red + touches = {} ({by_lines} pinned by executed lines)",
             footprint.covered,
             footprint.changed.len(),
             files(footprint.paths.len())

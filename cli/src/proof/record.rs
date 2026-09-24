@@ -17,7 +17,7 @@ use super::report::{self, FmId, Report};
 use super::runner::{Job, NoReport, Session};
 use super::scrub::Scrub;
 use super::spec::{self, E2E_DIR, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
-use super::{avp, ctx, footprint, impact, verify};
+use super::{avp, ctx, footprint, impact, lines, verify};
 use crate::manifest::Project;
 
 /// What `skies proof record` was asked to do.
@@ -189,7 +189,11 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
         None => repo.changed_since(&red_commit)?,
     };
     let footprint = footprint::build(root, &doc, &changed, &proven)?;
-    println!("  {}", footprint::describe(&footprint, &proven));
+    let prints = lines::print_all(root, &footprint.paths, &footprint.executed);
+    println!(
+        "  {}",
+        footprint::describe(&footprint, &proven, lines::by_lines(&prints))
+    );
     let footprint_paths = footprint.paths;
     let ctx_revised = revised_ctx(&repo, &changed, patch.is_some().then_some(head.as_str()))?;
     let mut receipt = Receipt {
@@ -210,7 +214,7 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
             cases: proven.cases,
             report: proven.report,
         },
-        footprint: hash::hash_all(root, &footprint_paths),
+        footprint: prints,
         footprint_source: footprint.source,
         footprint_changed: footprint.changed,
         inputs: hash::hash_all(root, &hash::input_paths(root, &spec)?),

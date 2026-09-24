@@ -5,16 +5,34 @@
 //! writes coverage, the engine reads it back and the footprint becomes the files the run executed, plus the diff.
 //!
 //! Two formats cover the three platforms, told apart by content: Cobertura XML (coverlet for .NET) and LCOV
-//! (vitest's `lcov` reporter, `flutter test --coverage`). Only the set of files with at least one executed line is
-//! kept; the line data itself is never stored, since the footprint hashes are the record.
+//! (vitest's `lcov` reporter, `flutter test --coverage`). Each file with at least one executed line is kept with the
+//! numbers of those lines, which the receipt pins by their text (see `lines`); the report itself is never stored.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
-/// The project files a run executed, relative to the project root with forward slashes.
-pub type Covered = BTreeSet<String>;
+/// The project files a run executed, relative to the project root with forward slashes, each with the line numbers
+/// it executed. An empty set means executed but with no line data (an LCOV record with only an `LH:` summary), which
+/// the receipt pins as the whole file.
+pub type Covered = BTreeMap<String, BTreeSet<u32>>;
+
+/// Adds one report's lines for a file. A file without line data in any report stays without: its lines are unknown.
+fn merge(covered: &mut Covered, file: String, lines: &BTreeSet<u32>) {
+    match covered.entry(file) {
+        std::collections::btree_map::Entry::Vacant(entry) => {
+            entry.insert(lines.clone());
+        }
+        std::collections::btree_map::Entry::Occupied(mut entry) => {
+            if entry.get().is_empty() || lines.is_empty() {
+                entry.get_mut().clear();
+            } else {
+                entry.get_mut().extend(lines);
+            }
+        }
+    }
+}
 
 /// Where a runner's coverage lands, and whether the runner was set up to write any.
 pub struct Location {
@@ -58,10 +76,10 @@ pub fn collect(location: &Location, runner: &str, cwd: &Path, roots: &[&Path]) -
         read_any = true;
         let mut dirs: Vec<&Path> = vec![cwd];
         dirs.extend(file.ancestors().skip(1));
-        for raw in &parsed.files {
+        for (raw, lines) in &parsed.files {
             let path = resolve(raw, &parsed.sources, &dirs);
             if let Some(rel) = roots.relative(&path).filter(|rel| is_source(rel)) {
-                covered.insert(rel);
+                merge(&mut covered, rel, lines);
             }
         }
     }
@@ -93,12 +111,12 @@ fn coverage_files(path: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-/// One report's executed files, as the report spells them, and the base directories it declares for relative
-/// names (Cobertura's `<source>`; LCOV has none).
+/// One report's executed files, as the report spells them, each with its executed line numbers, and the base
+/// directories it declares for relative names (Cobertura's `<source>`; LCOV has none).
 #[derive(Debug, Default, PartialEq)]
 pub struct Parsed {
     pub sources: Vec<String>,
-    pub files: BTreeSet<String>,
+    pub files: Covered,
 }
 
 /// Cobertura or LCOV, by content; `None` for anything else (a TRX or JUnit file that shares the folder).
@@ -117,8 +135,8 @@ pub fn parse(text: &str) -> Result<Option<Parsed>> {
     Ok(None)
 }
 
-/// A file counts when any `<line>` of any of its classes has `hits` above zero; a file split across partial
-/// classes or nested types appears once per class.
+/// A file counts when any `<line>` of any of its classes has `hits` above zero, and its executed lines are the union
+/// over those classes; a file split across partial classes or nested types appears once per class.
 fn cobertura(text: &str) -> Result<Parsed> {
     let options = roxmltree::ParsingOptions {
         allow_dtd: true,
@@ -137,12 +155,16 @@ fn cobertura(text: &str) -> Result<Parsed> {
                 let Some(filename) = node.attribute("filename") else {
                     continue;
                 };
-                let executed = node
-                    .descendants()
-                    .filter(|line| line.has_tag_name("line"))
-                    .any(|line| line.attribute("hits").is_some_and(positive));
+                let mut executed = false;
+                let mut lines = BTreeSet::new();
+                for line in node.descendants().filter(|line| line.has_tag_name("line")) {
+                    if line.attribute("hits").is_some_and(positive) {
+                        executed = true;
+                        lines.extend(line.attribute("number").and_then(line_number));
+                    }
+                }
                 if executed {
-                    parsed.files.insert(filename.to_string());
+                    merge(&mut parsed.files, filename.to_string(), &lines);
                 }
             }
             _ => {}
@@ -151,35 +173,48 @@ fn cobertura(text: &str) -> Result<Parsed> {
     Ok(parsed)
 }
 
-/// A record (`SF:` … `end_of_record`) counts when a `DA:<line>,<hits>` has hits above zero, or, for a tool that
-/// writes only the summary, when `LH:` is above zero.
+/// A record (`SF:` … `end_of_record`) counts when a `DA:<line>,<hits>` has hits above zero, those lines being the
+/// executed ones, or, for a tool that writes only the summary, when `LH:` is above zero (no line data).
 fn lcov(text: &str) -> Parsed {
     let mut parsed = Parsed::default();
     let mut current: Option<&str> = None;
     let mut executed = false;
+    let mut lines = BTreeSet::new();
     for line in text.lines().map(str::trim) {
         if let Some(file) = line.strip_prefix("SF:") {
             current = Some(file.trim());
             executed = false;
+            lines.clear();
         } else if let Some(data) = line.strip_prefix("DA:") {
-            executed |= data.split(',').nth(1).is_some_and(positive);
+            let mut fields = data.split(',');
+            let number = fields.next().and_then(line_number);
+            if fields.next().is_some_and(positive) {
+                executed = true;
+                lines.extend(number);
+            }
         } else if let Some(hit) = line.strip_prefix("LH:") {
             executed |= positive(hit);
         } else if line == "end_of_record" {
             if let Some(file) = current.take().filter(|_| executed) {
-                parsed.files.insert(file.to_string());
+                merge(&mut parsed.files, file.to_string(), &lines);
             }
             executed = false;
+            lines.clear();
         }
     }
     if let Some(file) = current.filter(|_| executed) {
-        parsed.files.insert(file.to_string());
+        merge(&mut parsed.files, file.to_string(), &lines);
     }
     parsed
 }
 
 fn positive(count: &str) -> bool {
     count.trim().parse::<f64>().is_ok_and(|count| count > 0.0)
+}
+
+/// A 1-based line number; anything else (0, a range, garbage) is no line data rather than an error.
+fn line_number(text: &str) -> Option<u32> {
+    text.trim().parse::<u32>().ok().filter(|line| *line > 0)
 }
 
 /// A report path made absolute: as written when absolute, else under the first base where the file exists (the

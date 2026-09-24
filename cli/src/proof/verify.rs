@@ -3,7 +3,7 @@
 //! Red is never rerun here. It was established once, at the revision without the feature; what drifts afterwards is
 //! the code under the feature, so verify re-proves green and re-anchors the hashes to today's files.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use anyhow::{Result, bail};
@@ -13,6 +13,7 @@ use super::footprint::{self, Source};
 use super::git::Repo;
 use super::green::{self, GreenOutcome, ProvenGreen};
 use super::hash;
+use super::lines;
 use super::receipt::{self, Freshness, Receipt};
 use super::report::FmId;
 use super::runner::Session;
@@ -176,8 +177,8 @@ fn verify_one(
         "footprint {}, {}",
         footprint::files(receipt.footprint.len()),
         match receipt.footprint_source {
-            Source::Coverage => "coverage",
-            Source::Diff => "diff",
+            Source::Coverage => format!("coverage, {} by executed lines", lines::by_lines(&receipt.footprint)),
+            Source::Diff => "diff".to_string(),
         }
     );
     receipt.save(spec)?;
@@ -186,13 +187,14 @@ fn verify_one(
 
 /// Re-anchors the footprint to today's files. The changed part is never recomputed from git (that would sweep in
 /// every commit since red): a coverage receipt keeps its recorded `footprint_changed`, and a diff receipt its
-/// recorded files. When this green run wrote coverage, the executed part is replaced by what it executed today, so
-/// the footprint follows the code as it evolves, and a diff receipt is upgraded to coverage. Without coverage the
-/// recorded file set is kept as it was. `touches` is re-matched either way.
+/// recorded files. When this green run wrote coverage, the executed part and its executed lines are replaced by what
+/// it executed today, so the footprint follows the code as it evolves, and a diff receipt is upgraded to coverage.
+/// Without coverage the recorded file set is kept, each file pinned whole: today's run executed lines this one cannot
+/// see. `touches` is re-matched either way.
 fn refresh_footprint(root: &Path, doc: &SpecDoc, receipt: &mut Receipt, proven: &ProvenGreen) -> Result<()> {
     let touched = hash::touched_paths(root, &doc.touches)?;
     let recorded: BTreeSet<String> = receipt.footprint.keys().cloned().collect();
-    let paths = match (&proven.coverage, receipt.footprint_source) {
+    let (paths, executed) = match (&proven.coverage, receipt.footprint_source) {
         (coverage::Outcome::Covered(_), source) => {
             let changed = match source {
                 Source::Coverage => receipt.footprint_changed.clone(),
@@ -201,15 +203,15 @@ fn refresh_footprint(root: &Path, doc: &SpecDoc, receipt: &mut Receipt, proven: 
             let refreshed = footprint::build(root, doc, &changed, proven)?;
             receipt.footprint_source = refreshed.source;
             receipt.footprint_changed = refreshed.changed;
-            refreshed.paths
+            (refreshed.paths, refreshed.executed)
         }
         (coverage::Outcome::Missing(_), _) => {
             let mut paths = recorded;
             paths.extend(touched);
             paths.retain(|path| !hash::is_spec_path(path));
-            paths
+            (paths, BTreeMap::new())
         }
     };
-    receipt.footprint = hash::hash_all(root, &paths);
+    receipt.footprint = lines::print_all(root, &paths, &executed);
     Ok(())
 }

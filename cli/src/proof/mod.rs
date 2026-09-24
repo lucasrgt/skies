@@ -12,6 +12,7 @@ mod git;
 mod green;
 mod hash;
 mod impact;
+mod lines;
 mod receipt;
 mod record;
 mod report;
@@ -77,14 +78,14 @@ pub fn status() -> Result<u8> {
         return Ok(0);
     }
     let width = specs.iter().map(|spec| spec.name.len()).max().unwrap_or(0);
-    // Every receipt is read once, and every footprint file shared between them is hashed once, in parallel.
+    // Every receipt is read once, and every footprint file shared between them is read and hashed once, in parallel.
     let receipts: Vec<Result<Option<receipt::Receipt>>> = specs.iter().map(receipt::Receipt::load).collect();
     let shared: std::collections::BTreeSet<&String> = receipts
         .iter()
         .flat_map(|receipt| receipt.as_ref().ok().and_then(Option::as_ref))
         .flat_map(|receipt| receipt.footprint.keys())
         .collect();
-    let known = hash::hash_all(root, shared);
+    let known = lines::Snapshot::read(root, shared);
     let mut unreadable = false;
     for (spec, receipt) in specs.iter().zip(receipts) {
         let (line, readable) =

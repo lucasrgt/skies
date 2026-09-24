@@ -33,7 +33,11 @@ const COBERTURA: &str = r#"<?xml version="1.0" encoding="utf-8"?>
 const LCOV: &str = "TN:\nSF:lib/wallet.dart\nDA:1,1\nDA:2,0\nLF:2\nLH:1\nend_of_record\nSF:lib/unused.dart\nDA:1,0\nLF:1\nLH:0\nend_of_record\nSF:/abs/src/summary.ts\nLF:3\nLH:2\nend_of_record\n";
 
 fn names(parsed: &Parsed) -> Vec<&str> {
-    parsed.files.iter().map(String::as_str).collect()
+    parsed.files.keys().map(String::as_str).collect()
+}
+
+fn lines(parsed: &Parsed, file: &str) -> Vec<u32> {
+    parsed.files[file].iter().copied().collect()
 }
 
 #[test]
@@ -41,6 +45,12 @@ fn cobertura_keeps_files_with_an_executed_line_across_classes() {
     let parsed = parse(COBERTURA).unwrap().unwrap();
     assert_eq!(parsed.sources, ["/repo/"]);
     assert_eq!(names(&parsed), ["app/src/Platform.cs", "app/src/Wallet.cs"]);
+    assert_eq!(lines(&parsed, "app/src/Wallet.cs"), [9], "only the lines with hits");
+    assert_eq!(
+        lines(&parsed, "app/src/Platform.cs"),
+        [7],
+        "the union over partial classes"
+    );
 }
 
 #[test]
@@ -48,6 +58,23 @@ fn lcov_keeps_records_with_a_hit() {
     let parsed = parse(LCOV).unwrap().unwrap();
     assert!(parsed.sources.is_empty());
     assert_eq!(names(&parsed), ["/abs/src/summary.ts", "lib/wallet.dart"]);
+    assert_eq!(lines(&parsed, "lib/wallet.dart"), [1]);
+    assert!(
+        lines(&parsed, "/abs/src/summary.ts").is_empty(),
+        "a summary-only record is executed with no line data"
+    );
+}
+
+#[test]
+fn a_file_without_line_data_in_any_report_stays_without() {
+    let mut covered = Covered::new();
+    merge(&mut covered, "a".into(), &[1, 2].into());
+    merge(&mut covered, "a".into(), &[5].into());
+    assert_eq!(covered["a"], [1, 2, 5].into());
+    merge(&mut covered, "a".into(), &BTreeSet::new());
+    assert!(covered["a"].is_empty());
+    merge(&mut covered, "a".into(), &[7].into());
+    assert!(covered["a"].is_empty());
 }
 
 #[test]
@@ -154,10 +181,8 @@ fn collect_reads_a_nested_coverlet_folder_and_maps_it_onto_the_project() {
     let Outcome::Covered(covered) = collect(&location, "api", &root, &[&root]).unwrap() else {
         panic!("coverage expected");
     };
-    assert_eq!(
-        covered.into_iter().collect::<Vec<_>>(),
-        ["src/Platform.cs", "src/Wallet.cs"]
-    );
+    assert_eq!(covered.keys().collect::<Vec<_>>(), ["src/Platform.cs", "src/Wallet.cs"]);
+    assert_eq!(covered["src/Wallet.cs"], [9].into());
 }
 
 #[test]
