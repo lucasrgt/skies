@@ -2,7 +2,7 @@
 //!
 //! Every generator emits plain C# that is doctor-clean by construction and edits the owner's files only at known
 //! anchors, printing a precise manual step when an anchor is missing instead of failing. They are ports of the
-//! 4.x C# CLI with the proof ceremony removed: no generated unit tests, journeys, `[AVP]` proofs, or
+//! 4.x C# CLI with the proof ceremony removed: no generated unit tests, `[AVP]` proofs, or
 //! `*.spec.toml`. The one exception is the auth family, whose blueprint ships its tests as a spec
 //! (`.specs/<id>-auth*/`), because auth is the feature most worth proving and least worth rewriting per app.
 //!

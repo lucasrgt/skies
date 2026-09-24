@@ -72,7 +72,10 @@ only when an archetype fits.
 ## 3. Write the E2E and watch it fail
 
 In `e2e/`, write black-box tests that drive the feature from outside: HTTP against the booted app
-(`SkiesWebTest<Program>`), Playwright or Maestro against the UI, `integration_test` on Flutter.
+(`SkiesWebTest<Program>`), Playwright against the web UI, `integration_test` (or Maestro) on Flutter.
+
+Every test lives in a spec; the doctors flag a test anywhere else (`SKY0029`, `SKYFE036`, `SKYFL036`). Flutter
+cases import `package:<app>/...` and the spec's runner copies them into the package's `test/.skies_spec/`.
 
 - One or more cases per failure mode; each case title starts with its id: `[Fact(DisplayName = "FM-2: …")]`,
   `test("FM-2: …")`, `testWidgets('FM-2: …')`.
@@ -89,8 +92,11 @@ Run them now. Every case must fail for the right reason (missing endpoint, wrong
 ## 4. Implement
 
 Generate the shapes (`skies g module|slice|entity|vo|crud|hub|feature|client`), then write the behavior following
-the conventions. Keep `skies doctor` clean. Add a unit test only for an isolated system (a value object, a
-calculation), and only after writing its failure modes.
+the conventions. Keep `skies doctor` clean.
+
+An isolated system with many cases (a value object, a calculation, a parser) gets its own spec, never a loose unit
+test: failure modes first, isolated cases in its `e2e/` titled `FM-n: …`, a `red.patch` that breaks the invariant,
+and a receipt like any other spec.
 
 ## 5. Record the receipt
 

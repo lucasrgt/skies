@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Skies.Framework.Testing;
 
 /// <summary>
-/// Boots the real application for integration and journey tests, exercising the same wiring
+/// Boots the real application for the spec E2E, exercising the same wiring
 /// production runs — routing, model binding, DI, the startup seed — without touching a real database
 /// unless you choose one. The framework owns the boot; you own a single hook, <see cref="SwapStores"/>,
 /// where you reconfigure services for the test.

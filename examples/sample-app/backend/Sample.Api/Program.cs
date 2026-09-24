@@ -20,5 +20,5 @@ app.OnStartup(sp => WalletsModule.Seed(sp.GetRequiredService<AppDb>()));
 
 app.Run();
 
-// Exposed so WebApplicationFactory<Program> can boot the real app in integration/journey tests.
+// Exposed so WebApplicationFactory<Program> can boot the real app in the spec E2E.
 public partial class Program { }
