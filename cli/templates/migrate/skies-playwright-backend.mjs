@@ -1,3 +1,4 @@
+/* global URL, process, setTimeout -- Node globals; the app lints this file as its own. */
 import { readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

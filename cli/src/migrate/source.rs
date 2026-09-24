@@ -1,4 +1,5 @@
-//! Per-file edits: strip Skies 4 proof ceremony from source, project files, hooks, and agent instructions.
+//! Per-file edits: strip Skies 4 proof ceremony from source, project files, hooks, and agent instructions, and
+//! route package manifests, lint configs, and CI workflows to the modules that migrate them.
 
 use std::path::Path;
 use std::sync::LazyLock;
@@ -24,6 +25,10 @@ static DOC_TAG: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\s*(\*|///|//)\s*@(verify|avp|e2e|backendSlice|skies-criterion|skies-proof)\b").unwrap()
 });
 
+/// `flows.json` inside a string literal: code that still reads or writes the removed flow contract. Comments that
+/// merely mention it are not code.
+static FLOWS_PATH: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"["'`][^"'`\n]*flows\.json["'`]"#).unwrap());
+
 /// An attribute-only C# line such as `[Unit, Fact]` or `[Journey(typeof(Pay), JourneyPath.Happy)]`.
 static ATTRIBUTE_LINE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\s*)\[(.*)\]\s*$").unwrap());
 
@@ -47,20 +52,32 @@ pub fn migrate_file(root: &Path, path: &Path, plan: &mut Plan) -> Result<()> {
         return Ok(());
     }
 
+    let in_workflows = path.parent().is_some_and(|dir| dir.ends_with(".github/workflows"));
     let edit: Option<Edit> = match (name, extension) {
+        ("package.json", _) => Some(super::package_json::migrate),
+        ("pubspec.yaml", _) => Some(super::versions::pubspec),
+        (name, _) if super::eslint::is_config(name) => Some(super::eslint::migrate),
+        (_, "yml" | "yaml") if in_workflows => Some(super::workflows::migrate),
+        (_, "props" | "targets") => Some(super::versions::nuget),
         (_, "cs") => Some(csharp),
-        (_, "csproj") => Some(csproj),
-        (_, "ts" | "tsx" | "js" | "mjs" | "dart") => Some(doc_tags),
+        (_, "csproj") => Some(project),
+        (_, "ts" | "tsx" | "js" | "mjs" | "cjs" | "mts" | "cts" | "dart") => Some(doc_tags),
         ("AGENTS.md" | "CLAUDE.md" | "GEMINI.md", _) => Some(agent_instructions),
         ("lefthook.yml" | "lefthook.yaml", _) => Some(lefthook),
         ("dotnet-tools.json", _) => Some(dotnet_tools),
         _ => None,
     };
     let Some(edit) = edit else { return Ok(()) };
-    let Ok(original) = std::fs::read_to_string(path) else {
+    let Ok(bytes) = std::fs::read(path) else {
         return Ok(());
     };
-    let vendored = if matches!(extension, "ts" | "tsx" | "js" | "mjs" | "dart") {
+    // A source file saved in a legacy 8-bit encoding still needs its imports migrated. Reading it byte for byte as
+    // Latin-1 and writing it back the same way leaves every byte the migration did not touch exactly as it was.
+    let (original, latin1) = match String::from_utf8(bytes) {
+        Ok(text) => (text, false),
+        Err(error) => (error.into_bytes().into_iter().map(char::from).collect(), true),
+    };
+    let vendored = if matches!(extension, "ts" | "tsx" | "js" | "mjs" | "cjs" | "mts" | "cts" | "dart") {
         super::vendor::rewrite(root, path, &original, plan)
     } else {
         None
@@ -69,8 +86,13 @@ pub fn migrate_file(root: &Path, path: &Path, plan: &mut Plan) -> Result<()> {
     if let Some(updated) = edit(&text, &relative, plan).or(vendored) {
         if updated.trim().is_empty() && name == "dotnet-tools.json" {
             plan.delete(path);
-        } else if updated != original {
+        } else if updated != original && !latin1 {
             plan.write(path, updated);
+        } else if updated != original {
+            match updated.chars().map(u8::try_from).collect::<Result<Vec<u8>, _>>() {
+                Ok(encoded) => plan.write_bytes(path, encoded),
+                Err(_) => plan.follow_up_file("is not UTF-8 and could not be edited; migrate it by hand", &relative),
+            }
         }
     }
     Ok(())
@@ -96,6 +118,13 @@ fn csharp(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
         if !kept.is_empty() {
             out.push_str(&format!("{}[{}]{}", &captures[1], kept.join(", "), &line[body.len()..]));
         }
+    }
+    if changed {
+        // `[Journey(typeof(Pay))]` or `[AVP]` was often the only user of a using; IDE0005 then warns on it.
+        plan.follow_up(
+            "run `dotnet format --diagnostics IDE0005` to drop usings only the removed attributes needed \
+             (e.g. `using Assay.Net;`)",
+        );
     }
     if text.contains("using Assay.Net") {
         plan.follow_up_file("uses Assay.Net; keep the package or rewrite the test", relative);
@@ -130,6 +159,13 @@ fn split_top_level(list: &str) -> Vec<&str> {
     }
     items.push(list[start..].trim());
     items.into_iter().filter(|item| !item.is_empty()).collect()
+}
+
+/// A project file gets both the spec-include edits and the Skies package bump.
+fn project(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
+    let edited = csproj(text, relative, plan);
+    let base = edited.as_deref().unwrap_or(text);
+    super::versions::nuget(base, relative, plan).or(edited)
 }
 
 /// Drops the spec-manifest AdditionalFiles include (and a comment right above it that only explained it), and makes
@@ -170,6 +206,12 @@ fn doc_tags(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
             relative,
         );
     }
+    if FLOWS_PATH.is_match(text) {
+        plan.follow_up_file(
+            "reads or writes e2e/flows.json, which Skies 5 deletes; retire the script or point it elsewhere",
+            relative,
+        );
+    }
     if !text.contains('@') || !text.lines().any(|line| DOC_TAG.is_match(line)) {
         return None;
     }
@@ -187,7 +229,23 @@ fn drop_empty_doc_blocks(text: &str) -> String {
 }
 
 /// Removes the generated `skies:foundations` block that told agents to run the gate and the CSM tools.
-fn agent_instructions(text: &str, _: &str, _: &mut Plan) -> Option<String> {
+/// Hand-written sections that still send agents to the gate are prose, so they are reported rather than rewritten.
+fn agent_instructions(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
+    let updated = without_foundations(text);
+    let remaining = updated.as_deref().unwrap_or(text);
+    if ["skies check", "skies gate", "dotnet tool run skies"]
+        .iter()
+        .any(|command| remaining.contains(command))
+    {
+        plan.follow_up_file(
+            "still tells agents to run the Skies 4 gate (`skies check`/`skies gate`); rewrite those sections",
+            relative,
+        );
+    }
+    updated
+}
+
+fn without_foundations(text: &str) -> Option<String> {
     let start = text.find("<!-- skies:foundations:start -->")?;
     let end_marker = "<!-- skies:foundations:end -->";
     let end = text[start..].find(end_marker)? + start + end_marker.len();
@@ -227,6 +285,10 @@ fn lefthook(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
             while end < lines.len() && (lines[end].trim().is_empty() || indent_of(lines[end]) > indent) {
                 end += 1;
             }
+            // Blank lines after the command separate it from what follows; they stay when the command goes.
+            while end > index + 1 && lines[end - 1].trim().is_empty() {
+                end -= 1;
+            }
             if lines[index..end].iter().any(|line| runs_gate(line)) {
                 index = end;
                 continue;
@@ -247,7 +309,7 @@ fn indent_of(line: &str) -> usize {
 }
 
 /// Removes the `skies-framework-cli` dotnet tool; the whole manifest goes if nothing else is left in it.
-fn dotnet_tools(text: &str, _: &str, _: &mut Plan) -> Option<String> {
+pub(super) fn dotnet_tools(text: &str, _: &str, _: &mut Plan) -> Option<String> {
     let mut json: serde_json::Value = serde_json::from_str(text).ok()?;
     let tools = json.get_mut("tools")?.as_object_mut()?;
     tools.remove("skies-framework-cli")?;
@@ -260,6 +322,26 @@ fn dotnet_tools(text: &str, _: &str, _: &mut Plan) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_latin_1_file_is_edited_without_touching_its_other_bytes() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("session.test.ts");
+        let mut bytes = b"import { useSession } from \"skies-react\";\n// sess\xe3o\n".to_vec();
+        std::fs::write(&path, &bytes).unwrap();
+        let mut plan = Plan::default();
+
+        migrate_file(dir.path(), &path, &mut plan).unwrap();
+
+        bytes.splice(28..39, b"@skiesjs/react".iter().copied());
+        assert_eq!(
+            plan.changes,
+            [super::super::Change::Write {
+                path: path.clone(),
+                content: bytes
+            }]
+        );
+    }
 
     #[test]
     fn keeps_non_ceremony_attributes() {
