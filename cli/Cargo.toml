@@ -1,0 +1,21 @@
+[package]
+name = "skies-cli"
+description = "The Skies convention CLI: scaffolders, doctor, and spec proofs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "skies"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"
+
+[dev-dependencies]
+tempfile = "3"
