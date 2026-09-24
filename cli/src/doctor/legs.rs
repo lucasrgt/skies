@@ -1,4 +1,4 @@
-//! The three leg runners and the parsers that turn their output into findings.
+//! The leg runners and the parsers that turn their output into findings.
 //!
 //! Output is captured, never streamed: a build log is noise once its diagnostics are extracted. When a tool fails
 //! without producing any diagnostic, the tail of its output becomes the leg's failure reason instead, so a broken
@@ -20,6 +20,7 @@ pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
     let (name, (status, findings)) = match target {
         Target::Dotnet(path) => (format!("dotnet {}", relative(path)), dotnet(path, build_args)),
         Target::Eslint(path) => (format!("eslint {}", relative(path)), eslint(path)),
+        Target::Typecheck(path) => (format!("tsc {}", relative(path)), typecheck(path)),
         Target::Flutter(path) => (format!("flutter {}", relative(path)), flutter(path)),
         Target::Unknown(path) => (
             format!("frontend {}", relative(path)),
@@ -75,6 +76,78 @@ fn eslint(path: &Path) -> Outcome {
     };
     let findings = parse_stylish(&output);
     verdict(success, output, findings)
+}
+
+/// The package's `typecheck` script when it has one (it knows its own projects and paths), else `tsc --noEmit -p`
+/// over its tsconfig with the TypeScript it installs. TypeScript diagnostics share MSBuild's line shape
+/// (`file(line,col): error TS2322: message`), so the same parser reads them.
+fn typecheck(path: &Path) -> Outcome {
+    let manifest = std::fs::read_to_string(path.join("package.json")).unwrap_or_default();
+    let script = serde_json::from_str::<serde_json::Value>(&manifest)
+        .ok()
+        .and_then(|json| json.get("scripts")?.get("typecheck")?.as_str().map(str::to_string));
+    let mut command = match script {
+        Some(script) if !calls_the_doctor(&script) => {
+            let mut command = Command::new(npm());
+            command.args(["run", "--silent", "typecheck"]);
+            command
+        }
+        _ if path.join("tsconfig.json").is_file() => {
+            let Some(tsc) = local_bin(path, "tsc") else {
+                return (
+                    Status::Failed("TypeScript is not installed (no node_modules/.bin/tsc); run `npm install`".into()),
+                    Vec::new(),
+                );
+            };
+            let mut command = Command::new(tsc);
+            command.args(["--noEmit", "--pretty", "false", "-p", "."]);
+            command
+        }
+        _ => {
+            return (
+                Status::Skipped("no `typecheck` script or tsconfig.json".into()),
+                Vec::new(),
+            );
+        }
+    };
+    command.current_dir(path);
+    let Some((success, output)) = capture(command) else {
+        return (Status::Failed(format!("`{}` is not on PATH", npm())), Vec::new());
+    };
+    let findings = parse_msbuild(&output)
+        .into_iter()
+        .map(|finding| Finding {
+            file: resolve_from(path, &finding.file),
+            ..finding
+        })
+        .collect();
+    verdict(success, output, findings)
+}
+
+/// A package binary the way npm finds it: the package's `node_modules/.bin`, else the nearest ancestor's.
+fn local_bin(package: &Path, name: &str) -> Option<PathBuf> {
+    let name = if cfg!(windows) {
+        format!("{name}.cmd")
+    } else {
+        name.to_string()
+    };
+    package
+        .ancestors()
+        .map(|dir| dir.join("node_modules/.bin").join(&name))
+        .find(|path| path.is_file())
+}
+
+/// A tool prints paths relative to where it ran, which a package script may move (`cd ../..`): the package-relative
+/// reading wins when it exists, then the nearest ancestor's.
+fn resolve_from(package: &Path, file: &Path) -> PathBuf {
+    if file.is_absolute() {
+        return file.to_path_buf();
+    }
+    package
+        .ancestors()
+        .map(|dir| dir.join(file))
+        .find(|candidate| candidate.exists())
+        .unwrap_or_else(|| package.join(file))
 }
 
 /// Whether a `lint` script runs `skies doctor` itself, the shape `skies migrate 5` gives a package's lint.
@@ -252,6 +325,41 @@ Build succeeded.";
         assert_eq!(findings[1].severity, Severity::Warning);
         assert_eq!(findings[2].code, "eslint");
         assert_eq!(findings[2].line, Some(1));
+    }
+
+    #[test]
+    fn typescript_errors_become_findings_at_their_real_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let package = dir.path().join("apps/web");
+        std::fs::create_dir_all(package.join("src")).unwrap();
+        std::fs::write(package.join("src/a.ts"), "").unwrap();
+        std::fs::write(dir.path().join("root.ts"), "").unwrap();
+        let output = "\
+src/a.ts(3,7): error TS2322: Type 'string' is not assignable to type 'number'.
+../../root.ts(1,1): error TS2304: Cannot find name 'x'.
+apps/web/src/a.ts(9,1): error TS2554: Expected 1 arguments, but got 0.
+";
+        let files: Vec<PathBuf> = parse_msbuild(output)
+            .into_iter()
+            .map(|finding| {
+                assert!(finding.code.starts_with("TS") && finding.severity == Severity::Error);
+                resolve_from(&package, &finding.file)
+            })
+            .collect();
+        assert_eq!(files[0], package.join("src/a.ts"));
+        assert_eq!(files[1], package.join("../../root.ts"));
+        assert_eq!(files[2], dir.path().join("apps/web/src/a.ts"));
+    }
+
+    #[test]
+    fn a_package_without_a_typecheck_script_or_tsconfig_is_skipped_and_one_without_typescript_cannot_run() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("package.json"), "{}").unwrap();
+        assert!(matches!(typecheck(dir.path()).0, Status::Skipped(_)));
+        std::fs::write(dir.path().join("tsconfig.json"), "{}").unwrap();
+        assert!(
+            matches!(typecheck(dir.path()).0, Status::Failed(reason) if reason.contains("TypeScript is not installed"))
+        );
     }
 
     #[test]

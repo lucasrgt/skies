@@ -1,8 +1,10 @@
 //! `skies doctor`: runs each platform's architecture analyzers and reports them together.
 //!
 //! Every platform already owns its checks: the SKY Roslyn analyzers run inside `dotnet build`, the SKYFE rules
-//! inside the package's `npm run lint`, and the SKYFL rules natively here. The doctor only finds the packages
-//! `Skies.toml` declares, runs one leg per package in parallel, and prints one table. It is run on purpose; no
+//! inside the package's `npm run lint`, and the SKYFL rules natively here. A React package also gets a typecheck leg
+//! (its `typecheck` script, else `tsc --noEmit -p`), because a type error is invisible to ESLint and a View bound to a
+//! renamed hook field lints clean. The doctor only finds the packages `Skies.toml` declares, runs their legs in
+//! parallel, and prints one table. It is run on purpose; no
 //! hook calls it, and it polices nothing but architecture.
 //!
 //! `--package <dir>` runs only the leg for that one directory, so a package's own `lint` script can call the doctor
@@ -54,6 +56,8 @@ impl Finding {
 pub enum Target {
     Dotnet(PathBuf),
     Eslint(PathBuf),
+    /// A React package's TypeScript check, run beside its lint.
+    Typecheck(PathBuf),
     Flutter(PathBuf),
     /// A declared frontend with neither `package.json` nor `pubspec.yaml`: reported, never silently skipped.
     Unknown(PathBuf),
@@ -124,7 +128,7 @@ fn run_package(package: &Path, build_args: &[String]) -> Result<u8> {
     );
     println!("skies doctor: {}", dir.strip_prefix(&root).unwrap_or(&dir).display());
     let started = Instant::now();
-    let legs = run_legs(&root, &[target], build_args);
+    let legs = run_legs(&root, &with_typecheck(vec![target]), build_args);
     print!("{}", report::render(&root, &legs, started.elapsed()));
     Ok(exit_code(&legs))
 }
@@ -170,6 +174,20 @@ pub fn targets(project: &Project) -> Vec<Target> {
         for frontend in product.frontend.iter() {
             out.push(classify(&project.root.join(frontend)));
         }
+    }
+    with_typecheck(out)
+}
+
+/// Adds a typecheck leg right after every React package's lint leg.
+fn with_typecheck(targets: Vec<Target>) -> Vec<Target> {
+    let mut out = Vec::with_capacity(targets.len());
+    for target in targets {
+        let typecheck = match &target {
+            Target::Eslint(dir) => Some(Target::Typecheck(dir.clone())),
+            _ => None,
+        };
+        out.push(target);
+        out.extend(typecheck);
     }
     out
 }
@@ -292,6 +310,7 @@ mod tests {
             [
                 Target::Dotnet(root.join("api")),
                 Target::Eslint(root.join("web")),
+                Target::Typecheck(root.join("web")),
                 Target::Flutter(root.join("mobile")),
                 Target::Unknown(root.join("odd")),
                 Target::Dotnet(root.join("b/tests")),
