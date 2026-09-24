@@ -6,6 +6,7 @@ mod feature;
 mod i18n;
 mod names;
 mod projection;
+pub mod rules;
 
 use std::path::{Path, PathBuf};
 
