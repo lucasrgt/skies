@@ -78,7 +78,7 @@ pub struct Backend {
 
 #[derive(Subcommand)]
 pub enum Generate {
-    /// A module: <Name>Module.cs, error codes, ctx.md, wired into the module registry.
+    /// A module: <Name>Module.cs and a ctx.md skeleton for you to write, wired into the module registry.
     Module {
         name: String,
         #[command(flatten)]
@@ -104,7 +104,7 @@ pub enum Generate {
         #[command(flatten)]
         backend: Backend,
     },
-    /// List/lookup/create/update/delete slices for a tenant-scoped [Entity], plus the Open/Update they call.
+    /// List/lookup/create/update/delete slices and a view record for an [Entity], its DbSet, and its Open/Update.
     Crud {
         module: String,
         entity: String,

@@ -1,20 +1,29 @@
 //! The shape generators: `g module`, `g slice`, `g entity`, `g vo`, and `g hub`.
 //!
 //! Each emits the conventional shape so the doctor passes by construction: a module owns both halves of its
-//! wiring (SKY0015/16) and carries a ctx with its boundaries (SKY0004), a slice has the canonical
-//! Input/Output/Handle/Map (SKY0001), a named endpoint (SKY0012), is mapped under its module's route group, and
-//! takes the group's authorization decision or states its own, failing closed (SKY0022), an entity funnels every
-//! state through `EnsureValid` (SKY0014), and a value object is only built through `From` (SKY0013). None of them
-//! writes a test: the behavior a slice must keep is described by a spec's failure modes and proven by its E2E,
-//! written before the code.
+//! wiring (SKY0015/16), a slice has the canonical Input/Output/Handle/Map (SKY0001), a named endpoint (SKY0012),
+//! is mapped under its module's route group, and takes the group's authorization decision or states its own,
+//! failing closed (SKY0022), an entity funnels every state through `EnsureValid` (SKY0014), and a value object is
+//! only built through `From` (SKY0013). One thing is left failing on purpose: a module's ctx skeleton carries its
+//! hints as HTML comments, so SKY0004 asks the author for the module's boundaries and design notes once the module
+//! owns a slice; no generator writes prose that would pass for them. None of them writes a test: the behavior a
+//! slice must keep is described by a spec's failure modes and proven by its E2E, written before the code. Nothing
+//! they write into the app cites a rule id: generated comments explain the domain, not the linter.
 
 use std::path::Path;
 
 use anyhow::Result;
 
+use super::app_db;
 use super::crud::module as group;
 use super::error_codes::{self, ErrorCode};
 use super::{ApiProject, embedded, text};
+
+/// The end of a slice's `Map` chain when the module's route group decides authorization for it.
+pub(super) const INHERITED_POSTURE: &str = ";";
+
+/// The end of a slice's `Map` chain when nothing above it decides: fail closed.
+pub(super) const OWN_POSTURE: &str = "\n            .RequireAuthorization();";
 
 pub fn module(root: &Path, name: &str) -> Result<u8> {
     let Some(project) = ApiProject::open(root)? else {
@@ -38,8 +47,8 @@ pub fn module(root: &Path, name: &str) -> Result<u8> {
     text::write(&path, body)?;
     println!("created {}", path.display());
 
-    // SKY0004 wants every module that owns a slice to carry a ctx with its boundaries; the skeleton gives the
-    // owner the two sections to fill in, next to the code they describe.
+    // Only the author knows the module's why; the skeleton carries the two spine sections with their hints
+    // commented out, so the build asks for them (SKY0004) instead of accepting generated prose.
     let context = project.module_dir(name).join(format!("{name}.ctx.md"));
     if !context.exists() {
         let body = text::fill(
@@ -51,6 +60,11 @@ pub fn module(root: &Path, name: &str) -> Result<u8> {
     }
 
     wire_into_registry(&project, name)?;
+    println!(
+        "next: write {name}'s boundaries and design notes in {}. The build reports SKY0004 until both sections \
+         hold your own words (the commented hints do not count).",
+        context.display()
+    );
     Ok(0)
 }
 
@@ -113,11 +127,7 @@ pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
     // it does (no module file yet, a group without one, or a module the generator cannot wire).
     let module_file = project.module_dir(module).join(format!("{module}Module.cs"));
     let inherits = module_file.is_file() && group::group_decides(&text::read(&module_file)?);
-    let posture = if inherits {
-        ";"
-    } else {
-        "\n            .RequireAuthorization();"
-    };
+    let posture = if inherits { INHERITED_POSTURE } else { OWN_POSTURE };
     let lower = name.to_lowercase();
     let body = text::fill(
         embedded::dotnet("scaffold/Slice.cs.cstmpl"),
@@ -132,11 +142,19 @@ pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
     text::write(&path, body)?;
     println!("created {}", path.display());
 
-    // The scaffolded validation references a registry constant (SKY0018), so the registry must declare it.
+    // The scaffold answers with an honest "not implemented" business error rather than fake behavior, so every
+    // spec case fails until the operation is written; its code lives on the registry like any other (SKY0018).
+    let not_implemented = format!("{name}NotImplemented");
+    let value = format!(
+        "{}.{}_not_implemented",
+        module.to_lowercase(),
+        text::hyphenate(name).replace('-', "_")
+    );
+    let summary = format!("{name} is scaffolded but not implemented yet; remove this code when it is.");
     let code = ErrorCode {
-        name: "IdRequired",
-        value: "id.required",
-        summary: "The id input is required.",
+        name: &not_implemented,
+        value: &value,
+        summary: &summary,
     };
     error_codes::ensure(&project.module_dir(module), &project.namespace, module, &code)?;
 
@@ -181,10 +199,19 @@ pub fn entity(root: &Path, module: &str, name: &str) -> Result<u8> {
         summary: "The id is required (entity invariant).",
     };
     error_codes::ensure(&module_dir, &project.namespace, module, &code)?;
-    println!(
-        "note: register it in AppDb.cs — add `public DbSet<{name}> {name}s => Set<{name}>();` — \
-         then grow {name} with intention-revealing methods that funnel through EnsureValid."
-    );
+    let set = format!("public DbSet<{name}> {} => Set<{name}>();", text::plural(name));
+    match app_db::locate(&project.root)? {
+        Some(file) => println!(
+            "note: register it in {} with `{set}` (`skies g crud {module} {name}` does that for you), then grow \
+             {name} with intention-revealing methods that funnel through EnsureValid.",
+            file.display()
+        ),
+        None => println!(
+            "note: this project has no AppDb yet (`skies g auth` adds one). Register {name} in the DbContext your \
+             slices take as AppDb with `{set}`, then grow it with intention-revealing methods that funnel through \
+             EnsureValid."
+        ),
+    }
     Ok(0)
 }
 
@@ -285,7 +312,21 @@ mod tests {
         ));
         assert!(registry.contains("HealthModule.Map(app);\n        BillingModule.Map(app);\n    }"));
         let context = std::fs::read_to_string(dir.path().join("Modules/Billing/Billing.ctx.md")).unwrap();
-        assert!(context.contains("## Boundaries\n\n- **Inside**") && context.contains("`BillingModule`"));
+        assert!(context.contains("## Boundaries\n\n<!-- Inside: "));
+        let prose: Vec<&str> = context
+            .lines()
+            .filter(|line| !line.is_empty() && !line.starts_with('#') && !line.starts_with("<!--"))
+            .collect();
+        assert!(
+            prose.is_empty(),
+            "the skeleton writes no prose that could pass for the author's: {prose:?}"
+        );
+        let wiring = read(dir.path(), "Modules/Billing/BillingModule.cs");
+        assert!(
+            !wiring.contains("        //"),
+            "no commented example is left for the author to clean up"
+        );
+        assert!(!wiring.contains("SKY"));
     }
 
     #[test]
@@ -297,7 +338,12 @@ mod tests {
 
         let slice = std::fs::read_to_string(dir.path().join("Modules/Billing/Slices/CreateInvoice.cs")).unwrap();
         assert!(slice.contains("app.MapPost(\"/createinvoice\""));
-        assert!(slice.contains("BillingErrorCodes.IdRequired"));
+        assert!(slice.contains(
+            "Error.BusinessRule(BillingErrorCodes.CreateInvoiceNotImplemented, \"CreateInvoice is not implemented yet.\")"
+        ));
+        assert!(!slice.contains("new Output(input") && !slice.contains("fill in") && !slice.contains("SKY"));
+        let codes = read(dir.path(), "Modules/Billing/BillingErrorCodes.cs");
+        assert!(codes.contains("CreateInvoiceNotImplemented = \"billing.create_invoice_not_implemented\";"));
         assert!(slice.contains(".WithName(nameof(CreateInvoice))\n            .RequireAuthorization();"));
         assert!(dir.path().join("Modules/Billing/BillingErrorCodes.cs").exists());
         assert!(
@@ -371,6 +417,15 @@ mod tests {
         let slice = read(dir.path(), "Modules/Wallets/Slices/Transfer.cs");
         assert!(slice.contains(".WithName(nameof(Transfer))\n            .RequireAuthorization();"));
         assert!(read(dir.path(), "Modules/Wallets/WalletsModule.cs").contains("Transfer.Map(wallets);"));
+    }
+
+    #[test]
+    fn the_entity_note_names_the_real_db_context() {
+        let dir = tempfile::tempdir().unwrap();
+        project(dir.path());
+        assert_eq!(entity(dir.path(), "Billing", "Invoice").unwrap(), 0);
+        let source = read(dir.path(), "Modules/Billing/Invoice.cs");
+        assert!(!source.contains("SKY") && !source.contains(" a Invoice"));
     }
 
     #[test]

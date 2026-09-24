@@ -15,8 +15,32 @@ use serde_json::{Map, Value};
 pub const FEATURES_DIR: &str = "lib/l10n/features";
 pub const OUTPUT_DIR: &str = "lib/l10n";
 
+/// The locale suffix of a catalog's file name: a 2–3 letter language, optionally a `_Region`/`_Script` part
+/// (`_en`, `_pt_BR`, `_zh_Hant`). Any language the app writes is one; none is privileged.
 fn locale_pattern() -> Regex {
-    Regex::new(r"_(pt(?:_BR)?|en(?:_US)?|es(?:_ES)?)\.arb$").expect("static pattern")
+    Regex::new(r"_([a-z]{2,3}(?:_[A-Z][A-Za-z0-9]+)?)\.arb$").expect("static pattern")
+}
+
+/// The locale a new package starts with when it declares none.
+pub const DEFAULT_LOCALE: &str = "en";
+
+/// The app's locale set, read from the feature catalogs it already has (`lib/l10n/features/*_<locale>.arb`), sorted;
+/// a package with none yet gets the single [`DEFAULT_LOCALE`]. A scaffold writes one catalog per locale the app
+/// already speaks, so adding a feature never adds or drops a language.
+pub fn locales(package: &Path) -> Vec<String> {
+    let pattern = locale_pattern();
+    let found: BTreeSet<String> = find_arb(&package.join(FEATURES_DIR))
+        .iter()
+        .filter_map(|path| {
+            let name = path.file_name()?.to_string_lossy().into_owned();
+            pattern.captures(&name).map(|captures| captures[1].to_string())
+        })
+        .collect();
+    if found.is_empty() {
+        vec![DEFAULT_LOCALE.to_string()]
+    } else {
+        found.into_iter().collect()
+    }
 }
 
 /// One parsed ARB file.
@@ -202,6 +226,33 @@ mod tests {
                 .to_string()
                 .contains("duplicate ARB key title")
         );
+    }
+
+    #[test]
+    fn the_locale_set_is_the_apps_own_and_defaults_to_english() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(locales(dir.path()), ["en"]);
+
+        let features = dir.path().join(FEATURES_DIR);
+        std::fs::create_dir_all(&features).unwrap();
+        for file in [
+            "common_fr.arb",
+            "common_de_CH.arb",
+            "user_wallets_fr.arb",
+            "user_wallets_de_CH.arb",
+        ] {
+            std::fs::write(features.join(file), "{}").unwrap();
+        }
+        assert_eq!(locales(dir.path()), ["de_CH", "fr"]);
+    }
+
+    #[test]
+    fn parity_reads_any_locale_suffix() {
+        let catalogs = vec![
+            catalog("x_fr.arb", json!({ "title": "Titre", "empty": "Vide" })),
+            catalog("x_de_CH.arb", json!({ "title": "Titel" })),
+        ];
+        assert_eq!(check_parity(&catalogs)[0].path, PathBuf::from("x_de_CH.arb"));
     }
 
     #[test]

@@ -46,10 +46,6 @@ fn every_kept_rule_fires_on_its_violation() {
             "SKYFL007",
             &[(MODEL, "final class XViewModel extends ChangeNotifier {}")],
         ),
-        (
-            "SKYFL009",
-            &[(MODEL, "import 'package:camera/camera.dart';\nAsyncState<int> state;")],
-        ),
         ("SKYFL010", &[(VIEW, "class XView {}"), (MODEL, STATEFUL_MODEL)]),
         (
             "SKYFL011",
@@ -185,7 +181,7 @@ fn retired_proof_and_design_rules_never_fire() {
         ),
         (
             "lib/features/x/x_view_model.dart",
-            "/// @verify works\n/// @e2e x-happy\nAsyncState<int> state;",
+            "import 'package:camera/camera.dart';\n/// @verify works\n/// @e2e x-happy\nAsyncState<int> state;",
         ),
         ("lib/helper.dart", "const c = Color(0xff112233); const h = '#abcdef';"),
         (
@@ -194,8 +190,8 @@ fn retired_proof_and_design_rules_never_fire() {
         ),
     ]);
     for retired in [
-        "SKYFL005", "SKYFL006", "SKYFL008", "SKYFL012", "SKYFL024", "SKYFL025", "SKYFL026", "SKYFL033", "SKYFL034",
-        "SKYFL035",
+        "SKYFL005", "SKYFL006", "SKYFL008", "SKYFL009", "SKYFL012", "SKYFL024", "SKYFL025", "SKYFL026", "SKYFL033",
+        "SKYFL034", "SKYFL035",
     ] {
         assert!(!found.iter().any(|c| c == retired), "{retired} still fires: {found:?}");
     }

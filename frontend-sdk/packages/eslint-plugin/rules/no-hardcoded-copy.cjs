@@ -2,13 +2,11 @@
 
 const { isView } = require("../lib/shared.cjs");
 
-// SKYFE014 — no hardcoded user-facing copy in a View. Targets JSX text children (the `>text<` between tags) that
-// contain a letter — almost always visible copy that must go through i18n (t()), so it lands in the catalog
-// SKYFE011 then keeps complete across locales. Deliberately scoped to JSXText (high signal, near-zero false
-// positives): `{t("…")}` is an expression (not text) so it's never flagged, and className / testID / name /
-// variant are attributes (not children) so they're never flagged either. The trade-off is COVERAGE not noise —
-// copy hidden in props (placeholder=…) or variables is NOT caught here (a Phase-2 copy-prop whitelist can add
-// it). Warn-first: it surfaces hardcoded strings without crying wolf.
+// SKYFE014 — no hardcoded user-facing copy in a View (*.view.tsx only). Flags JSX text children that contain a
+// letter and string-literal values of copy props (placeholder, label, title, aria-label, alt, …): both are visible
+// or announced copy that must go through i18n (t()), so it lands in the catalog SKYFE011 keeps complete across
+// locales. `{t("…")}` and variables are expressions, never literals, so they pass; data props (value, name, id,
+// variant, role) are not copy and are never checked.
 module.exports = {
   meta: {
     type: "problem",
@@ -21,9 +19,7 @@ module.exports = {
   create(context) {
     const f = context.filename.replace(/\\/g, "/");
     if (!isView(f)) return {};
-    // Phase 2: props that carry user-facing copy. Only STRING-LITERAL values are flagged — `{t()}` and variables
-    // are JSXExpressionContainers, not literals, so they're never touched. `value`/`name`/`id`/`variant`/`role`
-    // are deliberately NOT here (they're data/ids/enums, not copy).
+    // Props that carry user-facing copy; only string-literal values are flagged.
     const COPY_PROPS = new Set([
       "placeholder", "label", "title", "subtitle", "heading", "description", "message",
       "helperText", "caption", "errorMessage", "emptyTitle", "emptyDescription",

@@ -12,6 +12,8 @@ namespace Skies.Framework.Doctor;
 /// file — a vertical slice should be small — not to keep packing. EF migrations (a <c>Migrations</c>
 /// directory) are exempt: tool-emitted, append-only, never hand-maintained — their size is the schema's,
 /// not a packing smell (the hostpoint pilot's InitialCreate crossed the ceiling on real tables alone).
+/// A warning, not an error: the ceiling is a readability taste, not an architectural boundary, so a long file
+/// is a prompt to split, never a broken build.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class FileSizeAnalyzer : DiagnosticAnalyzer
@@ -27,7 +29,7 @@ public sealed class FileSizeAnalyzer : DiagnosticAnalyzer
         title: "Source file exceeds the line ceiling",
         messageFormat: "File has {0} lines; the ceiling is {1}. Extract a concern into its own file.",
         category: "Skies.Framework.Convention",
-        defaultSeverity: DiagnosticSeverity.Error,
+        defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Skies app files stay at or under the ceiling so each holds a single, readable concern.");
 

@@ -56,8 +56,8 @@ cargo test && cargo clippy -- -D warnings                 # the skies binary
 dotnet build Skies.Framework.slnx && dotnet test Skies.Framework.slnx
 npm --prefix frontend-sdk run check                       # typecheck, lint, tests
 (cd flutter-sdk/packages/skies_flutter && flutter analyze && flutter test)
-tools/auth-smoke.sh                                       # render auth into a new app, build doctor-clean, run its specs
-tools/sync-plugin-docs.sh                                 # after editing docs/*CONVENTIONS.md or the CLI help
+tools/auth-smoke.sh                                       # generated apps on the packed packages: doctor-clean, specs green
+tools/sync-plugin-docs.sh                                 # after editing docs/*CONVENTIONS.md, docs/AUTH.md, or the CLI help
 ```
 
 Run what your change touches. Leave every affected workspace green.

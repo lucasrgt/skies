@@ -1,27 +1,6 @@
-// Feature-scoped copy for a command screen. Three locales with identical keys — fill in the real strings.
-export const ptBR = {
-  title: "{{ name }}",
-  submit: "{{ name }}",
-  "errors.id": "Informe um id válido.",
-  "errors.submit": "Não foi possível concluir. Tente novamente.",
-  "fields.id.label": "Id",
-  "fields.id.hint": "O identificador (UUID).",
-  "done.title": "Concluído",
-  "done.description": "A operação foi concluída.",
-} as const;
-
-export const esES = {
-  title: "{{ name }}",
-  submit: "{{ name }}",
-  "errors.id": "Introduce un id válido.",
-  "errors.submit": "No pudimos completarlo. Inténtalo de nuevo.",
-  "fields.id.label": "Id",
-  "fields.id.hint": "El identificador (UUID).",
-  "done.title": "Completado",
-  "done.description": "La operación se ha completado.",
-} as const;
-
-export const enUS = {
+// Copy for the {{ name }} screen, one export per app locale with the same keys. Translate each locale's strings.
+{% for locale in locales %}{% if not loop.first %}
+{% endif %}export const {{ locale }} = {
   title: "{{ name }}",
   submit: "{{ name }}",
   "errors.id": "Enter a valid id.",
@@ -31,3 +10,4 @@ export const enUS = {
   "done.title": "Done",
   "done.description": "The operation is complete.",
 } as const;
+{% endfor %}

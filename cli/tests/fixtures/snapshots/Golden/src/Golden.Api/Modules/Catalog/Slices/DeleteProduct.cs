@@ -2,10 +2,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Golden.Api.Modules.Catalog;
 
-/// <summary>Delete a Product by id, scoped to the caller's tenant (hard delete). Removing a row is a
-/// persistence act, not a state transition, so there is no entity method to call; the entity's RowVersion makes a
-/// delete racing an update fail loudly. An unknown id is a not-found, never a hint that the row exists in another
-/// org.</summary>
+/// <summary>Delete a Product by id within the caller's org, a hard delete.
+/// Removing a row is a persistence act, not a state transition, so there is no entity method to call; the row
+/// version makes a delete racing an update fail loudly.
+/// An id from another org is a not-found, never a hint that the row exists.</summary>
 [Slice]
 public static class DeleteProduct
 {
@@ -26,7 +26,6 @@ public static class DeleteProduct
 
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapDelete("/product/{id:guid}", async (Guid id, AppDb db, CancellationToken ct) =>
-            (await Handle(new Input(id), db, ct)).ToHttp())
-            .WithName(nameof(DeleteProduct))
-            .RequireAuthorization();
+                (await Handle(new Input(id), db, ct)).ToHttp())
+            .WithName(nameof(DeleteProduct));
 }

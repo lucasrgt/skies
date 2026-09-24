@@ -154,9 +154,12 @@ Rich, self-validating types; no repositories, base classes, or internal event bu
 - **Generated CRUD keeps the split.** `skies g crud <Module> <Entity>` never writes a column from a slice: it adds
   `Open(Guid id, <fields>[, Guid userId][, DateTime now])` and `Update(<fields>[, DateTime now])` to the entity
   (from its `{ get; private set; }` fields, through `EnsureValid`, plus `RowVersion` when missing), keeping any the
-  author wrote. Create calls `Open`, Update calls `Update` and saves on success, Delete is a plain `Remove`. Rename
-  `Update` to the domain's verb once there is one. The generated update validates a shallow copy before applying
-  scalar fields to the original; keep `EnsureValid` free of side effects, including changes to referenced objects.
+  author wrote. Create calls `Open`, Update (`PUT /<entity>/{id}`) calls `Update` and saves on success, Delete is a
+  plain `Remove`; List and Lookup answer with an `<Entity>View` of its scalar fields (never `OrgId`, `TenantId`,
+  `RowVersion`), never the entity. It registers the `DbSet` in `AppDb`, is tenant-scoped only for an `ITenantScoped`
+  entity, and maps under the module's group, inheriting its authorization. The generated update validates a shallow
+  copy before applying scalar fields to the original, so a refused update leaves the entity as it was; keep
+  `EnsureValid` free of side effects, including changes to referenced objects. Rename `Update` to the domain's verb.
 - **The markers are pure** (like `[Slice]`): no base class, no EF semantics; without the doctor they are inert.
 - **The mark is not optional where the type is persisted or owned** (`SKY0021`): a `DbSet<T>` type must be
   `[Entity]`, and a complex member of an `[Entity]` must be `[ValueObject]`. Without it, leaving the mark off skips
@@ -204,54 +207,25 @@ A new app has no hub; `skies g hub <Module> <Name>` scaffolds one at `Modules/<M
 - **Webhook ≠ hub**: an inbound provider callback is a normal slice. **Ephemeral state is not an entity**: an
   in-memory singleton on one instance; scaling out swaps in a backplane and Redis at the composition root.
 
-## Auth — the mechanism is a package, the policy is the app's
+## Auth
 
-Generated Account modules use `[Module]`, `AddServices`, and `Map` through the same registry as other modules.
-`Platform.AddPlatform` owns the database and external providers. The starter's InMemory database, local JWT key,
-and fake/console providers are Development-only: startup refuses other environments until the owner replaces
-that platform setup with persistent storage, a configured `Jwt:Secret`, and real providers. For OAuth use
-`OidcIdTokenVerifier` with the provider authority and client id. Keep local substitutes inside an explicit
-Development branch. Generation refuses to overwrite existing owner files before writing anything.
-
-`skies g auth` (and `auth:otp`, `auth:oauth`, `auth:email`) generates the Account module's slices, entities, and
-spec, but not the security mechanics: those are `Skies.Framework.Auth` (and the `Identity` port), so a fix reaches
-every app through a package version instead of a template no generated app ever sees again. The module registers
-them with one explicit call in its composition, `AddSkiesAuth<UserSessionStore>(new SkiesAuthOptions(...))` (plus
-`AddVerificationTokens<VerificationTokenStore>()` once a phone or email flow is added).
-
-| Mechanism (package) | Policy and domain (app) |
-|---------------------|-------------------------|
-| `IPasswordHasher` (argon2id): hash, constant-time verify, the dummy verification that makes "no such account" cost what "wrong password" costs | the password rule (minimum length) and when a password may change |
-| `OpaqueTokens`: 256-bit tokens, SHA256 lookup hashes, constant-time `Matches` | nothing: a token is never app-shaped |
-| `RefreshSessions`: open a family, rotate, burn the family on reuse, the sliding lifetime and absolute ceiling, revoke by token, family, user, or all-but-current | which error code each `RefreshOutcome` maps to, who may revoke which session (the ownership check), the two lifetimes (`RefreshSessionOptions`) |
-| `VerificationTokens`: issue and consume single-use links and 6-digit codes, expiry, purpose binding, the attempt cap that locks a code | each purpose's lifetime, the message that carries the secret, what a verified secret unlocks, the cap (`VerificationOptions`) |
-| `RefreshCookie`: httpOnly/Secure/SameSite, the `X-Client: web` switch, `Deliver` (which body leaves, cookie lifetime = session lifetime) | the cookie's name, path, and (for a multi-subdomain app) domain and SameSite; the two response bodies |
-| `IAccessTokens`, `ICurrentUser`, the JwtBearer validator, from one secret/issuer/audience | the claims' values: org, role, display name |
-| `OidcIdTokenVerifier` (`IExternalIdentityVerifier`): signature against the provider's keys, issuer, audience, lifetime, verified email | which providers the app trusts and their client ids |
-
-- **Persistence stays app-owned.** The app keeps `User`, `UserSession`, `VerificationToken`, its role model, and
-  tenancy as ordinary `[Entity]` types in its own `AppDb`. The package reaches them only through two small store
-  interfaces the app implements in a few lines of EF each (`IRefreshSessionStore`, `IVerificationStore`): plain data
-  access, no decisions. The services re-check whatever a store returns (hash in constant time, purpose, expiry, use),
-  so a loose store can make a secret fail, never pass.
-- **Slices keep the Skies shape.** `Input`/`Output`/`Handle`/`Map`, the error codes, and the auth posture stay in the
-  slice; `Handle` takes the service it needs (`IPasswordHasher`, `RefreshSessions`, `VerificationTokens`) and maps
-  each outcome enum to its `AccountErrorCodes` constant. No base class, no generated code, no discovery: the services
-  are registered by name and injected like any other.
-- **Moving an app generated before this.** `skies migrate 5` never rewrites auth code, which is the app's own; it
-  notes a Skies 4 Account module. Regenerate with `skies g auth` in a branch, compare, and port the app's changes.
+`skies g auth` generates the Account module; the mechanics are `Skies.Framework.Auth`, the policy is the app's
+([AUTH.md](AUTH.md)).
 
 ## The ctx.md schema
 
 Each module carries one `<Module>.ctx.md`: the business *why* the code cannot show. Anything recoverable from the
 types, tests, or routes is duplication, and duplication rots.
 
-**Spine, required (`SKY0004`):**
+**Spine, required (`SKY0004`), in the author's own words:**
 
 - `# <module>` and a 1–3 line purpose.
 - `## Boundaries`: inside, outside, non-goals. Stops scope leak; the highest-value section.
 - `## Design notes`: the non-obvious invariants and why they hold. Performance, security, and cross-module effects
   fold in here when they carry a why. Each invariant cites the spec that proves it (below).
+
+A section that is empty, holds only HTML comments, or holds the hints `skies g module` writes (commented out) counts
+as empty, so the build asks for the module's why once it owns a slice, and no generated prose passes for it.
 
 **Optional:** `## Wiring` (dependencies not obvious from imports), `## Not yet ported` (deliberate absences).
 **Excluded** (recoverable, so it would drift): data models, DTOs, route or error tables, test matrices, examples,
@@ -396,10 +370,10 @@ forcing awkward code, that is a finding to report against the rule.
 |------|----------|-----|
 | `SKY0001` | Slice conformance: static class; nested `Input` and `Output`; `Handle → Task<Result<T>>`; `Map`; ordered Input → Output → Handle → Map | one readable shape per feature |
 | `SKY0002` | Endpoint stays thin: a route handler is an expression-bodied lambda or method group, never a statement block | business logic hides in routes |
-| `SKY0004` | Every module has a `<Module>.ctx.md` with a non-empty `## Boundaries` and `## Design notes` | the why gets forgotten |
+| `SKY0004` | Every module has a `<Module>.ctx.md` whose `## Boundaries` and `## Design notes` are written: empty, comment-only, or scaffold-hint sections do not count | the why gets forgotten |
 | `SKY0005` | `.ctx.md` is fresh: every backticked identifier it cites resolves in source or a reference, and every cited spec (`` `0002-withdraw#FM-2` ``) exists with that failure mode (not mtime) | ctx drifts from code and evidence |
 | `SKY0006` | No `IRepository` / unit-of-work abstraction in a slice | clean-architecture bloat |
-| `SKY0007` | File ≤ 500 lines (EF `Migrations/` exempt: tool-emitted, append-only) | locality for readers and agents |
+| `SKY0007` | Warning. File ≤ 500 lines (EF `Migrations/` exempt: tool-emitted, append-only); a readability taste, not a boundary | locality for readers and agents |
 | `SKY0009` | Write-ownership: a write (Add/Update/Remove/…) on another module's entity is flagged, on a `DbSet` or through `DbContext.Add(entity)`; cross-module reads, joins, and calls are free. `.Tests.cs` exempt | keeps a module carvable later |
 | `SKY0012` | A `[Slice]`'s `Map` calls `.WithName("<SliceName>")` (or `nameof`): the OpenAPI `operationId` the typed client names its hook after (`use<SliceName>`). A missing `Map` is SKY0001's | backend ↔ frontend stay 1:1 |
 | `SKY0013` | `[ValueObject]` has encapsulated construction and immutable properties, including init accessors, plus a Result-returning factory | validation enters through one factory; struct defaults still exist |
@@ -408,7 +382,7 @@ forcing awkward code, that is a finding to report against the rule.
 | `SKY0016` | Every `[Module]`'s `AddServices` and `Map` are called in the explicit registry (`AddModules` / `MapModules`); compile-time, no reflection | a forgotten module is a silent 404 |
 | `SKY0017` | `Program.cs` wires only `AddSkies`/`AddPlatform`/`AddModules` and `UseSkies`/`UsePlatform`/`MapModules`; any other service registration, pipeline step, or endpoint mapping there is flagged | the index rots into a dumping ground |
 | `SKY0018` | The `code` passed to an `Error` factory / `Validation.Check` / `Validation.Add` / `FieldError` references a `const` on a `*ErrorCodes` class, never a literal | codes must be enumerable into OpenAPI and i18n |
-| `SKY0019` | Every `const` on an `*ErrorCodes` registry is referenced by an `Error`/`Validation` call (the reverse of SKY0018) | dead codes ship in the enum and catalogs |
+| `SKY0019` | Warning. Every `const` on an `*ErrorCodes` registry is referenced by an `Error`/`Validation` call (the reverse of SKY0018) | dead codes ship in the enum and catalogs |
 | `SKY0021` | A `DbSet<T>` whose `T` is unmarked must be `[Entity]`; a complex member of an `[Entity]` (past one nullable/collection layer) that is not `[ValueObject]`, `[Entity]`, or an enum must be `[ValueObject]`. Dead types and framework types are not flagged | an unmarked type escapes SKY0013/SKY0014 |
 | `SKY0022` | Every `[Slice]` declares `.RequireAuthorization(…)` or `.AllowAnonymous()` on its `Map` chain or its module's route group. A missing `Map` is SKY0001's | a new endpoint ships open by omission |
 | `SKY0023` | A `[Slice]` `Handle` that takes `ICurrentUser` and never reads it is flagged: consult the caller or remove the parameter | the ownership check was meant and dropped |

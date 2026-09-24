@@ -16,8 +16,9 @@ use crate::web::scaffold::{run, write_new};
 const L10N_YAML: &str =
     "arb-dir: lib/l10n\ntemplate-arb-file: app_en.arb\noutput-localization-file: app_localizations.dart\n";
 
-/// The shared catalog every app starts with, one per supported locale.
-const COMMON_COPY: [(&str, &str); 3] = [("en", "Skies app"), ("es", "Aplicación Skies"), ("pt_BR", "App Skies")];
+/// The shared catalog every app starts with, in the one locale a new app speaks; `l10n.yaml` names it the template.
+/// A language is added by adding its catalogs, and later feature scaffolds follow the set the app has.
+const COMMON_COPY: (&str, &str) = (i18n::DEFAULT_LOCALE, "Skies app");
 
 pub fn create(name: &str, path: Option<&Path>) -> Result<u8> {
     let package = snake(name);
@@ -66,10 +67,9 @@ pub fn flutter_bin() -> String {
 /// The files Skies adds to a fresh Flutter project.
 pub fn harness_files(dir: &Path) -> Vec<(PathBuf, String)> {
     let mut files = vec![(dir.join("l10n.yaml"), L10N_YAML.to_string())];
-    for (locale, title) in COMMON_COPY {
-        let catalog = format!("{{\n  \"appTitle\": \"{title}\"\n}}\n");
-        files.push((dir.join(FEATURES_DIR).join(format!("common_{locale}.arb")), catalog));
-    }
+    let (locale, title) = COMMON_COPY;
+    let catalog = format!("{{\n  \"appTitle\": \"{title}\"\n}}\n");
+    files.push((dir.join(FEATURES_DIR).join(format!("common_{locale}.arb")), catalog));
     files
 }
 
@@ -149,7 +149,8 @@ mod tests {
         let files = harness_files(Path::new("/app"));
         let names: Vec<String> = files.iter().map(|(p, _)| p.display().to_string()).collect();
         assert!(names.contains(&"/app/l10n.yaml".to_string()));
-        assert!(names.contains(&"/app/lib/l10n/features/common_pt_BR.arb".to_string()));
+        assert!(names.contains(&"/app/lib/l10n/features/common_en.arb".to_string()));
+        assert_eq!(names.len(), 2, "one locale until the app adds another: {names:?}");
         assert!(
             !names
                 .iter()

@@ -22,6 +22,7 @@ the specs a change reaches, with their failure modes, before you make it.
 
 Reference, in this plugin (ground every convention fact there, never memory):
 - `docs/CONVENTIONS.md`: backend conventions, specs and proofs, and the SKY#### rule catalog.
+- `docs/AUTH.md`: what `Skies.Framework.Auth` owns and what the generated Account module owns.
 - `docs/FRONTEND-CONVENTIONS.md`: React web conventions and the SKYFE### rule catalog.
 - `docs/FLUTTER-CONVENTIONS.md`: Flutter conventions and the SKYFL### rule catalog.
 - `docs/cli.md`: every `skies` command and flag, from `skies <command> --help`.

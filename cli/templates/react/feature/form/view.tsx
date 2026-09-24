@@ -1,17 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { Controller } from "react-hook-form";
-// The app's component kit — the View reaches markup and styling through these names only.
 import { Button, Card, Field, Input, Screen, Stack, Text } from "@/ui";
 import { use{{ name }}Model } from "./{{ name }}.viewModel";
 
-// FORM VIEW — render only: Screen > Stack > Text(title) > Card > one Field+Input per field > the
-// role=alert command error > Button (loading while pending). Field errors render inside their Field; the
-// command's failure renders above the submit.
 export function {{ name }}View() {
   const { t } = useTranslation("{{ lower }}");
   const { control, submit, submitting, submitError, completed } = use{{ name }}Model();
 
-  // The success surface. A routed app returns a declarative <Navigate> here instead.
+  // A routed app returns a declarative <Navigate> here instead.
   if (completed) {
     return (
       <Screen>

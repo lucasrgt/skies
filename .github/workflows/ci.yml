@@ -35,7 +35,7 @@ jobs:
       - run: dotnet test Skies.Framework.slnx -c Release --no-build
 
   auth-smoke:
-    name: generated app (auth blueprints build doctor-clean, their specs pass)
+    name: generated apps on the packed packages (doctor-clean, specs pass)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

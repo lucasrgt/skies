@@ -19,7 +19,7 @@ const instance = axios.create({
 
 // The base URL is INJECTED by the app shell at boot (configureClient), never read from build config here — so
 // this data-door module stays free of env wiring and imports cleanly in jsdom. The localhost default keeps tests
-// + pre-configure dev working; SKYFE020 blesses exactly this injectable-default shape.
+// + pre-configure dev working, and the shell overrides it from configuration.
 instance.defaults.baseURL = "http://localhost:8080";
 
 /** Point the client at the resolved API base URL. Called once at app start by the shell — the same
@@ -35,7 +35,7 @@ export function setAccessToken(token: string | null): void {
   accessToken = token;
 }
 
-// ── Token refresh — the SEAM rotates, the client only retries ───────────────
+// ── Token refresh — the SEAM rotates, the client only retries ──────────────────────────────────────
 // The 401 interceptor restores the session transparently, but it does NOT know HOW to rotate. The rotation (an
 // empty post; the refresh rides the httpOnly cookie) is the session seam's concern — and it rotates SINGLE-FLIGHT
 // there (its bootstrapSession), so concurrent 401s share ONE in-flight rotation instead of replaying a spent token

@@ -3,7 +3,7 @@
 The SKYFE architecture rules for Skies React web apps — the front-side parallel of the backend's Roslyn
 analyzers (`Skies.Framework.Doctor`). They keep the MVVM seam honest: the View renders, the ViewModel is the only
 data door, and routing, session and forms each go through one seam. Doctor-removable: delete the plugin and the app
-still builds; you only lose the warnings.
+still builds; you only lose the enforcement.
 
 ## Rules
 
@@ -48,10 +48,14 @@ Route files are those under `app/`, TanStack Router's file-based `src/routes/**`
 import skies from "@skiesjs/eslint-plugin";
 
 export default [
-  skies.configs.recommended, // every SKYFE rule at "warn" + the jsx-a11y floor at "error"
-  { files: ["src/**/*.{ts,tsx}"], rules: { "skies/view-purity": "error", "skies/data-door": "error" } },
+  skies.configs.recommended, // the SKYFE rules + the jsx-a11y floor
 ];
 ```
+
+`recommended` sets every architecture rule to `error` and the three polish rules to `warn`:
+`skies/no-manual-refetch-ritual` (SKYFE028), `skies/submit-handles-invalid` (SKYFE031), and
+`skies/controller-field-state` (SKYFE032). Promote those in a later config object once your forms use
+`submitOrReveal` everywhere.
 
 ## Accessibility floor
 

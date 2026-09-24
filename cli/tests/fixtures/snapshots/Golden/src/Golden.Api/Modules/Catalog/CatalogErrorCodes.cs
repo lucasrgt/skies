@@ -1,8 +1,7 @@
 namespace Golden.Api.Modules.Catalog;
 
-/// <summary>The Catalog module's error codes — stable, namespaced i18n keys the frontend localizes from.
-/// Every Error/Check references a const here, so the full set stays discoverable: AddSkiesOpenApi
-/// enumerates it into the OpenAPI ErrorBody.code schema for the typed client.</summary>
+/// <summary>The Catalog module's error codes: stable keys the frontend localizes from. They live here, as
+/// constants, so the full set is enumerable into the OpenAPI contract and the typed client.</summary>
 public static class CatalogErrorCodes
 {
     /// <summary>The id is required (entity invariant).</summary>

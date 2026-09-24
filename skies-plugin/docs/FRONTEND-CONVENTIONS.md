@@ -36,7 +36,7 @@ It exists to kill one failure: **the AI says "done" and ships a screen rendering
 features/<zone>/<name>/
   <Name>.view.tsx        # the View: pure render, consumes exactly one ViewModel
   <Name>.viewModel.ts    # the ViewModel: the only data door, composes generated slice-hooks
-  <name>.i18n.ts         # the feature's i18n namespace (ptBR/esES/enUS)
+  <name>.i18n.ts         # the feature's i18n namespace (one export per app locale)
   panels/ | steps/       # sub-views of multi-panel/multi-step features, same rules
 ```
 
@@ -295,8 +295,8 @@ scaffolds the `view`/`viewModel`/`i18n` unit once, typed from the contract, beha
 scaffolded (cases live in the spec):
 
 - **`--kind list`** (the default: a module's first screen is usually the read of what it holds): the
-  `List<Name>` read hook folded into `AsyncState` and rendered through `<Resource>` with loading, error, and empty
-  states.
+  `List<Name>` read hook's page (`data.<name>.items`, the shape `g crud`'s List returns) folded into `AsyncState`
+  and rendered through `<Resource>` with loading, error, and empty states.
 - **`--kind form`**: a command screen, the Deposit recipe. The ViewModel owns a react-hook-form `useForm` with a zod
   schema restating only the slice's rules, submits through `submitOrReveal` into the `<Name>` mutation
   (`mutate({ data })`), and exposes `submitting`, a localized `submitError`, and `completed`; the View renders one
@@ -344,6 +344,10 @@ tests are not routes). Each rule was calibrated on real apps
 | `SKYFE031` | Warning. In a `*.viewModel.ts`, a one-argument `handleSubmit(onValid)` is flagged; use `submitOrReveal(form.handleSubmit, onValid, { onInvalid })` or pass `onInvalid`. Promotes with SKYFE032 | Save goes mute on a hidden invalid field |
 | `SKYFE032` | Warning. A `<Controller>` whose inline `render` never reads `fieldState` is flagged; pass `error={fieldState.error?.message}`. A non-inline surface must still expose the error explicitly | a field's error has no surface |
 | `SKYFE036` | A `test`/`it`/`describe` call (or a declaring member: `test.describe`, `it.each([…])(…)`, `describe.skip`) from `vitest`, `@playwright/test`, `@jest/globals`, `bun:test`, `node:test`, a global, or the app's re-export of an extended runner (called with a title and a body), in a file with no `.specs/` path segment is flagged, once per file. A local function of the same name is not a test, nor is a fixture file (`test.extend`, `test.step`, hooks). It asks where a test lives, never that one exists | tests as coverage prove nothing |
+
+**Tiers.** `recommended` sets every rule to **error** except the polish ones, which stay **warnings**: `SKYFE028`
+(a redundant refetch is harmless), and `SKYFE031`/`SKYFE032` (a single-screen form with every error visible inline
+may skip `submitOrReveal`). An app promotes those in its own config; it never needs to promote the rest.
 
 Numbering gaps are removed rules (the latest, `SKYFE009`, kept ViewModels free of React Native imports). Beside
 these, `recommended` carries the [accessibility floor](#accessibility--the-a11y-floor-on-by-default) (third-party
@@ -396,7 +400,9 @@ mixed languages (only user-facing copy is localized, and it lives in i18n). Unsu
 User-facing copy is **never inlined** in a View. One i18next instance (`src/i18n`); each feature owns a namespace
 named after its folder (`src/features/<feat>/<feat>.i18n.ts`, one export per locale), assembled by `skies i18n`
 into `src/i18n/resources.generated.ts`; shared copy lives in `common`. A View reads `useTranslation("<feat>")`.
-Adding a locale changes no namespace.
+Adding a locale changes no namespace. The locale set is the app's: `skies g feature` copies it from the package's
+existing catalogs (a single `en` when there are none), and `skies i18n` keys each export by its language (`enUS`,
+`en_US`, and `en` all become `en`), refusing a catalog whose locales differ from the others.
 
 **Error codes are translated in every language.** The backend ships each error as a stable `ErrorBody.code`
 (`SKY0018`/`SKY0019`); the front owns the copy in an `api-errors` catalog typed against the generated code union, so

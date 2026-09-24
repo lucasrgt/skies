@@ -2,24 +2,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Api.Modules.__MODULE__;
 
-/// <summary>Look up one __ENTITY__ by id, scoped to the caller's tenant. An unknown id is a not-found,
-/// never a hint that the row exists in another org.</summary>
+/// <summary>Look up one __ENTITY__ by id__WITHIN__.__FOREIGN__</summary>
 [Slice]
 public static class Lookup__ENTITY__
 {
     public record Input(Guid Id);
 
-    public record Output(__ENTITY__ Item);
+    public record Output(__ENTITY__View __ENTITY__);
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct)
     {
         var item = await db.__PLURAL__.FirstOrDefaultAsync(e => e.Id == input.Id, ct);
-        return item is null ? Error.NotFound(__MODULE__ErrorCodes.__ENTITY__NotFound, "__ENTITY_LOWER__ not found") : new Output(item);
+        if (item is null)
+            return Error.NotFound(__MODULE__ErrorCodes.__ENTITY__NotFound, "__ENTITY_LOWER__ not found");
+
+        return new Output(__ENTITY__View.From(item));
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapGet("/__ENTITY_LOWER__/{id:guid}", async (Guid id, AppDb db, CancellationToken ct) =>
-            (await Handle(new Input(id), db, ct)).ToHttp())
-            .WithName(nameof(Lookup__ENTITY__))
-            .RequireAuthorization();
+                (await Handle(new Input(id), db, ct)).ToHttp())
+            .WithName(nameof(Lookup__ENTITY__))__POSTURE__
 }

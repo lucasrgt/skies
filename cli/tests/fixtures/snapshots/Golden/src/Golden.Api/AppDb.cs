@@ -2,6 +2,7 @@ using Golden.Api.Tenancy;
 using Golden.Api.Modules.Account;
 using Microsoft.EntityFrameworkCore;
 using Skies.Framework.Auth;
+using Golden.Api.Modules.Catalog;
 
 namespace Golden.Api;
 
@@ -17,6 +18,8 @@ public class AppDb(DbContextOptions<AppDb> options, ITenant tenant) : TenantDbCo
     public DbSet<UserSession> UserSessions => Set<UserSession>();
 
     public DbSet<VerificationToken> VerificationTokens => Set<VerificationToken>();
+
+    public DbSet<Product> Products => Set<Product>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {

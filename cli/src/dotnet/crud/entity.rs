@@ -108,8 +108,9 @@ impl Shape<'_> {
         }
         let doc = format!(
             "    /// <summary>Open a new {e} with its identity and fields. Creation returns through\n    \
-             /// <see cref=\"EnsureValid\"/>, so a {e} that breaks an invariant is refused before it\n    \
-             /// exists.</summary>\n"
+             /// <see cref=\"EnsureValid\"/>, so {} that breaks an invariant is refused before it\n    \
+             /// exists.</summary>\n",
+            super::text::with_article(e)
         );
         let signature = format!("    public static Result<{e}> Open({}) =>\n", self.open_signature());
         let body = format!("        new {e} {{ {} }}.EnsureValid();\n", inits.join(", "));

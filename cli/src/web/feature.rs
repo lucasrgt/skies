@@ -14,9 +14,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{Result, bail};
 use minijinja::context;
 
-use super::contract;
 use super::names::{camel, pascal, singular};
 use super::scaffold::{render, write_new};
+use super::{contract, i18n};
 
 const LIST_VIEW_MODEL: &str = include_str!("../../templates/react/feature/list/viewModel.ts");
 const LIST_VIEW: &str = include_str!("../../templates/react/feature/list/view.tsx");
@@ -67,8 +67,13 @@ impl FeatureNames {
 }
 
 /// Renders the unit as `(file name, contents)` pairs, in the order they are reported. `client` is the
-/// `@/client.gen/<client>` module the ViewModel imports its hook from.
-pub fn render_feature(names: &FeatureNames, kind: FeatureKind, client: &str) -> Result<Vec<(String, String)>> {
+/// `@/client.gen/<client>` module the ViewModel imports its hook from; `locales` are the catalog's exports.
+pub fn render_feature(
+    names: &FeatureNames,
+    kind: FeatureKind,
+    client: &str,
+    locales: &[String],
+) -> Result<Vec<(String, String)>> {
     let ctx = context! {
         plural => names.plural,
         name => names.plural,
@@ -76,6 +81,7 @@ pub fn render_feature(names: &FeatureNames, kind: FeatureKind, client: &str) -> 
         entity => names.entity,
         lower => names.lower,
         client,
+        locales,
     };
     let (view_model, view, i18n) = match kind {
         FeatureKind::List => (LIST_VIEW_MODEL, LIST_VIEW, LIST_I18N),
@@ -125,11 +131,31 @@ pub fn client_module(package: &Path) -> String {
     }
 }
 
+/// The package's locale set: the exports of its first existing `*.i18n.ts` catalog (by path), so a new feature
+/// declares exactly the locales every other catalog does. A package with no catalog yet gets a single `en`; adding a
+/// locale later means adding one export to each catalog.
+pub fn app_locales(package: &Path) -> Result<Vec<String>> {
+    let root = source_root(package);
+    let mut catalogs = Vec::new();
+    if root.is_dir() {
+        i18n::find_catalogs(&root, &mut catalogs)?;
+    }
+    catalogs.sort();
+    for catalog in catalogs {
+        let locales = i18n::catalog_locales(&std::fs::read_to_string(&catalog)?);
+        if !locales.is_empty() {
+            return Ok(locales);
+        }
+    }
+    Ok(vec!["en".to_string()])
+}
+
 pub fn scaffold(package: &Path, name: &str, kind: FeatureKind) -> Result<u8> {
     let names = FeatureNames::derive(name)?;
     let dir = feature_dir(package, &names);
     let client = client_module(package);
-    let files: Vec<(PathBuf, String)> = render_feature(&names, kind, &client)?
+    let locales = app_locales(package)?;
+    let files: Vec<(PathBuf, String)> = render_feature(&names, kind, &client, &locales)?
         .into_iter()
         .map(|(file, contents)| (dir.join(file), contents))
         .collect();
@@ -150,12 +176,18 @@ pub fn scaffold(package: &Path, name: &str, kind: FeatureKind) -> Result<u8> {
 mod tests {
     use super::*;
 
+    fn locales(names: &[&str]) -> Vec<String> {
+        names.iter().map(|name| name.to_string()).collect()
+    }
+
     fn rendered(name: &str) -> Vec<(String, String)> {
-        render_feature(&FeatureNames::derive(name).unwrap(), FeatureKind::List, "shop").unwrap()
+        let set = locales(&["ptBR", "esES", "enUS"]);
+        render_feature(&FeatureNames::derive(name).unwrap(), FeatureKind::List, "shop", &set).unwrap()
     }
 
     fn form(name: &str) -> Vec<(String, String)> {
-        render_feature(&FeatureNames::derive(name).unwrap(), FeatureKind::Form, "shop").unwrap()
+        let set = locales(&["ptBR", "esES", "enUS"]);
+        render_feature(&FeatureNames::derive(name).unwrap(), FeatureKind::Form, "shop", &set).unwrap()
     }
 
     /// The keys of one locale block of a rendered i18n module.
@@ -195,6 +227,10 @@ mod tests {
         assert!(view_model.contains("AsyncState<Booking[]>"));
         assert!(view_model.contains("import { useListBookings } from \"@/client.gen/shop\";"));
         assert!(view_model.contains("i18n.t(\"bookings:error\")"));
+        assert!(
+            view_model.contains("data: query.data?.bookings?.items,"),
+            "the List slice returns a page"
+        );
         assert!(view.contains("<Resource"));
         assert!(view.contains("{(bookings) => <BookingsList bookings={bookings} />}"));
         assert!(view.contains("{bookings.map((item) => ("));
@@ -236,6 +272,42 @@ mod tests {
         assert!(i18n.contains("  title: \"Transfer\",\n"));
         for (_, contents) in &files {
             assert!(!contents.contains("{{") && !contents.contains("{%"));
+        }
+    }
+
+    #[test]
+    fn the_locale_set_is_the_packages_and_defaults_to_english() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("src/b")).unwrap();
+        assert_eq!(app_locales(dir.path()).unwrap(), ["en"]);
+
+        scaffold(dir.path(), "Items", FeatureKind::List).unwrap();
+        let i18n = std::fs::read_to_string(dir.path().join("src/items/items.i18n.ts")).unwrap();
+        assert!(i18n.contains("export const en = {"));
+        assert_eq!(i18n.matches("export const").count(), 1);
+        assert!(i18n.ends_with("} as const;\n") && !i18n.ends_with("\n\n"));
+
+        std::fs::remove_file(dir.path().join("src/items/items.i18n.ts")).unwrap();
+        std::fs::write(
+            dir.path().join("src/b/a.i18n.ts"),
+            "export const frFR = {} as const;\nexport const deDE = {} as const;\n",
+        )
+        .unwrap();
+        assert_eq!(app_locales(dir.path()).unwrap(), ["frFR", "deDE"]);
+
+        scaffold(dir.path(), "Transfer", FeatureKind::Form).unwrap();
+        let i18n = std::fs::read_to_string(dir.path().join("src/transfer/transfer.i18n.ts")).unwrap();
+        assert_eq!(keys(&i18n, "frFR"), keys(&i18n, "deDE"));
+        assert!(!i18n.contains("enUS") && !i18n.contains("ptBR"));
+    }
+
+    #[test]
+    fn scaffolds_cite_no_rule_ids() {
+        for (_, contents) in rendered("bookings").into_iter().chain(form("transfer")) {
+            assert!(
+                !contents.contains("SKY"),
+                "a rule id leaked into the scaffold:\n{contents}"
+            );
         }
     }
 

@@ -1,8 +1,8 @@
 __AUTH_USING__namespace MyApp.Api.Modules.__MODULE__;
 
-/// <summary>Create a __ENTITY__ for the caller's tenant. The slice never writes a column: the entity is born
-/// through <see cref="__ENTITY__.Open"/>, whose invariants (EnsureValid) decide whether it may exist, and the org
-/// is stamped by the DbContext, never taken from the request.</summary>
+/// <summary>Create __A_ENTITY____WITHIN__.
+/// The slice never writes a column: the entity is born through <see cref="__ENTITY__.Open"/>, whose invariants
+/// decide whether it may exist.__STAMPED__</summary>
 [Slice]
 public static class Create__ENTITY__
 {
@@ -23,7 +23,6 @@ public static class Create__ENTITY__
 
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/__ENTITY_LOWER__", async (Input input, AppDb db, __CREATE_PARAMS__CancellationToken ct) =>
-            (await Handle(input, db, __CREATE_ARGS__ct)).ToHttp())
-            .WithName(nameof(Create__ENTITY__))
-            .RequireAuthorization();
+                (await Handle(input, db, __CREATE_ARGS__ct)).ToHttp())
+            .WithName(nameof(Create__ENTITY__))__POSTURE__
 }
