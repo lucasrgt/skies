@@ -4,7 +4,8 @@
 # regression (a generated app that does not compile, trips a SKY rule, or ships a red spec) before a release does.
 #
 # Three apps, each rendered with `skies new`:
-#   Full   — g auth + auth:otp + auth:oauth + auth:email, plus module/slice/entity/vo/hub.
+#   Full   — g auth + auth:otp + auth:oauth + auth:email, plus module/slice/entity/vo/hub and a slice under an
+#            anonymous module group.
 #   Single — g auth --skip-tenancy --skip-cookies.
 #   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, with no edit after crud.
 #
@@ -92,6 +93,14 @@ API="$(new_app Full)"
 g auth; g auth:otp; g auth:oauth; g auth:email
 g module Billing; g slice Billing CreateInvoice; g slice Billing GetInvoice; g entity Billing Invoice
 g vo Money; g hub Billing Payments
+# A module whose group is anonymous on purpose: the slice inherits the group's decision (SKY0022) and states none of
+# its own, so it never asks for an auth scheme the group waived.
+g module Status
+sed -i 's#^        //   <Slice>.Map(status);$#&\n        var status = app.MapGroup("/status").AllowAnonymous();#' "$API/Modules/Status/StatusModule.cs"
+g slice Status Uptime
+grep -q '        Uptime.Map(status);' "$API/Modules/Status/StatusModule.cs" \
+  && ! grep -q 'RequireAuthorization' "$API/Modules/Status/Slices/Uptime.cs" \
+  || { echo "FAIL: g slice did not map Uptime under the anonymous group without a posture of its own" >&2; exit 1; }
 
 echo "==> rendering Single: auth --skip-tenancy --skip-cookies"
 API="$(new_app Single)"

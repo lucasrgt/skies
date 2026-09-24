@@ -2,15 +2,17 @@
 //!
 //! Each emits the conventional shape so the doctor passes by construction: a module owns both halves of its
 //! wiring (SKY0015/16) and carries a ctx with its boundaries (SKY0004), a slice has the canonical
-//! Input/Output/Handle/Map (SKY0001), a named endpoint (SKY0012), and an explicit authorization decision that
-//! fails closed (SKY0022), an entity funnels every state through `EnsureValid` (SKY0014), and a value object is
-//! only built through `From` (SKY0013). None of them writes a test: the behavior a slice must keep is described by a spec's
-//! failure modes and proven by its E2E, written before the code.
+//! Input/Output/Handle/Map (SKY0001), a named endpoint (SKY0012), is mapped under its module's route group, and
+//! takes the group's authorization decision or states its own, failing closed (SKY0022), an entity funnels every
+//! state through `EnsureValid` (SKY0014), and a value object is only built through `From` (SKY0013). None of them
+//! writes a test: the behavior a slice must keep is described by a spec's failure modes and proven by its E2E,
+//! written before the code.
 
 use std::path::Path;
 
 use anyhow::Result;
 
+use super::crud::module as group;
 use super::error_codes::{self, ErrorCode};
 use super::{ApiProject, embedded, text};
 
@@ -107,6 +109,15 @@ pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
         return Ok(1);
     }
 
+    // The module's group decides for every slice mapped on it; a slice restates a posture only when nothing above
+    // it does (no module file yet, a group without one, or a module the generator cannot wire).
+    let module_file = project.module_dir(module).join(format!("{module}Module.cs"));
+    let inherits = module_file.is_file() && group::group_decides(&text::read(&module_file)?);
+    let posture = if inherits {
+        "; // authorization: the module's route group decides (SKY0022)"
+    } else {
+        "\n            .RequireAuthorization();"
+    };
     let lower = name.to_lowercase();
     let body = text::fill(
         embedded::dotnet("scaffold/Slice.cs.cstmpl"),
@@ -115,6 +126,7 @@ pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
             ("__MODULE__", module),
             ("__NAME_LOWER__", &lower),
             ("__NAME__", name),
+            ("__POSTURE__", posture),
         ],
     );
     text::write(&path, body)?;
@@ -127,6 +139,17 @@ pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
         summary: "The id input is required.",
     };
     error_codes::ensure(&project.module_dir(module), &project.namespace, module, &code)?;
+
+    // An unmapped slice is a silent 404: map it under the module's group, as `g crud` does.
+    if module_file.is_file() {
+        group::wire(&module_file, module, &[name.to_string()])?;
+    } else {
+        println!(
+            "note: {} does not exist; run `skies g module {module}`, then add `{name}.Map(<group>);` to \
+             {module}Module.Map.",
+            module_file.display()
+        );
+    }
     Ok(0)
 }
 
@@ -282,6 +305,75 @@ mod tests {
                 .join("Modules/Billing/Slices/CreateInvoice.Tests.cs")
                 .exists()
         );
+    }
+
+    fn module_with_map(dir: &Path, map_body: &str) {
+        let file = dir.join("Modules/Wallets/WalletsModule.cs");
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(
+            file,
+            format!(
+                "public static class WalletsModule\n{{\n    public static void Map(IEndpointRouteBuilder app)\n    \
+                 {{\n{map_body}    }}\n}}\n"
+            ),
+        )
+        .unwrap();
+    }
+
+    fn read(dir: &Path, path: &str) -> String {
+        std::fs::read_to_string(dir.join(path)).unwrap()
+    }
+
+    #[test]
+    fn a_slice_under_an_anonymous_group_is_wired_and_states_no_posture_of_its_own() {
+        let dir = tempfile::tempdir().unwrap();
+        project(dir.path());
+        module_with_map(
+            dir.path(),
+            "        var wallets = app.MapGroup(\"/wallets\").AllowAnonymous();\n        Deposit.Map(wallets);\n",
+        );
+
+        assert_eq!(slice(dir.path(), "Wallets", "Transfer").unwrap(), 0);
+
+        let slice = read(dir.path(), "Modules/Wallets/Slices/Transfer.cs");
+        assert!(
+            slice.contains(
+                ".WithName(nameof(Transfer)); // authorization: the module's route group decides (SKY0022)\n"
+            )
+        );
+        assert!(!slice.contains("RequireAuthorization"));
+        let module = read(dir.path(), "Modules/Wallets/WalletsModule.cs");
+        assert!(module.contains("        Deposit.Map(wallets);\n        Transfer.Map(wallets);\n    }\n}\n"));
+    }
+
+    #[test]
+    fn a_fresh_module_gets_a_fail_closed_group_the_slice_inherits() {
+        let dir = tempfile::tempdir().unwrap();
+        project(dir.path());
+        assert_eq!(module(dir.path(), "Billing").unwrap(), 0);
+
+        assert_eq!(slice(dir.path(), "Billing", "CreateInvoice").unwrap(), 0);
+
+        let module = read(dir.path(), "Modules/Billing/BillingModule.cs");
+        assert!(module.contains(
+            "        var billing = app.MapGroup(\"/billing\").RequireAuthorization();\n        \
+             CreateInvoice.Map(billing);\n    }\n}\n"
+        ));
+        let slice = read(dir.path(), "Modules/Billing/Slices/CreateInvoice.cs");
+        assert!(slice.contains("// authorization: the module's route group decides (SKY0022)"));
+    }
+
+    #[test]
+    fn a_group_without_a_posture_leaves_the_slice_failing_closed() {
+        let dir = tempfile::tempdir().unwrap();
+        project(dir.path());
+        module_with_map(dir.path(), "        var wallets = app.MapGroup(\"/wallets\");\n");
+
+        assert_eq!(slice(dir.path(), "Wallets", "Transfer").unwrap(), 0);
+
+        let slice = read(dir.path(), "Modules/Wallets/Slices/Transfer.cs");
+        assert!(slice.contains(".WithName(nameof(Transfer))\n            .RequireAuthorization();"));
+        assert!(read(dir.path(), "Modules/Wallets/WalletsModule.cs").contains("Transfer.Map(wallets);"));
     }
 
     #[test]

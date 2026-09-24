@@ -1,4 +1,4 @@
-//! The module half of `g crud`: mapping the slices under the module's route group.
+//! The module half of `g crud` and `g slice`: mapping the slices under the module's route group.
 //!
 //! The slices map onto the group the module declares (`var catalog = app.MapGroup(...)`), which carries the
 //! module's authorization decision. A `g module` scaffold only shows that line as a commented example, so the
@@ -24,9 +24,30 @@ fn declared_group(source: &str) -> Option<String> {
     GROUP.captures(source).map(|c| c["g"].to_string())
 }
 
+/// The end of `Map` and of the class in a scaffolded module: where new lines go.
+fn anchor(nl: &str) -> String {
+    format!("{nl}    }}{nl}}}")
+}
+
+/// Whether slices mapped by [`wire`] inherit an authorization decision (SKY0022) from the module's group: the group
+/// statement carries `.AllowAnonymous()` or `.RequireAuthorization(…)`, or the module has no group and `wire` will
+/// declare one, failing closed, at the scaffold's anchor. A slice that inherits must not restate a posture: a
+/// per-endpoint `.RequireAuthorization()` under an `.AllowAnonymous()` group demands an auth scheme the app may
+/// not have.
+pub(crate) fn group_decides(source: &str) -> bool {
+    match GROUP.find(source) {
+        Some(found) => {
+            let rest = &source[found.start()..];
+            let statement = &rest[..rest.find(';').unwrap_or(rest.len())];
+            statement.contains(".AllowAnonymous()") || statement.contains(".RequireAuthorization(")
+        }
+        None => source.contains(&anchor(text::newline_of(source))),
+    }
+}
+
 /// Adds the missing `<Slice>.Map(<group>);` lines before the module's closing braces, declaring the group first
 /// when the module has none. A module without the scaffold's closing anchor gets the exact lines to add.
-pub(super) fn wire(module_file: &Path, module: &str, slices: &[String]) -> Result<()> {
+pub(crate) fn wire(module_file: &Path, module: &str, slices: &[String]) -> Result<()> {
     let source = text::read(module_file)?;
     let nl = text::newline_of(&source);
     let (group, declaration) = match declared_group(&source) {
@@ -47,7 +68,7 @@ pub(super) fn wire(module_file: &Path, module: &str, slices: &[String]) -> Resul
     }
     let lines: Vec<String> = declaration.into_iter().chain(maps).collect();
 
-    let anchor = format!("{nl}    }}{nl}}}");
+    let anchor = anchor(nl);
     if source.contains(&anchor) {
         let block = format!("{nl}{}{anchor}", lines.join(nl));
         std::fs::write(module_file, text::replace_first(&source, &anchor, &block))?;
@@ -104,6 +125,26 @@ mod tests {
             2,
             "the comment and one declaration"
         );
+    }
+
+    #[test]
+    fn a_group_posture_is_inherited_only_when_the_group_states_one() {
+        assert!(group_decides(
+            "        var w = app.MapGroup(\"/w\").AllowAnonymous();\n"
+        ));
+        assert!(group_decides(
+            "        var w = app.MapGroup(\"/w\")\n            .RequireAuthorization(\"admin\");\n"
+        ));
+        assert!(!group_decides(
+            "        var w = app.MapGroup(\"/w\");\n        w.WithTags(\"x\");\n    }\n}\n"
+        ));
+        assert!(
+            group_decides(SCAFFOLD),
+            "wire declares a fail-closed group at the anchor"
+        );
+        assert!(!group_decides(
+            "    public static void Map(IEndpointRouteBuilder app) { }\n}\n"
+        ));
     }
 
     #[test]

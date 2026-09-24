@@ -20,6 +20,5 @@ public static class __NAME__
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/__NAME_LOWER__", async (Input input, CancellationToken ct) =>
                 (await Handle(input, ct)).ToHttp())
-            .WithName(nameof(__NAME__))
-            .RequireAuthorization();
+            .WithName(nameof(__NAME__))__POSTURE__
 }

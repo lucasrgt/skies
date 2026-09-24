@@ -14,8 +14,9 @@ public static class __NAME__Module
 
     public static void Map(IEndpointRouteBuilder app)
     {
-        // Register this module's slices here as you generate them. The group carries the module's
-        // authorization decision — SKY0022 wants it explicit either way:
+        // This module's slices map onto its group; `skies g slice` adds each line, declaring the group (failing
+        // closed) when there is none. The group carries the module's authorization decision — SKY0022 wants it
+        // explicit either way, and a slice mapped here inherits it:
         //   var __NAME_LOWER__ = app.MapGroup("/__NAME_LOWER__").RequireAuthorization(); // or .AllowAnonymous()
         //   <Slice>.Map(__NAME_LOWER__);
     }

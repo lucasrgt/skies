@@ -16,7 +16,7 @@
 //! the change.
 
 mod entity;
-mod module;
+pub(super) mod module;
 
 use std::path::Path;
 use std::sync::LazyLock;

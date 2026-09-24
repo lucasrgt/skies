@@ -168,6 +168,39 @@ fn the_auth_variants_match_their_snapshots() {
 }
 
 #[test]
+fn backend_generators_run_from_the_app_root_and_the_manual_names_the_app() {
+    let work = tempfile::tempdir().unwrap();
+    skies(work.path(), &["new", "Golden"]);
+    let root = work.path().join("Golden");
+    skies(&root, &["g", "module", "Billing"]);
+    skies(&root, &["g", "slice", "Billing", "CreateInvoice"]);
+    skies(
+        &root.join("src"),
+        &["g", "slice", "Billing", "GetInvoice", "--project", "Golden.Api"],
+    );
+
+    let api = root.join("src/Golden.Api");
+    let module = std::fs::read_to_string(api.join("Modules/Billing/BillingModule.cs")).unwrap();
+    assert!(module.contains(
+        "        var billing = app.MapGroup(\"/billing\").RequireAuthorization();\n        \
+         CreateInvoice.Map(billing);\n        GetInvoice.Map(billing);\n    }\n}"
+    ));
+    assert!(api.join("Modules/Billing/Slices/GetInvoice.cs").is_file());
+    assert!(!root.join("Modules").exists() && !root.join("src/Modules").exists());
+
+    // Every rendered file names the app, never the template's source name.
+    for (path, bytes) in files(&root) {
+        let text = String::from_utf8_lossy(&bytes);
+        assert!(
+            !path.contains("Starter") && !text.contains("Skies.Framework.Starter"),
+            "{path} leaks the template"
+        );
+    }
+    let manual = std::fs::read_to_string(root.join("AGENTS.md")).unwrap();
+    assert!(manual.contains("`src/Golden.Api`") && manual.contains("`tests/Golden.Tests`"));
+}
+
+#[test]
 fn crud_refuses_an_entity_that_is_not_tenant_scoped() {
     let work = tempfile::tempdir().unwrap();
     skies(work.path(), &["new", "Golden"]);
