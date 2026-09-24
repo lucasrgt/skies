@@ -91,7 +91,12 @@ fn help(path: &[String]) -> String {
         .unwrap();
     assert!(output.status.success(), "skies {} --help failed", path.join(" "));
     let text = String::from_utf8(output.stdout).unwrap();
-    text.lines().map(str::trim_end).collect::<Vec<_>>().join("\n").trim().to_string()
+    text.lines()
+        .map(str::trim_end)
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string()
 }
 
 /// The names listed under `Commands:`, minus clap's own `help`.
