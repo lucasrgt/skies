@@ -110,7 +110,7 @@ fn verify_one(
     let count = green.cases.len();
     receipt.runner = doc.runner(spec)?.to_string();
     receipt.green.commit = head.to_string();
-    receipt.green.dirty = repo.dirty(&spec.rel())?;
+    receipt.green.dirty = repo.dirty()?;
     receipt.green.cases = green.cases;
     receipt.green.report = green.report;
     receipt.footprint = footprint;

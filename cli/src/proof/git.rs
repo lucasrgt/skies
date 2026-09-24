@@ -8,6 +8,8 @@ use std::process::Command;
 
 use anyhow::{Context, Result, bail};
 
+use super::spec::SPECS_DIR;
+
 /// A git repository seen from a project root that may sit below the repository's top level (a monorepo app,
 /// or the framework's own sample).
 pub struct Repo {
@@ -59,11 +61,11 @@ impl Repo {
         Ok(paths)
     }
 
-    /// Whether anything outside `except` (a folder relative to the project root) differs from HEAD, untracked
-    /// files included. The spec folder is excluded because recording writes into it.
-    pub fn dirty(&self, except: &str) -> Result<bool> {
-        let status =
-            self.run(&["status", "--porcelain", "--untracked-files=all", "--", ".", &format!(":(exclude){except}")])?;
+    /// Whether the working tree differs from HEAD (untracked files included) outside `.specs/`. Spec folders are
+    /// left out because recording writes into them and they are no part of the code under test.
+    pub fn dirty(&self) -> Result<bool> {
+        let exclude = format!(":(exclude){SPECS_DIR}");
+        let status = self.run(&["status", "--porcelain", "--untracked-files=all", "--", ".", &exclude])?;
         Ok(!status.is_empty())
     }
 

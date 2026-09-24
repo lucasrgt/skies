@@ -110,7 +110,7 @@ pub fn record(key: &str, red_flag: Option<&str>, red_patch_flag: Option<&Path>) 
         return Ok(1);
     }
 
-    let dirty = repo.dirty(&spec.rel())?;
+    let dirty = repo.dirty()?;
     println!("  green  {}{}", short(&head), if dirty { " (dirty)" } else { "" });
     let green = match run_green(root, &spec, &doc, &project, &mut session, scratch.path())? {
         GreenOutcome::Proven(green) => green,
