@@ -53,8 +53,11 @@ assert.deepEqual(
   RULE_IDS.map((id) => `skies/${id}`).sort(),
   "recommended enables every rule",
 );
+// Architecture is error; only the polish rules (SKYFE028, SKYFE031, SKYFE032) stay warnings.
+const WARN_TIER = ["no-manual-refetch-ritual", "submit-handles-invalid", "controller-field-state"];
 for (const id of RULE_IDS) {
-  assert.equal(plugin.configs.recommended.rules[`skies/${id}`], "warn", `skies/${id} stays at warn in recommended`);
+  const expected = WARN_TIER.includes(id) ? "warn" : "error";
+  assert.equal(plugin.configs.recommended.rules[`skies/${id}`], expected, `skies/${id} is ${expected} in recommended`);
 }
 
 const ruleTester = new RuleTester({

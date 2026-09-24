@@ -62,11 +62,18 @@ function promote(setting) {
   return options.length > 0 ? [raised, ...options] : raised;
 }
 
+// Architecture rules are errors: each guards a shape whose drift ships a bug (a mocked screen, an open redirect, a
+// silent failure). The polish rules stay warnings: a redundant refetch (SKYFE028) is harmless, and a single-screen
+// form with every error visible inline is a legitimate reason to skip submitOrReveal (SKYFE031/032).
+const WARN_TIER = new Set(["no-manual-refetch-ritual", "submit-handles-invalid", "controller-field-state"]);
+
 const recommended = {
   name: "skies/recommended",
   plugins: { skies: plugin, "jsx-a11y": jsxA11y },
   rules: {
-    ...Object.fromEntries(Object.keys(rules).map((rule) => [`skies/${rule}`, "warn"])),
+    ...Object.fromEntries(
+      Object.keys(rules).map((rule) => [`skies/${rule}`, WARN_TIER.has(rule) ? "warn" : "error"]),
+    ),
     ...a11yRules,
   },
 };
