@@ -22,7 +22,10 @@ const CEREMONY_ATTRIBUTES: &[&str] = &[
 
 /// JSDoc and Dart doc tags that bound code to AVP criteria and E2E flows.
 static DOC_TAG: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^\s*(\*|///|//)\s*@(verify|avp|e2e|backendSlice|skies-criterion|skies-proof)\b").unwrap()
+    Regex::new(
+        r"^\s*((\*|///|//)\s*@(verify|avp|e2e|backendSlice|skies-criterion|skies-proof)\b|/\*\*\s*@(verify|avp|e2e|backendSlice|skies-criterion|skies-proof)\b.*\*/\s*$)",
+    )
+    .unwrap()
 });
 
 /// `flows.json` inside a string literal: code that still reads or writes the removed flow contract. Comments that
@@ -372,6 +375,12 @@ mod tests {
         assert_eq!(
             doc_tags(dart, "a.dart", &mut plan).unwrap(),
             "/// Shows the host dashboard.\nclass DashboardViewModel {}\n"
+        );
+        let one_line =
+            "/** @verify maps-role */\n/** @e2e choose-role-happy */\n/** Keeps this. */\nexport const b = 2;\n";
+        assert_eq!(
+            doc_tags(one_line, "b.ts", &mut plan).unwrap(),
+            "/** Keeps this. */\nexport const b = 2;\n"
         );
         let ts = "/**\n * @verify x\n */\nexport const a = 1;\n";
         assert_eq!(doc_tags(ts, "a.ts", &mut plan).unwrap(), "export const a = 1;\n");
