@@ -1,38 +1,34 @@
 # Skies — Flutter conventions
 
 Flutter is Skies' mobile body, and a supported web body too. React is the other web body
-([FRONTEND-CONVENTIONS.md](FRONTEND-CONVENTIONS.md)); both carry the same product guarantees. A product that
-wants the same components on every surface builds its phone apps and its web app from one Flutter codebase, so
-the screens, the kit, and the ViewModels are shared rather than mirrored. A product that pairs a Flutter mobile app
-with a React web app gets parity of capability and enforcement, not a literal translation of React APIs. Output
-remains plain, idiomatic Dart and Flutter; deleting the `skies` CLI leaves an ordinary application that still
-builds and runs.
+([FRONTEND-CONVENTIONS.md](FRONTEND-CONVENTIONS.md)); both carry the same product guarantees. A product that wants
+the same components on every surface builds its phone and web apps from one Flutter codebase, sharing screens, kit,
+and ViewModels. A Flutter mobile app beside a React web app gets parity of capability and enforcement, not a literal
+translation of React APIs.
 
-The two laws remain absolute:
-
-1. **Stranger-maintainable.** A Flutter developer unfamiliar with Skies reads normal Widgets, `ChangeNotifier`,
-   Dio, `Form`, ARB catalogs, `flutter_test`, and `integration_test`.
-2. **Doctor-removable.** Generated wire is committed; application behavior is hand-owned; no runtime discovery,
-   source generation of behavior, custom widget language, or required Skies base class exists.
+1. **Stranger-maintainable.** A Flutter developer unfamiliar with Skies reads normal Widgets, `ChangeNotifier`, Dio,
+   `Form`, ARB catalogs, `flutter_test`, and `integration_test`.
+2. **Doctor-removable.** Generated wire is committed and behavior is hand-owned: no runtime discovery, source
+   generation of behavior, custom widget language, or required Skies base class. Without `skies`, the app still
+   builds and runs.
 
 ## Opinionated stack
 
 - Flutter stable with strict Dart analysis.
-- MVVM using one `ChangeNotifier` ViewModel per screen. The ViewModel owns UI state and commands; the View renders.
-- OpenAPI Generator [`dart-dio`](https://openapi-generator.tech/docs/generators/dart-dio/), pinned by `skies g client`,
-  using `built_value`; Dio is the transport.
+- MVVM: one `ChangeNotifier` ViewModel per screen owns UI state and commands; the View renders.
+- OpenAPI Generator [`dart-dio`](https://openapi-generator.tech/docs/generators/dart-dio/) with `built_value`, pinned
+  by `skies g client`; Dio is the transport.
 - Flutter `Form`/`TextFormField`; `submitOrReveal` forces the invalid path.
 - Flutter `gen_l10n` from ARB catalogs assembled from co-located feature catalogs (`skies i18n`).
-- Flutter's official [`integration_test`](https://docs.flutter.dev/testing/integration-tests) for on-device spec
-  cases and `flutter_test` for headless ones. Every case lives in a spec (`SKYFL036`); an isolated unit gets its own
-  spec, with its failure modes written first.
+- `flutter_test` for headless spec cases and [`integration_test`](https://docs.flutter.dev/testing/integration-tests)
+  for on-device ones; every case lives in a spec (`SKYFL036`).
 
-This follows Flutter's [application architecture guide](https://docs.flutter.dev/app-architecture/guide): View and
-ViewModel are paired, UI state and commands live in the ViewModel, and dependencies enter through constructors.
+This follows Flutter's [architecture guide](https://docs.flutter.dev/app-architecture/guide): View and ViewModel
+paired, UI state and commands in the ViewModel, dependencies through constructors.
 
 ## One feature, one shape
 
-Initialize from Flutter itself, then add the Skies spine:
+Initialize from Flutter itself, then add the Skies spine (the scaffold adds `l10n.yaml` and the client/session seams):
 
 ```bash
 flutter create my_app
@@ -40,8 +36,6 @@ skies g flutter-app my_app --path my_app
 cd my_app && flutter pub add skies_flutter
 skies g feature Profile
 ```
-
-The app scaffold adds `l10n.yaml` and the client/session seams. It does not replace Flutter's project generator.
 
 ```text
 lib/features/<audience>/<feature>/
@@ -53,20 +47,19 @@ lib/l10n/features/
 
 `<audience>` mirrors how the product is experienced, never the backend module tree.
 
-- A View observes exactly one ViewModel. It imports no Dio/client behavior and performs no navigation caused by
-  state after paint.
-- A ViewModel extends `ChangeNotifier`, exposes `AsyncState<T>`, owns commands, and imports neither Widgets nor
-  device plugins. Platform capabilities enter as constructor ports.
-- A composition root supplies generated `dart-dio` operations to the ViewModel. Contract types remain free to
-  cross the boundary; operation execution has one data door.
+- A View observes exactly one ViewModel, imports no Dio/client behavior, and never navigates after paint because of
+  state.
+- A ViewModel extends `ChangeNotifier`, exposes `AsyncState<T>`, owns commands, and imports neither Widgets nor device
+  plugins; platform capabilities enter as constructor ports.
+- A composition root supplies generated `dart-dio` operations to the ViewModel. Contract types cross freely;
+  operation execution has one data door.
 - The View routes loading, failure, empty, and ready through `ResourceBuilder`. No boolean state soup.
 
-`ChangeNotifier` is an ecosystem anchor, not a Skies base class. The application may replace notification while
-retaining the View/ViewModel contract; no behavior depends on the doctor.
+`ChangeNotifier` is an ecosystem anchor, not a Skies base class; an app may replace it and keep the contract.
 
 ## Runtime correspondence
 
-| Product guarantee | React spelling | Idiomatic Flutter spelling |
+| Product guarantee | React spelling | Flutter spelling |
 |---|---|---|
 | Closed server state | `AsyncState`, `toAsyncState`, `combineAsyncStates` | sealed `AsyncState`, `toAsyncState`, typed `combineAsyncStates2/3` |
 | Exhaustive rendering | `<Resource>` | `ResourceBuilder` |
@@ -93,83 +86,68 @@ lib/session.dart            hand-owned SessionSeam composition
 lib/mutations.dart          hand-owned MutationBoundary composition
 ```
 
-`skies g client` reads JSON OpenAPI, excludes `Asset`, `Webhook`, `Internal`, and explicitly non-app operations, prunes
-unreachable components, invokes stock OpenAPI Generator, runs `build_runner`, formatting, and analysis, stamps the
-source contract, then atomically replaces only a marked generated directory. Parsing, models, serialization, and
-HTTP behavior remain OpenAPI Generator/Dio responsibilities.
+`skies g client` reads the JSON OpenAPI, drops `Asset`, `Webhook`, `Internal`, and non-app operations, prunes
+unreachable components, runs stock OpenAPI Generator, `build_runner`, formatting, and analysis in scratch, then
+swaps in only a directory carrying its marker, so a failed run never leaves a half-written client. Parsing, models,
+serialization, and HTTP stay OpenAPI Generator/Dio responsibilities.
 
-By default the contract is the one `Skies.toml` assigns to the package and the output is `packages/<backend>_api`.
-`--input <openapi.json>`, `--output <dir>`, `--name <dart_package>`, and `--version <semver>` override those defaults
-(relative paths resolve against the current directory), so a package with its own schema can keep
-`skies g client --package . --input schema/Accounts.json --output packages/accounts_api --name accounts_api` in its
-`generate:api` script. With `--input` or `--output`, only the package is generated: the app already owns its seams
-and its pubspec entry.
+The contract defaults to the one `Skies.toml` assigns to the package, the output to `packages/<backend>_api`.
+`--input <openapi.json>`, `--output <dir>`, `--name <dart_package>`, and `--version <semver>` override them (relative
+to the current directory), e.g. `skies g client --package . --input schema/Accounts.json --output
+packages/accounts_api --name accounts_api` in a `generate:api` script. With `--input` or `--output`, only the package
+is generated: the app already owns its seams and pubspec entry.
 
-The hand-owned client accepts its base URL and auth ports from the composition root, performs one single-flight
-refresh replay after a non-auth 401, unwraps `Response<T>`, and maps the canonical generated `ErrorBody` to
-`SkiesApiException<ErrorBody>`. Transport failures retain their original Dio cause.
-
-Every app-facing OpenAPI `operationId` must be consumed from a ViewModel or sanctioned session/guard/client seam.
-Endpoint ownership comes from the application's `contract/*.json` files or an explicit `--contract`.
-An E2E flow's `backendContract` may reference a broader backend schema: it validates observed operations and
-consumed feature coverage without assigning unrelated endpoints to that application.
-`skies-flutter-endpoint-coverage` is warning-tier while building and blocking under `--strict`. Contract freshness
-is blocking after the first generated stamp.
+The hand-owned client takes its base URL and auth ports from the composition root, replays once through the
+single-flight refresh after a non-auth 401, unwraps `Response<T>`, and maps the generated `ErrorBody` to
+`SkiesApiException<ErrorBody>`. Transport failures keep their Dio cause.
 
 ## Session and routing
 
-Session restoration and 401 replay call the same `SessionSeam.bootstrapSession` single-flight door. The refresh
-token lives behind an injected secure-storage port (the device keystore on mobile). Explicit sign-in and sign-out
-run the total identity reset; rotation runs only the light session reset. This holds the invariant the React seam
-holds too: one user's cache can never bleed into the next identity.
+Session restoration and 401 replay share the `SessionSeam.bootstrapSession` single-flight door. The refresh token
+sits behind an injected secure-storage port (the device keystore on mobile). Sign-in and sign-out run the total
+identity reset; rotation runs only the light session reset, so one user's cache never bleeds into the next.
 
 Guards branch on `SessionState`: loading waits, allowed renders, rejected redirects. Authenticated, anonymous, and
-capability routes use the same `guardSession` primitive. Routes normalize required params through `requiredParam`,
-redirect declaratively, use typed route values, allowlist URL-derived destinations, and call `safeBack` rather than
-blindly popping an empty stack.
+capability routes use the same `guardSession`. Routes normalize required params through `requiredParam`, redirect
+declaratively, use typed route values, allowlist URL-derived destinations, and call `safeBack` instead of popping an
+empty stack.
 
 ## Forms, mutations, and feedback
 
-The ViewModel owns form logic and calls `submitOrReveal` with validation, the ordered invalid-field inventory, a
-valid command, and an invalid surface. The app-owned `AppInput` exposes `validator`/`errorText`, so field errors are
-visible where the control lives.
+The ViewModel calls `submitOrReveal` with validation, the ordered invalid-field inventory, a valid command, and an
+invalid surface. The app-owned `AppInput` exposes `validator`/`errorText`, so field errors show where the control is.
 
-Every write crosses a single configured `MutationBoundary`. Success invalidates app-owned cached reads and posts
-success feedback unless explicitly silent. Failure always posts error feedback and rethrows for an optional richer
-inline surface. `expectedFailure: true` suppresses the global error note only when the ViewModel models that failure
-as a visible local state. Manual success handlers whose only work is reloading duplicate the boundary and are warned.
+Every write crosses one configured `MutationBoundary`: success invalidates app-owned cached reads and posts success
+feedback unless silent; failure always posts error feedback and rethrows for an optional inline surface.
+`expectedFailure: true` suppresses the global error note only when the ViewModel models that failure as visible local
+state. A success handler that only reloads duplicates the boundary and is warned.
 
 ## Pagination
 
-`Page<T>` mirrors the backend's four-member page. `toPageInfo` owns render arithmetic. `Pager` owns numbered page,
-page size, and trimmed debounced search without fetching. `AccumulatedPages` owns load-more state, replaces page one,
-deduplicates later pages by stable key, and lets the fresh copy win when boundaries move. ViewModels remain the only
-request owners.
+`Page<T>` mirrors the backend's four-member page; `toPageInfo` owns render arithmetic. `Pager` owns the numbered page,
+page size, and trimmed debounced search without fetching. `AccumulatedPages` owns load-more state: it replaces page
+one, dedupes later pages by stable key, and lets the fresh copy win. ViewModels remain the only request owners.
 
 ## Localization and stable error codes
 
-Feature scaffolding emits equal-key ARB catalogs for pt-BR, English, and Spanish. `skies-flutter-i18n assemble`
-merges them into the conventional `app_<locale>.arb` inputs for `gen_l10n`; duplicate keys fail. `check` enforces
-locale parity. Error-code coverage derives the closed `ErrorBody.code` enum from OpenAPI and requires an
-`apiError_<code>` catalog key; together, stable backend code reaches localized copy in every language.
+Feature scaffolding emits equal-key ARB catalogs for pt-BR, English, and Spanish. `skies i18n` merges them into the
+`app_<locale>.arb` inputs of `gen_l10n`, refusing duplicate keys and locale gaps (`SKYFL011`). `apiErrorCode` /
+`apiErrorCopy` resolve a stable `ErrorBody.code` to catalog copy, with a generic fallback.
 
 ## Specs and E2E
 
-Flutter features are accepted like every other Skies feature: a spec folder under `.specs/` with its failure modes,
-cases in `e2e/`, and a receipt from `skies proof record` (see
-[CONVENTIONS.md](CONVENTIONS.md#specs-and-proofs)). The engine is Flutter's own `flutter_test` and
-`integration_test` (or Maestro). Declare a runner in `Skies.toml` that runs one spec folder and writes a JUnit report,
-and name each case after the failure mode it covers (`testWidgets('FM-2: an expired session lands on sign-in', …)`).
+Flutter features are accepted like every Skies feature: a `.specs/` folder with failure modes, cases in `e2e/`, and a
+receipt from `skies proof record` (see [CONVENTIONS.md](CONVENTIONS.md#specs-and-proofs)). The engine is
+`flutter_test` and `integration_test` (or Maestro); name each case after its mode
+(`testWidgets('FM-2: an expired session lands on sign-in', …)`).
 
-**Every test lives in a spec** (`SKYFL036`): a package's own `test/` and `integration_test/` hold no cases, and an
-isolated unit (a ViewModel, a formatter) gets its own spec. A Dart case imports the app as `package:<app>/...`,
-which only resolves inside the package, so the spec's `e2e/` stays at the repository root and the runner **copies**
-it into a hidden folder of the package before running it. The copy is regenerated per run; `skies g flutter-app`
-adds `.skies_spec/` to the package's `.gitignore`, and the doctor never walks hidden folders.
+**Every test lives in a spec** (`SKYFL036`): a package's `test/` and `integration_test/` hold no cases, and an
+isolated unit gets its own spec. A Dart case imports `package:<app>/...`, which resolves only inside the package, so
+the runner **copies** the spec's `e2e/` into a hidden folder of the package per run; `skies g flutter-app` adds
+`.skies_spec/` to `.gitignore`, and the doctor never walks hidden folders.
 
-`flutter test` has no JUnit reporter, so the runner writes Dart's JSON report (`--file-reporter json:<path>`) and
-converts it with [`junitreport`](https://pub.dev/packages/junitreport). For a package at `app/`, headless cases
-(`test`, `testWidgets` in the VM, no device):
+`flutter test` has no JUnit reporter, so the runner writes Dart's JSON report and converts it with
+[`junitreport`](https://pub.dev/packages/junitreport). For a package at `app/`, headless cases:
 
 ```toml
 [runners.flutter]
@@ -177,50 +155,36 @@ setup = "flutter pub global activate junitreport"
 command = "rm -rf app/test/.skies_spec && mkdir -p app/test/.skies_spec && cp -R {dir}/. app/test/.skies_spec/ && cd app && flutter test test/.skies_spec --file-reporter json:.dart_tool/skies_spec.json; flutter pub global run junitreport:tojunit --input .dart_tool/skies_spec.json --output {report}"
 ```
 
-The `;` before the conversion is deliberate: a red run fails its tests, and its report must still be written. For
-on-device cases (`IntegrationTestWidgetsFlutterBinding`), copy into `app/integration_test/.skies_spec/` instead and
-pass the device (`flutter test integration_test/.skies_spec -d <device> …`). `skies proof record` runs red in a fresh
-git worktree; `flutter test` resolves the package there on its own.
+The `;` before the conversion is deliberate: a red run fails its tests and must still write its report. For
+on-device cases (`IntegrationTestWidgetsFlutterBinding`), copy into `app/integration_test/.skies_spec/` and pass the
+device (`flutter test integration_test/.skies_spec -d <device> …`). Red runs in a fresh git worktree, where
+`flutter test` resolves the package on its own.
 
-Every runner gets `SKIES_EVIDENCE` and `SKIES_SPEC` in its environment. The runner's host process sees them, not
-the device: a host-side test reads `Platform.environment['SKIES_EVIDENCE']`, and an on-device run saves artifacts
-from its host driver (`integration_test_driver`'s `responseDataCallback`). A failure mode an Assay archetype decides
-carries `[avp: <criterion-id>]` on its spec.md line, and its verdict goes to `$SKIES_EVIDENCE/avp-FM-<n>.json`;
-the mode then passes only with a passing verdict. The tag is optional.
+`SKIES_EVIDENCE` and `SKIES_SPEC` reach the runner's host process, not the device: a host-side test reads
+`Platform.environment['SKIES_EVIDENCE']`, and an on-device run saves artifacts from its host driver
+(`integration_test_driver`'s `responseDataCallback`). An Assay-decided mode carries `[avp: <criterion-id>]` and its
+verdict goes to `$SKIES_EVIDENCE/avp-FM-<n>.json`; the tag is optional.
 
 Styling, the widget kit, tokens, and layout are the application's.
 
 ## Accessibility — the a11y floor
 
-Accessibility is a floor, on by default, in the same spirit as the CA* security floor of the .NET doctor and the
-jsx-a11y floor of `@skiesjs/eslint-plugin` ([FRONTEND-CONVENTIONS.md](FRONTEND-CONVENTIONS.md)). The native doctor
-reads four shapes a screen reader cannot recover from (`SKYFL037`–`040`):
-
-- an `IconButton` with no `tooltip:` (Flutter speaks the tooltip as the button's label);
-- an `Image`/`Image.asset|network|file|memory` with no `semanticLabel:`, or a `SvgPicture.*` with no
-  `semanticsLabel:`, that is not excluded with `excludeFromSemantics: true`;
-- a `GestureDetector`/`InkWell` with `onTap:` whose visible child is only icons, images, and layout boxes;
-- a `TextField`/`TextFormField` with no decoration, or an `InputDecoration(...)` with no `labelText`, `label`, or
-  `hintText`.
-
-A `Semantics(label: …)` or `Tooltip` around the widget (or a label inside it, such as `Icon(semanticLabel:)`)
-satisfies each rule. The rules are static and conservative: a widget handed in as a variable, a decoration built by a
-helper, or an image passed into a custom widget's slot is never guessed at, because its label may live in another
-file. They skip tests and generated code (`*.g.dart`, `*.freezed.dart`, `lib/l10n/`, a generated `packages/<x>_api/`
-client). `IconButton` and image findings are errors: the fix is always local and one argument long. Tap targets and
-text fields are warnings: a design-system wrapper or an `InputDecorationTheme` can supply the name where the parse
-cannot see it. The explicit, reviewable way to relax a finding is in the code: `excludeFromSemantics: true` says an
-image is decorative, and a `Semantics(label:)` names a control whose label lives elsewhere. Flutter's
-`meetsGuideline` matchers remain a good failure-mode check for a spec (contrast, tap-target size) that no static
-rule can make.
+Accessibility is a floor, on by default, like the .NET CA* security floor and the web's jsx-a11y floor. The native
+doctor reads four shapes a screen reader cannot recover from (`SKYFL037`–`040`, in the catalog below). A
+`Semantics(label: …)` or `Tooltip` around the widget, or a label inside it (`Icon(semanticLabel:)`), satisfies each.
+The rules are static and conservative: a widget passed as a variable, a decoration built by a helper, or an image
+handed to a custom widget's slot is never guessed at. They skip tests and generated code (`*.g.dart`,
+`*.freezed.dart`, `lib/l10n/`, a generated `packages/<x>_api/`). `IconButton` and image findings are errors (the fix
+is one local argument); tap targets and text fields are warnings (a design-system wrapper or `InputDecorationTheme`
+may supply the name out of sight). Relax in code, reviewably: `excludeFromSemantics: true` marks an image decorative,
+`Semantics(label:)` names a control labelled elsewhere. Flutter's `meetsGuideline` matchers remain a good spec check
+for what no static rule can see (contrast, tap-target size).
 
 ## Flutter doctor rule catalog
 
-Every number up to `SKYFL036` preserves the corresponding `SKYFE` semantic slot; only the ecosystem spelling changes.
-`SKYFL009` is the exception: its React twin kept ViewModels free of React Native and went with that track, while a
-Flutter ViewModel still must not reach device plugins. `SKYFL037`–`040` are the accessibility floor: Flutter-specific,
-with no React twin, because the web's floor is jsx-a11y inside the ESLint plugin's `recommended`. The doctor enforces
-architecture plus that floor.
+Numbers up to `SKYFL036` keep the `SKYFE` slot of the same concern; gaps are removed rules. `SKYFL009` has no live
+React twin: a Flutter ViewModel still must not reach device plugins. `SKYFL037`–`040` are Flutter-only (the web's
+floor is jsx-a11y). `SKYFL028`, `031`, `032`, `039`, and `040` are warnings; every other finding is an error.
 
 | Rule | Flutter enforcement |
 |---|---|
@@ -250,19 +214,16 @@ architecture plus that floor.
 | `SKYFL031` | Form submit carries an explicit invalid path. |
 | `SKYFL032` | App form fields surface validator/error state. |
 | `SKYFL036` | Tests live in a spec: a top-level `test(`, `testWidgets(`, or `group(` in a file importing `package:test`, `package:flutter_test`, or `package:integration_test` is flagged outside `.specs/` (once per file). |
-| `SKYFL037` | An `IconButton` (or `.filled`/`.filledTonal`/`.outlined`) carries a `tooltip:`, its label, unless a `Semantics(label:)`/`Tooltip` names it from inside or around. Error. No React twin. |
-| `SKYFL038` | An `Image`/`Image.*` has a `semanticLabel:` (a `SvgPicture.*` a `semanticsLabel:`) or `excludeFromSemantics: true`, unless labelled or excluded around it. Checked where the image renders as written (returned by `build` or placed by a framework widget), not when handed to a custom widget's slot. Error. No React twin. |
-| `SKYFL039` | A `GestureDetector`/`InkWell` with `onTap:` whose child tree is only icons, images, and layout boxes carries a label (`Semantics(label:)`, `Tooltip`, or a labelled icon). A child it cannot see is not flagged. Warning. No React twin. |
-| `SKYFL040` | A `TextField`/`TextFormField` has a decoration with `labelText`, `label`, or `hintText`; a decoration built elsewhere is not flagged. Warning. No React twin. |
+| `SKYFL037` | An `IconButton` (or `.filled`/`.filledTonal`/`.outlined`) carries a `tooltip:` (its label), unless a `Semantics(label:)`/`Tooltip` names it from inside or around. |
+| `SKYFL038` | An `Image`/`Image.asset\|network\|file\|memory` has a `semanticLabel:` (a `SvgPicture.*` a `semanticsLabel:`) or `excludeFromSemantics: true`, unless labelled or excluded around it; checked where it renders as written, not when handed to a custom widget's slot. |
+| `SKYFL039` | A `GestureDetector`/`InkWell` with `onTap:` whose child tree is only icons, images, and layout boxes carries a label (`Semantics(label:)`, `Tooltip`, or a labelled icon); a child it cannot see is not flagged. |
+| `SKYFL040` | A `TextField`/`TextFormField` has a decoration with `labelText`, `label`, or `hintText`; a decoration built elsewhere is not flagged. |
 
-`skies doctor` runs these rules natively over every Flutter package declared in `Skies.toml` (its `lib/`, `test/`,
-and `integration_test/`, skipping hidden folders);
-`skies doctor --package .` runs them over one package, which is what a package's own `lint` script calls. `SKYFL028`, `031`,
-`032`, `039`, and `040` are warnings; every other finding is an error. The numbers keep the corresponding `SKYFE`
-slots, so gaps are the rules that were removed in Skies 5.
+`skies doctor` runs these natively over every Flutter package in `Skies.toml` (`lib/`, `test/`, `integration_test/`,
+skipping hidden folders); `skies doctor --package .` runs one package, which is what a package's `lint` script calls.
 
 ## Generate versus scaffold
 
 Only contract wire is regenerated (`skies g client`). ViewModels, Views, ARB catalogs, and the client/session/mutation
-seams are one-shot scaffolded source owned by the application. Nothing re-emits or overwrites behavior.
-There is no Skies widget runtime, MVVM base class, router adapter, service locator, or styling DSL.
+seams are scaffolded once and owned by the application. There is no Skies widget runtime, MVVM base class, router
+adapter, service locator, or styling DSL.

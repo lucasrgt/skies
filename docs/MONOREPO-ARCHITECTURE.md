@@ -30,14 +30,14 @@ setup = "docker compose up -d db"
 Three sections exist, and unknown keys fail to parse:
 
 - `[workspace]` names the repository.
-- `[products.*]` lists each product's `backend` (a .NET application root) and `frontend` packages (one path or a
-  list; a React package has `package.json`, a Flutter package has `pubspec.yaml`). A backend or package may appear
-  in several products. `skies doctor` builds every backend and checks every frontend package listed here.
+- `[products.*]` lists each product's `backend` (a .NET application root), optional `tests` (the .NET project that
+  compiles the spec E2E; `skies doctor` builds it instead of the backend, so `SKY0029` sees stray tests), and
+  `frontend` packages (one path or a list; React has `package.json`, Flutter `pubspec.yaml`). A backend or package
+  may appear in several products. `skies doctor` builds every backend and checks every frontend package listed here.
 - `[runners.*]` are the commands that run one spec's E2E. Placeholders: `{id}` (the spec id), `{spec}` (its folder
   name), `{dir}` (its `e2e/` folder), `{report}` (where the JUnit or TRX report goes), `{evidence}` (the spec's
-  evidence folder for screenshots and logs). `setup` runs once before the first spec that uses the runner.
-
-There is no verification setting, no gate mode, and no framework checkout reference.
+  evidence folder for screenshots and logs). `setup` runs once before the first spec that uses the runner; `env`
+  adds variables; `report` pins the report path (relative to the root) when the tool cannot take `{report}`.
 
 ## Package ownership
 
@@ -66,8 +66,8 @@ two engines, split it into two specs that reference each other in their text.
 ## Package-first framework updates
 
 Framework rules and shared primitives land in this repository first, are released as versioned NuGet, npm, and pub
-packages (all at the same version), and are then consumed by applications. A pilot never keeps a private copy of a
-framework rule or frontend plugin.
+packages (all at the same version), and are then consumed by applications. An application never keeps a private
+copy of a framework rule or frontend plugin, so every app runs the same rules at the same version.
 
 The canonical backend and frontend conventions remain in [CONVENTIONS.md](CONVENTIONS.md),
 [FRONTEND-CONVENTIONS.md](FRONTEND-CONVENTIONS.md), and [FLUTTER-CONVENTIONS.md](FLUTTER-CONVENTIONS.md).
