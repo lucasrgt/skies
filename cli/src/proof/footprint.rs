@@ -77,16 +77,20 @@ pub fn build(root: &Path, doc: &SpecDoc, changed: &[String], proven: &ProvenGree
 pub fn describe(footprint: &Footprint, proven: &ProvenGreen) -> String {
     match &proven.coverage {
         Outcome::Covered(_) => format!(
-            "footprint from coverage: {} executed + {} changed since red + touches = {} files",
+            "footprint from coverage: {} executed + {} changed since red + touches = {}",
             footprint.covered,
             footprint.changed.len(),
-            footprint.paths.len()
+            files(footprint.paths.len())
         ),
         Outcome::Missing(why) => format!(
-            "footprint from the diff since red + touches ({} files): {why}",
-            footprint.paths.len()
+            "footprint from the diff since red + touches ({}): {why}",
+            files(footprint.paths.len())
         ),
     }
+}
+
+fn files(count: usize) -> String {
+    format!("{count} file{}", if count == 1 { "" } else { "s" })
 }
 
 /// The covered set a coverage-less receipt upgrades from: its recorded files minus what `touches` adds today, which
