@@ -282,6 +282,15 @@ the two laws. The result is plain C# that happens to be hard to misuse.
   *push the rule into the type where it belongs* — and none of it is hidden: the entity sits at the module
   root, one read from the slice, in plain C#.
 
+- **Generated CRUD keeps the same split.** `skies g crud <Module> <Entity>` never writes a column from a slice.
+  It reads the entity's `{ get; private set; }` scalar fields and writes the two members its slices need into
+  the entity, next to the author's code: `Open(Guid id, <fields>[, Guid userId][, DateTime now])` (replacing the
+  bare `Open(Guid id)` that `g entity` scaffolds) and `Update(<fields>[, DateTime now])`, both returning through
+  `EnsureValid`, plus the `RowVersion` token (SKY0026) when the entity has none. An `Open` or `Update` the author
+  already wrote is kept and called with that same positional shape. Create calls `Open`, Update calls `Update`
+  and saves only on success, and Delete is a plain `Remove` (a persistence act, no state to guard). `Update` is
+  deliberately generic: rename it to the domain's verb once the entity has one.
+
 The markers are **pure markers** (like `[Slice]`): no base class, nothing to inherit, no EF semantics. Delete
 the doctor and they become inert decoration — the domain still compiles and runs (Law 2).
 

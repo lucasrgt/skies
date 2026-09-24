@@ -19,6 +19,10 @@
 
 - `skies new <Name>` — a new app: Skies.toml, `src/<App>.Api`, a Health module, tests project, `.specs/`.
 - `skies g module|slice|entity|vo|crud|hub <…>` — backend shapes, doctor-clean, no generated tests.
+- `skies g crud <Module> <Entity>` — for an `ITenantScoped` `[Entity]` (as `g entity` scaffolds it, plus its
+  `{ get; private set; }` fields): writes `Open(id, fields…)`, `Update(fields…)`, and a `RowVersion` into the entity
+  (keeping any the author wrote), then List/Lookup/Create/Update/Delete slices that call them, mapped under the
+  module's route group (declared fail-closed when the module has none).
 - `skies g auth [--skip-tenancy] [--skip-cookies]`, `g auth:otp|auth:oauth|auth:email` — auth blueprints, each with
   its own spec folder and E2E.
 - `skies g client [--package <dir>]` — typed client (orval for React, dart-dio for Flutter).
