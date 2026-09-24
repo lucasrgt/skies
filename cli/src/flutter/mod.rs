@@ -32,7 +32,8 @@ pub fn i18n(package: &Path) -> Result<u8> {
     i18n::assemble(package)
 }
 
-/// Every file with extension `ext` under `root`, sorted, skipping Flutter's build output and tool cache.
+/// Every file with extension `ext` under `root`, sorted, skipping Flutter's build output and every hidden folder
+/// (`.dart_tool`, and `integration_test/.skies_spec/` where a spec runner copies a spec's cases to run them).
 pub(crate) fn files_with_extension(root: &Path, ext: &str) -> Vec<PathBuf> {
     fn visit(dir: &Path, ext: &str, out: &mut Vec<PathBuf>) {
         let Ok(entries) = std::fs::read_dir(dir) else {
@@ -41,7 +42,9 @@ pub(crate) fn files_with_extension(root: &Path, ext: &str) -> Vec<PathBuf> {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                if !matches!(entry.file_name().to_str(), Some("build" | ".dart_tool")) {
+                let name = entry.file_name();
+                let name = name.to_string_lossy();
+                if name != "build" && !name.starts_with('.') {
                     visit(&path, ext, out);
                 }
             } else if path.extension().is_some_and(|e| e == ext) {

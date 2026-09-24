@@ -174,7 +174,34 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
             "form field exposes no validation error surface",
         );
     }
+    tests_live_in_specs(&mut report, facts, &import);
     report.findings
+}
+
+/// The runners whose test functions make a Dart file a test file.
+const TEST_PACKAGES: [&str; 3] = ["package:test/", "package:flutter_test/", "package:integration_test/"];
+
+/// SKYFL036: every test lives in a spec. A package's own `test/` and `integration_test/` hold no cases; a spec's Dart
+/// cases live in the repository's `.specs/<id>-<slug>/e2e/` and the Flutter runner copies them into a hidden folder
+/// of the package, which the doctor does not walk. Reported once per file, at the first test call.
+fn tests_live_in_specs(report: &mut Report, facts: &Facts, import: &ImportLine) {
+    let path = report.source.path.to_string_lossy().replace('\\', "/");
+    if path.contains("/.specs/") || import(&|uri| TEST_PACKAGES.iter().any(|p| uri.starts_with(p))).is_none() {
+        return;
+    }
+    let first = facts
+        .calls_named(&["test", "testWidgets", "group"])
+        .filter(|call| call.receiver.is_none())
+        .map(|call| call.line)
+        .min();
+    if let Some(line) = first {
+        report.add(
+            "tests-live-in-specs",
+            Some(line),
+            "tests live in a spec: move this file's cases into .specs/<id>-<slug>/e2e/ and title each after the \
+             failure mode it covers (FM-n)",
+        );
+    }
 }
 
 fn hardcoded_copy(report: &mut Report, facts: &Facts) {

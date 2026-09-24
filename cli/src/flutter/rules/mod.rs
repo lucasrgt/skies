@@ -1,7 +1,7 @@
 //! The SKYFL architecture rules for Flutter packages, run natively by `skies doctor`.
 //!
 //! Rule ids keep their 4.x meaning: SKYFL001–035 mirror the SKYFE slots by position, so a code seen in an old
-//! report still names the same concern. Skies 5 keeps only the architecture rules. Proof rules (a test, a tag, a
+//! report still names the same concern, and SKYFL036 mirrors SKYFE036 (tests live in a spec). Skies 5 keeps only the architecture rules. Proof rules (a test, a tag, a
 //! flow manifest must exist), endpoint coverage, and the design-token band are gone, and their ids stay unused
 //! rather than being reassigned.
 
@@ -22,7 +22,7 @@ use crate::flutter::{files_with_extension, i18n};
 use facts::Facts;
 
 /// Every rule still enforced, by code. The gaps are the retired proof, coverage, and design rules.
-pub const RULES: [(&str, &str); 25] = [
+pub const RULES: [(&str, &str); 26] = [
     ("SKYFL001", "view-purity"),
     ("SKYFL002", "data-door"),
     ("SKYFL003", "no-mock"),
@@ -48,6 +48,7 @@ pub const RULES: [(&str, &str); 25] = [
     ("SKYFL030", "typed-navigation"),
     ("SKYFL031", "submit-invalid-path"),
     ("SKYFL032", "field-error-surface"),
+    ("SKYFL036", "tests-live-in-specs"),
 ];
 
 /// The code for a rule name.
@@ -103,7 +104,8 @@ pub struct Source {
     pub facts: Facts,
 }
 
-/// Runs every rule over a Flutter package (`lib/`, `test/`, and its ARB catalogs).
+/// Runs every rule over a Flutter package (`lib/`, `test/`, `integration_test/`, and its ARB catalogs). Hidden
+/// folders are skipped, which is where a spec runner copies a spec's cases to run them inside the package.
 pub fn diagnose(project: &Path) -> Result<Vec<Finding>> {
     let lib = project.join("lib");
     if !lib.is_dir() {
@@ -111,6 +113,7 @@ pub fn diagnose(project: &Path) -> Result<Vec<Finding>> {
     }
     let mut paths = files_with_extension(&lib, "dart");
     paths.extend(files_with_extension(&project.join("test"), "dart"));
+    paths.extend(files_with_extension(&project.join("integration_test"), "dart"));
 
     let sources: Vec<Source> = paths
         .into_par_iter()

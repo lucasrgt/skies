@@ -273,3 +273,49 @@ fn a_package_without_lib_cannot_be_diagnosed() {
     let dir = tempfile::tempdir().unwrap();
     assert!(diagnose(dir.path()).is_err());
 }
+
+#[test]
+fn a_test_outside_a_spec_is_flagged_once_per_file() {
+    let dir = project(&[
+        (
+            "test/widget_test.dart",
+            "import 'package:flutter_test/flutter_test.dart';\nvoid main() {\n  group('g', () {\n    testWidgets('a', (t) async {});\n    test('b', () {});\n  });\n}",
+        ),
+        (
+            "integration_test/app_test.dart",
+            "import 'package:integration_test/integration_test.dart';\nimport 'package:flutter_test/flutter_test.dart';\nvoid main() { testWidgets('a', (t) async {}); }",
+        ),
+        ("test/unit_test.dart", "import 'package:test/test.dart';\nvoid main() { test('a', () {}); }"),
+    ]);
+    let findings: Vec<_> = diagnose(dir.path())
+        .unwrap()
+        .into_iter()
+        .filter(|f| f.code == "SKYFL036")
+        .collect();
+    assert_eq!(findings.len(), 3, "{findings:?}");
+    let widget = findings
+        .iter()
+        .find(|f| f.file.ends_with(Path::new("test/widget_test.dart")))
+        .unwrap();
+    assert_eq!(widget.line, Some(3));
+    assert_eq!(widget.severity, Severity::Error);
+}
+
+#[test]
+fn spec_cases_copied_into_a_hidden_folder_and_lookalikes_are_not_tests() {
+    let found = codes(&[
+        // Where the Flutter runner copies a spec's cases: hidden, so the doctor never walks it.
+        (
+            "integration_test/.skies_spec/deposit_test.dart",
+            "import 'package:flutter_test/flutter_test.dart';\nvoid main() { testWidgets('FM-1: x', (t) async {}); }",
+        ),
+        // No runner import: an app function that happens to be called `test` is not a test.
+        ("lib/helper.dart", "bool test(int v) => v > 0;\nfinal ok = test(1);"),
+        // A method named `test` on a receiver is not the runner's top-level function.
+        (
+            "test/regex_test.dart",
+            "import 'package:test/test.dart';\nfinal ok = RegExp('a').hasMatch('a') && matcher.test('a');",
+        ),
+    ]);
+    assert!(!found.iter().any(|c| c == "SKYFL036"), "{found:?}");
+}
