@@ -9,14 +9,35 @@ pub(super) struct ViewField {
     pub ty: String,
 }
 
+/// One generated slice: its class name, the template it renders from, and whether it writes.
+pub(super) struct Slice {
+    pub name: String,
+    pub template: &'static str,
+    pub writes: bool,
+}
+
 impl Crud {
-    pub(super) fn slices(&self) -> Vec<String> {
+    /// The slices in mapping order: reads first (`ListProducts`, `LookupProduct`, `LookupMyProduct`), then writes.
+    /// The list is named for the collection, the rest for the one row they act on.
+    pub(super) fn slices(&self) -> Vec<Slice> {
         let e = &self.entity;
-        let mut slices = vec![format!("List{e}"), format!("Lookup{e}")];
+        let slice = |name: String, template: &'static str, writes: bool| Slice { name, template, writes };
+        let mut slices = vec![
+            slice(format!("List{}", self.plural), "crud/List__PLURAL__.cs.cstmpl", false),
+            slice(format!("Lookup{e}"), "crud/Lookup__ENTITY__.cs.cstmpl", false),
+        ];
         if self.has_user_id {
-            slices.push(format!("LookupMy{e}"));
+            slices.push(slice(
+                format!("LookupMy{e}"),
+                "crud/LookupMy__ENTITY__.cs.cstmpl",
+                false,
+            ));
         }
-        slices.extend([format!("Create{e}"), format!("Update{e}"), format!("Delete{e}")]);
+        slices.extend([
+            slice(format!("Create{e}"), "crud/Create__ENTITY__.cs.cstmpl", true),
+            slice(format!("Update{e}"), "crud/Update__ENTITY__.cs.cstmpl", true),
+            slice(format!("Delete{e}"), "crud/Delete__ENTITY__.cs.cstmpl", true),
+        ]);
         slices
     }
 
@@ -26,8 +47,7 @@ impl Crud {
 
     /// The structural tokens first (the longer `__ENTITY_LOWER__` before `__ENTITY__`), then the spliced field
     /// fragments, then the app tokens, exactly as the auth blueprint's token pass.
-    pub(super) fn render(&self, template: &str) -> String {
-        let hyphen = text::hyphenate(&self.entity);
+    pub(super) fn render(&self, template: &str, writes: bool) -> String {
         let pick = |on: bool, value: &'static str| if on { value } else { "" };
         let create_params = format!(
             "{}{}",
@@ -46,21 +66,12 @@ impl Crud {
         };
         let article = text::with_article(&self.entity);
         let article_cap = capitalize(&article);
-        let posture = if self.group_decides {
-            super::super::scaffold::INHERITED_POSTURE
-        } else {
-            super::super::scaffold::OWN_POSTURE
-        };
-        let hidden = if self.tenant_scoped {
-            "the owning org and the concurrency token"
-        } else {
-            "persistence details such as the concurrency token"
-        };
         let body = text::fill(
             &text::normalize_newlines(template),
             &[
                 ("__MODULE__", &self.module),
-                ("__ENTITY_LOWER__", &hyphen),
+                ("__ENTITY_LOWER__", &text::hyphenate(&self.entity)),
+                ("__ROUTE__", &text::hyphenate(&self.plural)),
                 ("__A_ENTITY_CAP__", &article_cap),
                 ("__A_ENTITY__", &article),
                 ("__ENTITY__", &self.entity),
@@ -71,7 +82,10 @@ impl Crud {
                 ("__UPDATE_ARGS__", &self.update_args()),
                 ("__VIEW_FIELDS__", &self.view_fields()),
                 ("__VIEW_ARGS__", &self.view_args()),
-                ("__HIDDEN__", hidden),
+                (
+                    "__HIDDEN__",
+                    pick(self.tenant_scoped, "\n/// The owning org stays off the wire."),
+                ),
                 ("__WITHIN__", pick(self.tenant_scoped, " within the caller's org")),
                 (
                     "__FOREIGN__",
@@ -87,7 +101,7 @@ impl Crud {
                         "\n/// The org is stamped by the DbContext, never taken from the request.",
                     ),
                 ),
-                ("__POSTURE__", posture),
+                ("__POSTURE__", self.posture(writes)),
                 (
                     "__AUTH_USING__",
                     pick(self.has_user_id, "using Skies.Framework.Auth;\n\n"),
@@ -102,6 +116,17 @@ impl Crud {
         text::replace_app_tokens(&body, &self.app_name, &self.app_lower)
     }
 
+    /// A slice's own authorization posture: none when a group above it decides. Writes to an app-wide entity always
+    /// map under the module's admin group, so only the reads (and a tenant-scoped entity's writes) can fall back to
+    /// their own fail-closed posture.
+    fn posture(&self, writes: bool) -> &'static str {
+        if self.group_decides || (writes && !self.tenant_scoped) {
+            super::super::scaffold::INHERITED_POSTURE
+        } else {
+            super::super::scaffold::OWN_POSTURE
+        }
+    }
+
     /// `string Name, decimal Price`: the request carries exactly the fields the entity's factory takes.
     fn input_fields(&self) -> String {
         self.scalars
@@ -111,11 +136,12 @@ impl Crud {
             .join(", ")
     }
 
-    /// `changes.Name, changes.Price`: the body's fields, after the route's id.
+    /// `changes.Name, changes.Price, changes.Version`: the body's fields, after the route's id.
     fn changes_args(&self) -> String {
         self.scalars
             .iter()
             .map(|f| format!("changes.{}", f.name))
+            .chain(std::iter::once("changes.Version".to_string()))
             .collect::<Vec<_>>()
             .join(", ")
     }

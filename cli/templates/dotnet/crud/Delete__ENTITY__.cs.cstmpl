@@ -2,13 +2,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Api.Modules.__MODULE__;
 
-/// <summary>Delete __A_ENTITY__ by id__WITHIN__, a hard delete.
-/// Removing a row is a persistence act, not a state transition, so there is no entity method to call; the row
-/// version makes a delete racing an update fail loudly.__FOREIGN__</summary>
+/// <summary>Delete __A_ENTITY__ by id__WITHIN__, as of the version the client read (<c>?version=</c>).
+/// Removing a row is a persistence act, not a state transition, so there is no entity method to call. The delete only
+/// succeeds while the row is still at that version: a change made in between answers a conflict, so a row is never
+/// removed on the strength of a stale read.__FOREIGN__</summary>
 [Slice]
 public static class Delete__ENTITY__
 {
-    public record Input(Guid Id);
+    public record Input(Guid Id, Guid Version);
 
     public record Output();
 
@@ -18,13 +19,21 @@ public static class Delete__ENTITY__
         if (item is null)
             return Error.NotFound(__MODULE__ErrorCodes.__ENTITY__NotFound, "__ENTITY_LOWER__ not found");
 
+        db.Entry(item).Property(e => e.Version).OriginalValue = input.Version;
         db.__PLURAL__.Remove(item);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Error.Conflict(__MODULE__ErrorCodes.__ENTITY__Changed, "__ENTITY_LOWER__ changed since it was read");
+        }
         return new Output();
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapDelete("/__ENTITY_LOWER__/{id:guid}", async (Guid id, AppDb db, CancellationToken ct) =>
-                (await Handle(new Input(id), db, ct)).ToHttp())
+        app.MapDelete("/__ROUTE__/{id:guid}", async (Guid id, Guid version, AppDb db, CancellationToken ct) =>
+                (await Handle(new Input(id, version), db, ct)).ToHttp())
             .WithName(nameof(Delete__ENTITY__))__POSTURE__
 }

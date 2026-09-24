@@ -114,23 +114,39 @@ fn an_app_wide_entity_gets_registered_projected_slices_under_the_group() {
     assert!(app_db.contains("using Acme.Api.Modules.Catalog;\n"));
 
     let view = read(&dir, "Modules/Catalog/ProductView.cs");
-    assert!(view.contains("public record ProductView(Guid Id, string Name)"));
-    assert!(view.contains("public static ProductView From(Product e) => new(e.Id, e.Name);"));
-    assert!(view.starts_with("namespace Acme.Api.Modules.Catalog;\n\n/// <summary>A Product as the API returns it."));
+    assert!(view.contains("public record ProductView(Guid Id, string Name, Guid Version)"));
+    assert!(view.contains("public static ProductView From(Product e) => new(e.Id, e.Name, e.Version);"));
+    assert!(view.starts_with("namespace Acme.Api.Modules.Catalog;\n\n/// <summary>A Product as the API returns it:"));
 
-    let list = read(&dir, "Modules/Catalog/Slices/ListProduct.cs");
+    let list = read(&dir, "Modules/Catalog/Slices/ListProducts.cs");
+    assert!(list.contains("public static class ListProducts"));
     assert!(list.contains("public record Output(Page<ProductView> Products);"));
     assert!(list.contains("return new Output(page.Select(ProductView.From));"));
+    assert!(list.contains("app.MapGet(\"/products\","));
     let lookup = read(&dir, "Modules/Catalog/Slices/LookupProduct.cs");
     assert!(lookup.contains("public record Output(ProductView Product);"));
+    assert!(lookup.contains("CatalogErrorCodes.ProductNotFound"));
 
     let update = read(&dir, "Modules/Catalog/Slices/UpdateProduct.cs");
-    assert!(update.contains("public record Changes(string Name);"));
-    assert!(update.contains("app.MapPut(\"/product/{id:guid}\","));
-    assert!(update.contains("(await Handle(new Input(id, changes.Name), db, ct)).ToHttp())"));
+    assert!(update.contains("public record Changes(string Name, Guid Version);"));
+    assert!(update.contains("app.MapPut(\"/products/{id:guid}\","));
+    assert!(update.contains("(await Handle(new Input(id, changes.Name, changes.Version), db, ct)).ToHttp())"));
+    assert!(update.contains("db.Entry(item).Property(e => e.Version).OriginalValue = input.Version;"));
+    assert!(update.contains("catch (DbUpdateConcurrencyException)"));
+    let delete = read(&dir, "Modules/Catalog/Slices/DeleteProduct.cs");
+    assert!(delete.contains("app.MapDelete(\"/products/{id:guid}\", async (Guid id, Guid version,"));
+    let codes = read(&dir, "Modules/Catalog/CatalogErrorCodes.cs");
+    assert!(codes.contains("ProductNotFound = \"catalog.product_not_found\""));
+    assert!(codes.contains("ProductChanged = \"catalog.product_changed\""));
 
-    for slice in ["List", "Lookup", "Create", "Update", "Delete"] {
-        let source = read(&dir, &format!("Modules/Catalog/Slices/{slice}Product.cs"));
+    for slice in [
+        "ListProducts",
+        "LookupProduct",
+        "CreateProduct",
+        "UpdateProduct",
+        "DeleteProduct",
+    ] {
+        let source = read(&dir, &format!("Modules/Catalog/Slices/{slice}.cs"));
         assert!(
             !source.contains("RequireAuthorization"),
             "{slice} restates the group's posture"
@@ -141,8 +157,19 @@ fn an_app_wide_entity_gets_registered_projected_slices_under_the_group() {
         );
         assert!(!source.contains("SKY"), "{slice} cites a rule");
     }
+    // No auth blueprint here, so nothing names an admin: the app-wide writes are mapped closed, never open.
     let module = read(&dir, "Modules/Catalog/CatalogModule.cs");
-    assert!(module.contains("var catalog = app.MapGroup(\"/catalog\").RequireAuthorization();"));
+    assert!(module.contains(concat!(
+        "        var catalog = app.MapGroup(\"/catalog\").RequireAuthorization();\n",
+        "        ListProducts.Map(catalog);\n",
+        "        LookupProduct.Map(catalog);\n",
+    )));
+    assert!(module.contains(concat!(
+        "        var catalogAdmin = app.MapGroup(\"/catalog\").RequireAuthorization(policy => policy.RequireAssertion(_ => false));\n",
+        "        CreateProduct.Map(catalogAdmin);\n",
+        "        UpdateProduct.Map(catalogAdmin);\n",
+        "        DeleteProduct.Map(catalogAdmin);\n",
+    )));
 
     assert_eq!(
         generate(dir.path(), "Catalog", "Product").unwrap(),
@@ -170,7 +197,11 @@ fn a_tenant_scoped_entity_says_so_and_its_article_is_right() {
     assert!(create.contains("/// <summary>Create an Invoice within the caller's org."));
     assert!(create.contains("The org is stamped by the DbContext"));
     let view = read(&dir, "Modules/Catalog/InvoiceView.cs");
-    assert!(view.contains("/// <summary>An Invoice as the API returns it."));
-    assert!(view.contains("public record InvoiceView(Guid Id, string Name)"));
+    assert!(view.contains("/// <summary>An Invoice as the API returns it"));
+    assert!(view.contains("public record InvoiceView(Guid Id, string Name, Guid Version)"));
     assert!(read(&dir, "AppDb.cs").contains("public DbSet<Invoice> Invoices => Set<Invoice>();"));
+    // Tenant-scoped rows are the caller's org's own, so every slice stays under the module group.
+    let module = read(&dir, "Modules/Catalog/CatalogModule.cs");
+    assert!(module.contains("        DeleteInvoice.Map(catalog);\n"));
+    assert!(!module.contains("catalogAdmin"));
 }

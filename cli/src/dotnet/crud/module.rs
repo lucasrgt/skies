@@ -4,6 +4,11 @@
 //! module's authorization decision. The group is matched on code lines only, so a commented-out example never
 //! counts; when the module has none (a fresh `g module` scaffold), the generator declares it, failing closed
 //! (`RequireAuthorization`), which is the decision SKY0022 wants explicit.
+//!
+//! Writes to an app-wide entity get a second group over the same prefix, `<group>Admin`, declared in the module
+//! beside the first so the decision is read where every other one is: the auth blueprint's `AppPolicies.AppAdmin`
+//! when the app has it, and a policy no one satisfies when it does not. It is a group of its own, not a nested one,
+//! because an `.AllowAnonymous()` on the module group would otherwise waive the admin requirement too.
 
 use std::path::Path;
 use std::sync::LazyLock;
@@ -81,6 +86,86 @@ pub(crate) fn wire(module_file: &Path, module: &str, slices: &[String]) -> Resul
     Ok(())
 }
 
+/// A group's route prefix: `/catalog` in `var catalog = app.MapGroup("/catalog")...`.
+fn group_prefix(source: &str, group: &str) -> Option<String> {
+    let pattern = format!(
+        r#"var\s+{}\s*=\s*app\.MapGroup\(\s*"(?<prefix>[^"]*)""#,
+        regex::escape(group)
+    );
+    Regex::new(&pattern)
+        .expect("group prefix regex")
+        .captures(source)
+        .map(|c| c["prefix"].to_string())
+}
+
+/// Maps `slices` (the writes to an app-wide entity) under the module's admin group, declaring it once after the
+/// module group with the policy `app_admin` says the app has. Run after [`wire`], which guarantees the module group.
+pub(crate) fn wire_admin(module_file: &Path, module: &str, slices: &[String], app_admin: bool) -> Result<()> {
+    let source = text::read(module_file)?;
+    let nl = text::newline_of(&source);
+    let Some(group) = declared_group(&source) else {
+        println!(
+            "note: declare {module}Module's route group, then map {} under an admin group.",
+            slices.join(", ")
+        );
+        return Ok(());
+    };
+    let admin = format!("{group}Admin");
+    let declaration = if source.contains(&format!("var {admin} =")) {
+        None
+    } else {
+        let Some(prefix) = group_prefix(&source, &group) else {
+            println!(
+                "note: map {} under a group of {module}Module's prefix that requires AppPolicies.AppAdmin.",
+                slices.join(", ")
+            );
+            return Ok(());
+        };
+        Some(admin_group(&admin, &prefix, app_admin, nl))
+    };
+    let maps: Vec<String> = slices
+        .iter()
+        .map(|slice| format!("        {slice}.Map({admin});"))
+        .filter(|line| !source.contains(line.trim()))
+        .collect();
+    if maps.is_empty() {
+        return Ok(());
+    }
+    let lines: Vec<String> = declaration.into_iter().chain(maps).collect();
+    let anchor = anchor(nl);
+    if source.contains(&anchor) {
+        let block = format!("{nl}{}{anchor}", lines.join(nl));
+        std::fs::write(module_file, text::replace_first(&source, &anchor, &block))?;
+        println!("wired {} admin line(s) into {module}Module.Map", lines.len());
+    } else {
+        for line in &lines {
+            println!("note: add `{}` to {module}Module.Map", line.trim());
+        }
+    }
+    Ok(())
+}
+
+/// The admin group's declaration, with the comment that states the decision it makes.
+fn admin_group(admin: &str, prefix: &str, app_admin: bool, nl: &str) -> String {
+    if app_admin {
+        [
+            "        // App-wide data is shared by every user: only an app admin may change it.".to_string(),
+            format!("        var {admin} = app.MapGroup(\"{prefix}\").RequireAuthorization(AppPolicies.AppAdmin);"),
+        ]
+        .join(nl)
+    } else {
+        [
+            "        // App-wide data is shared by every user, and this app names no admin yet: its writes stay closed"
+                .to_string(),
+            "        // to everyone until this requires the policy of whoever may change it.".to_string(),
+            format!(
+                "        var {admin} = app.MapGroup(\"{prefix}\").RequireAuthorization(policy => policy.RequireAssertion(_ => false));"
+            ),
+        ]
+        .join(nl)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,7 +192,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("CatalogModule.cs");
         std::fs::write(&file, SCAFFOLD).unwrap();
-        let slices = vec!["ListProduct".to_string(), "CreateProduct".to_string()];
+        let slices = vec!["ListProducts".to_string(), "CreateProduct".to_string()];
 
         wire(&file, "Catalog", &slices).unwrap();
         wire(&file, "Catalog", &slices).unwrap();
@@ -116,7 +201,7 @@ mod tests {
         assert!(wired.ends_with(concat!(
             "//   <Slice>.Map(catalog);\n",
             "        var catalog = app.MapGroup(\"/catalog\").RequireAuthorization();\n",
-            "        ListProduct.Map(catalog);\n",
+            "        ListProducts.Map(catalog);\n",
             "        CreateProduct.Map(catalog);\n",
             "    }\n}\n",
         )));
@@ -162,10 +247,49 @@ mod tests {
         )
         .unwrap();
 
-        wire(&file, "Shop", &["ListProduct".to_string()]).unwrap();
+        wire(&file, "Shop", &["ListProducts".to_string()]).unwrap();
 
         let wired = std::fs::read_to_string(&file).unwrap();
-        assert!(wired.contains("Browse.Map(shop);\n        ListProduct.Map(shop);\n    }"));
+        assert!(wired.contains("Browse.Map(shop);\n        ListProducts.Map(shop);\n    }"));
         assert_eq!(wired.matches("MapGroup").count(), 1);
+    }
+
+    #[test]
+    fn app_wide_writes_get_one_admin_group_over_the_module_prefix() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("ShopModule.cs");
+        std::fs::write(
+            &file,
+            "    {\n        var shop = app.MapGroup(\"/shop\").AllowAnonymous();\n        ListTags.Map(shop);\n    }\n}\n",
+        )
+        .unwrap();
+
+        wire_admin(&file, "Shop", &["CreateTag".to_string()], true).unwrap();
+        wire_admin(&file, "Shop", &["CreateTag".to_string(), "DeleteTag".to_string()], true).unwrap();
+
+        let wired = std::fs::read_to_string(&file).unwrap();
+        assert!(wired.contains(concat!(
+            "        var shopAdmin = app.MapGroup(\"/shop\").RequireAuthorization(AppPolicies.AppAdmin);\n",
+            "        CreateTag.Map(shopAdmin);\n",
+            "        DeleteTag.Map(shopAdmin);\n    }\n}\n",
+        )));
+        assert_eq!(wired.matches("var shopAdmin").count(), 1);
+    }
+
+    #[test]
+    fn without_an_admin_policy_app_wide_writes_are_closed() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("ShopModule.cs");
+        std::fs::write(
+            &file,
+            "    {\n        var shop = app.MapGroup(\"/shop\").RequireAuthorization();\n    }\n}\n",
+        )
+        .unwrap();
+
+        wire_admin(&file, "Shop", &["CreateTag".to_string()], false).unwrap();
+
+        let wired = std::fs::read_to_string(&file).unwrap();
+        assert!(wired.contains("RequireAuthorization(policy => policy.RequireAssertion(_ => false));"));
+        assert!(!wired.contains("AppPolicies"));
     }
 }
