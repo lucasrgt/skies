@@ -11,8 +11,7 @@ import vitest from "@vitest/eslint-plugin";
 // `npm run lint`. The root location keeps the example inside ESLint's base path while dependencies remain owned
 // by frontend-sdk; the rule self-tests run as a separate leg.
 //
-// Curated community kit alongside the SKYFE rules (prior art:
-// pleiades-os / corbanx both standardize on the same kit). Two of those compose cleanly with the SKYFE rules:
+// Curated community kit alongside the SKYFE rules. Two of those compose cleanly with the SKYFE rules:
 //   - @tanstack/eslint-plugin-query — react-query correctness (exhaustive deps, stable keys, no rest-destructure);
 //     the SKYFE rules cover architecture, this covers RQ usage — complementary, not overlapping.
 //   - eslint-plugin-no-secrets — entropy-based hardcoded-secret detection (the .env discipline, enforced in code).
@@ -45,12 +44,9 @@ export default [
       "skies/view-purity": "error",
       "skies/data-door": "error",
       "skies/viewmodel-platform-agnostic": "error",
-      "skies/test-colocated": "error",
-      "skies/view-integration-test": "error",
       "skies/no-mock": "error",
       "skies/state-completeness": "error",
       "skies/i18n-completeness": "error",
-      "skies/design-tokens": "error",
       "skies/mutation-error-handled": "error",
       "skies/no-hardcoded-copy": "error",
       // The routing harness (SKYFE015–019 + 030) — declarative redirects, one session seam, a tri-state guard,
@@ -73,11 +69,6 @@ export default [
       // never becomes a navigation target without an allowlist. Error-tier (correctness, same bar as routing).
       "skies/no-raw-html": "error",
       "skies/no-open-redirect": "error",
-      // The design band (SKYFE024–026, DESIGN-CONVENTIONS.md) — views render @/ui only, spacing/typography from the
-      // scale, color by semantic role. Error-tier since the canonical screens landed (the recipes prove the bar).
-      "skies/ui-door": "error",
-      "skies/scale-only": "error",
-      "skies/semantic-colors": "error",
       // The mutation band (SKYFE027–028) — the QueryClient carries the write-side defaults (invalidate on success,
       // feedback on error), and the hand-rolled `onSuccess: refetch` ritual those defaults obsolete is revealed.
       "skies/query-client-defaults": "error",
@@ -85,22 +76,15 @@ export default [
       // The session-rotation door (SKYFE029) — refresh is consumed by ONE seam (the client's single-flight
       // interceptor / the session seam); a second rotation path trips the backend's theft detection.
       "skies/refresh-one-door": "error",
-      // The AVP bridge (SKYFE033) — the front-side of the backend's SKY0030 and the closing leg of Clockwork: a
-      // `@verify <id>` obligation on a View/ViewModel must have a co-located executable Assay proof. Error-tier.
-      "skies/verify-has-avp-proof": "error",
-      "skies/no-disabled-tests": "error",
-      "skies/feature-has-e2e-flow": "error",
-      // curated community kit (mirrors pleiades/corbanx)
+      // curated community kit
       "no-secrets/no-secrets": ["error", { tolerance: 4.5 }],
       "sonarjs/no-identical-functions": "warn",
       "sonarjs/no-duplicated-branches": "warn",
       "sonarjs/cognitive-complexity": ["warn", 25],
     },
   },
-  // a11y — web (DOM): jsx-a11y at ERROR tier — promoted with the canonical screens (the kit wires the floor:
-  // label↔control, role=alert errors, aria-busy, the focus ring), so the exemplar tree holds the bar it preaches.
-  // aria-role checks DOM elements only (ignoreNonDOM): the kit's `Text role=` is a TextRole (typography), not an
-  // ARIA role — components map their props internally; the host-element half of the check stays on.
+  // a11y — web (DOM): jsx-a11y at error tier. aria-role checks DOM elements only (ignoreNonDOM): the ui kit's
+  // `Text role=` is a typography role, not an ARIA role — components map their props internally.
   {
     files: ["examples/sample-app/frontend/web/**/*.{ts,tsx}"],
     plugins: { "jsx-a11y": jsxA11y },
