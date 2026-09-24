@@ -43,8 +43,9 @@ Ground every convention fact in `docs/CONVENTIONS.md`, `docs/FRONTEND-CONVENTION
 - **Documentation that explains why.** Every public .NET member carries XML docs (`CS1591` is an error); Rust items
   carry doc comments. Lead with why, not what.
 - **No junk comments.** No TODO/FIXME/HACK/XXX, no tracking codes, no materialized agent thoughts (`SKYSELF002`).
-- **Tests prove behavior.** Prefer E2E through the real host. Unit tests only for isolated systems, and only after
-  writing down how they can fail.
+- **Tests prove behavior.** Framework library tests under `tests/` prove each package's public API. Anything an
+  application sees (the sample, generated apps) is proven by specs: every such test lives in a `.specs/` folder
+  (`SKY0029`, `SKYFE036`, `SKYFL036`).
 
 If a build fails on `SKYSELF*` or `CS1591`, fix the code; never suppress the rule.
 
