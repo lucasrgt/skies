@@ -1,6 +1,6 @@
 # 0008 — Skies 5: opinião sem burocracia
 
-Status: proposta · 2026-09-23
+Status: implementado na branch `v5` · 2026-09-23 (ver §10)
 
 ## 1. Por que (evidência, não opinião)
 
@@ -253,3 +253,15 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   como critério, e o CLI 4.x continua funcionando até a fase 2 fechar.
 - **Menos enforcement:** a qualidade do E2E depende da revisão humana dos FMs. O ponto de controle sai do
   verificador, que o agente aprende a contornar, e vai para o spec, que o humano lê.
+
+## 10. O que mudou durante a implementação
+
+- **node-sdk removido** e **Rust para todo o tooling** (decisões D1/D2); sem gate, sem hooks, sem noturno (D4).
+- **Red que não compila conta como falha.** E2E .NET que referenciam tipos novos não compilam no merge-base; o
+  recibo registra `did-not-build` para todos os FMs e guarda o log do build em `evidence/red.log`.
+- **`migrate` preserva `csm.toml` e `.skies/csm`**: são registros do time; só o Skies deixa de rodar as ferramentas.
+- **`migrate` copia os helpers de E2E removidos** (fixtures Playwright, ledger de backend, adapter Assay, ledger Dio)
+  para dentro da app, para que nenhum teste existente quebre. Provas Assay mantêm suas tags `@avp`.
+- **`g crud` gera `Open`/`Update` na entidade** para sair doctor-clean (antes violava SKY0014/SKY0021).
+- **Snapshots dos geradores** (`cli/tests/fixtures/snapshots`) substituem a paridade com o 4.x depois do porte.
+- **Consumidores**: hostpoint e marombas migrados em branches `skies-5` (worktrees), compilando com 0 warnings.
