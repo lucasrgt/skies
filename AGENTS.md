@@ -66,8 +66,9 @@ Run what your change touches. Leave every affected workspace green.
   review the fixture diff. `cli/templates/app/.claude/skills/skies-sdd/SKILL.md` is a verbatim copy of
   `skies-plugin/skills/skies-sdd.md`; edit both.
 - The sample is an app like any other: its web specs' stand-in backend is `examples/sample-app/.specs/web.setup.ts`,
-  not a `frontend-sdk` file. An edit to the sample's code or specs can stale its receipts (`skies proof status` from
-  `examples/sample-app/`).
+  not a `frontend-sdk` file. After an edit to the sample's code or specs, run the specs it reaches (`skies proof
+  impact <paths>`, then `skies proof run <id>` from `examples/sample-app/`); re-record a receipt only when its failure
+  modes change.
 
 ## The doctor vs the self-harness
 

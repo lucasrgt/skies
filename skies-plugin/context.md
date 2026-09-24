@@ -16,9 +16,10 @@ Hard rules:
   the code to cover it. An isolated system gets its own spec with isolated cases, failure modes written first.
 - `skies doctor` findings are fixed in the code, never suppressed.
 
-Nothing runs automatically: there is no gate and no required hook. `skies proof status` shows receipts whose files
-changed; rerun them with `skies proof verify` when the change could affect them. `skies proof impact <paths>` lists
-the specs a change reaches, with their failure modes, before you make it.
+Nothing runs automatically: there is no gate and no required hook. CI runs every spec's cases; the receipt proves
+red→green once. `skies proof run <id>` runs one spec's E2E while you write it, `skies proof record <id>` writes the
+receipt, and `skies proof impact <paths>` lists the specs a change reaches, with their failure modes, before you
+make it.
 
 Reference, in this plugin (ground every convention fact there, never memory):
 - `docs/CONVENTIONS.md`: backend conventions, specs and proofs, and the SKY#### rule catalog.

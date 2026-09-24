@@ -164,15 +164,18 @@ A feature is accepted by evidence in its spec folder:
   spec.md          behavior + failure modes (FM-1..n), written before the code
   e2e/             the spec's cases; a case named "FM-2: …" covers FM-2
   receipt.json     red (every FM fails before the change) and green (every FM passes after)
-  evidence/        the test report and small artifacts
+  evidence/        small artifacts a case chose to save (full reports stay local in evidence/raw/)
 ```
 
 ```bash
 skies spec new cancel-reservation      # write the failure modes, then the E2E, then the code
-skies proof record 0012                # red on the merge-base, green on the working tree
-skies proof status                     # which receipts went stale (hashes only, milliseconds)
-skies proof verify --stale             # rerun them when it matters
+skies proof run 0012                   # run the spec's E2E once, per failure mode; writes nothing
+skies proof record 0012                # red on the merge-base, green on the working tree, write the receipt
+skies proof impact <paths>             # the specs a change reaches, before you make it
 ```
+
+CI owns green: it runs every spec's cases on every push. The receipt records only what CI cannot, that the cases
+failed before the feature and passed with it.
 
 Runners live in `Skies.toml`: any command that runs one spec's `e2e/` folder and writes a JUnit or TRX report.
 The engine does not care whether that is xUnit, Playwright, Vitest, Maestro, or `integration_test`.
