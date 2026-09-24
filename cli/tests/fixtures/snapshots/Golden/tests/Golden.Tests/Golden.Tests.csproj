@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="Skies.Framework.Testing" Version="5.0.0" />
+    <PackageReference Include="Skies.Framework.Testing.InMemory" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Skies.Framework.Abstractions" />
+    <Using Include="Skies.Framework.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Golden.Api\Golden.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Spec E2E: each .specs/<id>-<slug>/e2e folder holds the black-box cases for one spec's failure
+         modes (namespace Specs.S<id>, display names "FM-n: ..."). `skies proof record` runs them. -->
+    <Compile Include="..\..\.specs\*\e2e\**\*.cs" />
+    <!-- Co-located unit tests: the files live next to the code in src/, compiled here. -->
+    <Compile Include="..\..\src\Golden.Api\**\*.Tests.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,62 @@
+using Skies.Framework.Auth;
+using Microsoft.EntityFrameworkCore;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Verify the caller's phone with the code from their latest active OTP. On success the phone is
+/// marked verified and registration completes; a wrong code bumps the attempt count, never reveals more.</summary>
+/// <remarks>Security contract: the sad path is the verification-bypass guard — a wrong code must be rejected and
+/// leave the phone unverified. If it passed silently, anyone could mark a phone verified without the code.
+/// Its spec under `.specs/` proves both the happy verification and the wrong-code rejection end-to-end.</remarks>
+[Slice]
+public static class VerifyPhone
+{
+    public record Input(string Code);
+
+    public record Output();
+
+    // A 6-digit code spans only 10^6 values, so unbounded guessing is a brute-force. Lock the code once it
+    // has been guessed wrong this many times — the locked code is consumed and can never be tried again.
+    private const int MaxAttempts = 5;
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, ICurrentUser current, TimeProvider clock, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow().UtcDateTime;
+        var otp = await db.PhoneOtps
+            .Where(o => o.UserId == current.UserId && o.UsedAt == null && o.ExpiresAt > now)
+            .OrderByDescending(o => o.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+        if (otp is null)
+            return Error.Unauthorized(AccountErrorCodes.NoActiveCode, "no active code");
+
+        // Count this attempt first. A correct code within the limit always wins; a wrong code that hits the
+        // ceiling consumes the OTP (UsedAt) so no further guess — right or wrong — can ever be tried.
+        otp.RecordAttempt();
+        if (!PasswordHash.FromStored(otp.CodeHash).Verify(input.Code))
+        {
+            if (otp.Attempts >= MaxAttempts)
+            {
+                otp.Use(now);
+                await db.SaveChangesAsync(ct);
+                return Error.Unauthorized(AccountErrorCodes.TooManyAttempts, "too many attempts");
+            }
+            await db.SaveChangesAsync(ct);
+            return Error.Unauthorized(AccountErrorCodes.InvalidCode, "invalid code");
+        }
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == current.UserId, ct);
+        if (user is null)
+            return Error.NotFound(AccountErrorCodes.UserNotFound, "user not found");
+
+        otp.Use(now);
+        user.CompletePhoneVerification(otp.Phone);
+        await db.SaveChangesAsync(ct);
+        return new Output();
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/verify-phone", async (Input input, AppDb db, ICurrentUser current, TimeProvider clock, CancellationToken ct) =>
+            (await Handle(input, db, current, clock, ct)).ToHttp())
+            .WithName(nameof(VerifyPhone))
+            .RequireAuthorization();
+}

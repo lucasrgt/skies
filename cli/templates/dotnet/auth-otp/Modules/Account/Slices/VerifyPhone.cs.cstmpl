@@ -7,8 +7,7 @@ namespace MyApp.Api.Modules.Account;
 /// marked verified and registration completes; a wrong code bumps the attempt count, never reveals more.</summary>
 /// <remarks>Security contract: the sad path is the verification-bypass guard — a wrong code must be rejected and
 /// leave the phone unverified. If it passed silently, anyone could mark a phone verified without the code.
-/// SKY0008 forces both the happy verification and the wrong-code rejection to be proven end-to-end (see
-/// Journeys/PhoneVerificationJourney).</remarks>
+/// Its spec under `.specs/` proves both the happy verification and the wrong-code rejection end-to-end.</remarks>
 [Slice]
 public static class VerifyPhone
 {

@@ -7,9 +7,7 @@ namespace MyApp.Api.Modules.Account;
 /// email-verified. The user lookup crosses the tenant filter (the verifier is anonymous), so it is
 /// found by id regardless of org.</summary>
 /// <remarks>Security contract: the sad path is the bypass guard — a wrong or expired token must be rejected and
-/// leave the email unverified. If it passed silently, an email could be confirmed without the link. SKY0008
-/// forces both the happy confirmation and the bad-token rejection to be proven end-to-end (see
-/// Journeys/EmailJourney).</remarks>
+/// leave the email unverified. If it passed silently, an email could be confirmed without the link. Its spec under `.specs/` proves both the happy confirmation and the bad-token rejection end-to-end.</remarks>
 [Slice]
 public static class VerifyEmail
 {

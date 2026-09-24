@@ -7,8 +7,8 @@ namespace MyApp.Api.Modules.Account;
 /// <summary>Sign in with a Google identity. Verifies the token, finds the user by the Google-verified
 /// email (global identity, so the lookup crosses the tenant filter), and issues a session.</summary>
 /// <remarks>Security contract: the sad path is the bypass guard — an unverifiable token must be denied, never
-/// yield a session. If it passed silently, a forged token logs in as any user (takeover). SKY0008 forces
-/// both the happy sign-in and the forged-token rejection to be proven end-to-end (see Journeys/OAuthJourney).</remarks>
+/// yield a session. If it passed silently, a forged token logs in as any user (takeover). Its spec under `.specs/` proves
+/// both the happy sign-in and the forged-token rejection end-to-end.</remarks>
 [Slice]
 public static class LoginWithGoogle
 {

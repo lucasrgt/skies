@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Skies.Framework.Abstractions" Version="4.1.4" />
-    <PackageReference Include="Skies.Framework.AspNetCore" Version="4.1.4" />
+    <PackageReference Include="Skies.Framework.Abstractions" Version="5.0.0" />
+    <PackageReference Include="Skies.Framework.AspNetCore" Version="5.0.0" />
     <!-- The doctor rides along as a build analyzer. Remove it and the app still compiles and runs
          (Law 2) — you only lose the enforcement. -->
-    <PackageReference Include="Skies.Framework.Doctor" Version="4.1.4" PrivateAssets="all" />
+    <PackageReference Include="Skies.Framework.Doctor" Version="5.0.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Skies.Framework.Abstractions" Version="5.0.0" />
+    <PackageReference Include="Skies.Framework.AspNetCore" Version="5.0.0" />
+    <!-- The doctor rides along as a build analyzer. Remove it and the app still compiles and runs
+         (Law 2) — you only lose the enforcement. -->
+    <PackageReference Include="Skies.Framework.Doctor" Version="5.0.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+    <PackageReference Include="Skies.Framework.Auth" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- A unit test may live next to the code it tests; the tests project compiles it, the app never
+         does (no test deps ship). -->
+    <Compile Remove="**\*.Tests.cs" />
+    <!-- The doctor reads the module ctx docs (SKY0004/SKY0005) as AdditionalFiles. -->
+    <AdditionalFiles Include="**\*.ctx.md" />
+  </ItemGroup>
+
+</Project>

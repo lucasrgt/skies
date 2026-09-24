@@ -1,0 +1,57 @@
+using Skies.Framework.Auth;
+using Microsoft.EntityFrameworkCore;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Authenticate with email + password; issue an access token (JWT) and a refresh token. The
+/// user is looked up by email — globally, one-human-one-account — and the identity is read off the
+/// user and put into the JWT, never assumed.</summary>
+/// <remarks>Security contract: a silent regression on the sad path (bad credentials accidentally yielding a
+/// token) is an auth bypass — trivial code, catastrophic blast radius. Its spec under `.specs/` proves the happy and the
+/// deny path end-to-end.</remarks>
+[Slice]
+public static class Login
+{
+    public record Input(string Email, string Password);
+
+    public record Output(string AccessToken, string RefreshToken, RegistrationStep Step, Role? Role);
+
+    // A fixed argon2 hash for the no-account branch of the timing-equalizing credential check (see Handle).
+    // Computed once at startup; the plaintext is irrelevant — it exists only to make Verify do real work so a
+    // login for an unknown email costs the same as one with a wrong password.
+    internal static readonly PasswordHash DummyHash = PasswordHash.Create("skies-login-timing-equalizer");
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, IAccessTokens tokens, TimeProvider clock, CancellationToken ct)
+    {
+        var email = Email.From(input.Email);
+        if (email.IsFailure)
+            return Error.Unauthorized(AccountErrorCodes.InvalidCredentials, "invalid email or password");
+
+        var user = await db.Users
+            // Anonymous login has no org of its own, so the lookup crosses the tenant filter; the org
+            // is then read off the found user and put into the JWT.
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Email == email.Value, ct);
+        // Constant-time identity check: verify against the found user's hash, or a fixed dummy hash when no
+        // account exists, so a missing email costs the same argon2 work as a wrong password — the absence of
+        // an account is not observable by response timing (user enumeration).
+        var passwordOk = (user?.PasswordHash ?? DummyHash).Verify(input.Password);
+        if (user is null || !passwordOk)
+            return Error.Unauthorized(AccountErrorCodes.InvalidCredentials, "invalid email or password");
+
+        var now = clock.GetUtcNow().UtcDateTime;
+        var family = Guid.NewGuid();   // the session id (sid) the access token carries
+        var (refresh, refreshHash) = SessionToken.Issue();
+        db.UserSessions.Add(UserSession.Start(user.Id, family, refreshHash, now).Value);
+        await db.SaveChangesAsync(ct);
+
+        var access = tokens.Issue(user.Id, user.OrgId, user.Role?.ToString(), family, user.Name);
+        return new Output(access, refresh, user.RegistrationStep, user.Role);
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/login", async (Input input, AppDb db, IAccessTokens tokens, TimeProvider clock, CancellationToken ct) =>
+            (await Handle(input, db, tokens, clock, ct)).ToHttp())
+            .WithName(nameof(Login))
+            .AllowAnonymous();   // public: logging in is how you get a token (SKY0022 — the decision, made visible)
+}

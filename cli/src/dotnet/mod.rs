@@ -29,7 +29,7 @@ use crate::Generate;
 
 /// The Skies.Framework.* package version that generators stamp into csproj files. It moves with the lockstep
 /// release; the `skies new` template carries the same literal.
-pub const FRAMEWORK_VERSION: &str = "4.1.4";
+pub const FRAMEWORK_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn new_app(name: &str) -> Result<u8> {
     app::new_app(&std::env::current_dir()?, name)

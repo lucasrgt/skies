@@ -8,8 +8,8 @@ namespace MyApp.Api.Modules.Account;
 /// user is email-verified from the start and a session is issued immediately; phone is still pending.
 /// Fails if the email is already taken.</summary>
 /// <remarks>Security contract: the sad path is the bypass guard — an unverifiable token must create no account.
-/// If it passed silently, a forged token mints an account for any identity (spoofing). SKY0008 forces both
-/// the happy sign-up and the forged-token rejection to be proven end-to-end (see Journeys/OAuthJourney).</remarks>
+/// If it passed silently, a forged token mints an account for any identity (spoofing). Its spec under `.specs/` proves both
+/// the happy sign-up and the forged-token rejection end-to-end.</remarks>
 [Slice]
 public static class RegisterWithGoogle
 {

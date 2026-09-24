@@ -8,8 +8,7 @@ namespace MyApp.Api.Modules.Account;
 /// </summary>
 /// <remarks>Security contract: the sad path (a taken email) guards the one-human-one-account identity invariant.
 /// If a duplicate were silently created, login-by-email becomes ambiguous — an identity breach in the
-/// auth system. SKY0008 forces both the happy registration and the duplicate rejection to be proven
-/// end-to-end (see Journeys/AuthJourney).</remarks>
+/// auth system. Its spec under `.specs/` proves both the happy registration and the duplicate rejection end-to-end.</remarks>
 [Slice]
 public static class Register
 {

@@ -8,8 +8,7 @@ namespace MyApp.Api.Modules.Account;
 /// row is not tenant-scoped, so it is looked up directly.</summary>
 /// <remarks>Security contract: the sad path <em>is</em> the security feature — replaying a rotated token must
 /// burn the whole family (theft detection). If that fails silently a stolen token lives forever, so
-/// SKY0008 forces both the rotation (happy) and the theft-burn (sad) to be proven end-to-end (see
-/// Journeys/AuthJourney).</remarks>
+/// Its spec under `.specs/` proves both the rotation (happy) and the theft-burn (sad) end-to-end.</remarks>
 [Slice]
 public static class Refresh
 {
@@ -28,7 +27,7 @@ public static class Refresh
 
         // Reuse of a spent token: the legitimate client holds the live replacement, so a second presentation
         // means the rotated token leaked. Burn the whole family — thief's and victim's alike — immediately,
-        // forcing a fresh login. This is the replay-burns-family obligation in Account.spec.toml.
+        // forcing a fresh login. The auth spec's replay failure mode covers it.
         if (session.UsedAt is not null)
         {
             await RevokeFamily(db, session.FamilyId, ct);

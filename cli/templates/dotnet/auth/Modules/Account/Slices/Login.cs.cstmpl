@@ -7,8 +7,8 @@ namespace MyApp.Api.Modules.Account;
 /// user is looked up by email — globally, one-human-one-account — and the identity is read off the
 /// user and put into the JWT, never assumed.</summary>
 /// <remarks>Security contract: a silent regression on the sad path (bad credentials accidentally yielding a
-/// token) is an auth bypass — trivial code, catastrophic blast radius. SKY0008 forces the happy and the
-/// deny path to be proven end-to-end (see Journeys/AuthJourney).</remarks>
+/// token) is an auth bypass — trivial code, catastrophic blast radius. Its spec under `.specs/` proves the happy and the
+/// deny path end-to-end.</remarks>
 [Slice]
 public static class Login
 {

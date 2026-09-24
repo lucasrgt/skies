@@ -1,0 +1,70 @@
+using Golden.Api;
+using Golden.Api.BuildingBlocks;
+using Golden.Api.Modules.Account;
+using Golden.Api.Tenancy;
+using Microsoft.EntityFrameworkCore;
+using Skies.Framework.Auth;
+
+namespace Specs.S0001;
+
+/// <summary>Tenancy and global identity. Anonymous requests all resolve to the default org, so a second org cannot
+/// be reached over HTTP; these cases drive the slices against two orgs sharing one store instead.</summary>
+public class TenancyAndGlobalIdentity
+{
+    [Fact(DisplayName = "FM-4: a taken email is rejected even from a different org")]
+    public async Task Taken_email_is_rejected_from_another_org()
+    {
+        var store = Guid.NewGuid().ToString();
+        await using (var orgA = NewDb(store, Guid.NewGuid()))
+            await Register.Handle(new Register.Input("a@example.com", "password1"), orgA, TimeProvider.System, default);
+
+        await using var orgB = NewDb(store, Guid.NewGuid());
+        var result = await Register.Handle(new Register.Input("a@example.com", "password1"), orgB, TimeProvider.System, default);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ErrorKind.Conflict, result.Error.Kind);
+    }
+
+    [Fact(DisplayName = "FM-8: a user signs in whatever org the request resolves to")]
+    public async Task Sign_in_is_global()
+    {
+        var store = Guid.NewGuid().ToString();
+        await using (var orgA = NewDb(store, Guid.NewGuid()))
+            await Register.Handle(new Register.Input("a@example.com", "password1"), orgA, TimeProvider.System, default);
+
+        await using var orgB = NewDb(store, Guid.NewGuid());
+        var tokens = new AccessTokens("test-secret-for-jwt-signing-please-32+chars", "golden", "golden", TimeProvider.System);
+        var result = await Login.Handle(new Login.Input("a@example.com", "password1"), orgB, tokens, TimeProvider.System, default);
+
+        Assert.True(result.IsSuccess);
+        Assert.NotEmpty(result.Value.AccessToken);
+    }
+
+    // Two orgs share a store, but a read as org A never sees org B's rows, and the org is stamped on insert rather
+    // than set by the caller.
+    [Fact(DisplayName = "FM-20: reads never cross the current org and inserts are stamped with it")]
+    public async Task Reads_never_cross_the_current_org()
+    {
+        var (orgA, orgB) = (Guid.NewGuid(), Guid.NewGuid());
+        var store = Guid.NewGuid().ToString();
+        await Seed(store, orgA, "a@org-a.com");
+        await Seed(store, orgB, "b@org-b.com");
+
+        await using var db = NewDb(store, orgA);
+        var users = await db.Users.ToListAsync();
+
+        var user = Assert.Single(users);
+        Assert.Equal("a@org-a.com", user.Email.Value);
+        Assert.Equal(orgA, user.OrgId);
+    }
+
+    private static async Task Seed(string store, Guid org, string email)
+    {
+        await using var db = NewDb(store, org);
+        db.Users.Add(User.Register(Email.FromStored(email), PasswordHash.FromStored("x.y"), DateTime.UtcNow).Value);
+        await db.SaveChangesAsync();
+    }
+
+    private static AppDb NewDb(string store, Guid org) =>
+        new(new DbContextOptionsBuilder<AppDb>().UseInMemoryDatabase(store).Options, new Tenant { OrgId = org });
+}
