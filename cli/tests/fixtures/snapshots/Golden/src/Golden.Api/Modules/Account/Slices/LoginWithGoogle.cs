@@ -39,5 +39,5 @@ public static class LoginWithGoogle
         app.MapPost("/login/google", async (Input input, AppDb db, IExternalIdentityVerifier google, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct) =>
             (await Handle(input, db, google, sessions, tokens, ct)).ToHttp())
             .WithName(nameof(LoginWithGoogle))
-            .AllowAnonymous();   // public: signing in with Google is how you get a token (SKY0022 — the decision, made visible)
+            .AllowAnonymous();   // public: signing in with Google is how you get a token
 }

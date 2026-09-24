@@ -142,10 +142,17 @@ fn crud_output_is_doctor_shaped(api: &Path) {
     ));
     for slice in ["List", "Lookup", "Create", "Update", "Delete"] {
         let source = read(&format!("Modules/Catalog/Slices/{slice}Product.cs"));
-        assert!(source.contains(&format!(
-            ".WithName(nameof({slice}Product))\n            .RequireAuthorization();"
-        )));
+        assert!(
+            source.contains(&format!(
+                ".WithName(nameof({slice}Product)); // authorization: the module's route group decides\n"
+            )),
+            "{slice}Product inherits the group's posture instead of restating it"
+        );
+        assert!(!source.contains("Page<Product>") && !source.contains("Output(Product "));
     }
+    assert!(read("Modules/Catalog/Slices/UpdateProduct.cs").contains("app.MapPut(\"/product/{id:guid}\","));
+    assert!(read("Modules/Catalog/ProductView.cs").contains("public record ProductView(Guid Id, string Name)"));
+    assert!(read("AppDb.cs").contains("    public DbSet<Product> Products => Set<Product>();\n"));
 
     let module = read("Modules/Catalog/CatalogModule.cs");
     assert!(module.contains(
@@ -200,21 +207,87 @@ fn backend_generators_run_from_the_app_root_and_the_manual_names_the_app() {
     assert!(manual.contains("`src/Golden.Api`") && manual.contains("`tests/Golden.Tests`"));
 }
 
+/// Rule ids belong to the doctor's output and the docs, never to the code a generator writes: comments there explain
+/// the domain to a reader, not the linter.
+fn cites_no_rule(tree: &Path) {
+    let hits = rule_citations(tree);
+    assert!(hits.is_empty(), "generated files cite rule ids:\n{}", hits.join("\n"));
+}
+
+/// Every `SKY…####` / `SKYFE###` / `SKYFL###` in a generated source file, as `path:line: text`.
+fn rule_citations(tree: &Path) -> Vec<String> {
+    let mut hits = Vec::new();
+    for (path, bytes) in files(tree) {
+        let source = [".cs", ".csproj", ".ctx.md", ".ts", ".tsx", ".dart", ".arb"]
+            .iter()
+            .any(|ext| path.ends_with(ext));
+        if !source {
+            continue;
+        }
+        let text = String::from_utf8_lossy(&bytes);
+        for (number, line) in text.lines().enumerate() {
+            let cites = line.match_indices("SKY").any(|(at, _)| {
+                let digits = line[at + 3..].trim_start_matches(|c: char| c.is_ascii_uppercase());
+                digits.len() >= 3 && digits[..3].chars().all(|c| c.is_ascii_digit())
+            });
+            if cites {
+                hits.push(format!("{path}:{}: {line}", number + 1));
+            }
+        }
+    }
+    hits
+}
+
 #[test]
-fn crud_refuses_an_entity_that_is_not_tenant_scoped() {
+fn generated_code_cites_no_rule_and_the_manual_stays_short() {
+    for tree in ["Golden", "G-skip-tenancy", "G-skip-cookies"] {
+        cites_no_rule(&snapshot(tree));
+    }
+    let manual = std::fs::read_to_string(snapshot("Golden").join("AGENTS.md")).unwrap();
+    assert!(
+        manual.lines().count() <= 80,
+        "AGENTS.md has {} lines",
+        manual.lines().count()
+    );
+    assert!(
+        !manual.contains("## Frontend") && !manual.contains("SKYFE"),
+        "a backend-only app gets no frontend rules"
+    );
+}
+
+#[test]
+fn crud_serves_an_app_wide_entity() {
     let work = tempfile::tempdir().unwrap();
     skies(work.path(), &["new", "Golden"]);
     let api = work.path().join("Golden/src/Golden.Api");
-    skies(&api, &["g", "module", "Catalog"]);
-    skies(&api, &["g", "entity", "Catalog", "Product"]);
+    for args in [
+        &["g", "auth", "--skip-tenancy"][..],
+        &["g", "module", "Catalog"],
+        &["g", "entity", "Catalog", "Category"],
+    ] {
+        skies(&api, args);
+    }
+    let category = api.join("Modules/Catalog/Category.cs");
+    let source = std::fs::read_to_string(&category).unwrap();
+    std::fs::write(
+        &category,
+        source.replacen(
+            "    public Guid Id { get; private set; }\n",
+            "    public Guid Id { get; private set; }\n\n    public string Label { get; private set; } = \"\";\n",
+            1,
+        ),
+    )
+    .unwrap();
 
-    let output = Command::new(env!("CARGO_BIN_EXE_skies"))
-        .args(["g", "crud", "Catalog", "Product"])
-        .current_dir(&api)
-        .output()
-        .unwrap();
+    skies(&api, &["g", "crud", "Catalog", "Category"]);
 
-    assert_eq!(output.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&output.stderr).contains("Product is not ITenantScoped"));
-    assert!(!api.join("Modules/Catalog/Slices").exists());
+    let read = |path: &str| std::fs::read_to_string(api.join(path)).unwrap();
+    assert!(read("AppDb.cs").contains("public DbSet<Category> Categories => Set<Category>();"));
+    let list = read("Modules/Catalog/Slices/ListCategory.cs");
+    assert!(list.contains("public record Output(Page<CategoryView> Categories);"));
+    assert!(
+        !list.contains("org"),
+        "an app-wide entity is not described as tenant-scoped"
+    );
+    cites_no_rule(&work.path().join("Golden"));
 }

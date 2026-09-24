@@ -30,7 +30,7 @@ public class UserSession
     /// presenting this token again is a reuse — the theft signal (outside the rotation grace window).</summary>
     public DateTime? UsedAt { get; private set; }
 
-    /// <summary>The optimistic-concurrency token (SKY0026): two refreshes of the same live token that race lose
+    /// <summary>The optimistic-concurrency token: two refreshes of the same live token that race lose
     /// the second save to a <c>DbUpdateConcurrencyException</c> instead of both forking the family.</summary>
     [System.ComponentModel.DataAnnotations.Timestamp]
     public byte[]? RowVersion { get; private set; }

@@ -2,14 +2,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Api.Modules.__MODULE__;
 
-/// <summary>Replace a __ENTITY__'s fields by id, scoped to the caller's tenant. The change goes through
-/// <see cref="__ENTITY__.Update"/>, which returns through the entity's invariants (EnsureValid); a refused change
-/// is never saved. The entity's RowVersion makes a concurrent write fail loudly instead of being lost. An unknown
-/// id is a not-found, never a hint that the row exists in another org.</summary>
+/// <summary>Replace __A_ENTITY__'s fields by id__WITHIN__.
+/// The change goes through <see cref="__ENTITY__.Update"/>, which returns through the entity's invariants; a
+/// refused change is never saved, and the row version makes a concurrent write fail loudly instead of being
+/// lost.__FOREIGN__</summary>
 [Slice]
 public static class Update__ENTITY__
 {
     public record Input(Guid Id, __INPUT_FIELDS__);
+
+    /// <summary>The request body. The id travels in the route, so a body can never name another row.</summary>
+    public record Changes(__INPUT_FIELDS__);
 
     public record Output(Guid Id);
 
@@ -28,8 +31,8 @@ public static class Update__ENTITY__
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPut("/__ENTITY_LOWER__", async (Input input, AppDb db, __CLOCK_PARAM__CancellationToken ct) =>
-            (await Handle(input, db, __CLOCK_ARG__ct)).ToHttp())
-            .WithName(nameof(Update__ENTITY__))
-            .RequireAuthorization();
+        app.MapPut("/__ENTITY_LOWER__/{id:guid}",
+                async (Guid id, Changes changes, AppDb db, __CLOCK_PARAM__CancellationToken ct) =>
+                    (await Handle(new Input(id, __CHANGES_ARGS__), db, __CLOCK_ARG__ct)).ToHttp())
+            .WithName(nameof(Update__ENTITY__))__POSTURE__
 }

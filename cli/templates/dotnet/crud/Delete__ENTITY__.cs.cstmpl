@@ -2,10 +2,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Api.Modules.__MODULE__;
 
-/// <summary>Delete a __ENTITY__ by id, scoped to the caller's tenant (hard delete). Removing a row is a
-/// persistence act, not a state transition, so there is no entity method to call; the entity's RowVersion makes a
-/// delete racing an update fail loudly. An unknown id is a not-found, never a hint that the row exists in another
-/// org.</summary>
+/// <summary>Delete __A_ENTITY__ by id__WITHIN__, a hard delete.
+/// Removing a row is a persistence act, not a state transition, so there is no entity method to call; the row
+/// version makes a delete racing an update fail loudly.__FOREIGN__</summary>
 [Slice]
 public static class Delete__ENTITY__
 {
@@ -26,7 +25,6 @@ public static class Delete__ENTITY__
 
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapDelete("/__ENTITY_LOWER__/{id:guid}", async (Guid id, AppDb db, CancellationToken ct) =>
-            (await Handle(new Input(id), db, ct)).ToHttp())
-            .WithName(nameof(Delete__ENTITY__))
-            .RequireAuthorization();
+                (await Handle(new Input(id), db, ct)).ToHttp())
+            .WithName(nameof(Delete__ENTITY__))__POSTURE__
 }

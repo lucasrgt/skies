@@ -44,5 +44,5 @@ public static class ResetPassword
         app.MapPost("/password-reset", async (Input input, AppDb db, VerificationTokens verification, IPasswordHasher hasher, RefreshSessions sessions, CancellationToken ct) =>
             (await Handle(input, db, verification, hasher, sessions, ct)).ToHttp())
             .WithName(nameof(ResetPassword))
-            .AllowAnonymous();   // public: the reset token IS the credential (SKY0022 — the decision, made visible)
+            .AllowAnonymous();   // public: the reset token IS the credential
 }

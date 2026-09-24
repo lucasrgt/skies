@@ -48,7 +48,7 @@ public class VerificationToken
     /// <summary>Wrong guesses so far (codes only): the brute-force counter.</summary>
     public int Attempts { get; private set; }
 
-    /// <summary>The optimistic-concurrency token (SKY0026): two concurrent checks of the same secret fail loudly instead
+    /// <summary>The optimistic-concurrency token: two concurrent checks of the same secret fail loudly instead
     /// of both racing the attempt counter or both consuming it.</summary>
     [System.ComponentModel.DataAnnotations.Timestamp]
     public byte[]? RowVersion { get; private set; }

@@ -1,15 +1,13 @@
 # __NAME_LOWER__
 
-What the __NAME__ module is for, in the business's words: the capability it owns and who relies on it.
+<!-- What this module is for, in the business's words: the capability it owns and who relies on it. -->
 
 ## Boundaries
 
-- **Inside**: the data and rules __NAME__ owns and is the only module allowed to write.
-- **Outside**: what it leaves to other modules. It references them by id, never through an EF relationship.
+<!-- Inside: the data and rules this module owns and is the only one allowed to write. -->
+<!-- Outside: what this module leaves to other modules, referenced by id, never through an EF relationship. -->
+<!-- Non-goals: what this module deliberately does not do. -->
 
 ## Design notes
 
-### Wiring
-`__NAME__Module` registers the module's services and maps its routes; the module registry calls both. Record
-each decision a stranger would otherwise undo here, with its reason, as the module grows.
-Each invariant noted here cites the spec that proves it, as `<id>-<slug>#FM-n` (SKY0005 keeps the citation true).
+<!-- The non-obvious invariants of this module and why they hold, each citing the spec that proves it. -->

@@ -46,7 +46,7 @@ public class User : ITenantScoped
     /// <summary>Whether the phone number has been verified.</summary>
     public bool IsPhoneVerified { get; private set; }
 
-    /// <summary>The optimistic-concurrency token (SKY0026): a concurrent write to the same user row fails loudly
+    /// <summary>The optimistic-concurrency token: a concurrent write to the same user row fails loudly
     /// with a <c>DbUpdateConcurrencyException</c> instead of silently losing the first change.</summary>
     [System.ComponentModel.DataAnnotations.Timestamp]
     public byte[]? RowVersion { get; private set; }

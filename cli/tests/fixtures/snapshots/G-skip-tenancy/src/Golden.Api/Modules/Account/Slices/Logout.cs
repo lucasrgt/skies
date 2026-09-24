@@ -22,7 +22,7 @@ public static class Logout
         app.MapPost("/logout", async (Input? body, HttpContext http, RefreshSessions sessions, RefreshCookie cookies, CancellationToken ct) =>
             Respond(await Handle(new Input(cookies.RefreshFrom(http.Request, body?.RefreshToken)), sessions, ct), http, cookies))
             .WithName(nameof(Logout))
-            .AllowAnonymous();   // public: logout takes the refresh token, not the (possibly expired) access token (SKY0022)
+            .AllowAnonymous();   // public: logout takes the refresh token, not the (possibly expired) access token
 
     private static IResult Respond(Result<Output> result, HttpContext http, RefreshCookie cookies)
     {

@@ -1,9 +1,9 @@
 namespace __NAMESPACE__.Modules.__MODULE__;
 
 /// <summary>
-/// __NAME__ — a domain entity. It owns its identity and its invariants: no public setter, born through
-/// <see cref="Open"/>, and every create and mutate path returns through <see cref="EnsureValid"/>, so a
-/// __NAME__ is never observed or persisted in a broken state.
+/// __NAME__ owns its identity and its invariants: it has no public setter, is born through <see cref="Open"/>,
+/// and every create and mutate path returns through <see cref="EnsureValid"/>, so it is never observed or
+/// persisted in a broken state.
 /// </summary>
 [Entity]
 public class __NAME__
@@ -11,20 +11,13 @@ public class __NAME__
     /// <summary>The entity's identity, assigned when it is opened.</summary>
     public Guid Id { get; private set; }
 
-    // Parameterless and private: the constructor EF Core materialises through. The domain opens a
-    // __NAME__ via Open, so there is no public way to construct a blank one.
+    // EF Core materializes through this constructor; the domain creates one only through Open.
     private __NAME__() { }
 
     /// <summary>Open a new __NAME__ with the given identity.</summary>
     public static Result<__NAME__> Open(Guid id) =>
         new __NAME__ { Id = id }.EnsureValid();
 
-    // Add intention-revealing methods for this entity's state transitions here. A change that can
-    // violate an invariant returns Result<__NAME__> and funnels through EnsureValid; one that cannot
-    // fail (a value object already guarantees its input) stays a void method.
-
-    // The single invariant funnel: every create and mutate path returns through here. Add this
-    // entity's invariants as Check lines so a broken __NAME__ can never come to exist.
     private Result<__NAME__> EnsureValid()
     {
         var validation = new Validation()

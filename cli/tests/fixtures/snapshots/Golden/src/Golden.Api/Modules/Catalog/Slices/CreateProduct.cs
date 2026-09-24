@@ -1,8 +1,9 @@
 namespace Golden.Api.Modules.Catalog;
 
-/// <summary>Create a Product for the caller's tenant. The slice never writes a column: the entity is born
-/// through <see cref="Product.Open"/>, whose invariants (EnsureValid) decide whether it may exist, and the org
-/// is stamped by the DbContext, never taken from the request.</summary>
+/// <summary>Create a Product within the caller's org.
+/// The slice never writes a column: the entity is born through <see cref="Product.Open"/>, whose invariants
+/// decide whether it may exist.
+/// The org is stamped by the DbContext, never taken from the request.</summary>
 [Slice]
 public static class CreateProduct
 {
@@ -23,7 +24,6 @@ public static class CreateProduct
 
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/product", async (Input input, AppDb db, CancellationToken ct) =>
-            (await Handle(input, db, ct)).ToHttp())
-            .WithName(nameof(CreateProduct))
-            .RequireAuthorization();
+                (await Handle(input, db, ct)).ToHttp())
+            .WithName(nameof(CreateProduct)); // authorization: the module's route group decides
 }

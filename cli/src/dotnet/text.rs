@@ -58,6 +58,34 @@ pub fn hyphenate(pascal: &str) -> String {
     out
 }
 
+/// `Invoice` becomes `an Invoice`, `Product` becomes `a Product`: the article generated prose puts before an
+/// entity name. Judged by sound for the common English cases (`a User`, `an Hour` is not attempted).
+pub fn with_article(noun: &str) -> String {
+    let lower = noun.to_lowercase();
+    let vowel = lower.starts_with(['a', 'e', 'i', 'o', 'u']);
+    let sounds_like_you = ["us", "uni", "uti", "ure", "eu", "one"]
+        .iter()
+        .any(|prefix| lower.starts_with(prefix));
+    let article = if vowel && !sounds_like_you { "an" } else { "a" };
+    format!("{article} {noun}")
+}
+
+/// `Invoice` becomes `Invoices`, `Category` `Categories`, `Address` `Addresses`: the DbSet name for an entity.
+pub fn plural(noun: &str) -> String {
+    let lower = noun.to_lowercase();
+    let consonant_y = lower.ends_with('y') && !lower.ends_with(['a', 'e', 'i', 'o', 'u']) && {
+        let before = lower.chars().rev().nth(1);
+        before.is_some_and(|c| !"aeiou".contains(c))
+    };
+    if consonant_y {
+        format!("{}ies", &noun[..noun.len() - 1])
+    } else if ["s", "x", "z", "ch", "sh"].iter().any(|end| lower.ends_with(end)) {
+        format!("{noun}es")
+    } else {
+        format!("{noun}s")
+    }
+}
+
 /// `MyApp` becomes the app name and `myapp` its lowercase. The order matters: the app name is mixed case, so
 /// the second pass cannot touch what the first produced.
 pub fn replace_app_tokens(text: &str, app_name: &str, app_lower: &str) -> String {
@@ -101,6 +129,26 @@ mod tests {
     fn hyphenates_pascal_case() {
         assert_eq!(hyphenate("OrderLine"), "order-line");
         assert_eq!(hyphenate("Product"), "product");
+    }
+
+    #[test]
+    fn picks_the_article_by_sound() {
+        assert_eq!(with_article("Invoice"), "an Invoice");
+        assert_eq!(with_article("Order"), "an Order");
+        assert_eq!(with_article("Product"), "a Product");
+        assert_eq!(with_article("User"), "a User");
+        assert_eq!(with_article("UnitPrice"), "a UnitPrice");
+        assert_eq!(with_article("Umbrella"), "an Umbrella");
+    }
+
+    #[test]
+    fn pluralizes_entity_names() {
+        assert_eq!(plural("Invoice"), "Invoices");
+        assert_eq!(plural("Category"), "Categories");
+        assert_eq!(plural("Day"), "Days");
+        assert_eq!(plural("Address"), "Addresses");
+        assert_eq!(plural("Box"), "Boxes");
+        assert_eq!(plural("Batch"), "Batches");
     }
 
     #[test]

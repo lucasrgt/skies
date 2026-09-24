@@ -1,7 +1,7 @@
 namespace Golden.Api.BuildingBlocks;
 
-/// <summary>Error codes for the <see cref="Email"/> value object — stable i18n keys (a registry constant, not an
-/// inline literal, so the set stays discoverable: SKY0018).</summary>
+/// <summary>Error codes for the <see cref="Email"/> value object — stable i18n keys, declared as constants so
+/// the set stays enumerable into the OpenAPI contract.</summary>
 public static class EmailErrorCodes
 {
     /// <summary>The value is not a valid email address.</summary>

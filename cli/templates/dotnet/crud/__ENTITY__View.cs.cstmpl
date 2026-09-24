@@ -1,0 +1,10 @@
+namespace MyApp.Api.Modules.__MODULE__;
+
+/// <summary>__A_ENTITY_CAP__ as the API returns it. The slices answer with this record, never the entity,
+/// so __HIDDEN__ stay off the wire,
+/// and the contract moves only when this record does.</summary>
+public record __ENTITY__View(__VIEW_FIELDS__)
+{
+    /// <summary>Projects a loaded __ENTITY__.</summary>
+    public static __ENTITY__View From(__ENTITY__ e) => new(__VIEW_ARGS__);
+}

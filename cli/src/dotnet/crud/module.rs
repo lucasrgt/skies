@@ -1,8 +1,8 @@
 //! The module half of `g crud` and `g slice`: mapping the slices under the module's route group.
 //!
 //! The slices map onto the group the module declares (`var catalog = app.MapGroup(...)`), which carries the
-//! module's authorization decision. A `g module` scaffold only shows that line as a commented example, so the
-//! group is matched on code lines only; when the module has none, the generator declares it, failing closed
+//! module's authorization decision. The group is matched on code lines only, so a commented-out example never
+//! counts; when the module has none (a fresh `g module` scaffold), the generator declares it, failing closed
 //! (`RequireAuthorization`), which is the decision SKY0022 wants explicit.
 
 use std::path::Path;

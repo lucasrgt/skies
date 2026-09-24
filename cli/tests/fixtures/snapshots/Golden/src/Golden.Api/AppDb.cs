@@ -2,11 +2,12 @@ using Golden.Api.Tenancy;
 using Golden.Api.Modules.Account;
 using Microsoft.EntityFrameworkCore;
 using Skies.Framework.Auth;
+using Golden.Api.Modules.Catalog;
 
 namespace Golden.Api;
 
 /// <summary>The application's single database — one logical store for every module's tables. A module is a
-/// bounded context <em>by convention</em>: it writes only its own entities (SKY0009) and references another
+/// bounded context <em>by convention</em>: it writes only its own entities and references another
 /// module by id, never an EF relationship — so it could be carved into its own database later. But all
 /// modules share this one DbContext, so a read can join across them in-process (the dashboard case). New
 /// modules add their DbSets + configuration here. Email is unique globally (one-human-one-account).</summary>
@@ -17,6 +18,8 @@ public class AppDb(DbContextOptions<AppDb> options, ITenant tenant) : TenantDbCo
     public DbSet<UserSession> UserSessions => Set<UserSession>();
 
     public DbSet<VerificationToken> VerificationTokens => Set<VerificationToken>();
+
+    public DbSet<Product> Products => Set<Product>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {

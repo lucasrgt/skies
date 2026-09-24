@@ -11,6 +11,7 @@
 //! `skies: ...` and exits 1, like the 4.x CLI; `Err` is reserved for I/O failures.
 
 mod app;
+mod app_db;
 mod auth;
 mod blueprint;
 mod crud;

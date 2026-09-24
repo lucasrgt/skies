@@ -41,5 +41,5 @@ public static class Login
         app.MapPost("/login", async (Input input, AppDb db, IPasswordHasher hasher, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct) =>
             (await Handle(input, db, hasher, sessions, tokens, ct)).ToHttp())
             .WithName(nameof(Login))
-            .AllowAnonymous();   // public: logging in is how you get a token (SKY0022 — the decision, made visible)
+            .AllowAnonymous();   // public: logging in is how you get a token
 }

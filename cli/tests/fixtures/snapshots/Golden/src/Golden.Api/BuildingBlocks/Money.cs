@@ -1,7 +1,7 @@
 namespace Golden.Api.BuildingBlocks;
 
 /// <summary>Error codes for the Money value object — stable, namespaced i18n keys the frontend localizes
-/// from. Codes are registry constants (SKY0018), so the set stays discoverable for the OpenAPI contract.</summary>
+/// from, declared as constants so the set stays enumerable into the OpenAPI contract.</summary>
 public static class MoneyErrorCodes
 {
     /// <summary>The value is missing or fails the Money invariant.</summary>

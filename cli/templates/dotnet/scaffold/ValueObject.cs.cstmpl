@@ -1,7 +1,7 @@
 namespace __NAMESPACE__.BuildingBlocks;
 
 /// <summary>Error codes for the __NAME__ value object — stable, namespaced i18n keys the frontend localizes
-/// from. Codes are registry constants (SKY0018), so the set stays discoverable for the OpenAPI contract.</summary>
+/// from, declared as constants so the set stays enumerable into the OpenAPI contract.</summary>
 public static class __NAME__ErrorCodes
 {
     /// <summary>The value is missing or fails the __NAME__ invariant.</summary>
