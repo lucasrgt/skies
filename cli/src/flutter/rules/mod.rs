@@ -3,8 +3,12 @@
 //! Rule ids keep their 4.x meaning: SKYFL001–035 mirror the SKYFE slots by position, so a code seen in an old
 //! report still names the same concern, and SKYFL036 mirrors SKYFE036 (tests live in a spec). Skies 5 keeps only the architecture rules. Proof rules (a test, a tag, a
 //! flow manifest must exist), endpoint coverage, and the design-token band are gone, and their ids stay unused
-//! rather than being reassigned.
+//! rather than being reassigned. SKYFL037–040 are the accessibility floor (see `a11y`): Flutter-specific, with no
+//! SKYFE twin, because the web's floor is jsx-a11y.
 
+mod a11y;
+#[cfg(test)]
+mod a11y_tests;
 mod checks;
 mod facts;
 mod syntax;
@@ -22,7 +26,7 @@ use crate::flutter::{files_with_extension, i18n};
 use facts::Facts;
 
 /// Every rule still enforced, by code. The gaps are the retired proof, coverage, and design rules.
-pub const RULES: [(&str, &str); 26] = [
+pub const RULES: [(&str, &str); 30] = [
     ("SKYFL001", "view-purity"),
     ("SKYFL002", "data-door"),
     ("SKYFL003", "no-mock"),
@@ -49,6 +53,10 @@ pub const RULES: [(&str, &str); 26] = [
     ("SKYFL031", "submit-invalid-path"),
     ("SKYFL032", "field-error-surface"),
     ("SKYFL036", "tests-live-in-specs"),
+    ("SKYFL037", "icon-button-label"),
+    ("SKYFL038", "image-semantics"),
+    ("SKYFL039", "tap-target-label"),
+    ("SKYFL040", "text-field-label"),
 ];
 
 /// The code for a rule name.
@@ -135,7 +143,7 @@ pub fn diagnose(project: &Path) -> Result<Vec<Finding>> {
 
     let mut findings: Vec<Finding> = sources
         .par_iter()
-        .flat_map_iter(|source| checks::file(source, &by_path))
+        .flat_map_iter(|source| checks::file(source, &by_path).into_iter().chain(a11y::file(source)))
         .collect();
     findings.extend(checks::project(&sources));
     findings.extend(i18n_parity(project)?);

@@ -188,14 +188,39 @@ from its host driver (`integration_test_driver`'s `responseDataCallback`). A fai
 carries `[avp: <criterion-id>]` on its spec.md line, and its verdict goes to `$SKIES_EVIDENCE/avp-FM-<n>.json`;
 the mode then passes only with a passing verdict. The tag is optional.
 
-Styling, the widget kit, tokens, and layout are the application's. Accessibility is too; Flutter's
-`meetsGuideline` matchers are a good failure-mode check for a spec, not a framework rule.
+Styling, the widget kit, tokens, and layout are the application's.
+
+## Accessibility — the a11y floor
+
+Accessibility is a floor, on by default, in the same spirit as the CA* security floor of the .NET doctor and the
+jsx-a11y floor of `@skiesjs/eslint-plugin` ([FRONTEND-CONVENTIONS.md](FRONTEND-CONVENTIONS.md)). The native doctor
+reads four shapes a screen reader cannot recover from (`SKYFL037`–`040`):
+
+- an `IconButton` with no `tooltip:` (Flutter speaks the tooltip as the button's label);
+- an `Image`/`Image.asset|network|file|memory` with no `semanticLabel:`, or a `SvgPicture.*` with no
+  `semanticsLabel:`, that is not excluded with `excludeFromSemantics: true`;
+- a `GestureDetector`/`InkWell` with `onTap:` whose visible child is only icons, images, and layout boxes;
+- a `TextField`/`TextFormField` with no decoration, or an `InputDecoration(...)` with no `labelText`, `label`, or
+  `hintText`.
+
+A `Semantics(label: …)` or `Tooltip` around the widget (or a label inside it, such as `Icon(semanticLabel:)`)
+satisfies each rule. The rules are static and conservative: a widget handed in as a variable, a decoration built by a
+helper, or an image passed into a custom widget's slot is never guessed at, because its label may live in another
+file. They skip tests and generated code (`*.g.dart`, `*.freezed.dart`, `lib/l10n/`, a generated `packages/<x>_api/`
+client). `IconButton` and image findings are errors: the fix is always local and one argument long. Tap targets and
+text fields are warnings: a design-system wrapper or an `InputDecorationTheme` can supply the name where the parse
+cannot see it. The explicit, reviewable way to relax a finding is in the code: `excludeFromSemantics: true` says an
+image is decorative, and a `Semantics(label:)` names a control whose label lives elsewhere. Flutter's
+`meetsGuideline` matchers remain a good failure-mode check for a spec (contrast, tap-target size) that no static
+rule can make.
 
 ## Flutter doctor rule catalog
 
-Every number preserves the corresponding `SKYFE` semantic slot; only the ecosystem spelling changes. `SKYFL009` is
-the exception: its React twin kept ViewModels free of React Native and went with that track, while a Flutter
-ViewModel still must not reach device plugins. The doctor enforces architecture only.
+Every number up to `SKYFL036` preserves the corresponding `SKYFE` semantic slot; only the ecosystem spelling changes.
+`SKYFL009` is the exception: its React twin kept ViewModels free of React Native and went with that track, while a
+Flutter ViewModel still must not reach device plugins. `SKYFL037`–`040` are the accessibility floor: Flutter-specific,
+with no React twin, because the web's floor is jsx-a11y inside the ESLint plugin's `recommended`. The doctor enforces
+architecture plus that floor.
 
 | Rule | Flutter enforcement |
 |---|---|
@@ -225,12 +250,16 @@ ViewModel still must not reach device plugins. The doctor enforces architecture 
 | `SKYFL031` | Form submit carries an explicit invalid path. |
 | `SKYFL032` | App form fields surface validator/error state. |
 | `SKYFL036` | Tests live in a spec: a top-level `test(`, `testWidgets(`, or `group(` in a file importing `package:test`, `package:flutter_test`, or `package:integration_test` is flagged outside `.specs/` (once per file). |
+| `SKYFL037` | An `IconButton` (or `.filled`/`.filledTonal`/`.outlined`) carries a `tooltip:`, its label, unless a `Semantics(label:)`/`Tooltip` names it from inside or around. Error. No React twin. |
+| `SKYFL038` | An `Image`/`Image.*` has a `semanticLabel:` (a `SvgPicture.*` a `semanticsLabel:`) or `excludeFromSemantics: true`, unless labelled or excluded around it. Checked where the image renders as written (returned by `build` or placed by a framework widget), not when handed to a custom widget's slot. Error. No React twin. |
+| `SKYFL039` | A `GestureDetector`/`InkWell` with `onTap:` whose child tree is only icons, images, and layout boxes carries a label (`Semantics(label:)`, `Tooltip`, or a labelled icon). A child it cannot see is not flagged. Warning. No React twin. |
+| `SKYFL040` | A `TextField`/`TextFormField` has a decoration with `labelText`, `label`, or `hintText`; a decoration built elsewhere is not flagged. Warning. No React twin. |
 
 `skies doctor` runs these rules natively over every Flutter package declared in `Skies.toml` (its `lib/`, `test/`,
 and `integration_test/`, skipping hidden folders);
 `skies doctor --package .` runs them over one package, which is what a package's own `lint` script calls. `SKYFL028`, `031`,
-and `032` are warnings; every other finding is an error. The numbers keep the corresponding `SKYFE` slots, so gaps
-are the rules that were removed in Skies 5.
+`032`, `039`, and `040` are warnings; every other finding is an error. The numbers keep the corresponding `SKYFE`
+slots, so gaps are the rules that were removed in Skies 5.
 
 ## Generate versus scaffold
 

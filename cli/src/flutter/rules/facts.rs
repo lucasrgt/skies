@@ -27,6 +27,10 @@ pub struct Arg {
     pub cast: Option<String>,
     /// The value is the boolean literal `true`.
     pub is_true: bool,
+    /// The value is the boolean literal `false`.
+    pub is_false: bool,
+    /// The value's first byte, which is where a call written as the value starts (see [`Call::span`]).
+    pub start: usize,
 }
 
 /// A call, constructor call, or `const`/`new` object creation.
@@ -46,9 +50,18 @@ pub struct Call {
     /// The generated-client shape `<x>.api.get<Tag>Api().<operation>(...)`.
     pub is_operation: bool,
     pub line: usize,
+    /// The call's byte range, so a rule can ask which calls sit inside a widget's arguments (its subtree).
+    pub span: (usize, usize),
+    /// The call is what a `build` method returns (`=> X(...)`, `return X(...)`, either branch of a `?:`).
+    pub built: bool,
 }
 
 impl Call {
+    /// Whether `other` lies inside this call (and is not this call).
+    pub fn contains(&self, other: &Call) -> bool {
+        self.span.0 <= other.span.0 && other.span.1 <= self.span.1 && self.span != other.span
+    }
+
     pub fn positional(&self) -> impl Iterator<Item = &Arg> {
         self.args.iter().filter(|arg| arg.label.is_none())
     }
@@ -113,6 +126,16 @@ impl Facts {
 
     pub fn first_identifier(&self, names: &[&str]) -> Option<&Located<String>> {
         self.identifiers.iter().find(|id| names.contains(&id.value.as_str()))
+    }
+
+    /// The calls inside `call`'s span, in source order.
+    pub fn within<'a>(&'a self, call: &'a Call) -> impl Iterator<Item = &'a Call> {
+        self.calls.iter().filter(move |inner| call.contains(inner))
+    }
+
+    /// The calls whose span encloses `call`.
+    pub fn around<'a>(&'a self, call: &'a Call) -> impl Iterator<Item = &'a Call> {
+        self.calls.iter().filter(move |outer| outer.contains(call))
     }
 
     pub fn calls_named<'a>(&'a self, names: &'a [&str]) -> impl Iterator<Item = &'a Call> {

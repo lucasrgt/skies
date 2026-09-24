@@ -136,6 +136,8 @@ impl Walker<'_> {
             enclosing: self.enclosing.clone(),
             in_condition: self.in_condition > 0,
             line: node.start_position().row + 1,
+            span: (node.start_byte(), node.end_byte()),
+            built: self.returned_by_build(node),
             name: name.clone(),
             receiver,
             generic,
@@ -153,6 +155,37 @@ impl Walker<'_> {
                 self.enclosing.pop();
             }
         }
+    }
+
+    /// Whether `call` is the value a `build` method returns: the arrow body or a `return` operand, through
+    /// parentheses and either branch of a conditional. A lambda in between (a builder callback) is not `build`.
+    fn returned_by_build(&self, call: Node) -> bool {
+        let mut node = call;
+        while let Some(parent) = node.parent() {
+            if !matches!(parent.kind(), "conditional_expression" | "parenthesized_expression") {
+                break;
+            }
+            node = parent;
+        }
+        if !node
+            .parent()
+            .is_some_and(|p| matches!(p.kind(), "return_statement" | "function_body"))
+        {
+            return false;
+        }
+        let mut current = node.parent();
+        while let Some(ancestor) = current {
+            match ancestor.kind() {
+                "function_expression" | "lambda_expression" => return false,
+                "method_declaration" | "function_declaration" | "local_function_declaration" => {
+                    return find(ancestor, "function_signature")
+                        .and_then(|s| s.child_by_field_name("name"))
+                        .is_some_and(|name| self.text(name) == "build");
+                }
+                _ => current = ancestor.parent(),
+            }
+        }
+        false
     }
 
     /// Resolves a call's `function` node to (name, receiver text, has type arguments).
@@ -237,7 +270,7 @@ impl Walker<'_> {
                 (None, Some(child))
             };
             let Some(value) = value else { continue };
-            let arg = match value.kind() {
+            let mut arg = match value.kind() {
                 "string_literal" => Arg {
                     label,
                     string: string_content(value, self.src),
@@ -263,11 +296,17 @@ impl Walker<'_> {
                         ..Arg::default()
                     }
                 }
+                "false" => Arg {
+                    label,
+                    is_false: true,
+                    ..Arg::default()
+                },
                 _ => Arg {
                     label,
                     ..Arg::default()
                 },
             };
+            arg.start = value.start_byte();
             out.push(arg);
         }
         out

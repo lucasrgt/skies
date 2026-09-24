@@ -1,6 +1,8 @@
 # Skies — Doctor rules (SKY* backend, SKYFE* frontend, SKYFL* Flutter)
 
-Architecture only. Never suppress: a firing rule means the shape is wrong; fix the shape.
+Architecture, plus two floors on by default: the CA* security floor (.NET) and the accessibility floor (jsx-a11y in
+the ESLint plugin's `recommended`, SKYFL037–040 on Flutter). Never suppress: a firing rule means the shape is wrong;
+fix the shape.
 
 ## Backend (Roslyn)
 
@@ -59,9 +61,18 @@ CS1591 public members documented.
 - SKYFE031 submit handles the invalid form path
 - SKYFE032 Controller surfaces fieldState validation errors
 - SKYFE036 tests live in a spec: test/it/describe (vitest, playwright, jest, bun, or globals) outside `.specs/`
+- a11y floor: `skies.configs.recommended` carries jsx-a11y's recommended set at error (aria-role: DOM only). Fix the
+  markup; relax one rule only for a real case, in a later config object (`"jsx-a11y/<rule>": "off"`, scoped by files)
 
 ## Flutter (native in `skies doctor`)
 
 SKYFL### rules mirror the SKYFE numbers for the same concern (SKYFL009, a ViewModel reaching no device plugin, has
 no React twin); see `docs/FLUTTER-CONVENTIONS.md` in the framework repository. SKYFL036: a `test(`/`testWidgets(`/`group(` from flutter_test/test/integration_test outside
 `.specs/` is flagged (the runner's hidden `.skies_spec/` copy is skipped).
+
+Accessibility floor (Flutter-specific, no React twin; tests and generated code skipped):
+
+- SKYFL037 IconButton has a `tooltip:` (its label) or a `Semantics(label:)`/`Tooltip` inside or around it
+- SKYFL038 Image/Image.*/SvgPicture.* has `semanticLabel:` (`semanticsLabel:` for SVG) or `excludeFromSemantics: true`
+- SKYFL039 (warn) a GestureDetector/InkWell `onTap:` showing only icons/images carries a label
+- SKYFL040 (warn) a TextField/TextFormField decoration has `labelText`, `label`, or `hintText`
