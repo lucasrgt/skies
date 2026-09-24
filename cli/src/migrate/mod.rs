@@ -5,9 +5,14 @@
 //! to the 5.x schema. It never deletes a test: existing tests keep running as ordinary tests. Everything it cannot
 //! decide safely is reported as a follow-up instead of guessed.
 
+mod eslint;
 mod manifest;
+mod package_json;
+mod scripts;
 mod source;
 mod vendor;
+mod versions;
+mod workflows;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -38,8 +43,14 @@ const SKIPPED_DIRS: &[&str] = &[
 /// One file-level effect of the migration.
 #[derive(Debug, PartialEq)]
 pub enum Change {
-    Write { path: PathBuf, content: String },
-    Delete { path: PathBuf },
+    /// The new bytes of a file; text edits are UTF-8 unless the file was in a legacy encoding.
+    Write {
+        path: PathBuf,
+        content: Vec<u8>,
+    },
+    Delete {
+        path: PathBuf,
+    },
 }
 
 /// Everything the migration will do, plus what a person has to finish by hand.
@@ -50,10 +61,19 @@ pub struct Plan {
     pub follow_ups: BTreeMap<String, Vec<String>>,
     /// Helper copies already scheduled, so a helper used by many files is written once per package.
     pub vendored: BTreeSet<PathBuf>,
+    /// Whether the dotnet tool manifest goes away with `skies-framework-cli`, which makes `dotnet tool restore` fail.
+    pub tool_manifest_removed: bool,
+    /// Packages that import a helper copy from another package instead of receiving their own (see
+    /// `vendor::shared_homes`).
+    pub shared_homes: BTreeMap<PathBuf, PathBuf>,
 }
 
 impl Plan {
     fn write(&mut self, path: &Path, content: String) {
+        self.write_bytes(path, content.into_bytes());
+    }
+
+    fn write_bytes(&mut self, path: &Path, content: Vec<u8>) {
         self.changes.push(Change::Write {
             path: path.to_path_buf(),
             content,
@@ -112,15 +132,28 @@ pub fn plan(root: &Path) -> Result<Plan> {
         }
     }
 
+    plan.tool_manifest_removed = [".config/dotnet-tools.json", "dotnet-tools.json"]
+        .iter()
+        .any(|manifest| {
+            std::fs::read_to_string(root.join(manifest))
+                .ok()
+                .and_then(|text| source::dotnet_tools(&text, manifest, &mut Plan::default()))
+                .is_some_and(|rest| rest.is_empty())
+        });
+
+    let mut files = Vec::new();
     for entry in WalkDir::new(root)
         .into_iter()
         .filter_entry(|entry| !skipped(entry.path(), root))
     {
         let entry = entry?;
         if entry.file_type().is_file() {
-            source::migrate_file(root, entry.path(), &mut plan)
-                .with_context(|| format!("migrating {}", entry.path().display()))?;
+            files.push(entry.into_path());
         }
+    }
+    plan.shared_homes = vendor::shared_homes(root, &files);
+    for path in &files {
+        source::migrate_file(root, path, &mut plan).with_context(|| format!("migrating {}", path.display()))?;
     }
     Ok(plan)
 }
@@ -177,6 +210,10 @@ fn apply(plan: &Plan) -> Result<()> {
     for change in &plan.changes {
         match change {
             Change::Write { path, content } => {
+                // Vendored helpers land in folders the application may not have yet.
+                if let Some(parent) = path.parent() {
+                    fs::create_dir_all(parent).with_context(|| format!("creating {}", parent.display()))?;
+                }
                 fs::write(path, content).with_context(|| format!("writing {}", path.display()))?;
             }
             Change::Delete { path } if path.is_dir() => {

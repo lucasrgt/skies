@@ -56,20 +56,40 @@ fn dotnet(path: &Path, build_args: &[String]) -> Outcome {
 
 fn eslint(path: &Path) -> Outcome {
     let manifest = std::fs::read_to_string(path.join("package.json")).unwrap_or_default();
-    let has_lint = serde_json::from_str::<serde_json::Value>(&manifest)
+    let lint = serde_json::from_str::<serde_json::Value>(&manifest)
         .ok()
-        .and_then(|json| json.get("scripts")?.get("lint").cloned())
-        .is_some();
-    if !has_lint {
+        .and_then(|json| json.get("scripts")?.get("lint")?.as_str().map(str::to_string));
+    let Some(lint) = lint else {
         return (Status::Skipped("no `lint` script in package.json".into()), Vec::new());
-    }
-    let mut command = Command::new(if cfg!(windows) { "npm.cmd" } else { "npm" });
-    command.args(["run", "--silent", "lint"]).current_dir(path);
+    };
+    let (program, args): (&str, &[&str]) = if calls_the_doctor(&lint) {
+        // The package's `lint` is `skies doctor --package .`; running it would call back here forever.
+        (npx(), &["--no-install", "eslint", "."])
+    } else {
+        (npm(), &["run", "--silent", "lint"])
+    };
+    let mut command = Command::new(program);
+    command.args(args).current_dir(path);
     let Some((success, output)) = capture(command) else {
-        return (Status::Failed("`npm` is not on PATH".into()), Vec::new());
+        return (Status::Failed(format!("`{program}` is not on PATH")), Vec::new());
     };
     let findings = parse_stylish(&output);
     verdict(success, output, findings)
+}
+
+/// Whether a `lint` script runs `skies doctor` itself, the shape `skies migrate 5` gives a package's lint.
+fn calls_the_doctor(script: &str) -> bool {
+    script
+        .split("&&")
+        .any(|segment| segment.split_whitespace().take(2).eq(["skies", "doctor"]))
+}
+
+fn npm() -> &'static str {
+    if cfg!(windows) { "npm.cmd" } else { "npm" }
+}
+
+fn npx() -> &'static str {
+    if cfg!(windows) { "npx.cmd" } else { "npx" }
 }
 
 fn flutter(path: &Path) -> Outcome {
@@ -232,6 +252,13 @@ Build succeeded.";
         assert_eq!(findings[1].severity, Severity::Warning);
         assert_eq!(findings[2].code, "eslint");
         assert_eq!(findings[2].line, Some(1));
+    }
+
+    #[test]
+    fn a_lint_script_that_calls_the_doctor_is_not_run_again() {
+        assert!(calls_the_doctor("skies doctor --package ."));
+        assert!(calls_the_doctor("tsc --noEmit && skies doctor --package ."));
+        assert!(!calls_the_doctor("eslint . && npm run lint:extra"));
     }
 
     #[test]

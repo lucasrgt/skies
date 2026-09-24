@@ -42,6 +42,10 @@ enum Command {
     },
     /// Run the architecture doctors: dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*).
     Doctor {
+        /// Check only this package directory (a Flutter or React package, or a .NET project or its folder), so a
+        /// package's own `lint` script can call the doctor.
+        #[arg(long)]
+        package: Option<PathBuf>,
         /// Extra arguments forwarded to `dotnet build`.
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         build_args: Vec<String>,
@@ -104,6 +108,18 @@ pub enum Generate {
         /// The frontend package directory (defaults to the current directory).
         #[arg(long)]
         package: Option<PathBuf>,
+        /// Flutter: the OpenAPI document (defaults to the backend contract `Skies.toml` points at).
+        #[arg(long)]
+        input: Option<PathBuf>,
+        /// Flutter: the generated package directory (defaults to packages/<name>).
+        #[arg(long)]
+        output: Option<PathBuf>,
+        /// Flutter: the generated Dart package name (defaults to <backend>_api).
+        #[arg(long)]
+        name: Option<String>,
+        /// Flutter: the generated package's pub version (defaults to 0.1.0).
+        #[arg(long)]
+        version: Option<String>,
     },
     /// A Flutter application package wired to the Skies spine.
     #[command(name = "flutter-app")]
@@ -160,7 +176,7 @@ fn main() -> ExitCode {
         Command::New { name } => dotnet::new_app(&name),
         Command::Generate(generate) => generate_command(generate),
         Command::I18n { package } => web::i18n(package.as_deref()),
-        Command::Doctor { build_args } => doctor::run(&build_args),
+        Command::Doctor { package, build_args } => doctor::run(&build_args, package.as_deref()),
         Command::Spec(Spec::New { slug, runner }) => proof::spec_new(&slug, runner.as_deref()),
         Command::Proof(Proof::Record { spec, red, red_patch }) => {
             proof::record(&spec, red.as_deref(), red_patch.as_deref())
@@ -184,10 +200,31 @@ fn generate_command(generate: Generate) -> anyhow::Result<u8> {
             FrontendKind::React => web::feature(dir, &name),
             FrontendKind::Flutter => flutter::feature(dir, &name),
         }),
-        Generate::Client { package } => frontend_package(package.as_deref(), |kind, dir| match kind {
-            FrontendKind::React => web::client(dir),
-            FrontendKind::Flutter => flutter::client(dir),
-        }),
+        Generate::Client {
+            package,
+            input,
+            output,
+            name,
+            version,
+        } => {
+            let options = flutter::ClientOptions {
+                input,
+                output,
+                name,
+                version,
+            };
+            frontend_package(package.as_deref(), |kind, dir| match kind {
+                FrontendKind::React
+                    if options.input.is_some() || options.output.is_some() || options.name.is_some() =>
+                {
+                    anyhow::bail!(
+                        "--input, --output, and --name apply to Flutter packages; React reads orval.config.ts"
+                    )
+                }
+                FrontendKind::React => web::client(dir),
+                FrontendKind::Flutter => flutter::client(dir, &options),
+            })
+        }
         Generate::FlutterApp { name, path } => flutter::app(&name, path.as_deref()),
         backend => dotnet::generate(backend),
     }

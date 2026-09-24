@@ -18,8 +18,10 @@ pub fn feature(package: &Path, name: &str) -> Result<u8> {
     feature::scaffold(&package_dir(Some(package))?, name)
 }
 
-pub fn client(package: &Path) -> Result<u8> {
-    client::generate(&package_dir(Some(package))?)
+pub use client::ClientOptions;
+
+pub fn client(package: &Path, options: &ClientOptions) -> Result<u8> {
+    client::generate(&package_dir(Some(package))?, options)
 }
 
 pub fn app(name: &str, path: Option<&Path>) -> Result<u8> {

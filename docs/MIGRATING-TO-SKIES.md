@@ -32,15 +32,29 @@ for the reasons.
    skies migrate 5
    ```
 
-   It removes the proof annotations and tags, `flows.json`, `*.spec.toml`, `VERIFICATION.*`, `csm.toml`,
-   `.skies/csm`, the foundations block in `AGENTS.md`/`CLAUDE.md`, and the Skies hooks in `lefthook.yml`; rewrites
-   `Skies.toml` to the 5.x schema; drops the `skies-framework-cli` dotnet tool; and adds the `.specs/` compile
-   include to the test project.
-2. Bump every `Skies.Framework.*`, `@skiesjs/*`, and `skies_flutter` reference to `5.0.0` and refresh lockfiles.
-3. Remove `Assay.Net` / `avp-assay` / `assay-design` references if the migration reported any it could not edit.
-4. Declare a runner in `Skies.toml` for each E2E engine you use (see
+   A second `skies migrate 5 --dry-run` reports zero changes. The migration never deletes a test; it edits only the
+   lines it must, keeps formatting and key order, and lists everything it could not decide under "Finish by hand".
+
+   | Area | What `skies migrate 5` does |
+   |---|---|
+   | Proof ceremony | removes `[AVP]`, `[Journey]`, `[Unit]`, `[Integration]`, `[E2E]` (other attributes on the line stay), the `@verify`/`@avp`/`@e2e` doc tags, `e2e/flows.json`, `*.spec.toml`, `VERIFICATION.*`, `csm.toml`, `.skies/csm` |
+   | Agent instructions and hooks | removes the `skies:foundations` block in `AGENTS.md`/`CLAUDE.md` and the hook commands in `lefthook.yml` that ran `skies check`/`gate`/`context`; reports prose that still tells agents to run the gate |
+   | `Skies.toml` | rewrites it to the 5.x schema (`core`/`library`/`website` fold into `frontend`; `[framework]` goes) |
+   | .NET | drops the `skies-framework-cli` dotnet tool (and the manifest when nothing else is in it); sets every `Skies`/`Skies.Framework*` `PackageReference`/`PackageVersion` to the binary's version; adds the `.specs/` compile include to the test project |
+   | `package.json` | removes `@skiesjs/frontend-sdk` (and any alias of it) and `skies-flutter`; renames `skies-react`/`eslint-plugin-skies` to `@skiesjs/react`/`@skiesjs/eslint-plugin` (imports too); sets both to the binary's version |
+   | npm scripts | in each `&&` chain, drops segments that run removed bins (`skyfe-*`, the `skies-flutter-*` checkers, `skies check`/`gate`/`context`, `dotnet tool run skies check`); rewrites `skies-flutter-doctor <dir>` to `skies doctor --package <dir>`, `skies-flutter-client …` to `skies g client --package . …` (same flags), and `skies-flutter-i18n` to `skies i18n`; deletes a script left empty along with its `pre`/`post` hooks and the `npm run` calls to it; lists every edited script per file |
+   | ESLint | removes settings for `skies/*` rules the 5.x plugin no longer ships (`test-colocated`, `view-integration-test`, `design-tokens`, `ui-door`, `scale-only`, `semantic-colors`, `verify-has-avp-proof`, `no-disabled-tests`, `feature-has-e2e-flow`, …) from `eslint.config.*` and `.eslintrc*` |
+   | Flutter | sets a hosted `skies_flutter` dependency to the binary's version (path and git dependencies stay) |
+   | Test helpers | copies the removed Playwright fixtures, backend ledger, and Assay adapter (`@skiesjs/frontend-sdk/playwright*`, `…/product-verification`) and the Dio ledger (`skies_flutter_testing.dart`) into the app and points the imports at the copies |
+   | CI | removes workflow steps that run the gate (only the gate lines of a `run: \|` block), and `dotnet tool restore` when the tool manifest was deleted |
+
+2. Work through "Finish by hand". Typical items: run `npm install` and `flutter pub get` to refresh lockfiles, run
+   `dotnet format --diagnostics IDE0005` for usings only the removed attributes needed, review the rewritten scripts,
+   and decide about `Assay.Net` / `avp-assay` / `assay-design`, which are independent tools the app may keep.
+3. Declare a runner in `Skies.toml` for each E2E engine you use (see
    [MONOREPO-ARCHITECTURE.md](MONOREPO-ARCHITECTURE.md)).
-5. Run `skies doctor`, `dotnet test`, and your frontend tests.
+4. Run `skies doctor`, `dotnet test`, and your frontend tests. A package's `lint` script can call
+   `skies doctor --package .` to run only its own leg.
 
 Existing tests keep running as ordinary tests. They are not converted into specs. New features start with
 `skies spec new`. For a critical area, write a spec after the fact and record it with a `red.patch` that removes the

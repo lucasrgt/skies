@@ -4,6 +4,11 @@
 //! `openapitools.json` and run through `@openapitools/openapi-generator-cli`. The package is generated into a
 //! scratch directory, built and analyzed there, and only then swapped in, so a failed run never leaves a
 //! half-written client. A directory is replaced only if it carries the marker a previous run wrote.
+//!
+//! `--input`, `--output`, `--name`, and `--version` take the place of the Skies 4 `skies-flutter-client` flags one
+//! to one, for apps whose packages keep their contract or their generated package somewhere other than the
+//! defaults. With `--input` or `--output`, only the package is generated, as the 4.x tool did: the app already owns
+//! its seams and its pubspec entry, and a guessed path dependency would be wrong.
 
 use std::path::{Path, PathBuf};
 
@@ -20,6 +25,20 @@ const CLIENT_SEAM: &str = include_str!("../../templates/flutter/client/skies_cli
 const SESSION_SEAM: &str = include_str!("../../templates/flutter/client/session.dart");
 const MUTATION_SEAM: &str = include_str!("../../templates/flutter/client/mutations.dart");
 
+/// Overrides of the defaults read from `Skies.toml`. Relative paths resolve against the current directory, as the
+/// 4.x `skies-flutter-client` resolved them, so a package script keeps working unchanged.
+#[derive(Debug, Default, Clone)]
+pub struct ClientOptions {
+    /// The OpenAPI document; defaults to the contract of the backend that declares this package.
+    pub input: Option<PathBuf>,
+    /// The generated package directory; defaults to `packages/<name>` inside the app.
+    pub output: Option<PathBuf>,
+    /// The Dart package name; defaults to `<backend>_api`.
+    pub name: Option<String>,
+    /// The generated package's pub version; defaults to 0.1.0.
+    pub version: Option<String>,
+}
+
 /// The npm package that downloads and runs the generator jar pinned in `openapitools.json`.
 const GENERATOR_CLI: &str = "@openapitools/openapi-generator-cli@2.41.0";
 const MARKER: &str = ".skies-generated-client";
@@ -28,6 +47,10 @@ const MARKER: &str = ".skies-generated-client";
 pub fn generator_arguments(input: &str, output: &str, name: &str, version: &str) -> Result<Vec<String>> {
     if !is_package_name(name) {
         bail!("'{name}' must be a lowercase Dart package identifier");
+    }
+    // The version lands in the same comma-separated property list as the name, so it must not carry separators.
+    if version.is_empty() || !version.chars().all(|c| c.is_ascii_alphanumeric() || ".-+".contains(c)) {
+        bail!("'{version}' is not a pub version");
     }
     Ok([
         "generate",
@@ -58,18 +81,41 @@ pub fn render_seams(package_name: &str, client_class: &str) -> Result<Vec<(&'sta
     ])
 }
 
-pub fn generate(package: &Path) -> Result<u8> {
-    let contract = contract::for_package(package)?;
-    let name = format!("{}_api", contract.name);
-    let class = pascal(&name);
-    let output = package.join("packages").join(&name);
-    let changed = generate_package(&contract.path, &output, &name)?;
+pub fn generate(package: &Path, options: &ClientOptions) -> Result<u8> {
+    let cwd = std::env::current_dir()?;
+    let (input, default_name) = match &options.input {
+        Some(input) => {
+            let input = cwd.join(input);
+            let stem = input.file_stem().map(|stem| stem.to_string_lossy().into_owned());
+            let name = contract::client_name(stem.as_deref().unwrap_or_default());
+            (input, name)
+        }
+        None => {
+            let contract = contract::for_package(package)?;
+            (contract.path, contract.name)
+        }
+    };
+    if !input.is_file() {
+        bail!("contract not found: {}", input.display());
+    }
+    let name = options.name.clone().unwrap_or_else(|| format!("{default_name}_api"));
+    let version = options.version.as_deref().unwrap_or("0.1.0");
+    let output = match &options.output {
+        Some(output) => cwd.join(output),
+        None => package.join("packages").join(&name),
+    };
+    let changed = generate_package(&input, &output, &name, version)?;
     println!(
         "{} {} from {}",
         output.display(),
         if changed { "updated" } else { "unchanged" },
-        contract.path.display()
+        input.display()
     );
+    if options.input.is_some() || options.output.is_some() {
+        return Ok(0);
+    }
+
+    let class = pascal(&name);
 
     let seams: Vec<(PathBuf, String)> = render_seams(&name, &class)?
         .into_iter()
@@ -81,7 +127,7 @@ pub fn generate(package: &Path) -> Result<u8> {
 }
 
 /// Generates, verifies, and publishes the package. Returns whether its `lib/` changed.
-fn generate_package(contract: &Path, output: &Path, name: &str) -> Result<bool> {
+fn generate_package(contract: &Path, output: &Path, name: &str, version: &str) -> Result<bool> {
     let parent = output.parent().context("output has a parent")?;
     std::fs::create_dir_all(parent)?;
     if output.exists() && !output.join(MARKER).exists() {
@@ -104,7 +150,7 @@ fn generate_package(contract: &Path, output: &Path, name: &str) -> Result<bool> 
     )?;
     std::fs::write(scratch.path().join("openapitools.json"), OPENAPITOOLS)?;
 
-    let args = generator_arguments("app-client.openapi.json", "generated", name, "0.1.0")?;
+    let args = generator_arguments("app-client.openapi.json", "generated", name, version)?;
     let mut npx_args = vec!["--yes", GENERATOR_CLI];
     npx_args.extend(args.iter().map(String::as_str));
     run(if cfg!(windows) { "npx.cmd" } else { "npx" }, &npx_args, scratch.path())?;
@@ -201,6 +247,12 @@ mod tests {
     }
 
     #[test]
+    fn rejects_a_version_that_could_inject_generator_properties() {
+        let error = generator_arguments("x", "y", "sample_api", "1.0.0,pubName=evil").unwrap_err();
+        assert!(error.to_string().contains("version"));
+    }
+
+    #[test]
     fn rejects_a_package_name_that_could_inject_generator_properties() {
         let error = generator_arguments("x", "y", "sample,hide=true", "0.1.0").unwrap_err();
         assert!(error.to_string().contains("lowercase Dart package identifier"));
@@ -252,7 +304,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let output = dir.path().join("packages/sample_api");
         std::fs::create_dir_all(&output).unwrap();
-        let error = generate_package(Path::new("missing.json"), &output, "sample_api").unwrap_err();
+        let error = generate_package(Path::new("missing.json"), &output, "sample_api", "0.1.0").unwrap_err();
         assert!(error.to_string().contains(MARKER));
     }
 }
