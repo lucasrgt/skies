@@ -1,6 +1,7 @@
 ---
 id: "0002"
 runner: api
+touches: [backend/Sample.Api/Modules/Wallets/Wallet.cs, backend/Sample.Api/Platform.Idempotency.cs, backend/Sample.Api/BuildingBlocks/Money.cs]
 ---
 # Withdraw money from a wallet
 

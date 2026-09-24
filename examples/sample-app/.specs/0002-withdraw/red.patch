@@ -1,0 +1,48 @@
+diff --git a/backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs b/backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs
+index 7b4cd1a..a3059d9 100644
+--- a/backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs
++++ b/backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs
+@@ -18,39 +18,10 @@ public static class Withdraw
+ 
+     public record Output(Guid WalletId, decimal Balance);
+ 
+-    public static async Task<Result<Output>> Handle(
+-        Input input, AppDb db, IIdempotencyStore idem, string? idempotencyKey, CancellationToken ct)
+-    {
+-        var amount = Money.From(input.Amount);
+-        var validation = new Validation()
+-            .Require(input.WalletId, "walletId", WalletsErrorCodes.WalletIdRequired)
+-            .Collect("amount", amount);
+-        if (validation.Failed)
+-            return validation.ToError();
+-
+-        // Idempotency: a retried request carrying the same key replays the recorded outcome instead of
+-        // debiting again.
+-        if (!string.IsNullOrEmpty(idempotencyKey) && idem.TryGet(idempotencyKey, out var prior))
+-            return new Output(input.WalletId, prior);
+-
+-        var wallet = await db.Wallets.FindAsync([input.WalletId], ct);
+-        if (wallet is null)
+-            return Error.NotFound(WalletsErrorCodes.NotFound, $"wallet {input.WalletId} not found");
+-
+-        // The overdraw rule lives on the entity; the slice only propagates its verdict. On failure the
+-        // balance is untouched and SaveChanges never runs — no partial state crosses the boundary.
+-        var withdrawn = wallet.Withdraw(amount.Value);
+-        if (withdrawn.IsFailure)
+-            return withdrawn.Error;
+-
+-        await db.SaveChangesAsync(ct);
+-
+-        // Record the outcome under the key so a retry replays it rather than debiting a second time.
+-        if (!string.IsNullOrEmpty(idempotencyKey))
+-            idem.Save(idempotencyKey, wallet.Balance.Amount);
+-
+-        return new Output(wallet.Id, wallet.Balance.Amount);
+-    }
++    public static Task<Result<Output>> Handle(
++        Input input, AppDb db, IIdempotencyStore idem, string? idempotencyKey, CancellationToken ct) =>
++        // Red: withdrawals are not implemented yet; every request answers the same wrong outcome.
++        Task.FromResult<Result<Output>>(new Output(input.WalletId, 0m));
+ 
+     public static void Map(IEndpointRouteBuilder app) =>
+         app.MapPost("/withdraw",

@@ -1,0 +1,13 @@
+# The sample as a self-contained Skies application. `skies` discovers the nearest Skies.toml, so commands run
+# anywhere under examples/sample-app/ treat this folder as the app root and its .specs/ as the app's specs.
+
+[workspace]
+name = "Sample"
+
+[products.app]
+backend = "backend/Sample.Api"
+
+# Every .specs/<id>/e2e/ folder is compiled into Sample.Tests (see its csproj); the filter runs one spec's namespace
+# and the TRX logger writes the report `skies proof` reads back.
+[runners.api]
+command = "dotnet test backend/Sample.Tests --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\""

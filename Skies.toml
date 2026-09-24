@@ -1,5 +1,6 @@
-# Framework-development topology. The sample backend is the runnable product exercised by the root release gate;
-# frontend-sdk owns and verifies the framework's TypeScript packages and sample fixtures in its dedicated CI job.
+# Framework-development topology: the sample backend is the runnable product the framework builds and doctors.
+# The sample is also a self-contained Skies app with its own Skies.toml (runners, .specs/, receipts) under
+# examples/sample-app/, which `skies proof` picks up when run from there.
 
 [workspace]
 name = "skies"
