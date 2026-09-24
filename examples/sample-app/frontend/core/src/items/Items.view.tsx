@@ -4,10 +4,9 @@ import { Card, EmptyState, ErrorState, Screen, Stack, Text } from "@/ui";
 import { useItemsModel } from "./Items.viewModel";
 import type { Item } from "./Items.viewModel";
 
-// CANONICAL LIST VIEW — THE list recipe (DESIGN-CONVENTIONS.md §Recipes): every async branch renders through the
-// kit (loading text, ErrorState with the spine's retry, EmptyState), the ready body is title + Card rows. Render
-// only (SKYFE001); no isPending/isError here (SKYFE010); everything visual through @/ui (SKYFE024). Instantiate this
-// shape for any collection screen — never compose from blank.
+// CANONICAL LIST VIEW — every async branch renders through <Resource> (loading text, ErrorState with the spine's
+// retry, EmptyState); the ready body is title + Card rows. Render only (SKYFE001); no isPending/isError here
+// (SKYFE010).
 export function ItemsView() {
   const { t } = useTranslation("items");
   const { state } = useItemsModel();

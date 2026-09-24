@@ -26,11 +26,6 @@ export interface DepositModel {
   completed: DepositOutput | null;
 }
 
-/**
- * @verify no-phantom-success — a failed deposit keeps every draft, surfaces the error, and never reports success.
- * @e2e deposit-happy
- * @e2e deposit-sad
- */
 export function useDepositModel(): DepositModel {
   const mutation = useDeposit();
 

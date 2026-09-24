@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { View, Text as RNText } from "react-native";
-import { color, space, text } from "./tokens-bridge";
+import { color, space, text } from "./theme";
 
 // RN has no htmlFor; the label travels to the control through kit-internal context so the
 // anatomy (label → control → hint|error) stays one decision, like the web Field.

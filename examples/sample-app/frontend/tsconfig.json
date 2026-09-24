@@ -7,13 +7,8 @@
       "react": ["../../../frontend-sdk/node_modules/@types/react/index.d.ts"],
       "react/*": ["../../../frontend-sdk/node_modules/@types/react/*"],
       "@skiesjs/react": ["../../../frontend-sdk/packages/skies-react/src/index.ts"],
-      "assay-design": ["../../../frontend-sdk/node_modules/assay-design/dist/index.d.ts"],
-      "avp-assay": ["../../../frontend-sdk/node_modules/avp-assay/dist/index.d.ts"],
-      "avp-assay/react": ["../../../frontend-sdk/node_modules/avp-assay/dist/react.d.ts"],
-      "avp-assay/react/vitest": ["../../../frontend-sdk/node_modules/avp-assay/dist/react/vitest.d.ts"],
       "@/client.gen/*": ["./core/src/client.gen/*"],
       "@/i18n": ["./core/src/i18n.ts"],
-      "@/design/tokens": ["./core/src/design/tokens.ts"],
       "@/ui": ["./web/src/ui/index.ts"],
       "*": ["../../../frontend-sdk/node_modules/*"]
     }

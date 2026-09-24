@@ -2,7 +2,7 @@
 
 // Stateful kit primitive → a client component: the Next App Router needs the directive; a no-op on Vite/RN.
 import { useState } from "react";
-import { color, radius, space, text } from "./tokens-bridge";
+import { color, radius, space, text } from "./theme";
 import { useFieldWiring } from "./Field";
 
 // String-first and platform-neutral: `onChangeText` hands the View a value, not an event, so the
@@ -30,9 +30,6 @@ export function Input({
   return (
     <input
       id={id}
-      data-ui="input"
-      data-state={isInvalid ? "invalid" : "default"}
-      data-role="textbox"
       type={kind === "number" ? "text" : kind}
       inputMode={kind === "number" ? "numeric" : kind === "email" ? "email" : undefined}
       value={value}

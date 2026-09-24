@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Remove the test-only Dio backend ledger (`skies_flutter_testing.dart`); journey evidence is no longer part of
+  the framework.
+
 ## 4.1.22
 
 - Add full idiomatic parity with the React spine: asynchronous composition, session, guards, navigation, forms,

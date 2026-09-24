@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import { color, space } from "./tokens-bridge";
+import { color, space } from "./theme";
 
 // The MOBILE mirror of web/src/ui — same names + closed props, RN primitives. Built by the
 // consumer's Expo/Metro toolchain (which provides react-native), NOT by the framework's web-only

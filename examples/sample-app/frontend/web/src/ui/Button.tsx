@@ -2,12 +2,12 @@
 
 // Stateful kit primitive → a client component: the Next App Router needs the directive; a no-op on Vite/RN.
 import { useState } from "react";
-import { color, motionMs, radius, space, text } from "./tokens-bridge";
+import { color, motionMs, radius, space, text } from "./theme";
 
 type Variant = "primary" | "secondary" | "danger";
 
 // Every variant carries its full state set; a consumer can't forget a state because it never
-// implements one (DESIGN-CONVENTIONS.md §The five interactive states).
+// implements one.
 const FILL: Record<Variant, { rest: string; hover: string; active: string; on: string }> = {
   primary: { rest: color.primary, hover: color.primaryHover, active: color.primaryActive, on: color.onPrimary },
   secondary: { rest: color.surface, hover: color.bg, active: color.border, on: color.text },
@@ -40,11 +40,6 @@ export function Button({
   return (
     <button
       type="button"
-      data-ui="button"
-      data-variant={variant}
-      data-state={loading ? "loading" : disabled ? "disabled" : "default"}
-      data-role="button"
-      data-action={variant === "primary" ? "primary" : "secondary"}
       disabled={blocked}
       aria-busy={loading || undefined}
       onClick={onPress}
@@ -76,7 +71,7 @@ export function Button({
         boxShadow: focused ? "0 0 0 2px " + color.focusRing : "none",
       }}
     >
-      <span data-ui-slot="label">{label}</span>
+      {label}
     </button>
   );
 }

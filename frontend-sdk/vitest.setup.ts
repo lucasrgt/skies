@@ -1,11 +1,14 @@
 import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 import { delay, http, HttpResponse } from "msw";
-import { server } from "avp-assay/react";
+import { setupServer } from "msw/node";
 import { SAMPLE_API_BASE } from "../examples/sample-app/frontend/core/src/api";
 
+// The sample's tests run the real generated client against an MSW stand-in for the backend.
 const MISSING_WALLET = "99999999-9999-4999-8999-999999999999";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+const server = setupServer();
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 

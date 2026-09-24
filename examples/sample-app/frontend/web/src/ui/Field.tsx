@@ -2,11 +2,10 @@
 
 // Stateful kit primitive → a client component: the Next App Router needs the directive; a no-op on Vite/RN.
 import { createContext, useContext, type ReactNode } from "react";
-import { color, space, text } from "./tokens-bridge";
+import { color, space, text } from "./theme";
 
 // Field → control wiring travels through kit-internal context, so the anatomy (label → control →
-// hint|error) and the aria plumbing are one decision made here, never re-made per screen
-// (DESIGN-CONVENTIONS.md §Form anatomy).
+// hint|error) and the aria plumbing are one decision made here, never re-made per screen.
 interface FieldWiring {
   describedBy?: string;
   invalid?: boolean;
@@ -39,7 +38,7 @@ export function Field({
   };
 
   return (
-    <div data-ui="field" style={{ display: "flex", flexDirection: "column", gap: space.xs }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: space.xs }}>
       <label
         htmlFor={fieldId}
         style={{

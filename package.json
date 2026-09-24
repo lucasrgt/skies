@@ -7,6 +7,6 @@
   "description": "Repository-level scripts for the Skies .NET, React, and Flutter workspaces.",
   "scripts": {
     "check:frontend": "npm --prefix frontend-sdk run check",
-    "check:flutter": "npm --prefix flutter-sdk run check"
+    "check:flutter": "cd flutter-sdk/packages/skies_flutter && flutter pub get && flutter analyze && flutter test"
   }
 }

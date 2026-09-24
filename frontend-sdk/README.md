@@ -1,45 +1,31 @@
 # Skies Framework — frontend
 
-The frontend side of Skies. Where the .NET packages under `src/` give the backend its spine (`[Slice]`,
-`Result<T>`, the Roslyn analyzers), this gives the React Native + web frontend an equally tight spine — **as
-idiomatic React/TS primitives the app composes, not a DSL** (the "poisoned frontend": real React, enriched by
-convention + tooling, never a second language). It is multi-target by construction: the same code serves web
-(react-native-web) and native (iOS/Android) via Expo; only genuinely divergent bits (auth persistence, maps,
-OAuth) are platform seams (`*.web.ts` / `*.native.ts`).
+The React / React Native side of Skies: a small runtime (`@skiesjs/react`) and architecture-only lint rules
+(`@skiesjs/eslint-plugin`). Plain React the app composes, not a DSL; delete either package and the app still builds.
+Scaffolding, client generation and i18n assembly live in the `skies` CLI, not here.
 
 ## Layout
 
 ```
-frontend/
-  package.json        # npm workspace root — `npm run check` = typecheck + test (the gate CI runs)
+frontend-sdk/
+  package.json        # private npm workspace root
   tsconfig.base.json  # strict TS config every package/sample extends
-  vitest.config.ts    # jsdom + the @/… aliases that let the sample run wired (not mocked)
+  eslint.config.mjs   # lints the canonical sample with the SKYFE rules
+  vitest.config.ts    # jsdom + the @/… aliases that run the sample against source
   packages/
-    skies-react/     # @skiesjs/react — the spine: AsyncState, Resource (+ guards, session as they graduate)
-    eslint-plugin/    # @skiesjs/eslint-plugin — the SKYFE harness (rules + RuleTester self-tests)
-  tools/              # generators + cross-file doctors used by skies doctor/skies gate
+    skies-react/      # @skiesjs/react — AsyncState/Resource, session seam, guards, nav, params, submit, paging
+    eslint-plugin/    # @skiesjs/eslint-plugin — SKYFE rules, one file per rule, RuleTester self-tests
 ../examples/sample-app/frontend/
-  core/               # canonical shared ViewModel/View/Assay feature units
-  web/                # real web surface + Playwright journeys
-  mobile/             # native surface convention
+  core/               # shared ViewModel/View/i18n feature units + the generated client
+  web/ mobile/        # the app's own ui/ components per platform
 ```
 
-The framework-development gate (`npm run check`) runs strict typecheck, the plugin self-tests, unit/integration
-tests, and the Assay partition. In consuming apps, `skies gate` additionally promotes the mandatory release-evidence
-SKYFE rules to errors, verifies the AVP/E2E inventory, and executes the Git-derived proof closure.
-Project-scoped architecture and design rules retain the file scopes and severities declared by the app rather than
-being sprayed over every source file. The sample's tests mount data doors against the real generated-client shape
-— **wired, not mocked**.
+`npm run check` = typecheck + lint (sample + rule self-tests) + vitest.
 
-Apps (e.g. the Hostpoint dogfood) consume `@skiesjs/react` + the eslint plugin as packages; the `skies` .NET CLI
-scaffolds them in and `skies doctor` shells out to `npm run lint` for the frontend slice (Roslyn in-proc for the
-backend slice — two native engines, one front door).
+## The runtime — `@skiesjs/react`
 
-## The spine — `@skiesjs/react`
-
-The read-side analogue of `Result<T>`. A screen's **ViewModel** (the data door) exposes its resource as an
-`AsyncState<T>` discriminated union; the **View** renders it through `<Resource>`, so loading / error / empty are
-handled **by construction** (exhaustive switch), the way an exhaustive `Result` match forces the sad path.
+A screen's **ViewModel** (the data door) exposes its resource as an `AsyncState<T>`; the **View** renders it through
+`<Resource>`, so loading / error / empty are handled by construction.
 
 ```ts
 type AsyncState<T> =
@@ -49,38 +35,21 @@ type AsyncState<T> =
   | { status: "ready"; data: T };
 ```
 
-`toAsyncState(query, { errorMessage, isEmpty? })` projects a react-query result into the union — **wire over
-react-query, not a replacement** (react-query still owns fetch/cache/retry). `<Resource>` is design-system-
-agnostic; the app injects its loading/error/empty visuals via slots.
+`toAsyncState(query, { errorMessage, isEmpty? })` projects a react-query result into the union; react-query still
+owns fetching and caching. The package also ships the tri-state `SessionState`, the session seam and
+`singleFlight` refresh, `guardSession`, `safeBack`, `requiredParam`, `submitOrReveal` and the paging hooks.
 
-## The canonical unit (the frontend `[Slice]`)
+## The feature unit
 
-A feature is five co-located files plus its surface-owned E2E flows, mapped to the backend:
-
-| Backend `[Slice]` | Frontend unit |
+| File | Role |
 |---|---|
-| `Handle` (logic, the data door) | `<Feature>.viewModel.ts` — the only client importer; platform-agnostic; exposes `AsyncState` + commands |
-| `Output` (typed result) | `AsyncState<T>` |
-| route `Map` | `<Feature>.view.tsx` — render only; consumes the ViewModel via `<Resource>` |
-| co-located `*.Tests.cs` | `<Feature>.test.tsx` — mounts the door against the real client (wired, not mocked) |
-| `[AVP]` criteria | `<Feature>.assay.test.tsx` — executable semantic acceptance proofs for every `@verify` |
-| — | `<feature>.i18n.ts` — per-feature copy, all locales |
+| `<Feature>.viewModel.ts` | the only importer of the generated client; platform-agnostic; exposes `AsyncState` + commands |
+| `<Feature>.view.tsx` | render only; consumes the ViewModel through `<Resource>` |
+| `<feature>.i18n.ts` | per-feature copy, every locale with the same keys |
+| `<Feature>.test.tsx` | optional colocated tests |
 
-Visible features also declare reciprocal `@e2e` links whose flow criteria cover the complete Assay set; the web
-runner is Playwright and the native runner is Maestro.
+## The rules — `@skiesjs/eslint-plugin`
 
-## The harness (the frontend self-audit)
-
-`@skiesjs/eslint-plugin` (the SKYFE rules) is the front-side parallel of the backend's Roslyn/`Skies.Framework.Doctor`
-self-audit. It polices the unit: View renders only (SKYFE001), the ViewModel is the one data door (SKYFE002, with
-`lib/session` + `lib/guards` as the sanctioned infra doors), the ViewModel is platform-agnostic (SKYFE009), every
-ViewModel has a co-located test (SKYFE005), no mocks in production (SKYFE003). The plugin **self-proves** with
-RuleTester (`npm test`) — a rule isn't done until a test pins that it fires on the violation and passes on the
-allowed shape.
-
-## Current enforcement
-
-The shipped harness covers the MVVM/data door, complete async state, i18n, design tokens, mutation feedback,
-routing/session safety, form-validation surfaces, typed navigation, executable AVP/Assay proofs, omitted-test
-detection, and semantic E2E linkage. Cross-file doctors enforce generated-contract freshness, endpoint coverage,
-journey parity, Playwright/Maestro runner integrity, backend observations, and full Assay-to-flow criteria coverage.
+Architecture only: View purity, one data door, no mocks in production, platform-agnostic ViewModels, state through
+`<Resource>`, complete i18n and no hardcoded copy, plus the routing/session/form seams. See
+[`packages/eslint-plugin/README.md`](packages/eslint-plugin/README.md) for the rule list.

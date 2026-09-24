@@ -1,19 +1,56 @@
 "use strict";
 
-// Self-test for the Skies Framework frontend harness — the parallel of the backend's self-doctor / SelfHarness. Every SKYFE
-// rule is proven here with RuleTester: it must FIRE on the violation it polices and PASS on the shapes it allows. A
-// rule the linter merely "accepts" is not done until a test pins both edges (the same discipline the framework
-// applies to its own backend rules). Run: `node index.test.cjs` (exits non-zero on any failing case). eslint + the
-// TS parser are workspace devDependencies, so a plain require resolves them from the hoisted node_modules.
+// Self-test for the SKYFE rules. Every rule is pinned here with RuleTester: it must FIRE on the violation it polices
+// and PASS on the shapes it allows. Run: `node index.test.cjs` (exits non-zero on any failing case). eslint + the TS
+// parser are workspace devDependencies, so a plain require resolves them from the hoisted node_modules.
 
 const { RuleTester } = require("eslint");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const tsParser = require("@typescript-eslint/parser");
 const plugin = require("./index.cjs");
 const manifest = require("./package.json");
-const path = require("path");
 
 assert.equal(plugin.meta.version, manifest.version, "plugin metadata must match its package version");
+
+// The rule ids are public API (apps reference them in their eslint config) — pin the set, and keep one file per rule.
+const RULE_IDS = [
+  "view-purity",
+  "data-door",
+  "no-mock",
+  "viewmodel-platform-agnostic",
+  "state-completeness",
+  "i18n-completeness",
+  "mutation-error-handled",
+  "no-hardcoded-copy",
+  "no-router-replace-in-effect",
+  "session-one-door",
+  "guard-tristate",
+  "route-param-guard",
+  "safe-back",
+  "no-hardcoded-base-url",
+  "no-raw-html",
+  "no-open-redirect",
+  "query-client-defaults",
+  "no-manual-refetch-ritual",
+  "refresh-one-door",
+  "no-cast-navigation",
+  "submit-handles-invalid",
+  "controller-field-state",
+];
+assert.deepEqual(Object.keys(plugin.rules).sort(), [...RULE_IDS].sort(), "rule ids are stable");
+assert.deepEqual(
+  fs.readdirSync(path.join(__dirname, "rules")).sort(),
+  RULE_IDS.map((id) => `${id}.cjs`).sort(),
+  "one file per rule under rules/",
+);
+assert.equal(plugin.configs.recommended, plugin.configs["flat/recommended"]);
+assert.deepEqual(
+  Object.keys(plugin.configs.recommended.rules).sort(),
+  RULE_IDS.map((id) => `skies/${id}`).sort(),
+  "recommended enables every rule",
+);
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -22,25 +59,6 @@ const ruleTester = new RuleTester({
     sourceType: "module",
     parserOptions: { ecmaFeatures: { jsx: true } },
   },
-});
-
-const ASSAY_COLOCATION_FIX = path.join(__dirname, "__fixtures__", "assay-colocation");
-
-// SKYFE005 — a canonical Assay suite is executable Vitest and can carry the ViewModel mount proof itself.
-ruleTester.run("test-colocated", plugin.rules["test-colocated"], {
-  valid: [
-    {
-      filename: path.join(ASSAY_COLOCATION_FIX, "Proof.viewModel.ts"),
-      code: `export function useProofModel() { return {}; }`,
-    },
-  ],
-  invalid: [
-    {
-      filename: path.join(ASSAY_COLOCATION_FIX, "Missing.viewModel.ts"),
-      code: `export function useMissingModel() { return {}; }`,
-      errors: [{ messageId: "missing" }],
-    },
-  ],
 });
 
 // SKYFE001 — a View (*.view.tsx) imports no data layer (generated client / axios / react-query); it consumes its
@@ -143,19 +161,6 @@ ruleTester.run("i18n-completeness", plugin.rules["i18n-completeness"], {
   ],
 });
 
-// SKYFE012 — no inline hex color outside the token/theme definition files.
-ruleTester.run("design-tokens", plugin.rules["design-tokens"], {
-  valid: [
-    { filename: "Foo.view.tsx", code: `const c = theme.colors.primary;` },
-    // Token definitions are where hex legitimately lives.
-    { filename: "src/theme/colors.ts", code: `export const primary = "#3b82f6";` },
-  ],
-  invalid: [
-    { filename: "Foo.view.tsx", code: `const c = "#3b82f6";`, errors: [{ messageId: "hex" }] },
-    { filename: "Foo.viewModel.ts", code: `const bg = "#fff";`, errors: [{ messageId: "hex" }] },
-  ],
-});
-
 // SKYFE013 — a ViewModel's mutation must surface its failure (no silent failure). Scoped to *.viewModel.ts. Four
 // legitimate surfaces are accepted: (A) inline onError, (B) a read `.isError` state, (C) mutateAsync in try/catch
 // or .catch(), (D) a returned/propagated mutateAsync. Each is a real surface; demanding a redundant onError on top
@@ -214,31 +219,6 @@ ruleTester.run("no-hardcoded-copy", plugin.rules["no-hardcoded-copy"], {
     // Phase 2: hardcoded copy in a copy-bearing prop.
     { filename: "Foo.view.tsx", code: `const x = <Input placeholder="Seu e-mail" />;`, errors: [{ messageId: "hardcoded" }] },
     { filename: "Foo.view.tsx", code: `const x = <EmptyState title="Nada aqui" />;`, errors: [{ messageId: "hardcoded" }] },
-  ],
-});
-
-// SKYFE006 — a screen View (one that imports a ViewModel) needs a co-located render test. Detection is by IMPORT,
-// not a sibling file, so it survives the monorepo split (ViewModel in `core`, View in the platform shell). In
-// RuleTester the co-located test file doesn't exist on disk, so a VM-consuming View reports `missing` (proving the
-// gate fires) while a presentational fragment passes (proving the gate skips). A unique base avoids a cwd collision.
-ruleTester.run("view-integration-test", plugin.rules["view-integration-test"], {
-  valid: [
-    {
-      filename: path.join(ASSAY_COLOCATION_FIX, "Proof.view.tsx"),
-      code: `import { useProofModel } from "./Proof.viewModel"; export const ProofView = () => null;`,
-    },
-    // a presentational fragment: imports no ViewModel -> not a screen, skipped (covered via its shell).
-    { filename: "Skyfe006Frag.view.tsx", code: `import { View } from "react-native"; export const X = () => <View />;` },
-    // out of scope: not a *.view.tsx (even though it names a model hook).
-    { filename: "Skyfe006Probe.tsx", code: `import { useSkyfe006ProbeModel } from "@scope/app-core";` },
-    // props-in fragment: imports only a TYPE from a *.viewModel (a shared PanelProps), no data-door hook -> skipped.
-    { filename: "Skyfe006Panel.view.tsx", code: `import type { PanelProps } from "./HostEdit.viewModel"; export const X = (_p: PanelProps) => null;` },
-  ],
-  invalid: [
-    // cross-package: imports a use<Name>Model data-door hook from a core package -> a screen, needs the render test.
-    { filename: "Skyfe006Probe.view.tsx", code: `import { useSkyfe006ProbeModel } from "@scope/app-core";`, errors: [{ messageId: "missing" }] },
-    // co-located: imports the ./X.viewModel module -> still a screen.
-    { filename: "Skyfe006Probe.view.tsx", code: `import { useSkyfe006ProbeModel } from "./Skyfe006Probe.viewModel";`, errors: [{ messageId: "missing" }] },
   ],
 });
 
@@ -455,109 +435,6 @@ ruleTester.run("i18n-completeness", plugin.rules["i18n-completeness"], {
       filename: "x.i18n.ts",
       code: `export const ptBR = { empty: { title: "1", hint: "2" } }; export const enUS = { empty: { title: "x" } };`,
       errors: [{ messageId: "missing" }],
-    },
-  ],
-});
-
-// SKYFE024 — the ui-door: a View renders no host element and carries no style/className; paint reaches a screen
-// through @/ui only (the SKYFE002 one-door pattern applied to paint).
-ruleTester.run("ui-door", plugin.rules["ui-door"], {
-  valid: [
-    {
-      filename: "Foo.view.tsx",
-      code: `import { Screen, Text } from "@/ui"; export const V = () => <Screen><Text>ok</Text></Screen>;`,
-    },
-    // The spine's <Resource> and any capitalized component are fine — only host elements are the leak.
-    {
-      filename: "Foo.view.tsx",
-      code: `export const V = () => <Resource state={s}>{(d) => <Thing d={d} />}</Resource>;`,
-    },
-    // The kit is the door's inside; non-views are other rules' territory.
-    { filename: "web/src/ui/Button.tsx", code: `export const B = () => <button className="x" style={{ padding: 4 }} />;` },
-    { filename: "Foo.tsx", code: `export const X = () => <div className="x" />;` },
-  ],
-  invalid: [
-    { filename: "Foo.view.tsx", code: `export const V = () => <div>raw</div>;`, errors: [{ messageId: "host" }] },
-    {
-      filename: "Foo.view.tsx",
-      code: `import { Card } from "@/ui"; export const V = () => <Card className="p-2">x</Card>;`,
-      errors: [{ messageId: "attr" }],
-    },
-    {
-      filename: "Foo.view.tsx",
-      code: `import { Card } from "@/ui"; export const V = () => <Card style={{ padding: 13 }}>x</Card>;`,
-      errors: [{ messageId: "attr" }],
-    },
-  ],
-});
-
-// SKYFE025 — spacing/typography only from the scale: off-scale literals in style contexts and Tailwind arbitrary
-// values are the rhythm leak; ui/, the token files, and tests legitimately speak pixels.
-ruleTester.run("scale-only", plugin.rules["scale-only"], {
-  valid: [
-    { filename: "Foo.tsx", code: `export const X = () => <div style={{ padding: 0 }} />;` },
-    { filename: "Foo.tsx", code: `import { space } from "@/design/tokens"; export const X = () => <div style={{ padding: space.md }} />;` },
-    { filename: "web/src/ui/Button.tsx", code: `export const B = () => <button style={{ padding: 13 }} />;` },
-    { filename: "core/src/design/tokens.ts", code: `export const space = { md: 12 };` },
-    { filename: "Foo.test.tsx", code: `render(<div style={{ padding: 13 }} />);` },
-    // Non-spacing numerics (layout, stacking) and plain data objects are none of this rule's business.
-    { filename: "Foo.tsx", code: `export const X = () => <div style={{ width: 320, zIndex: 2, flex: 1 }} />;` },
-    { filename: "Foo.tsx", code: `const payload = { gap: 7, fontSize: 13 };` },
-    // Arbitrary LAYOUT values mirror the style half's width allowance — only spacing/typography utilities gate.
-    { filename: "Foo.tsx", code: `export const X = () => <div className="max-w-[560px] max-h-[80vh] w-[300px]" />;` },
-  ],
-  invalid: [
-    {
-      filename: "Foo.view.tsx",
-      code: `import { Card } from "@/ui"; export const V = () => <Card style={{ padding: 13 }} />;`,
-      errors: [{ messageId: "offscale" }],
-    },
-    { filename: "Foo.tsx", code: `const styles = StyleSheet.create({ card: { marginTop: 7 } });`, errors: [{ messageId: "offscale" }] },
-    { filename: "Foo.tsx", code: `export const X = () => <div style={{ fontSize: "13px" }} />;`, errors: [{ messageId: "offscale" }] },
-    { filename: "Foo.tsx", code: `export const X = () => <div className="p-[13px]" />;`, errors: [{ messageId: "arbitrary" }] },
-    // Typography spelled as a class + a variant-prefixed spacing arbitrary — both still the rhythm leak.
-    { filename: "Foo.tsx", code: `export const X = () => <div className="block text-[14px]" />;`, errors: [{ messageId: "arbitrary" }] },
-    { filename: "Foo.tsx", code: `export const X = () => <div className="sm:gap-[7px]" />;`, errors: [{ messageId: "arbitrary" }] },
-  ],
-});
-
-// SKYFE026 — color is a semantic role: no rgb()/hsl()/oklch() literals, no named colors in color-ish keys, no
-// value-import of the raw palette outside ui/. Hex is SKYFE012's half of the same pair.
-ruleTester.run("semantic-colors", plugin.rules["semantic-colors"], {
-  valid: [
-    { filename: "core/src/design/tokens.ts", code: `export const shadow = { raised: "0 1px 3px rgba(0,0,0,0.12)" };` },
-    { filename: "Foo.tsx", code: `import { color } from "@/design/tokens"; const c = color.primary;` },
-    // The word "red" in copy or a non-color key is not a color.
-    { filename: "Foo.tsx", code: `const label = "red carpet"; const status = { state: "red" };` },
-    { filename: "web/src/ui/Button.tsx", code: `import { palette } from "@/design/tokens";` },
-    { filename: "Foo.test.tsx", code: `const c = "rgb(1,2,3)";` },
-    // Semantic, theme-mapped utilities carry a role, not a palette family + shade — the conformant shape.
-    { filename: "Foo.tsx", code: `export const X = () => <div className="bg-primary text-danger border-muted" />;` },
-    // Stock spacing/layout utilities are the scale (SKYFE025's concern), not a color leak.
-    { filename: "Foo.tsx", code: `export const X = () => <div className="p-4 gap-2 flex rounded-lg" />;` },
-    // ui/ composes the primitives from the raw palette — it reaches deeper, like the palette import.
-    { filename: "web/src/ui/Button.tsx", code: `export const B = () => <button className="bg-red-500 text-white" />;` },
-    // A palette WORD without the numeric shade is not a Tailwind palette utility (e.g. a custom class).
-    { filename: "Foo.tsx", code: `export const X = () => <div className="bg-red text-blue" />;` },
-  ],
-  invalid: [
-    { filename: "Foo.tsx", code: `const c = "rgb(34, 197, 94)";`, errors: [{ messageId: "fn" }] },
-    { filename: "Foo.tsx", code: `const s = { color: "hsl(220, 90%, 50%)" };`, errors: [{ messageId: "fn" }] },
-    {
-      filename: "Foo.tsx",
-      code: `export const X = () => <div style={{ backgroundColor: "red" }} />;`,
-      errors: [{ messageId: "named" }],
-    },
-    { filename: "Foo.tsx", code: `import { palette } from "@/design/tokens";`, errors: [{ messageId: "palette" }] },
-    // The Tailwind leak the band was blind to: a palette-family color utility in a className.
-    { filename: "Foo.tsx", code: `export const X = () => <div className="bg-red-100 p-4" />;`, errors: [{ messageId: "paletteClass" }] },
-    // Variant-prefixed + opacity modifier is still the same fork.
-    { filename: "Foo.tsx", code: `export const X = () => <div className="hover:border-rose-400/50" />;`, errors: [{ messageId: "paletteClass" }] },
-    // The class spelled in a template literal (a conditional className) leaks just the same.
-    {
-      filename: "Foo.tsx",
-      code: "export const X = ({ on }) => <div className={`text-blue-600 ${on ? 'font-bold' : ''}`} />;",
-      errors: [{ messageId: "paletteClass" }],
     },
   ],
 });
@@ -790,134 +667,6 @@ ruleTester.run("controller-field-state", plugin.rules["controller-field-state"],
       filename: "Foo.view.tsx",
       code: `const P = () => <Controller control={control} name="amount" render={(props) => <Input {...props.field} />} />;`,
       errors: [{ messageId: "blind" }],
-    },
-  ],
-});
-
-// SKYFE033 — a `@verify` obligation has its executable `@avp` proof in the co-located *.assay.test.tsx.
-// An ordinary component test marker is deliberately insufficient: the subject-bound Assay file is the proof.
-const SKYFE033_FIX = path.join(__dirname, "__fixtures__", "skyfe033");
-ruleTester.run("verify-has-avp-proof", plugin.rules["verify-has-avp-proof"], {
-  valid: [
-    // A view may leave the feature-level obligation on its ViewModel.
-    { filename: "Foo.view.tsx", code: `export const X = () => null;` },
-    // Out of scope: not a View/ViewModel (the marker in a plain file is ignored).
-    { filename: "Foo.tsx", code: `/** @verify fires-primary-effect */\nexport const X = () => null;` },
-    // The obligation IS proven: the co-located fixture assay carries the marker + defineVerification.
-    { filename: path.join(SKYFE033_FIX, "Proven.view.tsx"), code: `/** @verify proven-x */\nexport const X = () => null;` },
-    // The reverse edge holds too: a proof whose subject declares the same obligation is visible to E2E coverage.
-    {
-      filename: path.join(SKYFE033_FIX, "Proven.assay.test.tsx"),
-      code: `/** @avp proven-x */\ndefineVerification(...productVerification("Proven", "proven-x", "proves x", () => { expect(true).toBe(true); }));`,
-    },
-    {
-      filename: "Asserted.assay.test.tsx",
-      code: `defineVerification(...productVerification("Cart", "adds-item", "adds the selected item", () => { expect(cart.items).toHaveLength(1); }));`,
-    },
-    {
-      filename: "RedScaffold.assay.test.tsx",
-      code: `defineVerification(...productVerification("Cart", "adds-item", "implement product proof", () => { throw new Error("red by design"); }));`,
-    },
-    {
-      filename: "TestingLibraryOracle.assay.test.tsx",
-      code: `defineVerification(...productVerification("Login", "shows-submit", "shows the sign-in action", () => { render(<Login />); screen.getByRole("button", { name: "Entrar" }); }));`,
-    },
-  ],
-  invalid: [
-    {
-      filename: "Undeclared.viewModel.ts",
-      code: `export const useX = () => null;`,
-      errors: [{ messageId: "undeclared" }],
-    },
-    // No co-located assay on disk -> the obligation has no proof (missing). Unique base avoids a cwd collision.
-    {
-      filename: "Skyfe033Probe.view.tsx",
-      code: `/** @verify fires-primary-effect */\nexport const X = () => null;`,
-      errors: [{ messageId: "missing" }],
-    },
-    // A ViewModel obligation with no co-located assay -> missing too.
-    {
-      filename: "Skyfe033Probe.viewModel.ts",
-      code: `/** @verify single-flight */\nexport const useX = () => null;`,
-      errors: [{ messageId: "missing" }],
-    },
-    // The same-subject file lacks the `.test` segment, so Vitest cannot discover it as executable evidence.
-    {
-      filename: path.join(SKYFE033_FIX, "OldStyle.view.tsx"),
-      code: `/** @verify old-file */\nexport const X = () => null;`,
-      errors: [{ messageId: "missing" }],
-    },
-    // The co-located assay EXISTS but proves a different criterion -> unproven.
-    {
-      filename: path.join(SKYFE033_FIX, "Unproven.view.tsx"),
-      code: `/** @verify needs-y */\nexport const X = () => null;`,
-      errors: [{ messageId: "unproven" }],
-    },
-    // A comment marker without an executable Assay registration is test theater.
-    {
-      filename: path.join(SKYFE033_FIX, "Inert.view.tsx"),
-      code: `/** @verify inert-z */\nexport const X = () => null;`,
-      errors: [{ messageId: "inert" }],
-    },
-    // A second @avp marker cannot borrow an unrelated defineVerification call in the same Assay file.
-    {
-      filename: path.join(SKYFE033_FIX, "Borrowed.view.tsx"),
-      code: `/** @verify borrowed-b */\nexport const X = () => null;`,
-      errors: [{ messageId: "inert" }],
-    },
-    {
-      filename: "EmptyOracle.assay.test.tsx",
-      code: `defineVerification(...productVerification("Cart", "adds-item", "claims without proving", () => { cart.add(item); }));`,
-      errors: [{ messageId: "noOracle" }],
-    },
-    // An executable Assay without the subject-side obligation would run but disappear from the E2E inventory.
-    {
-      filename: path.join(SKYFE033_FIX, "Orphan.assay.test.tsx"),
-      code: `/** @avp orphan-y */\ndefineVerification(...productVerification("Orphan", "orphan-y", "proves an undeclared criterion", () => { expect(true).toBe(true); }));`,
-      errors: [{ messageId: "orphan" }],
-    },
-  ],
-});
-
-// SKYFE034 — skipped/conditional/focused tests turn runner exit 0 into a false green, so all common
-// Vitest/Jest/Playwright omission forms are rejected statically.
-ruleTester.run("no-disabled-tests", plugin.rules["no-disabled-tests"], {
-  valid: [
-    { filename: "Feature.test.tsx", code: `test("runs", () => {});` },
-    { filename: "Feature.tsx", code: `test.skip("example text outside a test file", () => {});` },
-  ],
-  invalid: [
-    { filename: "Feature.test.tsx", code: `test.skip("later", () => {});`, errors: [{ messageId: "disabled" }] },
-    { filename: "Feature.spec.ts", code: `test.fixme("broken", () => {});`, errors: [{ messageId: "disabled" }] },
-    { filename: "Feature.test.ts", code: `it.todo("missing");`, errors: [{ messageId: "disabled" }] },
-    { filename: "Feature.test.ts", code: `xdescribe("suite", () => {});`, errors: [{ messageId: "disabled" }] },
-    { filename: "Feature.test.ts", code: `test.concurrent.skip("later", () => {});`, errors: [{ messageId: "disabled" }] },
-    { filename: "Feature.test.ts", code: `test.each([1]).skip("later", () => {});`, errors: [{ messageId: "disabled" }] },
-    { filename: "Feature.test.ts", code: `describe.skipIf(process.env.CI)("suite", () => {});`, errors: [{ messageId: "disabled" }] },
-    { filename: "Feature.test.ts", code: `test.runIf(process.env.CI)("conditional", () => {});`, errors: [{ messageId: "disabled" }] },
-    { filename: "Feature.test.ts", code: `test.concurrent.only("alone", () => {});`, errors: [{ messageId: "focused" }] },
-    { filename: "Feature.test.ts", code: `test.each([1]).only("alone", () => {});`, errors: [{ messageId: "focused" }] },
-    { filename: "Feature.test.ts", code: `fit("alone", () => {});`, errors: [{ messageId: "focused" }] },
-    { filename: "Feature.test.ts", code: `fdescribe("suite", () => {});`, errors: [{ messageId: "focused" }] },
-  ],
-});
-
-// SKYFE035 — a ViewModel must name the real surface flow that covers its visible behavior.
-ruleTester.run("feature-has-e2e-flow", plugin.rules["feature-has-e2e-flow"], {
-  valid: [
-    { filename: "Feature.viewModel.ts", code: `/** @e2e feature-happy\n * @e2e feature-sad */\nexport const useFeature = () => null;` },
-    { filename: "Feature.view.tsx", code: `export const Feature = () => null;` },
-  ],
-  invalid: [
-    {
-      filename: "Feature.viewModel.ts",
-      code: `export const useFeature = () => null;`,
-      errors: [{ messageId: "missing" }],
-    },
-    {
-      filename: "Feature.viewModel.ts",
-      code: `/** @e2e feature-happy */\nexport const useFeature = () => null;`,
-      errors: [{ messageId: "incomplete" }],
     },
   ],
 });

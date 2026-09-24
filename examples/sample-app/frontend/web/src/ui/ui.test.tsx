@@ -1,22 +1,21 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Button, EmptyState, ErrorState, Field, Input, Stack, Text } from "./index";
-import { color, space, text } from "./tokens-bridge";
+import { color, space, text } from "./theme";
 
-// KIT CONTRACT TESTS — these pin the behaviors DESIGN-CONVENTIONS.md promises: the five states are
-// the kit's job, the form anatomy wires itself, typography travels as one decision, and the API
-// stays closed. Values are read from the tokens so re-theming the app never breaks the suite.
+// Component tests for the sample's UI kit: interactive states, the form anatomy's aria wiring, typography, and the
+// closed prop surface. Values are read from ./theme so restyling the app never breaks the suite.
 
 // Vitest runs without globals, so RTL can't register its auto-cleanup — do it explicitly or the
 // DOM accumulates across tests and every query goes ambiguous.
 afterEach(cleanup);
 
-// jsdom normalizes some inline colors to rgb(); accept either spelling of the same token.
+// jsdom normalizes some inline colors to rgb(); accept either spelling of the same color.
 const rgb = (hex: string) => {
   const n = parseInt(hex.slice(1), 16);
   return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
 };
-const sameColor = (actual: string, token: string) => expect([token, rgb(token)]).toContain(actual);
+const sameColor = (actual: string, hex: string) => expect([hex, rgb(hex)]).toContain(actual);
 
 describe("Button", () => {
   it("renders its label as the accessible name and fires onPress", () => {
@@ -94,7 +93,7 @@ describe("Field + Input — the form anatomy", () => {
 });
 
 describe("Text — typography is one decision", () => {
-  it("maps a role to its type tokens and the document outline", () => {
+  it("maps a role to its type scale and the document outline", () => {
     render(<Text role="title">Hello</Text>);
     const el = screen.getByText("Hello");
     expect(el.tagName).toBe("H1");
@@ -119,14 +118,14 @@ describe("Text — typography is one decision", () => {
 });
 
 describe("Stack — rhythm from the scale", () => {
-  it("spaces children with the gap token; children carry no margin", () => {
+  it("spaces children with the gap scale; children carry no margin", () => {
     render(
       <Stack gap="lg">
         <Text>a</Text>
         <Text>b</Text>
       </Stack>,
     );
-    const stack = document.querySelector('[data-ui="stack"]') as HTMLElement;
+    const stack = screen.getByText("a").parentElement as HTMLElement;
     expect(stack.style.gap).toBe(space.lg + "px");
     expect(screen.getByText("a").style.margin).toBe("0px");
   });
@@ -148,7 +147,7 @@ describe("states", () => {
 });
 
 it("keeps the API closed — no className/style passthrough anywhere", () => {
-  // Compile-time assertions: the door SKYFE024 polices must not exist in the type surface either.
+  // Compile-time assertions: styling passthrough is not part of the prop surface.
   // @ts-expect-error className is not part of the kit vocabulary
   const a = <Stack className="x">k</Stack>;
   // @ts-expect-error style is not part of the kit vocabulary
