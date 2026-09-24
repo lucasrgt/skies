@@ -106,3 +106,26 @@ fn no_catalog_lists_a_rule_that_does_not_run() {
         assert!(!repo(doc).contains("(planned)"), "{doc} lists a planned rule");
     }
 }
+
+/// SKY0005 resolves ctx citations against the failure modes `skies proof` reads, so its spec-line and look-alike
+/// patterns are the engine's (`cli/src/proof/grammar.rs`), regex for regex; a named group or a case flag aside.
+#[test]
+fn sky0005_reads_failure_modes_with_the_engine_grammar() {
+    let engine = repo("cli/src/proof/grammar.rs");
+    let doctor = repo("analyzers/Skies.Framework.Doctor/SpecCitations.cs")
+        .replace("(?<n>", "(")
+        .replace("\\\\", "\\");
+    for name in ["SPEC_LINE", "MARKER", "LOOK_ALIKE", "TITLE"] {
+        let pattern = engine
+            .split(&format!("static {name}:"))
+            .nth(1)
+            .and_then(|rest| rest.split("Regex::new(r\"").nth(1))
+            .and_then(|rest| rest.split("\")").next())
+            .unwrap_or_else(|| panic!("grammar.rs defines {name}"))
+            .trim_start_matches("(?i)");
+        assert!(
+            doctor.contains(&format!("@\"{pattern}\"")),
+            "SpecCitations.cs lacks {name}: {pattern}"
+        );
+    }
+}
