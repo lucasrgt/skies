@@ -1,18 +1,18 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TestRun id="00000000-0000-0000-0000-000000000001" name="{run}" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2026-09-24T04:41:41.5578916-03:00" queuing="2026-09-24T04:41:41.5578916-03:00" start="2026-09-24T04:41:40.4416764-03:00" finish="2026-09-24T04:41:41.5633152-03:00" />
+  <Times creation="2026-09-24T05:08:02.0758207-03:00" queuing="2026-09-24T05:08:02.0758208-03:00" start="2026-09-24T05:08:00.9972025-03:00" finish="2026-09-24T05:08:02.0815239-03:00" />
   <TestSettings name="default" id="00000000-0000-0000-0000-000000000002">
     <Deployment runDeploymentRoot="{run}" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="b811b544-d10f-7f86-6fed-0755b888f86c" testName="FM-1: zero is valid money" computerName="{machine}" duration="00:00:00.0001461" startTime="2026-09-24T04:41:41.3338102-03:00" endTime="2026-09-24T04:41:41.3338637-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="12f56f37-339b-9ad3-76f9-5908fa634c23" testName="FM-4: adding two amounts produces their sum" computerName="{machine}" duration="00:00:00.0044037" startTime="2026-09-24T04:41:41.3235192-03:00" endTime="2026-09-24T04:41:41.3252476-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="f0b323f1-dceb-aac3-89c0-879baa921e20" testName="FM-2: a positive amount is valid and keeps its value" computerName="{machine}" duration="00:00:00.0000695" startTime="2026-09-24T04:41:41.3344641-03:00" endTime="2026-09-24T04:41:41.3344996-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" testName="FM-3: a negative amount is rejected as a validation error" computerName="{machine}" duration="00:00:00.0016597" startTime="2026-09-24T04:41:41.3347883-03:00" endTime="2026-09-24T04:41:41.3348141-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="b811b544-d10f-7f86-6fed-0755b888f86c" testName="FM-1: zero is valid money" computerName="{machine}" duration="00:00:00.0001869" startTime="2026-09-24T05:08:01.8301852-03:00" endTime="2026-09-24T05:08:01.8302474-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="f0b323f1-dceb-aac3-89c0-879baa921e20" testName="FM-2: a positive amount is valid and keeps its value" computerName="{machine}" duration="00:00:00.0000762" startTime="2026-09-24T05:08:01.8309242-03:00" endTime="2026-09-24T05:08:01.8309621-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="12f56f37-339b-9ad3-76f9-5908fa634c23" testName="FM-4: adding two amounts produces their sum" computerName="{machine}" duration="00:00:00.0044136" startTime="2026-09-24T05:08:01.8198104-03:00" endTime="2026-09-24T05:08:01.8211261-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" testName="FM-3: a negative amount is rejected as a validation error" computerName="{machine}" duration="00:00:00.0019784" startTime="2026-09-24T05:08:01.8312629-03:00" endTime="2026-09-24T05:08:01.8312900-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
   </Results>
   <TestDefinitions>
     <UnitTest name="FM-2: a positive amount is valid and keeps its value" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="f0b323f1-dceb-aac3-89c0-879baa921e20">
-      <Execution id="00000000-0000-0000-0000-000000000005" />
+      <Execution id="00000000-0000-0000-0000-000000000004" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="A_positive_amount_is_valid" />
     </UnitTest>
     <UnitTest name="FM-1: zero is valid money" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b811b544-d10f-7f86-6fed-0755b888f86c">
@@ -20,7 +20,7 @@
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="Zero_is_valid_money" />
     </UnitTest>
     <UnitTest name="FM-4: adding two amounts produces their sum" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="12f56f37-339b-9ad3-76f9-5908fa634c23">
-      <Execution id="00000000-0000-0000-0000-000000000004" />
+      <Execution id="00000000-0000-0000-0000-000000000005" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0004.MoneySpec" name="Add_sums_two_amounts" />
     </UnitTest>
     <UnitTest name="FM-3: a negative amount is rejected as a validation error" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="e5512643-23a3-ec3b-89b2-35eb17a244e3">
@@ -30,8 +30,8 @@
   </TestDefinitions>
   <TestEntries>
     <TestEntry testId="b811b544-d10f-7f86-6fed-0755b888f86c" executionId="00000000-0000-0000-0000-000000000003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="12f56f37-339b-9ad3-76f9-5908fa634c23" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="f0b323f1-dceb-aac3-89c0-879baa921e20" executionId="00000000-0000-0000-0000-000000000005" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f0b323f1-dceb-aac3-89c0-879baa921e20" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="12f56f37-339b-9ad3-76f9-5908fa634c23" executionId="00000000-0000-0000-0000-000000000005" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
     <TestEntry testId="e5512643-23a3-ec3b-89b2-35eb17a244e3" executionId="00000000-0000-0000-0000-000000000006" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
@@ -42,10 +42,10 @@
     <Counters total="4" executed="4" passed="4" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
     <Output>
       <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
-[xUnit.net 00:00:00.04]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.05]   Discovering: Sample.Tests
 [xUnit.net 00:00:00.07]   Discovered:  Sample.Tests
-[xUnit.net 00:00:00.08]   Starting:    Sample.Tests
-[xUnit.net 00:00:00.12]   Finished:    Sample.Tests
+[xUnit.net 00:00:00.09]   Starting:    Sample.Tests
+[xUnit.net 00:00:00.13]   Finished:    Sample.Tests
 </StdOut>
     </Output>
   </ResultSummary>

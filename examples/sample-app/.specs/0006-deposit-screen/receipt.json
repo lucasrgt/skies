@@ -15,7 +15,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
+    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -29,12 +29,13 @@
     "frontend/web/src/deposit/Deposit.viewModel.ts": "blake3:66ce60dd2ae8917635839241585cac7359e8e7c9c76670d19214dbd772707ed8",
     "frontend/web/src/deposit/deposit.i18n.ts": "blake3:f5de3851f031c9124b9766753841f805f78d5769eae876a37ea3615e947755fc"
   },
+  "footprint_source": "diff",
   "inputs": {
     ".specs/0006-deposit-screen/e2e/Deposit.test.tsx": "blake3:07b7f7f9c9a586ff77a2a27d0c625999f3ac6b78dce30e62b82fa5bcfe8f4b4e",
     ".specs/0006-deposit-screen/spec.md": "blake3:a8484742b8a4f393e41da8308b91e33f21652e44c47f82e17af4fbbbdc4c9c2f"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:46a1c25830f7bd3deb379172a3193ad1182deec93ea94eab9dac1e899690cba4",
+    "evidence/green.xml": "blake3:dfe7eb615a54f02112851442eb366da034d77a95f5da4f910316dce9db75ea0d",
     "evidence/red.xml": "blake3:43f465105462e42df85900b6e83ff3016fe5fa14155f6051954f05ac49b3d8a7"
   }
 }

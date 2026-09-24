@@ -14,7 +14,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
+    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -27,12 +27,13 @@
     "frontend/web/src/items/Items.viewModel.ts": "blake3:5e87165dfafbcb696edba0171b4383c9c3ba3d6f2dbe1712ce88f18481cade66",
     "frontend/web/src/items/items.i18n.ts": "blake3:ae8aa8e9779fe21ffbb8a1390cb0cea439096dd0124b99c21c242b069b62f1f1"
   },
+  "footprint_source": "diff",
   "inputs": {
     ".specs/0007-items-screen/e2e/Items.test.tsx": "blake3:7a7adcdd0177d1735ad92f50b07dc4456a705ce790c3a7fad087cb022db8193e",
     ".specs/0007-items-screen/spec.md": "blake3:7d1fa990f1ec2bcf2796cfc2c99c6b4b7de648c38d6146265f4e9f7afc420ae1"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:2a50e03b0e8ec1a65744c58458abbeb02c5fe81ab5ebff6d9287531cf53b7cc4",
+    "evidence/green.xml": "blake3:179d7e6825532058b3138c9a45763673cd3b5a029d74b1a157cd3872b4211452",
     "evidence/red.xml": "blake3:353fef8724db15dc1829c5a885c9956e9647539c3f29121a65730be72c5141fa"
   }
 }

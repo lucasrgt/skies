@@ -20,7 +20,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "5d058c10525a99c1e682111cda41b484b8449d8b",
+    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -41,84 +41,72 @@
   "footprint": {
     "backend/Sample.Api/AppDb.cs": {
       "lines": "15,17,23-26",
-      "hash": "blake3:620fcd12b532415bfd0d08d8235a7a8b343a8916b908dcc9a346a2488178f72c"
+      "ranges": "6e8ca5900c191b2c,3f94eb4e8d4981cc,629dbdcabc73b461"
     },
     "backend/Sample.Api/BuildingBlocks/Money.cs": {
       "lines": "18,20,22,26-28,30,37,39",
-      "hash": "blake3:403487d451d544d6114d777beb5e5281f9e3bb76eb2f603d8167d16da84f75c0"
+      "ranges": "b072c937ab399de8,23ee0ce58c8a090b,afe0d5adc472bc23,c9bdf34b6445d977,a4d0e52be858099d,dd98750f9b2eba32,417b761177272247"
     },
     "backend/Sample.Api/Modules/Modules.cs": {
       "lines": "12-15,18-20",
-      "hash": "blake3:4c43d71566ba0ec6ec7be446d6a1075b36ed1194de33509308d6dd2f3d5b094f"
+      "ranges": "39c90c551fd01601,faf02a17522bd7cb"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": {
       "lines": "17,19,23,26-30,35,38-39,44-45,48,51-52,55-58",
-      "hash": "blake3:d0376c76697c13e8a24e0eeda3f5ab04ff49a27feaa01ccbb296913e118bc2f6"
+      "ranges": "629733f50bc408ea,f9c6ecdba05fa474,fcd3f1784143c361,9ec1bc08f8fe2737,93f9636686cec698,cc34a085666d00a4,d0d6700db13b8213,6b6d2e6de0edde10,5f885444d76b87cc,9275beef55c3982d"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": {
       "lines": "9,11,14-19,22-25",
-      "hash": "blake3:eaecaf293454f2e8ba29a96de91715d1d59a36926f553d2c74cfcdd57a32b81a"
+      "ranges": "d6f5f2a3e81dc7c3,f9c6ecdba05fa474,886b578ca0033b19,702c3dbf43357966"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": {
       "lines": "31,33",
-      "hash": "blake3:351a9697c54c83b4920259b26158ed7284480a7493f5775dde79d2018a9e8f88"
+      "ranges": "ec467c8f39a9a03f,eea47aa387380f50"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs": {
       "lines": "15,17,21,23-29,32-34,36-37,39-44,47-50,52,54-58,61-64",
-      "hash": "blake3:8ec2084b645d6a7f27a383beada0ba14d87d1cfe45101957d1d0d64c34d45a1a"
+      "ranges": "5c73a6d696af38d8,2f09798a0b99f4ec,fcd3f1784143c361,8bb38a8aa593ec89,bd916d9dc4a9d745,c988ac0da4e02aa7,39c61acffb83f70c,c3d7cd4ab4ed459b,2dcdea5e86fac47e,f98a5056205112f3,d4654007d010d3a3"
     },
     "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": {
       "lines": "56-57,59",
-      "hash": "blake3:7dbcea8230e02c05ab7ef3186405c088d2e9d1d8c822161b4632131c83c99d8d"
+      "ranges": "569c2fe1fd0f82ce,98680c866dfa14a4"
     },
     "backend/Sample.Api/Modules/Wallets/Wallet.cs": {
       "lines": "14,17,21,33,41,48-51,59-63,65-67,73-77,79-80",
-      "hash": "blake3:cd48b5a5a9288b92dfda706ee161ecc5abb6663fbe4c6814b6d5a6e98f6a3d69"
+      "ranges": "9f08426259a265fa,dc7695cbc38c7606,12c75e8d2abea81a,da3ea91cdb6ee61b,c7207d944e55f9a8,497769adf2e81108,c4ed9ef7743174bd,5735e67dc402084f,8610860abea0b31a,08d1cb2a47a7e329"
     },
     "backend/Sample.Api/Modules/Wallets/WalletsErrorCodes.cs": "blake3:7e50218d4ca32d873ae7b77b4a084d4d0c5cd0e7922bccf5b1629276efa70162",
     "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": {
       "lines": "17,23-24,26-28,31,34,36-41",
-      "hash": "blake3:220adb826e8f98b057b280561e282b00ac41f702f9c85c5bb5e375c31d7a2f42"
+      "ranges": "54d96c8f9de199b8,40c07d166d4c4c2e,e47dff6c35460042,fcd3f1784143c361,f6e4fd77d893c6c5,73936a9eb2147f2f"
     },
     "backend/Sample.Api/Platform.Idempotency.cs": {
       "lines": "30,33,43-47,50-52,55,62-65",
-      "hash": "blake3:e45b7de8a2ac4aae02f653e2567f135b4fe3fb09557617dbe43d4ceace08fe3a"
+      "ranges": "1b07797b0703405b,67b660cbf2e14461,db9f2824776b91f9,1877640dc25b6706,b9339ec6c60c1dd5,91e47adb76a62e2f"
     },
     "backend/Sample.Api/Platform.cs": {
       "lines": "15-19",
-      "hash": "blake3:20632c396a9bff0e900ddf527810bc1f5a4f36b9f667f1812b0bcee8048a8253"
+      "ranges": "20632c396a9bff0e"
     },
     "backend/Sample.Api/Program.cs": {
       "lines": "6-9,11,13-14,19,21",
-      "hash": "blake3:d76e1d7f4e22d2be5155d469fcbeeb9b6890b732720982a9a022b56d41296d20"
-    },
-    "frontend/web/src/client.gen/sample.ts": "blake3:47ac67b9b715bbbc66940037d2f3795290db4061748dc37873c72583f19819ce",
-    "frontend/web/src/i18n.ts": "blake3:be327133bc485f18a2b4e10a937c0a5cfed534c3aba1e13c1d1cd6b06e84c9d3",
-    "frontend/web/src/i18n/resources.generated.ts": "blake3:57f8aad5fa7eb7df5eec66ab8c453f509a168de29580894fb5dba3179e95d734",
-    "frontend/web/src/transfer/Transfer.view.tsx": "blake3:c0a5f7667e1a3af882ffaf6403cacbdd81d1b1a900182328f6decee6089cc613",
-    "frontend/web/src/transfer/Transfer.viewModel.ts": "blake3:f997017f5a45a0d49e3a1f3629ac62552b24baaf08761684e15d7dbc799d9848",
-    "frontend/web/src/transfer/transfer.i18n.ts": "blake3:d0db27679c498f52e0599551a96a1e4f5bac500e7f3d9696033c484c05c1d564"
+      "ranges": "b7e10816881d8d19,52322576e1410c84,b60a31ef4c4ae920,6a64c9fb150fc8cb,ee79f7afb223c356"
+    }
   },
   "footprint_source": "coverage",
   "footprint_changed": [
     "backend/Sample.Api/Modules/Wallets/Slices/Transfer.cs",
     "backend/Sample.Api/Modules/Wallets/WalletsErrorCodes.cs",
     "backend/Sample.Api/Modules/Wallets/WalletsModule.cs",
-    "backend/Sample.Api/Platform.Idempotency.cs",
-    "frontend/web/src/client.gen/sample.ts",
-    "frontend/web/src/i18n.ts",
-    "frontend/web/src/i18n/resources.generated.ts",
-    "frontend/web/src/transfer/Transfer.view.tsx",
-    "frontend/web/src/transfer/Transfer.viewModel.ts",
-    "frontend/web/src/transfer/transfer.i18n.ts"
+    "backend/Sample.Api/Platform.Idempotency.cs"
   ],
   "inputs": {
     ".specs/0009-transfer/e2e/TransferSpec.cs": "blake3:e48128cbd01921e8c122f91c542e0f216748927fac63f3ba01ec4c0ba50edad9",
     ".specs/0009-transfer/spec.md": "blake3:ae2bf007a142f97afd20180711b91c617f66cade8342d38628f1c1fd3863b5cf"
   },
   "evidence": {
-    "evidence/avp-FM-6.json": "blake3:c39de94593b5418a5e8642239ac2f32193bd77d55ce98868c25fc8d05a89cd49",
-    "evidence/green.trx": "blake3:a34898c1ff2ea8e70d86de5c5a3e4d50ad3e942aba0c34b7ad8286c8087d2327",
+    "evidence/avp-FM-6.json": "blake3:5f095469db8e370a6d6937b9afedcd67d307d142c9dc213a6e2e0682a0c0f493",
+    "evidence/green.trx": "blake3:491e0bb0ff4bcc19d101c2b89901ad6068a82b572fe39170c342ac22cad12924",
     "evidence/red.avp-FM-6.json": "blake3:fad3583c1c256dc67a9184ce09e72879cb9642274043bb581dd550c65274f8ad",
     "evidence/red.trx": "blake3:d853d710494c283123c0899668d196b84a989c0a2dd7b1c4bb88bd8108436b34"
   },
