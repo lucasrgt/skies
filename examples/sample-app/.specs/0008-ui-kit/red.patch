@@ -1,17 +1,17 @@
-diff --git a/frontend/web/src/ui/Button.tsx b/frontend/web/src/ui/Button.tsx
-index b24c302..68c3b3a 100644
---- a/frontend/web/src/ui/Button.tsx
-+++ b/frontend/web/src/ui/Button.tsx
+diff --git i/frontend/web/src/ui/Button.tsx w/frontend/web/src/ui/Button.tsx
+index d917822..4c0f4f4 100644
+--- i/frontend/web/src/ui/Button.tsx
++++ w/frontend/web/src/ui/Button.tsx
 @@ -40,9 +40,9 @@ export function Button({
    return (
      <button
        type="button"
 -      disabled={blocked}
 -      aria-busy={loading || undefined}
--      onClick={onPress}
+-      onClick={onClick}
 +      // Red: loading neither blocks nor announces, and the press is never wired.
 +      disabled={disabled}
-+      onClick={loading ? onPress : undefined}
++      onClick={loading ? onClick : undefined}
        onMouseEnter={() => setHover(true)}
        onMouseLeave={() => {
          setHover(false);
@@ -25,17 +25,16 @@ index b24c302..68c3b3a 100644
        }}
      >
        {label}
-diff --git a/frontend/web/src/ui/Field.tsx b/frontend/web/src/ui/Field.tsx
-index a75639e..6d62661 100644
---- a/frontend/web/src/ui/Field.tsx
-+++ b/frontend/web/src/ui/Field.tsx
-@@ -39,8 +39,8 @@ export function Field({
- 
+diff --git i/frontend/web/src/ui/Field.tsx w/frontend/web/src/ui/Field.tsx
+index 797996b..52cd0a2 100644
+--- i/frontend/web/src/ui/Field.tsx
++++ w/frontend/web/src/ui/Field.tsx
+@@ -40,7 +40,7 @@ export function Field({
    return (
      <div style={{ display: "flex", flexDirection: "column", gap: space.xs }}>
-+      {/* Red: the label is not associated with its control. */}
        <label
 -        htmlFor={fieldId}
++        /* Red: the label is not associated with its control. */
          style={{
            fontSize: text.label.fontSize,
            lineHeight: text.label.lineHeight + "px",
@@ -48,24 +47,32 @@ index a75639e..6d62661 100644
            {error}
          </span>
        ) : hint ? (
-diff --git a/frontend/web/src/ui/Input.tsx b/frontend/web/src/ui/Input.tsx
-index ff00937..c10e460 100644
---- a/frontend/web/src/ui/Input.tsx
-+++ b/frontend/web/src/ui/Input.tsx
-@@ -33,7 +33,8 @@ export function Input({
+diff --git i/frontend/web/src/ui/Input.tsx w/frontend/web/src/ui/Input.tsx
+index e722b1d..4d7b186 100644
+--- i/frontend/web/src/ui/Input.tsx
++++ w/frontend/web/src/ui/Input.tsx
+@@ -37,14 +37,15 @@ export function Input({
        type={kind === "number" ? "text" : kind}
        inputMode={kind === "number" ? "numeric" : kind === "email" ? "email" : undefined}
        value={value}
--      onChange={(e) => onChangeText(e.currentTarget.value)}
-+      // Red: the View gets the change event, not the value.
-+      onChange={onChangeText as never}
+-      onChange={onChange}
++      // Red: the View gets the value, not the change event, and never hears the blur.
++      onChange={(event) => onChange(event.currentTarget.value as never)}
        placeholder={placeholder}
        aria-invalid={isInvalid || undefined}
        aria-describedby={wiring.describedBy}
-diff --git a/frontend/web/src/ui/Stack.tsx b/frontend/web/src/ui/Stack.tsx
+       onFocus={() => setFocused(true)}
+       onBlur={() => {
+         setFocused(false);
+-        onBlur?.();
++
+       }}
+       style={{
+         minHeight: 44,
+diff --git i/frontend/web/src/ui/Stack.tsx w/frontend/web/src/ui/Stack.tsx
 index 359ac75..16d37d5 100644
---- a/frontend/web/src/ui/Stack.tsx
-+++ b/frontend/web/src/ui/Stack.tsx
+--- i/frontend/web/src/ui/Stack.tsx
++++ w/frontend/web/src/ui/Stack.tsx
 @@ -23,7 +23,8 @@ export function Stack({
        style={{
          display: "flex",
@@ -76,10 +83,10 @@ index 359ac75..16d37d5 100644
          alignItems: align ? ALIGN[align] : undefined,
          padding: padding ? space[padding] : undefined,
        }}
-diff --git a/frontend/web/src/ui/Text.tsx b/frontend/web/src/ui/Text.tsx
+diff --git i/frontend/web/src/ui/Text.tsx w/frontend/web/src/ui/Text.tsx
 index 9449305..3d729c3 100644
---- a/frontend/web/src/ui/Text.tsx
-+++ b/frontend/web/src/ui/Text.tsx
+--- i/frontend/web/src/ui/Text.tsx
++++ w/frontend/web/src/ui/Text.tsx
 @@ -25,12 +25,14 @@ export function Text({
    // above its submit.
    alert?: boolean;
@@ -97,10 +104,10 @@ index 9449305..3d729c3 100644
        style={{
          // Margins belong to the container (Stack gap), so the element defaults are zeroed.
          margin: 0,
-diff --git a/frontend/web/src/ui/states.tsx b/frontend/web/src/ui/states.tsx
-index 3a66e35..72a8dcb 100644
---- a/frontend/web/src/ui/states.tsx
-+++ b/frontend/web/src/ui/states.tsx
+diff --git i/frontend/web/src/ui/states.tsx w/frontend/web/src/ui/states.tsx
+index 7add488..72a8dcb 100644
+--- i/frontend/web/src/ui/states.tsx
++++ w/frontend/web/src/ui/states.tsx
 @@ -8,7 +8,8 @@ export function EmptyState({ title, description }: { title: string; description?
    return (
      <Stack gap="xs" align="center" padding="xl">
@@ -115,7 +122,7 @@ index 3a66e35..72a8dcb 100644
        <Text role="heading" tone="danger">
          {title}
        </Text>
--      {onRetry && retryLabel ? <Button label={retryLabel} onPress={onRetry} variant="secondary" /> : null}
+-      {onRetry && retryLabel ? <Button label={retryLabel} onClick={onRetry} variant="secondary" /> : null}
 +      {/* Red: the retry action is dropped. */}
 +      {onRetry && retryLabel ? null : null}
      </Stack>

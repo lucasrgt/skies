@@ -2,11 +2,11 @@
   "spec": "0008-ui-kit",
   "runner": "web",
   "red": {
-    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91",
+    "commit": "4b0df7a19e07f400b169b80c9055a33780f08974",
     "patch": "red.patch"
   },
   "green": {
-    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91"
+    "commit": "4b0df7a19e07f400b169b80c9055a33780f08974"
   },
   "failure_modes": {
     "FM-1": {
@@ -47,7 +47,7 @@
       "red": "fail",
       "green": "pass",
       "cases": [
-        "Field and Input, the form anatomy > FM-5: the input hands the View a string through onChangeText, not an event"
+        "Field and Input, the form anatomy > FM-5: the input hands onChange the DOM change event carrying the typed value, and reports blur"
       ],
       "message": "TestingLibraryElementError: Found a label with the text of: Name, however no form control was found associated to that label. Make sure you're using the \"for\" attribute or \"aria-labelledby\" attribute…\nIgnored nodes: comments, script, style\n<body>\n<div>"
     },
