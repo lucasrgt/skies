@@ -5,9 +5,9 @@ const { isTest } = require("../lib/shared.cjs");
 // SKYFE020 — the API base URL comes from CONFIGURATION, never a hardcoded host baked into the client's construction
 // (`axios.create({ baseURL: "http://localhost:8080" })`). A baked literal can't follow dev/prod or a different
 // port, so it silently 404s when the backend runs elsewhere — the pilot's "front says :8080, API runs on :5000"
-// bug (the registered user bounced to login because `me` 404'd). Read it from env (`import.meta.env.VITE_API_URL`
-// / `process.env.EXPO_PUBLIC_API_URL`) with a relative or env fallback; the backend pins its dev port in
-// launchSettings so the two agree by construction. An env-fallback (`env.X ?? "…"`), a relative base (`""`/`/api`),
+// bug (the registered user bounced to login because `me` 404'd). Read it from env (`import.meta.env.VITE_API_URL`)
+// with a relative or env fallback; the backend pins its dev port in launchSettings so the two agree by
+// construction. An env-fallback (`env.X ?? "…"`), a relative base (`""`/`/api`),
 // and an injectable default (`client.defaults.baseURL = …`, overridden at boot by configureClient) all pass.
 module.exports = {
   meta: {
@@ -18,7 +18,7 @@ module.exports = {
     },
     messages: {
       hardcoded:
-        "SKYFE020: don't hardcode the API base URL (`{{url}}`) in the client's construction — it can't follow dev/prod or a different port and silently 404s when the backend runs elsewhere. Read it from env (`import.meta.env.VITE_API_URL` / `process.env.EXPO_PUBLIC_API_URL`) with a relative or env fallback; the backend pins its dev port in launchSettings.",
+        "SKYFE020: don't hardcode the API base URL (`{{url}}`) in the client's construction — it can't follow dev/prod or a different port and silently 404s when the backend runs elsewhere. Read it from env (`import.meta.env.VITE_API_URL`) with a relative or env fallback; the backend pins its dev port in launchSettings.",
     },
   },
   create(context) {

@@ -37,12 +37,12 @@ function forbidImport(context, pattern, messageId) {
   };
 }
 
-// ── Routing vocabulary (recognized for BOTH expo-router and TanStack Router) ────────────────────────────────────
+// ── Routing vocabulary (recognized for TanStack Router and React Router) ───────────────────────────────────────
 // The routing rules police a SHAPE (declarative redirect, guarded back, param presence), not a router runtime —
 // so they recognize each router's idiom but depend on neither. "Ship the standard, not the adapter."
 
-// A route file — the navigation layer (expo-router `app/`, TanStack `app/routes/`). The only layer that may
-// redirect or read route params; both routers live under an `app/` tree, so one test covers them.
+// A route file — the navigation layer (TanStack Start and React Router's framework mode keep it under `app/`). The
+// only layer that may redirect or read route params.
 const isRoute = (f) => /(^|\/)app\//.test(f.replace(/\\/g, "/"));
 // The nav seam — the single guarded back handler (safeBack / useGoBack). The one place a bare back() is allowed.
 const isNavSeam = (f) => /(^|\/)lib\/(nav|useGoBack)(\.|\/)/.test(f.replace(/\\/g, "/"));
@@ -91,11 +91,11 @@ function authBoolName(expr) {
   return null;
 }
 
-/** Whether a JSX element is a declarative redirect — `<Redirect>` (expo-router) or `<Navigate>` (TanStack). */
+/** Whether a JSX element is a declarative redirect — `<Navigate>` (TanStack Router and React Router alike). */
 function isRedirectElement(arg) {
   if (!arg || arg.type !== "JSXElement") return false;
   const name = arg.openingElement.name;
-  return name.type === "JSXIdentifier" && (name.name === "Redirect" || name.name === "Navigate");
+  return name.type === "JSXIdentifier" && name.name === "Navigate";
 }
 
 /** Whether a statement (or block) returns a declarative redirect element. */
@@ -133,7 +133,7 @@ function identifierAppears(node, name) {
 /**
  * The names that stand in for a param in a presence guard: the param itself plus any local initialized from it —
  * a coalesce (`const x = a ?? param`) or a rename (`const x = param`). Guarding any of them guards the param, so a
- * `const id = a ?? b; if (!id) return <Redirect/>` is recognized, not falsely flagged.
+ * `const id = a ?? b; if (!id) return <Navigate/>` is recognized, not falsely flagged.
  */
 function aliasesOf(fn, base) {
   const names = new Set([base]);
@@ -162,7 +162,7 @@ function testGuardsAny(test, names) {
     return names.has(test.argument.name);
   if (test.type === "LogicalExpression" && test.operator === "||")
     return testGuardsAny(test.left, names) || testGuardsAny(test.right, names);
-  // The spine's shape: `const id = requiredParam(param); if (id.status === "missing") return <Redirect/>`.
+  // The spine's shape: `const id = requiredParam(param); if (id.status === "missing") return <Navigate/>`.
   if (
     test.type === "BinaryExpression" &&
     test.operator === "===" &&
@@ -179,7 +179,7 @@ function testGuardsAny(test, names) {
   return false;
 }
 
-/** Whether `fn`'s body contains `if (<guards X>) return <Redirect/Navigate …/>` for any name X in `names`. */
+/** Whether `fn`'s body contains `if (<guards X>) return <Navigate …/>` for any name X in `names`. */
 function hasPresenceGuard(fn, names) {
   let found = false;
   walk(fn.body, (node) => {

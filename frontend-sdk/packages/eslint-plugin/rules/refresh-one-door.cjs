@@ -2,9 +2,8 @@
 
 const { GENERATED_OPERATIONS, isTest, isGenerated, isInfraDataDoor, isTypeOnly } = require("../lib/shared.cjs");
 
-// SKYFE029 — refresh-one-door. The session-rotation credential (the httpOnly cookie on web, the stored
-// refresh token on native) is BURNED by parallel rotation: the backend's theft detection sees a spent token
-// replayed and revokes the whole session family. So the Refresh slice has exactly ONE consumer surface — the
+// SKYFE029 — refresh-one-door. The session-rotation credential (the httpOnly refresh cookie) is BURNED by
+// parallel rotation: the backend's theft detection sees a spent token replayed and revokes the whole session family. So the Refresh slice has exactly ONE consumer surface — the
 // session seam's single-flight bootstrapSession (lib/session), which the client seam's 401 interceptor calls
 // through the injected setTokenRefresher — and a screen/viewModel that imports the refresh hook/operation, or
 // hand-rolls a POST to a refresh route, is the second rotation path that one day runs in parallel with the

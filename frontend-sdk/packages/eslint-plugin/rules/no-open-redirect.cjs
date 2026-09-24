@@ -2,12 +2,13 @@
 
 const { isView, isRoute, walk } = require("../lib/shared.cjs");
 
-// SKYFE022 — never navigate to a value that arrived in the URL. `router.replace(returnTo)` /
+// SKYFE022 — never navigate to a value that arrived in the URL. `navigate({ to: returnTo })` /
 // `window.location.href = next` where the target derives from a route/search param is an open redirect: a
 // crafted link sends the user (and their session-carrying browser) anywhere the attacker chose — the phishing
 // primitive. The fix is an allowlist: map the param to a KNOWN in-app route (`const to = routes[returnTo] ??
 // "/home"`) and navigate to the mapped value, never the raw param. The rule tracks the identifiers bound from
-// useLocalSearchParams / useSearchParams / useSearch and flags any navigation whose argument references one.
+// useSearchParams (React Router) / useSearch (TanStack Router) and flags any navigation whose argument references
+// one: `router.navigate(…)`, a `useNavigate()` binding, `location.assign/replace(…)`, or `location.href = …`.
 module.exports = {
   meta: {
     type: "problem",
@@ -25,7 +26,9 @@ module.exports = {
     if (!isView(f) && !isRoute(f)) return {};
     // Names that carry URL-supplied values: the params object itself and the names destructured from it.
     const tainted = new Set();
-    const PARAM_HOOKS = /^(useLocalSearchParams|useSearchParams|useSearch|useGlobalSearchParams)$/;
+    const PARAM_HOOKS = /^(useSearchParams|useSearch)$/;
+    // Identifiers bound from `useNavigate()`, so `navigate({ to: next })` is a navigation too.
+    const navigators = new Set();
     const taintedIn = (expr) => {
       let hit = null;
       walk(expr, (n) => {
@@ -41,8 +44,9 @@ module.exports = {
       context.report({ node, messageId: "openRedirect", data: { call, name } });
     return {
       VariableDeclarator(node) {
-        if (!node.init || node.init.type !== "CallExpression") return;
-        if (node.init.callee.type !== "Identifier" || !PARAM_HOOKS.test(node.init.callee.name)) return;
+        if (!node.init || node.init.type !== "CallExpression" || node.init.callee.type !== "Identifier") return;
+        if (node.init.callee.name === "useNavigate" && node.id.type === "Identifier") navigators.add(node.id.name);
+        if (!PARAM_HOOKS.test(node.init.callee.name)) return;
         if (node.id.type === "Identifier") tainted.add(node.id.name);
         if (node.id.type === "ObjectPattern")
           for (const p of node.id.properties)
@@ -52,13 +56,20 @@ module.exports = {
       },
       CallExpression(node) {
         const callee = node.callee;
+        if (callee.type === "Identifier" && navigators.has(callee.name)) {
+          for (const arg of node.arguments) {
+            const name = taintedIn(arg);
+            if (name) return report(node, `${callee.name}(…)`, name);
+          }
+          return;
+        }
         if (callee.type !== "MemberExpression" || callee.computed) return;
         if (callee.property.type !== "Identifier") return;
         const method = callee.property.name;
         const isRouterNav =
           callee.object.type === "Identifier" &&
           callee.object.name === "router" &&
-          /^(replace|push|navigate)$/.test(method);
+          method === "navigate";
         const isLocationNav =
           /^(assign|replace)$/.test(method) &&
           ((callee.object.type === "Identifier" && callee.object.name === "location") ||

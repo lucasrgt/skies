@@ -25,9 +25,9 @@ module.exports = {
     const f = context.filename.replace(/\\/g, "/");
     if (isInfraDataDoor(f) || isTest(f)) return {}; // the seam (lib/session) legitimately writes; tests seed freely
     // A storage write keyed by a token-ish name is the same scattered session write as importing the setter —
-    // the name-pattern door closes, the localStorage/AsyncStorage/SecureStore door must close with it.
+    // the name-pattern door closes, the localStorage/sessionStorage door must close with it.
     const TOKEN_KEY = /token|session|jwt|auth/i;
-    const STORAGE = /^(localStorage|sessionStorage|AsyncStorage|SecureStore)$/;
+    const STORAGE = /^(localStorage|sessionStorage)$/;
     return {
       ImportDeclaration(node) {
         for (const s of node.specifiers) {
@@ -38,7 +38,7 @@ module.exports = {
       CallExpression(node) {
         const callee = node.callee;
         if (callee.type !== "MemberExpression" || callee.computed) return;
-        if (callee.property.type !== "Identifier" || !/^set(Item|ItemAsync)$/.test(callee.property.name)) return;
+        if (callee.property.type !== "Identifier" || callee.property.name !== "setItem") return;
         const obj = callee.object;
         const root =
           obj.type === "Identifier"

@@ -33,7 +33,6 @@ const KEPT_RULES: &[&str] = &[
     "submit-handles-invalid",
     "tests-live-in-specs",
     "view-purity",
-    "viewmodel-platform-agnostic",
 ];
 
 /// A rule setting that opens its line: `"skies/x": …`, `'skies/x': …`, or YAML's `skies/x: …`.
@@ -148,6 +147,14 @@ mod tests {
             "    rules: {\n      \"skies/view-purity\": \"error\", //  // SKYFE001\n      \"skies/mutation-error-handled\": [\"error\", { globalSurface: true }], // SKYFE013\n    },\n"
         );
         assert!(migrate(&out, "eslint.config.js", &mut plan).is_none());
+    }
+
+    #[test]
+    fn strips_the_react_native_rule_dropped_with_the_native_track() {
+        let text = "      \"skies/data-door\": \"error\",\n      \"skies/viewmodel-platform-agnostic\": \"error\", // SKYFE009\n";
+        let mut plan = Plan::default();
+        let out = migrate(text, "eslint.config.mjs", &mut plan).unwrap();
+        assert_eq!(out, "      \"skies/data-door\": \"error\",\n");
     }
 
     #[test]

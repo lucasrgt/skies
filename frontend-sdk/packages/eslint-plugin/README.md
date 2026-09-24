@@ -1,6 +1,6 @@
 # @skiesjs/eslint-plugin
 
-The SKYFE architecture rules for Skies React / React Native apps — the front-side parallel of the backend's Roslyn
+The SKYFE architecture rules for Skies React web apps — the front-side parallel of the backend's Roslyn
 analyzers (`Skies.Framework.Doctor`). They keep the MVVM seam honest: the View renders, the ViewModel is the only
 data door, and routing, session and forms each go through one seam. Doctor-removable: delete the plugin and the app
 still builds; you only lose the warnings.
@@ -12,16 +12,15 @@ still builds; you only lose the warnings.
 | `view-purity` | SKYFE001 | A `*.view.tsx` renders only — no generated client / axios / react-query import (contract **types** are fine). |
 | `data-door` | SKYFE002 | The generated client is imported only by a `*.viewModel.ts` or the auth/routing infra (`lib/session`, `lib/guards`); re-exporting it elsewhere is flagged too. |
 | `no-mock` | SKYFE003 | No mock/fixture/MSW import in production code (only under `*.test.*`). |
-| `viewmodel-platform-agnostic` | SKYFE009 | A `*.viewModel.ts` imports no `react-native` / `expo`, so the core stays shareable web↔mobile. |
 | `state-completeness` | SKYFE010 | A View routes loading/error/empty through `<Resource>` — no raw `isPending`/`isError`/… |
 | `i18n-completeness` | SKYFE011 | Every locale in a `*.i18n.ts` declares the same (flattened) keys. |
 | `mutation-error-handled` | SKYFE013 | A ViewModel mutation surfaces its failure (`onError`, a read `.isError`, or a caught/propagated `mutateAsync`); an empty `onError` is flagged. `{ globalSurface: true }` trusts the QueryClient defaults. |
 | `no-hardcoded-copy` | SKYFE014 | No hardcoded user-facing text in a View — JSX text and copy props go through `t()`. |
-| `no-router-replace-in-effect` | SKYFE015 | Redirect declaratively (`<Redirect>`/`<Navigate>`), never `router.replace`/`navigate()` inside `useEffect`. |
+| `no-router-replace-in-effect` | SKYFE015 | Redirect declaratively (`<Navigate>`), never `router.navigate`/`navigate()` inside `useEffect`. |
 | `session-one-door` | SKYFE016 | The session token is written only through `lib/session` (setter import or token-ish storage write elsewhere is flagged). |
 | `guard-tristate` | SKYFE017 | A guard redirects on a tri-state `SessionState`, never a raw `isAuthenticated` boolean. |
-| `route-param-guard` | SKYFE018 | A route reading a required id param guards its absence with a declarative redirect. |
-| `safe-back` | SKYFE019 | No bare `router.back()`/`history.back()` — use `safeBack`/`useGoBack` with a fallback. |
+| `route-param-guard` | SKYFE018 | A route reading a required id param through a loose `useParams()` guards its absence with a declarative redirect. |
+| `safe-back` | SKYFE019 | No bare `history.back()`/`navigate(-1)` — use `safeBack`/`useGoBack` with a fallback. |
 | `no-hardcoded-base-url` | SKYFE020 | The API base URL comes from configuration, not a literal host in the client's construction. |
 | `no-raw-html` | SKYFE021 | No `dangerouslySetInnerHTML` outside the one sanitizing seam (`lib/html`). |
 | `no-open-redirect` | SKYFE022 | Never navigate to a value read from the URL without mapping it through an allowlist. |
@@ -33,7 +32,7 @@ still builds; you only lose the warnings.
 | `controller-field-state` | SKYFE032 | A `<Controller>` render reads and surfaces `fieldState`. |
 | `tests-live-in-specs` | SKYFE036 | A test (`test`/`it`/`describe` from a runner) lives under `.specs/<id>-<slug>/e2e/`. |
 
-SKYFE015–019 recognize both expo-router and TanStack Router idioms; they police a shape, not a router runtime. The
+SKYFE015–019 recognize TanStack Router and React Router idioms; they police a shape, not a router runtime. The
 `SessionState`, `safeBack` and `submitOrReveal` helpers they steer toward live in `@skiesjs/react`.
 
 ## Layout

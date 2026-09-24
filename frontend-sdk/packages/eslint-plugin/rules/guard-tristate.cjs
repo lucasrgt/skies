@@ -24,7 +24,7 @@ module.exports = {
     if (!isRoute(f) && !isInfraDataDoor(f)) return {};
     return {
       IfStatement(node) {
-        // `if (!<authBool>) return <Redirect/Navigate …/>` — the boolean-collapse redirect.
+        // `if (!<authBool>) return <Navigate …/>` — the boolean-collapse redirect.
         if (node.test.type !== "UnaryExpression" || node.test.operator !== "!") return;
         const name = authBoolName(node.test.argument);
         if (name && returnsRedirect(node.consequent))

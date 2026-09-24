@@ -14,7 +14,6 @@ const rules = {
   "view-purity": require("./rules/view-purity.cjs"), // SKYFE001
   "data-door": require("./rules/data-door.cjs"), // SKYFE002
   "no-mock": require("./rules/no-mock.cjs"), // SKYFE003
-  "viewmodel-platform-agnostic": require("./rules/viewmodel-platform-agnostic.cjs"), // SKYFE009
   "state-completeness": require("./rules/state-completeness.cjs"), // SKYFE010
   "i18n-completeness": require("./rules/i18n-completeness.cjs"), // SKYFE011
   "mutation-error-handled": require("./rules/mutation-error-handled.cjs"), // SKYFE013

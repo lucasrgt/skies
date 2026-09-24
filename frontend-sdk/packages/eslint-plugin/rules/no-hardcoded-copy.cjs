@@ -22,12 +22,12 @@ module.exports = {
     const f = context.filename.replace(/\\/g, "/");
     if (!isView(f)) return {};
     // Phase 2: props that carry user-facing copy. Only STRING-LITERAL values are flagged — `{t()}` and variables
-    // are JSXExpressionContainers, not literals, so they're never touched. `value`/`name`/`testID`/`variant`/
-    // `accessibilityRole` are deliberately NOT here (they're data/ids/enums, not copy).
+    // are JSXExpressionContainers, not literals, so they're never touched. `value`/`name`/`id`/`variant`/`role`
+    // are deliberately NOT here (they're data/ids/enums, not copy).
     const COPY_PROPS = new Set([
       "placeholder", "label", "title", "subtitle", "heading", "description", "message",
       "helperText", "caption", "errorMessage", "emptyTitle", "emptyDescription",
-      "accessibilityLabel", "accessibilityHint",
+      "aria-label", "alt",
     ]);
     const flag = (node, raw) => {
       const text = raw.trim();

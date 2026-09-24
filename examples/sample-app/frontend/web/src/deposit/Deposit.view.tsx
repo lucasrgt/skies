@@ -11,7 +11,7 @@ export function DepositView() {
   const { t } = useTranslation("deposit");
   const { control, submit, submitting, submitError, completed } = useDepositModel();
 
-  // The success surface. A routed app returns a declarative <Redirect> here (SKYFE015); the sample renders done.
+  // The success surface. A routed app returns a declarative <Navigate> here (SKYFE015); the sample renders done.
   if (completed) {
     return (
       <Screen>

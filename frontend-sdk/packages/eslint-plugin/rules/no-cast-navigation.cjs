@@ -4,25 +4,24 @@ const { isTest, walk } = require("../lib/shared.cjs");
 
 // SKYFE030 — no `as never`/`as any`/`as unknown` on a navigation target. The cast exists for one reason: to
 // silence the router's typed routes — and with them silenced, a drifted route literal compiles clean and 404s
-// in prod (the pilot incident: server-minted route strings navigated via `router.push(x as never)`; two of the
-// routes didn't exist in the app). The fix is never the cast: with typed routes on (expo-router
-// `experiments.typedRoutes` / TanStack's generated route tree) a literal is compile-checked, and a dynamic path
-// takes the typed `{ pathname, params }` object shape. Router-agnostic like its routing siblings: recognizes
-// router.push/replace/navigate, a useNavigate() binding, and the declarative <Redirect href>/<Navigate to>/
-// <Link href|to>. The rule is only half the gate — its config pair is typed routes being ON; without that, a
-// removed cast merely degrades to `string`.
+// in prod (the pilot incident: server-minted route strings navigated through a cast; two of the routes didn't exist
+// in the app). The fix is never the cast: with typed routes on (TanStack Router's generated route tree, React
+// Router's generated route types) a literal is compile-checked, and a dynamic path takes the typed
+// `{ to, params }` shape. Router-agnostic like its routing siblings: recognizes `router.navigate(...)`, a
+// `useNavigate()` binding, and the declarative `<Navigate to>` / `<Link to>`. The rule is only half the gate —
+// its config pair is typed routes being ON; without that, a removed cast merely degrades to `string`.
 module.exports = {
   meta: {
     type: "problem",
     docs: {
       description:
-        "No `as never`/`as any`/`as unknown` on a navigation target (imperative argument or declarative href/to) — the cast silences typed routes, and a silenced router lets a drifted route literal compile clean and 404 in prod.",
+        "No `as never`/`as any`/`as unknown` on a navigation target (imperative argument or declarative `to`) — the cast silences typed routes, and a silenced router lets a drifted route literal compile clean and 404 in prod.",
     },
     messages: {
       castNav:
-        "SKYFE030: don't cast a navigation target (`as {{type}}` in `{{call}}`) — the cast silences typed routes, so a drifted/invalid route compiles clean and 404s in prod. Pass a typed route literal or the `{ pathname, params }` object (typed routes on: expo-router `experiments.typedRoutes` / TanStack's route tree); never a cast.",
+        "SKYFE030: don't cast a navigation target (`as {{type}}` in `{{call}}`) — the cast silences typed routes, so a drifted/invalid route compiles clean and 404s in prod. Pass a typed route literal or the `{ to, params }` shape (typed routes on: TanStack's route tree / React Router's route types); never a cast.",
       castHref:
-        "SKYFE030: don't cast `{{attr}}` on <{{component}}> (`as {{type}}`) — the cast silences typed routes, so a drifted/invalid route compiles clean and 404s in prod. Pass a typed route literal or the `{ pathname, params }` object; never a cast.",
+        "SKYFE030: don't cast `{{attr}}` on <{{component}}> (`as {{type}}`) — the cast silences typed routes, so a drifted/invalid route compiles clean and 404s in prod. Pass a typed route literal or the `{ to, params }` shape; never a cast.",
     },
   },
   create(context) {
@@ -42,9 +41,9 @@ module.exports = {
       });
       return hit;
     };
-    // Identifiers bound from `useNavigate()` (TanStack) — so a bare `navigate(... as never)` is recognized.
+    // Identifiers bound from `useNavigate()` — so a bare `navigate(... as never)` is recognized.
     const navigators = new Set();
-    const NAV_COMPONENTS = /^(Redirect|Navigate|Link)$/;
+    const NAV_COMPONENTS = /^(Navigate|Link)$/;
     return {
       VariableDeclarator(node) {
         if (
@@ -65,9 +64,9 @@ module.exports = {
           callee.object.type === "Identifier" &&
           callee.object.name === "router" &&
           callee.property.type === "Identifier" &&
-          /^(push|replace|navigate)$/.test(callee.property.name)
+          callee.property.name === "navigate"
         )
-          call = `router.${callee.property.name}(…)`;
+          call = "router.navigate(…)";
         else if (callee.type === "Identifier" && navigators.has(callee.name)) call = `${callee.name}(…)`;
         if (!call) return;
         for (const arg of node.arguments) {
@@ -76,7 +75,7 @@ module.exports = {
         }
       },
       JSXAttribute(node) {
-        if (node.name.type !== "JSXIdentifier" || !/^(href|to)$/.test(node.name.name)) return;
+        if (node.name.type !== "JSXIdentifier" || node.name.name !== "to") return;
         const el = node.parent;
         if (el.type !== "JSXOpeningElement" || el.name.type !== "JSXIdentifier" || !NAV_COMPONENTS.test(el.name.name))
           return;
