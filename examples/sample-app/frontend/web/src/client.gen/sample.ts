@@ -40,3 +40,32 @@ export function useDeposit() {
     },
   });
 }
+
+// Stand-in for the orval hook of the backend's `Transfer` slice (`MapPost("/transfer")` under the `/wallets` group,
+// `.WithName(nameof(Transfer))` → `useTransfer`). The Idempotency-Key rides as a header, where the slice reads it.
+export interface TransferInput {
+  fromWalletId: string;
+  toWalletId: string;
+  amount: number;
+}
+
+export interface TransferOutput {
+  fromWalletId: string;
+  fromBalance: number;
+  toWalletId: string;
+  toBalance: number;
+}
+
+export function useTransfer() {
+  return useMutation({
+    mutationFn: async ({ data, idempotencyKey }: { data: TransferInput; idempotencyKey: string }): Promise<TransferOutput> => {
+      const response = await fetch(`${SAMPLE_API_BASE}/wallets/transfer`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "idempotency-key": idempotencyKey },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error(`transfer failed (${response.status})`);
+      return (await response.json()) as TransferOutput;
+    },
+  });
+}

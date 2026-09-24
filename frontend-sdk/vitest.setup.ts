@@ -21,6 +21,20 @@ beforeEach(() => {
       if (input.walletId === MISSING_WALLET) return new HttpResponse(null, { status: 404 });
       return HttpResponse.json({ walletId: input.walletId, balance: input.amount });
     }),
+    // Every source wallet holds 100 here: a larger transfer is refused as the slice refuses an overdraw (422).
+    http.post(`${SAMPLE_API_BASE}/wallets/transfer`, async ({ request }) => {
+      await delay(50);
+      const input = (await request.json()) as { fromWalletId: string; toWalletId: string; amount: number };
+      if (input.amount > 100) {
+        return HttpResponse.json({ code: "wallets.insufficient_funds" }, { status: 422 });
+      }
+      return HttpResponse.json({
+        fromWalletId: input.fromWalletId,
+        fromBalance: 100 - input.amount,
+        toWalletId: input.toWalletId,
+        toBalance: input.amount,
+      });
+    }),
   );
 });
 

@@ -1,20 +1,14 @@
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
-import { enUS as depositEnUS, esES as depositEsES, ptBR as depositPtBR } from "./deposit/deposit.i18n";
-import { enUS, esES, ptBR } from "./items/items.i18n";
+import { resources } from "./i18n/resources.generated";
 
-// Harness i18n instance (`@/i18n`) wired with the sample features' catalogs, so the ViewModels'
-// `i18n.t("items:error")` / `i18n.t("deposit:errors.submit")` resolve. A real Skies Framework app assembles this
-// resource tree from every feature's `*.i18n.ts` (the generator the roadmap calls "i18n assembly"); here we wire
-// the two sample features by hand.
+// Harness i18n instance (`@/i18n`) wired with every feature's catalog, so the ViewModels' `i18n.t("items:error")` /
+// `i18n.t("transfer:errors.submit")` resolve. The resource tree is assembled from each feature's `*.i18n.ts` by
+// `skies i18n`; rerun it after adding or removing a feature.
 void i18next.use(initReactI18next).init({
   lng: "en",
   fallbackLng: "en",
-  resources: {
-    en: { items: enUS, deposit: depositEnUS },
-    pt: { items: ptBR, deposit: depositPtBR },
-    es: { items: esES, deposit: depositEsES },
-  },
+  resources,
   interpolation: { escapeValue: false },
 });
 
