@@ -17,7 +17,10 @@ It exists to kill one failure: **the AI says "done" and ships a screen rendering
 
 ## The stack
 
-- **React + TypeScript strict**: `tsc` is part of the doctor; it makes "wired" decidable.
+- **React + TypeScript strict**: `tsc` is part of the doctor; it makes "wired" decidable. `skies doctor` runs a
+  typecheck leg beside every React package's lint, in parallel: the package's `typecheck` script when it has one,
+  else `tsc --noEmit -p <package>` when it has a `tsconfig.json`, and each TypeScript error is a finding (`TS2322`
+  at its file and line). A View bound to a renamed hook field lints clean; only the compiler sees it.
 - **A router with typed routes**: TanStack Router (route tree) or React Router (route types). Route files (under
   `app/`, TanStack Router's file-based `src/routes/**`, or React Router's `routes/`) are thin shells rendering exactly
   one feature's `*.view.tsx`. Navigation is the router's job, data the ViewModel's: two seams, never crossed.
@@ -71,6 +74,11 @@ orval.config.ts          # the shipped convention config
 
 - **The generator is stock orval, wrapped** (`skies g client`): our own generator would re-solve what orval
   maintains. The opinion lives in the config and the mutator. The generated layer is boring on purpose.
+- **`client.gen/` holds generated files only.** `skies g client` checks everything before it writes anything (the
+  contract is built, orval is installed in the package or a hoisting ancestor, and every file under `client.gen/`
+  carries orval's header), then writes the missing seams and runs orval with `clean: false`. After the run it
+  removes only the generated files the contract no longer produces; a hand-written file there stops the run
+  instead of being overwritten or deleted.
 - **Endpoint name = slice name.** `MapPost("/deposit", …).WithName("Deposit")` → `operationId` → `useDeposit`
   (`SKY0012`).
 - **The audience filter is generator config.** orval includes only `app` endpoints; `Asset`, `Webhook`, and
@@ -282,9 +290,22 @@ route tree, React Router's route types); without them the literal degrades to an
 | ViewModel body (state, commands, UX) | ❌ source generation of behavior | ✅ a visible skeleton you write |
 
 Scaffolding writes visible code you own and edit, and deleting the generator touches nothing. Source generation
-owns its output, clobbers edits, and hides behavior in the generator. `skies g feature <Name>` scaffolds the
-`view`/`viewModel`/`i18n` unit once, typed from the contract, behavior left to the app; tests are not scaffolded
-(cases live in the spec). "Smart stubs" that pre-fill the body with runtime calls are out. When the contract changes,
+owns its output, clobbers edits, and hides behavior in the generator. `skies g feature <Name> [--kind list|form]`
+scaffolds the `view`/`viewModel`/`i18n` unit once, typed from the contract, behavior left to the app; tests are not
+scaffolded (cases live in the spec):
+
+- **`--kind list`** (the default: a module's first screen is usually the read of what it holds): the
+  `List<Name>` read hook folded into `AsyncState` and rendered through `<Resource>` with loading, error, and empty
+  states.
+- **`--kind form`**: a command screen, the Deposit recipe. The ViewModel owns a react-hook-form `useForm` with a zod
+  schema restating only the slice's rules, submits through `submitOrReveal` into the `<Name>` mutation
+  (`mutate({ data })`), and exposes `submitting`, a localized `submitError`, and `completed`; the View renders one
+  `Controller` + `Field` per input, the `role=alert` command error, and the success surface. Its fields start as the
+  `g slice` scaffold's Input (`id`): replace them with the slice's real Input.
+
+Both import their hook from the package's own client module (`@/client.gen/<backend>`, e.g. `@/client.gen/sample`
+for `Sample.Api`), read from `client.gen/` or from `Skies.toml` before the client exists, never from the feature's
+name. "Smart stubs" that pre-fill the body with runtime calls are out. When the contract changes,
 `*.gen.ts` regenerates and `tsc` breaks the ViewModel where it is now wrong; you fix it by hand.
 
 ## The harness — rule catalog (`SKYFE*`)
@@ -340,8 +361,14 @@ Playwright for the real browser, Vitest for a View + ViewModel in jsdom. Name ea
 (`test("FM-3: an expired session lands on sign-in")`); nothing in the ViewModel, View, or a manifest points at the spec.
 
 **A spec is the only home for a test** (`SKYFE036`): no `Foo.test.tsx` beside `Foo.viewModel.ts`. An isolated system
-(a formatter, a reducer, a UI kit) gets its own spec. Cases import code by relative path or alias. The sample's web
-runner:
+(a formatter, a reducer, a UI kit) gets its own spec. Cases import code by relative path or alias.
+
+**Test support belongs to the specs too.** A web spec runs the real client against a stand-in backend at the HTTP
+boundary (MSW), whose handlers answer the backend's real routes (`POST /wallets/deposit`, never a guessed
+`/deposit`) with its real error codes. The server and its handlers live in one setup file owned by the app's specs,
+wired through the Vitest config's `setupFiles`; the sample's is `examples/sample-app/.specs/web.setup.ts`, loaded by
+the config its web runner uses. Never in `src/` (MSW there is production code, `SKYFE003`), and never in a framework
+file: a feature that needs a new route adds its handler to the app's setup. The sample's web runner:
 
 ```toml
 [runners.web]

@@ -16,6 +16,11 @@ passing after it. Nothing else is required: no tags, no manifests, no gate.
   evidence/      report + artifacts tests save to $SKIES_EVIDENCE (hashed by the receipt)
 ```
 
+**Write first, commit together.** The spec and its E2E are written before the code, but they are committed with
+the code that makes them pass: one change holds the spec, its E2E, the feature, and the receipt, so every commit
+stays green. Never commit a failing spec on its own. Red is proven by `skies proof record` against the merge-base,
+not by a red commit.
+
 ## 1. Understand
 
 Read the module's `<Module>.ctx.md` and the slices or screens the change touches. Check `Skies.toml` for the
@@ -32,6 +37,9 @@ skies proof verify <the impacted ids>      # baseline: they must pass before you
 `<Module>.ctx.md` of every module the paths reach. Read both before writing failure modes: the specs are behavior
 other features rely on, the ctx holds the module's invariants and the specs that prove them, and your failure modes
 must contradict neither. If a baseline verify already fails, report it before starting; it is not yours to hide.
+`verify` only reruns green: a receipt that is current and still passes is left untouched (`--refresh` rewrites its
+green evidence anyway), a stale one gets fresh green evidence. A spec with no receipt yet reads `unrecorded` in
+`skies proof status` and in `verified_with`; record it before relying on it.
 
 ## 2. Write the spec (before any code)
 
@@ -68,6 +76,24 @@ pagination…), decide it with that Assay verifier instead of a hand-rolled chec
 id: `- FM-5 A retry with the same key credits twice [avp: idempotency-key-honored]`. The tag is optional; use it
 only when an archetype fits.
 
+**`touches:` in the frontmatter** pins files the receipt must depend on that its runner cannot see. A receipt's
+footprint is what the green run executed (with coverage) or the files changed since red (without it), plus
+`touches`. List paths or globs, relative to the app root, when a file the spec relies on would otherwise stay out of
+it: a View, a copy catalog, or a shared component a web runner without coverage renders but the change did not edit;
+a config, JSON, or template read at runtime that coverage does not count. Each match is hashed whole, and a new file
+matching a glob also makes the receipt stale:
+
+```yaml
+---
+id: "0012"
+runner: web
+touches: [frontend/web/src/deposit/Deposit.view.tsx, frontend/web/src/deposit/deposit.i18n.ts]
+---
+```
+
+A runner's `scope` in `Skies.toml` (`scope = ["frontend/web/"]`) bounds all of this: only files under it count for
+that runner's specs (the diff, `touches` matches, coverage, and ctx notes), so a backend edit never stales a web spec.
+
 **Stop and show the failure modes to the human.** They are the point of review; the rest follows from them.
 
 ## 3. Write the E2E and watch it fail
@@ -82,18 +108,38 @@ cases import `package:<app>/...` and the spec's runner copies them into the pack
   `test("FM-2: …")`, `testWidgets('FM-2: …')`.
 - .NET spec tests live in namespace `Specs.S<id>` so the runner filter selects exactly this spec.
 - Assert the observable outcome and, for rejections, that state did not change.
+- Assert the error **code**, not only the status. A route that does not exist also answers 404, so a not-found
+  failure mode asserted on the status alone passes before the endpoint exists and after it is misrouted. Read the
+  body's `code` (`wallets.not_found`) the way the client does.
 - Seed through the app's own services or endpoints; never mock the thing the failure mode is about.
 - For a tagged failure mode, run the Assay verifier against the real app and save its verdict before asserting:
   `SpecEvidence.Save("avp-FM-5.json", verdict)` in .NET (`Skies.Framework.Testing`; pass
   `transport: app.CreateClient` to `Runner.Run` to use the test host), or write `verdictToJsonLine(verdict)` to
   `$SKIES_EVIDENCE/avp-FM-5.json` in TypeScript. The mode passes only when the verdict does.
+- For `idempotency-key-honored`, `RequestIdempotencySubject`'s `IdField` names the top-level response field that
+  identifies the effect: the verifier sends the body three times (key A, key A again, key B) and requires the same
+  value on the replay and a different one under the new key. A create returns a fresh `id`; an in-place mutation
+  names an outcome that moves with every application, like the resulting `balance`. With a multi-field output pick
+  the field that changes each time (a transfer's `fromBalance`), never one that echoes the input (`fromWalletId`
+  is the same under every key, so the verifier reports the keys as collapsed), and seed enough state for two
+  applications.
 
-Run them now. Every case must fail for the right reason (missing endpoint, wrong status, missing effect).
+Run them now, with `skies proof run <id>`: it runs the spec's E2E once on the working tree, prints each failure
+mode's pass or fail with what the failing cases reported, and writes nothing. Every mode must fail, for the right
+reason (missing endpoint, wrong status, missing effect): a mode that passes now does not discriminate.
 
 ## 4. Implement
 
-Generate the shapes (`skies g module|slice|entity|vo|crud|hub|feature|client`), then write the behavior following
-the conventions. Keep `skies doctor` clean.
+Generate the shapes, then write the behavior following the conventions. Keep `skies doctor` clean (it builds the
+backend with the SKY analyzers, and lints and typechecks every React package).
+
+- Backend: `skies g module|slice|entity|vo|crud|hub`, from the app root or the API project (`--project <dir>` when
+  `Skies.toml` declares several backends). `g slice` maps the slice under its module's route group and inherits the
+  group's authorization decision.
+- Frontend: `skies g feature <Name> --kind list|form` (a read screen, or a command screen with its form, pending,
+  error, and success states), `skies g client` after the contract moves, `skies i18n` after copy changes.
+
+Rerun `skies proof run <id>` until every mode passes.
 
 An isolated system with many cases (a value object, a calculation, a parser) gets its own spec, never a loose unit
 test: failure modes first, isolated cases in its `e2e/` titled `FM-n: …`, a `red.patch` that breaks the invariant,
@@ -110,10 +156,13 @@ then writes `receipt.json` and copies the report and saved artifacts into `evide
 its cases pass and its verdict reports every tagged criterion as pass. `--with-impacted` then reruns green for every
 other spec whose files overlap yours and names the ones that passed in `verified_with`; if one fails, your change
 broke it: fix the code, not the other spec. Never edit `evidence/` by hand; `skies proof status` reports it as
-tampered. If the E2E cannot even build on the merge-base
-(it uses code the feature adds), every FM counts as failing and the build output is kept as `evidence/red.log`.
-If a failure mode already passes on the merge-base, either the test does not discriminate (fix the test) or the behavior already existed (add a
+tampered. If the E2E cannot even build on the merge-base (it uses code the feature adds), every FM counts as failing,
+for every runner, and the build output is kept as `evidence/red.log`. If a failure mode already passes on the
+merge-base, either the test does not discriminate (fix the test) or the behavior already existed (add a
 `## Non-discriminating` section to `spec.md` explaining why).
+
+The merge-base is taken with the default branch. If red resolves to the wrong revision (the app branches from
+`develop`, not `main`), set it once in `Skies.toml`, `[workspace] default_branch = "develop"`, or pass `--red <rev>`.
 
 For a spec written after the code, add a `red.patch` that removes the behavior (for example, stub the handler)
 and record against it.
@@ -135,4 +184,4 @@ recording stales nothing; record again if you want the receipt's `ctx_revised` t
 Report the spec path, the failure modes (with their `[avp: …]` tags), the receipt summary (red/green per FM), the
 impacted specs and whether they still pass (`verified_with`), the ctx.md files you revised, and `skies doctor`
 status. If other receipts went stale because of your change (`skies proof status`), say so and rerun them with
-`skies proof verify <ids>`.
+`skies proof verify <ids>`. Then commit the spec, its E2E, the code, and the receipt together.

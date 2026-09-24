@@ -62,6 +62,13 @@ tools/sync-plugin-docs.sh                                 # after editing docs/*
 
 Run what your change touches. Leave every affected workspace green.
 
+- A template change moves the generator snapshots: re-bless with `SKIES_BLESS=1 cargo test --test generators` and
+  review the fixture diff. `cli/templates/app/.claude/skills/skies-sdd/SKILL.md` is a verbatim copy of
+  `skies-plugin/skills/skies-sdd.md`; edit both.
+- The sample is an app like any other: its web specs' stand-in backend is `examples/sample-app/.specs/web.setup.ts`,
+  not a `frontend-sdk` file. An edit to the sample's code or specs can stale its receipts (`skies proof status` from
+  `examples/sample-app/`).
+
 ## The doctor vs the self-harness
 
 - **`SKY*` (`Skies.Framework.Doctor`)** runs on the user's code and ships. **`SKYSELF*`** runs on ours, is

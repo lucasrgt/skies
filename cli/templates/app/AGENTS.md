@@ -24,9 +24,28 @@ C#, TypeScript, and Dart.
 Follow the `skies-sdd` skill (`.claude/skills/skies-sdd/SKILL.md`):
 
 1. `skies spec new <slug>` and write the failure modes in `spec.md`. **Stop and show them to the human.**
-2. Write the E2E in the spec's `e2e/` folder (namespace `Specs.S<id>`, cases titled `FM-n: …`). Watch them fail.
-3. Generate the shapes (`skies g module|slice|entity|vo|crud|hub`) and implement. Keep `skies doctor` clean.
-4. `skies proof record <id>` and report the receipt.
+2. Write the E2E in the spec's `e2e/` folder (namespace `Specs.S<id>`, cases titled `FM-n: …`). Watch them fail
+   with `skies proof run <id>` (runs once, prints each failure mode's pass or fail, writes nothing).
+3. Generate the shapes and implement until `skies proof run <id>` passes. Keep `skies doctor` clean.
+4. `skies proof record <id> --with-impacted` and report the receipt. Commit the spec, its E2E, the code, and the
+   receipt together: the spec is written first, never committed red on its own.
+
+The generators, all runnable from the app root:
+
+```
+skies g module <Name>                     # <Name>Module.cs + ctx.md, wired into Modules/Modules.cs
+skies g slice <Module> <Name>             # one slice file, mapped under the module's route group
+skies g entity|crud <Module> <Name>       # an always-valid [Entity]; list/lookup/create/update/delete slices
+skies g vo <Name>  /  skies g hub <Module> <Name>
+skies g auth [--skip-tenancy] [--skip-cookies]  /  skies g auth:otp|auth:oauth|auth:email
+skies g feature <Name> --kind list|form --package <dir>  # React or Flutter screen: ViewModel + View + copy
+skies g client --package <dir>            # the typed client from the backend's OpenAPI contract
+skies i18n --package <dir>                # assemble the per-feature copy catalogs
+```
+
+Backend generators write into the backend `Skies.toml` declares (`--project <dir>` picks one when there are
+several). A `form` feature is a command screen (validation, pending, error, and success states); `list` is a read
+screen over the `List<Name>` query.
 
 **Every test lives in a spec**, and nowhere else: never a unit test written after the code to cover it, never a
 test file beside the code. An isolated system (a value object, a calculation, a parser) gets its own spec whose
@@ -137,6 +156,10 @@ app's own.
   - The spine `@skiesjs/react` ships the primitives these steer toward: `SessionState`/`toSessionState`,
     `AsyncState`/`Resource`/`combineAsyncStates`, `safeBack`, `requiredParam`, `submitOrReveal`.
 - **Contract freshness** — regenerate the typed client with `skies g client` whenever the backend contract moves.
+  `src/client.gen/` is generated output only: `g client` refuses to run while it holds a hand-written file.
+- **Test support lives with the specs** — a web spec's stand-in backend (MSW handlers matching the real routes)
+  is a setup file beside the specs (e.g. `.specs/web.setup.ts`), wired through the package's Vitest `setupFiles`;
+  never in `src/` (`SKYFE003`), never in a framework file.
 
 Routing rules are **error**-tier (correctness), beside the architecture rules — not the warn-tier polish rules.
 A badly-wired route **fails the build**.
@@ -146,9 +169,11 @@ A badly-wired route **fails the build**.
 ## Build & verify
 
 ```
-skies doctor                 # dotnet build (SKY*), eslint (SKYFE*), Flutter rules (SKYFL*)
+skies doctor                 # dotnet build (SKY*), eslint + tsc (SKYFE*, types), Flutter rules (SKYFL*)
 dotnet test                  # every spec case (the only tests there are)
-skies proof status           # which receipts went stale (hashes only)
+skies proof run <id>         # one spec's E2E, once, per failure mode; writes nothing
+skies proof impact <paths>   # the specs a change reaches, with their failure modes, before you make it
+skies proof status           # which receipts went stale (hashes only); a spec without one is `unrecorded`
 skies proof verify --stale   # rerun them when your change could affect them
 ```
 
@@ -183,7 +208,8 @@ about *generic* mechanisms only.
 
 - Stage specific files (`git add <path>`), never `-A`/`.`. One commit per concern; lowercase, present-tense
   imperative messages.
-- Workspace green every commit. No `--force`, no history rewrites.
+- Workspace green every commit: a spec and its E2E land in the same commit as the feature that makes them pass.
+  No `--force`, no history rewrites.
 
 ---
 
