@@ -96,14 +96,14 @@ pub enum Generate {
     /// Email verification and password reset.
     #[command(name = "auth:email")]
     AuthEmail,
-    /// A frontend feature (ViewModel + View + i18n) in a React or Flutter package.
+    /// A frontend feature (ViewModel + View + i18n) in a React web or Flutter package.
     Feature {
         name: String,
         /// The frontend package directory (defaults to the current directory).
         #[arg(long)]
         package: Option<PathBuf>,
     },
-    /// The typed API client for a React or Flutter package, from the backend's OpenAPI contract.
+    /// The typed API client for a React web or Flutter package, from the backend's OpenAPI contract.
     Client {
         /// The frontend package directory (defaults to the current directory).
         #[arg(long)]

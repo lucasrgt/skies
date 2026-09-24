@@ -1,4 +1,4 @@
-//! React tooling: feature scaffold, typed client generation, and i18n assembly.
+//! React web tooling: feature scaffold, typed client generation, and i18n assembly. (Mobile is Flutter.)
 //!
 //! `scaffold` and `contract` are shared with the Flutter tooling: both platforms write files under the same
 //! policies and find their backend contract through the same `Skies.toml` lookup.

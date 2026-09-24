@@ -1,4 +1,4 @@
-//! `skies g feature` for React: the ViewModel + View + i18n unit.
+//! `skies g feature` for a React web package: the ViewModel + View + i18n unit.
 //!
 //! The emitted unit is the blessed `items` shape with names substituted, so it passes the SKYFE rules and
 //! typechecks by construction. Tests are not scaffolded: in Skies 5 a feature's evidence is the E2E in its spec

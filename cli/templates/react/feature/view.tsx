@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Resource } from "@skiesjs/react";
-// The design system — the View reaches it through these names only (never react-native directly).
+// The app's component kit — the View reaches markup and styling through these names only.
 import { Screen, Stack, Text, EmptyState } from "@/ui";
 import { use{{ plural }}Model } from "./{{ plural }}.viewModel";
 import type { {{ entity }} } from "./{{ plural }}.viewModel";

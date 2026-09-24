@@ -4,7 +4,7 @@ import { useList{{ plural }} } from "@/client.gen/{{ lower }}";
 import i18n from "@/i18n";
 
 // FEATURE UNIT — the ViewModel (the "data door", the front-side of a backend [Slice]). Only place that touches the
-// generated client (SKYFE002), platform-agnostic so it tests in jsdom (SKYFE009), exposes its resource as
+// generated client (SKYFE002), renders nothing so a spec case drives it with renderHook, exposes its resource as
 // AsyncState<T> (the spine) so the View handles every state by construction.
 
 export interface {{ entity }} {

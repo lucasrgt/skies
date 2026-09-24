@@ -1,4 +1,4 @@
-//! `skies g client` for React: the hand-owned client seams plus an orval run.
+//! `skies g client` for a React web package: the hand-owned client seams plus an orval run.
 //!
 //! orval generates the hooks. What it cannot generate are the files every hook calls through: the mutator (auth
 //! injection, the injectable base URL, the `X-Client: web` header that turns on the cookie session), the
