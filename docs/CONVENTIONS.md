@@ -260,17 +260,27 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
   or `HEAD` plus the spec's `red.patch` for a spec written after the code), where every mode must fail, then on the
   working tree, where every mode must pass. E2E that do not build on red count as failing, with the build output as
   evidence. A mode already passing on red is non-discriminating and needs a written justification in `spec.md`.
-- **A receipt is a record, not a gate.** It hashes the files the feature depends on (its footprint) and everything
-  under `evidence/`. `skies proof status` shows `stale` (files changed) and `tampered` (evidence edited) receipts
-  from hashes alone; `skies proof verify --stale` reruns them. Nothing runs in a hook unless the team adds one.
-- **The footprint is what green executed.** When the runner writes coverage, the footprint is every project file
-  with an executed line in the green run (build output, generated code, and `.specs/` left out), plus the files
-  changed since red, plus `touches`; the receipt says `"footprint_source": "coverage"`. A change to a shared file
-  the spec never edited (the platform wiring, an entity, a middleware) then makes it stale and shows in
-  `proof impact`. A file whose code only runs at startup (route mapping, service registration) is executed by every
-  spec that boots the host, so it lands in all their footprints. Without coverage the footprint is the diff plus
-  `touches` (`"diff"`), and `record` says so. `verify` refreshes the executed part from its own run and keeps the
-  recorded changed files (`footprint_changed`). Coverage never enters `evidence/`: the footprint hashes are the record.
+- **A receipt is a record, not a gate.** It pins the code the feature depends on (its footprint) and hashes
+  everything under `evidence/`. `skies proof status` shows `stale` (footprint code or spec inputs changed) and
+  `tampered` (evidence edited) receipts from the filesystem alone, in milliseconds; `skies proof verify --stale`
+  reruns them. Nothing runs in a hook unless the team adds one.
+- **The footprint is the lines green executed.** When the runner writes coverage, the footprint is the executed
+  lines of every project file the green run executed (build output, generated code, and `.specs/` left out), plus
+  the files changed since red, plus `touches`; the receipt says `"footprint_source": "coverage"`. A covered file is
+  recorded as `{ "lines": "12-18,40,55-60", "hash": "blake3:…" }`: the executed line numbers and a hash of those
+  lines' text (line endings normalized, whitespace inside a line kept). Every other footprint file (changed since
+  red without executing, or matched by `touches`, which always pins the whole file) and every spec input keep a
+  whole-file hash.
+- **What makes a receipt stale:** a recorded executed line whose text changed, a covered file that no longer has
+  that many lines, any change to a whole-file footprint file or spec input (spec.md, `e2e/`, root lockfiles), or a
+  new file matching `touches`. An edit confined to lines the spec never executed leaves it current, so editing one
+  slice's handler marks only the specs that run that handler, while an edit to startup code every host executes
+  (route mapping, service registration) marks every spec that boots the host. Inserting or deleting lines above an
+  executed line shifts it, and reads as stale: conservative, since the receipt can no longer tell which code ran.
+  Without coverage the footprint is the diff plus `touches` (`"diff"`), whole files only, and `record` says so.
+  `verify` refreshes the executed files and lines from its own run and keeps the recorded changed files
+  (`footprint_changed`); a receipt with whole-file hashes for covered files still reads, and its next `verify`
+  pins lines. Coverage never enters `evidence/`: the footprint is the record.
 - **Evidence is a frozen, portable artifact.** Runners get `SKIES_EVIDENCE` (the run's evidence folder, absolute)
   and `SKIES_SPEC` (the spec folder name) in their environment, besides the `{evidence}` placeholder. What a test
   writes there is copied into `evidence/` and hashed. .NET tests use `SpecEvidence.Save("name.json", value)` from
