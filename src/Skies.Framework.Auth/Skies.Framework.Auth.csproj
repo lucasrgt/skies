@@ -11,6 +11,8 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <!-- JWT bearer is ASP.NET-native (the framework wires mint + validate together so they agree). -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
+    <!-- argon2id for passwords and one-time codes: the hashing mechanism ships here, so apps no longer carry it. -->
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
   </ItemGroup>
 
   <ItemGroup>
