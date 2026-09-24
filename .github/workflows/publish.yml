@@ -93,7 +93,9 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           publish() { name=$(node -p "require('./$1/package.json').name"); ver=$(node -p "require('./$1/package.json').version")
-            if npm view "$name@$ver" version >/dev/null 2>&1; then echo "$name@$ver already published"; else npm publish "$1" --access public --provenance; fi; }
+            # npm refuses a prerelease on the default dist-tag; release candidates go to `next`.
+            tag=latest; case "$ver" in *-*) tag=next ;; esac
+            if npm view "$name@$ver" version >/dev/null 2>&1; then echo "$name@$ver already published"; else npm publish "$1" --access public --provenance --tag "$tag"; fi; }
           for dir in dist/skies-*; do
             platform=${dir#dist/skies-}
             exe=$(ls "$dir")
@@ -180,7 +182,7 @@ jobs:
           for dir in packages/*/; do
             name=$(node -p "require('./$dir/package.json').name")
             ver=$(node -p "require('./$dir/package.json').version")
-            if npm view "$name@$ver" version >/dev/null 2>&1; then echo "$name@$ver already on npm"; else (cd "$dir" && npm publish --access public); fi
+            if npm view "$name@$ver" version >/dev/null 2>&1; then echo "$name@$ver already on npm"; else (cd "$dir" && tag=latest; case "$ver" in *-*) tag=next ;; esac; npm publish --access public --tag "$tag"); fi
           done
 
   pub:

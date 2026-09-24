@@ -108,6 +108,30 @@ mod tests {
     }
 
     #[test]
+    fn the_template_references_the_packages_this_binary_ships_with() {
+        let dir = tempfile::tempdir().unwrap();
+        new_app(dir.path(), "Acme").unwrap();
+        let mut checked = 0;
+        for project in [
+            "Acme/src/Acme.Api/Acme.Api.csproj",
+            "Acme/tests/Acme.Tests/Acme.Tests.csproj",
+        ] {
+            let text = std::fs::read_to_string(dir.path().join(project)).unwrap();
+            for line in text
+                .lines()
+                .filter(|line| line.contains("<PackageReference Include=\"Skies"))
+            {
+                assert!(
+                    line.contains(&format!("Version=\"{}\"", super::super::FRAMEWORK_VERSION)),
+                    "{project}: {line} (run tools/set-version.sh)"
+                );
+                checked += 1;
+            }
+        }
+        assert!(checked >= 3);
+    }
+
+    #[test]
     fn a_new_app_declares_the_api_runner_and_ignores_build_output() {
         let dir = tempfile::tempdir().unwrap();
         new_app(dir.path(), "Acme").unwrap();
