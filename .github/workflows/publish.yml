@@ -38,7 +38,7 @@ jobs:
         include:
           - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest, npm: linux-x64, exe: skies }
           - { target: aarch64-unknown-linux-gnu, os: ubuntu-24.04-arm, npm: linux-arm64, exe: skies }
-          - { target: x86_64-apple-darwin, os: macos-13, npm: darwin-x64, exe: skies }
+          - { target: x86_64-apple-darwin, os: macos-15-intel, npm: darwin-x64, exe: skies }
           - { target: aarch64-apple-darwin, os: macos-latest, npm: darwin-arm64, exe: skies }
           - { target: x86_64-pc-windows-msvc, os: windows-latest, npm: win32-x64, exe: skies.exe }
     runs-on: ${{ matrix.os }}
