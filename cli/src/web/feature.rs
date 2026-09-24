@@ -120,8 +120,11 @@ pub fn render_feature(
                     ..field.clone()
                 })
                 .collect();
+            let inputs: Vec<&Field> = fields.iter().filter(|f| !f.context).collect();
+            let targets: Vec<&Field> = fields.iter().filter(|f| f.context).collect();
             let ctx = context! {
-                name => names.plural, lower => names.lower, client, locales, fields, variables, title,
+                name => names.plural, lower => names.lower, client, locales, fields => inputs, targets, variables,
+                title,
             };
             (FORM_VIEW_MODEL, FORM_VIEW, FORM_I18N, ctx)
         }
@@ -142,19 +145,22 @@ fn humanize(pascal: &str) -> String {
         .map_or_else(String::new, |c| c.to_ascii_uppercase().to_string() + chars.as_str())
 }
 
-/// The mutation's variables: path parameters by name beside the body as `data`, the shape orval generates.
+/// The mutation's variables in the shape orval generates: path parameters by name, query parameters as `params`,
+/// and the body as `data`.
 pub fn variables(fields: &[Field], has_body: bool) -> String {
-    let path: Vec<String> = fields
-        .iter()
-        .filter(|f| f.in_path)
-        .map(|f| format!("{}: {}", f.name, f.value))
-        .collect();
-    let body: Vec<String> = fields
-        .iter()
-        .filter(|f| !f.in_path)
-        .map(|f| format!("{}: {}", f.name, f.value))
-        .collect();
-    let mut parts = path;
+    let pairs = |location: &str| -> Vec<String> {
+        fields
+            .iter()
+            .filter(|f| f.location == location)
+            .map(|f| format!("{}: {}", f.name, f.value))
+            .collect()
+    };
+    let mut parts = pairs("path");
+    let query = pairs("query");
+    if !query.is_empty() {
+        parts.push(format!("params: {{ {} }}", query.join(", ")));
+    }
+    let body = pairs("body");
     if has_body || !body.is_empty() {
         parts.push(format!("data: {{ {} }}", body.join(", ")));
     }

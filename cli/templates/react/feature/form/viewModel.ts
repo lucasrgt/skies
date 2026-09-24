@@ -8,7 +8,14 @@ import i18n from "@/i18n";
 // The form lives in the ViewModel so a spec drives its rules through this hook. Every input holds a string; the
 // schema restates the slice's own rules (from its contract) and the submit converts at the boundary. The backend
 // stays the authority.
-
+{% if targets %}
+/** What the screen acts on, from its route and the record it loaded: sent as given, never typed. */
+export interface {{ name }}Target {
+{%- for field in targets %}
+  {{ field.name }}: {{ field.ts_type }};
+{%- endfor %}
+}
+{% endif %}
 export interface {{ name }}Form {
 {%- for field in fields %}
   {{ field.name }}: string;
@@ -23,7 +30,7 @@ export interface {{ name }}Model {
   completed: boolean;
 }
 
-export function use{{ name }}Model(): {{ name }}Model {
+export function use{{ name }}Model({% if targets %}target: {{ name }}Target{% endif %}): {{ name }}Model {
   const mutation = use{{ name }}();
 
   const schema = z.object({

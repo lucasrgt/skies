@@ -2,10 +2,17 @@ import { useTranslation } from "react-i18next";
 import { Controller } from "react-hook-form";
 import { Button, Card, Field, Input, Screen, Stack, Text } from "@/ui";
 import { use{{ name }}Model } from "./{{ name }}.viewModel";
-
+{%- if targets %}
+import type { {{ name }}Target } from "./{{ name }}.viewModel";
+{%- endif %}
+{% if targets %}
+// The route renders this with the record it acts on (its id from the path, its version from the loaded row).
+export function {{ name }}View({ target }: { target: {{ name }}Target }) {
+{%- else %}
 export function {{ name }}View() {
+{%- endif %}
   const { t } = useTranslation("{{ lower }}");
-  const { control, submit, submitting, submitError, completed } = use{{ name }}Model();
+  const { control, submit, submitting, submitError, completed } = use{{ name }}Model({% if targets %}target{% endif %});
 
   // A routed app returns a declarative <Navigate> here instead.
   if (completed) {

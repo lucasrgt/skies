@@ -322,3 +322,38 @@ fn the_client_module_is_the_packages_not_the_features() {
     std::fs::write(lone.path().join("src/client.gen/shop.ts"), "").unwrap();
     assert_eq!(client_module(lone.path()), "shop");
 }
+
+#[test]
+fn a_form_takes_the_record_it_acts_on_as_its_target() {
+    let (_dir, web) = package_with_contract(
+        serde_json::json!({ "/catalog/products/{id}": {
+            "put": {
+                "operationId": "UpdateProduct",
+                "parameters": [{ "name": "id", "in": "path", "schema": { "type": "string", "format": "uuid" } }],
+                "requestBody": { "content": { "application/json": { "schema": {
+                    "$ref": "#/components/schemas/UpdateProductChanges" } } } } },
+            "delete": {
+                "operationId": "DeleteProduct",
+                "parameters": [
+                    { "name": "id", "in": "path", "schema": { "type": "string", "format": "uuid" } },
+                    { "name": "version", "in": "query", "schema": { "type": "string", "format": "uuid" } }] } } }),
+        serde_json::json!({ "UpdateProductChanges": { "type": "object", "required": ["name", "version"], "properties": {
+            "name": { "type": "string" }, "version": { "type": "string", "format": "uuid" } } } }),
+    );
+
+    scaffold(&web, "UpdateProduct", FeatureKind::Form, None).unwrap();
+    scaffold(&web, "DeleteProduct", FeatureKind::Form, None).unwrap();
+
+    let update = read(&web, "src/update-product/UpdateProduct.viewModel.ts");
+    assert!(update.contains("export interface UpdateProductTarget {\n  id: string;\n  version: string;\n}"));
+    assert!(update.contains("export function useUpdateProductModel(target: UpdateProductTarget): UpdateProductModel {"));
+    assert!(update.contains("export interface UpdateProductForm {\n  name: string;\n}"));
+    assert!(update.contains("mutation.mutate({ id: target.id, data: { name: values.name, version: target.version } })"));
+    let view = read(&web, "src/update-product/UpdateProduct.view.tsx");
+    assert!(view.contains("export function UpdateProductView({ target }: { target: UpdateProductTarget }) {"));
+    assert!(view.contains("useUpdateProductModel(target);") && !view.contains("name=\"version\""));
+    assert!(!read(&web, "src/update-product/update-product.i18n.ts").contains("version"));
+
+    let delete = read(&web, "src/delete-product/DeleteProduct.viewModel.ts");
+    assert!(delete.contains("mutation.mutate({ id: target.id, params: { version: target.version } })"));
+}

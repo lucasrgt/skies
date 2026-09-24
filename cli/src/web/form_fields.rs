@@ -5,6 +5,10 @@
 //! schema restates the contract's requiredness and format, and the submit converts at the boundary (`Number(...)`).
 //! A field the scaffold cannot render as a text box (a boolean, an enum, a list, an object) stops the run with its
 //! name, so the screen is never generated with a silently missing input.
+//!
+//! Not every input is typed by the user. What names the record the command acts on (a path or query parameter, such as
+//! the `id` in `/products/{id}`) and the concurrency `version` the client read are the screen's context: the
+//! ViewModel takes them as its `target` and sends them as they are.
 
 use anyhow::{Result, bail};
 use serde::Serialize;
@@ -31,16 +35,40 @@ pub struct Field {
     pub input: &'static str,
     /// The zod schema for the string the input holds; `{msg}` is the localized error expression.
     pub rule: String,
-    /// The expression that turns `values.<name>` into the wire value.
+    /// The expression that turns `values.<name>` (or `target.<name>`) into the wire value.
     pub value: String,
-    /// A path parameter travels beside `data`, not inside it.
-    pub in_path: bool,
+    /// Where the value travels: `path` (beside `data`), `query` (in `params`), or `body` (in `data`).
+    pub location: &'static str,
+    /// A value the screen is given (`target.<name>`), not an input the user types.
+    pub context: bool,
+    /// The TypeScript type of a context value.
+    pub ts_type: &'static str,
     /// The default English error copy.
     pub error: String,
 }
 
+/// The body property that carries the version the client read (optimistic concurrency): sent, never typed.
+const VERSION: &str = "version";
+
 impl Field {
-    fn new(name: &str, kind: Kind, required: bool, nullable: bool, in_path: bool) -> Field {
+    /// A value the screen is given and sends as is.
+    fn context(name: &str, kind: Kind, location: &'static str) -> Field {
+        let numeric = matches!(kind, Kind::Number | Kind::Integer);
+        Field {
+            name: name.to_string(),
+            label: label(name),
+            input: if numeric { "number" } else { "text" },
+            rule: String::new(),
+            value: format!("target.{name}"),
+            location,
+            context: true,
+            ts_type: if numeric { "number" } else { "string" },
+            error: String::new(),
+        }
+    }
+
+    /// An input the user types into a text box.
+    fn input(name: &str, kind: Kind, required: bool, nullable: bool) -> Field {
         let empty = if nullable { "null" } else { "undefined" };
         let v = format!("values.{name}");
         let (rule, value, error) = match (kind, required) {
@@ -92,7 +120,9 @@ impl Field {
             },
             rule,
             value,
-            in_path,
+            location: "body",
+            context: false,
+            ts_type: "string",
             error: error.to_string(),
         }
     }
@@ -134,7 +164,7 @@ pub fn parse(spec: &str) -> Result<Vec<Field>> {
             "uuid" | "guid" => Kind::Uuid,
             other => bail!("--fields: `{other}` is not a field type (string, number, integer, uuid)"),
         };
-        fields.push(Field::new(name, kind, true, false, false));
+        fields.push(Field::input(name, kind, true, false));
     }
     if fields.is_empty() {
         bail!("--fields names no field; pass `name:type` pairs, e.g. --fields title:string,price:number");
@@ -142,20 +172,17 @@ pub fn parse(spec: &str) -> Result<Vec<Field>> {
     Ok(fields)
 }
 
-/// The command's inputs from its operation: path parameters first, then the JSON body's properties.
+/// The command's inputs from its operation: its path and query parameters and a body `version` as the screen's
+/// context, then the JSON body's other properties as the inputs the user types, in the order the contract lists them.
 pub fn from_operation(doc: &Document, operation: &Operation, slice: &str) -> Result<Vec<Field>> {
-    if let [(name, _), ..] = operation.parameters("query").as_slice() {
-        bail!(
-            "{slice} takes query parameters ({name}, ...), which the form scaffold does not bind; pass --fields for \
-             the body and wire the parameters by hand"
-        );
-    }
     let mut fields = Vec::new();
     let mut unsupported = Vec::new();
-    for (name, schema) in operation.parameters("path") {
-        match kind(doc.resolve(schema)) {
-            Some(kind) => fields.push(Field::new(&name, kind, true, false, true)),
-            None => unsupported.push(name),
+    for location in ["path", "query"] {
+        for (name, schema) in operation.parameters(location) {
+            match kind(doc.resolve(schema)) {
+                Some(kind) => fields.push(Field::context(&name, kind, location)),
+                None => unsupported.push(name),
+            }
         }
     }
     if let Some(body) = operation.body() {
@@ -165,7 +192,8 @@ pub fn from_operation(doc: &Document, operation: &Operation, slice: &str) -> Res
             }
             let nullable = openapi::is_nullable(schema);
             match kind(doc.resolve(schema)) {
-                Some(kind) => fields.push(Field::new(&name, kind, required && !nullable, nullable, false)),
+                Some(kind) if name == VERSION => fields.push(Field::context(&name, kind, "body")),
+                Some(kind) => fields.push(Field::input(&name, kind, required && !nullable, nullable)),
                 None => unsupported.push(name),
             }
         }
@@ -260,10 +288,14 @@ mod tests {
                 "operationId": "UpdateProduct",
                 "parameters": [{ "name": "id", "in": "path", "schema": { "type": "string", "format": "uuid" } }],
                 "requestBody": { "content": { "application/json": { "schema": { "type": "object",
-                    "required": ["name", "price"],
+                    "required": ["name", "price", "version"],
                     "properties": { "name": { "type": "string" }, "price": { "type": "number" },
-                        "note": { "type": ["string", "null"] }, "stock": { "type": "integer" } } } } } }
-            } },
+                        "note": { "type": ["string", "null"] }, "stock": { "type": "integer" },
+                        "version": { "type": "string", "format": "uuid" } } } } } }
+            },
+            "delete": { "operationId": "DeleteProduct", "parameters": [
+                { "name": "id", "in": "path", "schema": { "type": "string", "format": "uuid" } },
+                { "name": "version", "in": "query", "schema": { "type": "string", "format": "uuid" } }] } },
             "/q": { "post": { "operationId": "Toggle", "requestBody": { "content": { "application/json": { "schema": {
                 "type": "object", "properties": { "on": { "type": "boolean" } } } } } } } } }
         }"##,
@@ -271,23 +303,31 @@ mod tests {
         .unwrap();
         let op = doc.operation("UpdateProduct").unwrap();
         let fields = from_operation(&doc, &op, "UpdateProduct").unwrap();
-        let names: Vec<(&str, bool)> = fields.iter().map(|f| (f.name.as_str(), f.in_path)).collect();
+        let names: Vec<(&str, &str, bool)> = fields.iter().map(|f| (f.name.as_str(), f.location, f.context)).collect();
         assert_eq!(
             names,
             [
-                ("id", true),
-                ("name", false),
-                ("price", false),
-                ("note", false),
-                ("stock", false)
+                ("id", "path", true),
+                ("name", "body", false),
+                ("price", "body", false),
+                ("note", "body", false),
+                ("stock", "body", false),
+                ("version", "body", true)
             ]
         );
+        assert_eq!(fields[0].value, "target.id");
+        assert_eq!(fields[5].value, "target.version");
         assert_eq!(fields[3].rule, "z.string()");
         assert_eq!(
             fields[4].value,
             "values.stock.trim() === \"\" ? undefined : Number(values.stock)"
         );
         assert!(fields[4].rule.contains("Number.isInteger"));
+
+        let delete = doc.operation("DeleteProduct").unwrap();
+        let fields = from_operation(&doc, &delete, "DeleteProduct").unwrap();
+        let names: Vec<(&str, &str, bool)> = fields.iter().map(|f| (f.name.as_str(), f.location, f.context)).collect();
+        assert_eq!(names, [("id", "path", true), ("version", "query", true)]);
 
         let toggle = doc.operation("Toggle").unwrap();
         let error = from_operation(&doc, &toggle, "Toggle").unwrap_err().to_string();
