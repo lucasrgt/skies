@@ -9,10 +9,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-use std::sync::LazyLock;
 
 use anyhow::{Context, Result};
-use regex::Regex;
 use serde_json::Value;
 
 use super::git::Repo;
@@ -192,18 +190,25 @@ pub fn raw_report(spec: &SpecDir, name: &str) -> Report {
     Report::Raw(RawReport { file, hash })
 }
 
-/// blake3 of a report with its timings blanked (TRX `start`/`duration`/…, JUnit `time`/`timestamp`): the report
-/// identifies the run by what it says, not by when it ran or how long it took, so re-proving an unchanged spec
-/// writes the same receipt byte for byte while any change in cases, outcomes, or messages changes the hash.
-pub fn fingerprint(report: &str) -> String {
-    let untimed = TIMINGS.replace_all(report, "${1}=\"\"");
-    format!("blake3:{}", blake3::hash(untimed.as_bytes()).to_hex())
+/// blake3 of what a report says: every case's name, outcome, and message, one per line, sorted. The bytes of a report
+/// differ on every run (timestamps, durations, and the order a parallel runner such as xUnit finished the cases in),
+/// so hashing them would rewrite a refreshed receipt for nothing; this hash changes exactly when a result does. A
+/// file that is not a report (red's output when it did not build) is hashed as it is.
+pub fn fingerprint(text: &str) -> String {
+    let Ok(parsed) = report::parse(text) else {
+        return format!("blake3:{}", blake3::hash(text.as_bytes()).to_hex());
+    };
+    let mut lines: Vec<String> = parsed
+        .cases
+        .iter()
+        .map(|case| {
+            let message = case.message.as_deref().unwrap_or_default().replace('\n', "\\n");
+            format!("{}\t{:?}\t{message}", case.name, case.outcome)
+        })
+        .collect();
+    lines.sort();
+    format!("blake3:{}", blake3::hash(lines.join("\n").as_bytes()).to_hex())
 }
-
-static TIMINGS: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"\b(time|timestamp|duration|startTime|endTime|creation|queuing|start|finish)="[^"]*""#)
-        .expect("valid regex")
-});
 
 /// Hashes the committed evidence as it is now. The half a run did not rewrite (`kept`) keeps the hashes recorded
 /// for it: carrying files over without rerunning them must never launder an edit made to them since. `dropped` are

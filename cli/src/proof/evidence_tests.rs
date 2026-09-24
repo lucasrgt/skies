@@ -121,7 +121,7 @@ fn a_verdict_that_differs_only_in_timings_keeps_its_bytes() {
 }
 
 #[test]
-fn a_report_fingerprint_ignores_timings_but_not_results() {
+fn a_report_fingerprint_ignores_timings_and_order_but_not_results() {
     let trx = |start: &str, outcome: &str| {
         format!(
             r#"<TestRun><Times creation="{start}" start="{start}" finish="{start}" /><Results><UnitTestResult testName="FM-1: a" duration="00:00:00.{start}" startTime="{start}" endTime="{start}" outcome="{outcome}" /></Results></TestRun>"#
@@ -139,6 +139,18 @@ fn a_report_fingerprint_ignores_timings_but_not_results() {
         format!(r#"<testsuite timestamp="{time}" time="{time}"><testcase name="FM-1: a" time="{time}"/></testsuite>"#)
     };
     assert_eq!(fingerprint(&junit("0.29")), fingerprint(&junit("0.31")));
+    // xUnit finishes parallel cases in any order.
+    let ordered = |first: &str, second: &str| {
+        format!(r#"<testsuite><testcase name="{first}"/><testcase name="{second}"/></testsuite>"#)
+    };
+    assert_eq!(
+        fingerprint(&ordered("FM-1: a", "FM-2: b")),
+        fingerprint(&ordered("FM-2: b", "FM-1: a"))
+    );
+    let failing = |message: &str| {
+        format!(r#"<testsuite><testcase name="FM-1: a"><failure message="{message}"/></testcase></testsuite>"#)
+    };
+    assert_ne!(fingerprint(&failing("expected 1")), fingerprint(&failing("expected 2")));
 }
 
 #[test]

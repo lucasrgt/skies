@@ -117,7 +117,8 @@ pub enum Report {
 pub struct RawReport {
     /// Relative to the spec folder, under evidence/raw/ (gitignored).
     pub file: String,
-    /// blake3 of the report as written there, with its timing attributes blanked: the same run hashes the same.
+    /// blake3 of what the report says (each case's name, outcome, and message, sorted), so the same results hash
+    /// the same whatever the timings or the order the runner wrote them in.
     pub hash: String,
 }
 
