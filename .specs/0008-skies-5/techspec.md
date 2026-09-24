@@ -131,9 +131,9 @@ O motor não conhece xUnit, Playwright nem Flutter: lê JUnit. Isso apaga `Front
 }
 ```
 
-- **Footprint:** arquivos executados pelo green (coverage do runner, quando há) + arquivos alterados entre
-  `red.commit` e `green.commit` + `touches`; a pasta do spec e os lockfiles entram como `inputs`. Sem coverage,
-  cai para diff + `touches` (`footprint_source: "diff"`). Ver §10.
+- **Footprint:** linhas executadas pelo green em cada arquivo coberto (coverage do runner, quando há) + arquivos
+  alterados entre `red.commit` e `green.commit` + `touches`; a pasta do spec e os lockfiles entram como `inputs`.
+  Sem coverage, cai para diff + `touches` (`footprint_source: "diff"`). Ver §10.
 - **Red:** todo FM tem de falhar no commit base. Um FM que passa no base é gravado como `non-discriminating` e o
   `record` pede uma linha de justificativa no spec. É o antídoto contra teste que não morde.
 - **Consistência:** todo FM do spec tem um caso; todo caso `FM-*` está no spec. É a única checagem do sistema.
@@ -249,10 +249,13 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
 - **Sem rerun automático, regressão só aparece quando alguém roda.** Escolha consciente. `proof status` torna os
   recibos stale visíveis em milissegundos; `proof verify --stale` é o comando para quando importar.
 - **Footprint v1 era estreito:** mudança num middleware compartilhado não marcava como stale os recibos que o
-  usam. Mitigado pelo footprint por coverage (§10). O risco que sobra é o inverso, e é conservador: coverage é por
-  arquivo, então código que só roda no boot (registro de serviço, `Map` de cada slice) entra no footprint de todo
-  spec que sobe o host, e editar qualquer slice deixa todos esses stale. E um arquivo sem linha executável (só
-  `const`, só interface) nunca aparece no coverage; entra só pelo diff ou por `touches`.
+  usam. Mitigado pelo footprint por coverage (§10), e o ruído inverso (coverage por arquivo: o `Map` de cada slice
+  e os registros de serviço rodam no boot de todo host, então editar o corpo de um handler deixava stale todo spec
+  que sobe o host) mitigado pelas impressões por linha executada (§10). O que sobra é conservador: inserir ou
+  apagar linhas acima de uma linha executada a desloca e o recibo fica stale mesmo sem mudança de comportamento; e
+  editar código de boot (uma linha que todo host executa) continua marcando todos os specs de host, corretamente.
+  Um arquivo sem linha executável (só `const`, só interface) nunca aparece no coverage; entra só pelo diff ou por
+  `touches`.
 - **Reescrita do CLI em Rust** é o item de maior custo. Mitigação: templates reaproveitados, paridade byte-a-byte
   como critério, e o CLI 4.x continua funcionando até a fase 2 fechar.
 - **Menos enforcement:** a qualidade do E2E depende da revisão humana dos FMs. O ponto de controle sai do
@@ -304,3 +307,16 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   hasheia uma vez cada arquivo compartilhado entre recibos. No sample, os specs da API passaram de 4/4/3/1/3 para
   12/12/12/1/13 arquivos; editar `Platform.Idempotency.cs` deixa stale 0001, 0002, 0003 e 0005 (o `AddIdempotency`
   roda no boot de todo host), não 0004 nem os specs web.
+- **Impressão por linha executada.** Para cada arquivo que vem do coverage, o recibo guarda as linhas executadas no
+  green, em faixas, e um blake3 do texto delas (fim de linha normalizado, espaço dentro da linha mantido):
+  `"Deposit.cs": { "lines": "17,19,23,26-31,…", "hash": "blake3:…" }`. Arquivo só do diff, de `touches` (sempre
+  inteiro: listá-lo diz que toda linha importa) ou sem dado de linha (LCOV só com `LH:`), `inputs` e `evidence`
+  seguem com hash do arquivo inteiro; recibo antigo com hash inteiro para arquivo coberto continua lendo igual.
+  Stale = o texto de alguma linha registrada mudou ou o arquivo tem menos linhas que a maior delas; editar só
+  linhas que o spec nunca executou deixa o recibo current; inserir/apagar linhas acima desloca e dá stale
+  (conservador). `status` lê cada arquivo uma vez para todos os recibos (~12 ms no sample, release). `verify`
+  refaz linhas e arquivos a partir do seu coverage; sem coverage, fixa os arquivos inteiros. No sample: editar
+  `idem.Save` (linha 49) ou o `return Error.NotFound` (linha 40) de `Deposit.Handle` deixa stale só 0001;
+  `wallet.Deposit` (linha 44) deixa 0001 e 0002 (o setup do withdraw deposita); um comentário dentro do `Handle`
+  não deixa nenhum; `AddSingleton` em `Platform.Idempotency.cs` ou o `MapGroup` em `WalletsModule.Map` deixam
+  stale 0001, 0002, 0003 e 0005 (todo spec que sobe o host).
