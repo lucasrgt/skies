@@ -320,3 +320,25 @@ A fase 2 é a maior. A paridade byte-a-byte com os templates 4.x é o teste: ger
   `wallet.Deposit` (linha 44) deixa 0001 e 0002 (o setup do withdraw deposita); um comentário dentro do `Handle`
   não deixa nenhum; `AddSingleton` em `Platform.Idempotency.cs` ou o `MapGroup` em `WalletsModule.Map` deixam
   stale 0001, 0002, 0003 e 0005 (todo spec que sobe o host).
+- **Atritos do dogfood (transferência no sample), corrigidos.** (1) O red padrão escolhia o merge-base com
+  `origin/HEAD` = `main`, 116 commits atrás do `v5`, e falhava sem mostrar nada. Agora a ordem é `--red`, `red.patch`
+  do spec, `[workspace] default_branch` do Skies.toml, upstream do branch atual (quando é outro branch), `origin/HEAD`;
+  o `record` imprime a escolha e a distância (`red 5e2f092 (merge-base with main, default branch from origin/HEAD;
+  116 commits before HEAD)`) e avisa acima de 50 commits; `proof impact` sem caminhos diz o mesmo da sua base. (2) Red
+  que não bate com o spec.md imprime o fim da saída do runner (e guarda `evidence/red.log` enquanto não há recibo).
+  (3) `did-not-build` vale para qualquer runner: sem relatório, ou relatório sem caso com FM e com falha/exit ≠ 0
+  (o caso único de arquivo do vitest quando o import não existe); nunca no green. (4) `verify` é somente leitura
+  para recibo current que ainda passa (`verified (current, unchanged)`), escreve para stale, e `--refresh` força
+  (e é o único jeito de reescrever o green de um recibo `tampered`); `skies proof run <spec>` roda o green uma vez,
+  imprime pass/fail por FM com a mensagem dos casos que falharam, e não escreve nada. (5) Spec sem recibo é
+  `unrecorded`: nunca conta como quebra no `--with-impacted`. (6) `scope = [...]` no runner limita diff, `touches`,
+  coverage e notas de ctx aos caminhos da superfície (sample: `api` → `backend/`, `web` → `frontend/`; template:
+  `src/`): o recibo do 0009 caiu de 20 para 14 arquivos (sem os 6 do frontend) e o do 0010 não fixa mais
+  `Transfer.cs`. (7) `proof impact` imprime o FM inteiro, com as linhas de continuação. (8) Impressão por linha
+  tolerante a deslocamento: um hash (64 bits de blake3) por faixa contígua executada, `"ranges": "…,…"`; uma faixa
+  fora do lugar é procurada adiante, em ordem e sem sobreposição; stale só se o texto de alguma faixa mudou ou não é
+  mais encontrado em ordem. Inserir linhas acima ou entre faixas deixa current; editar dentro de uma faixa ou trocar
+  duas de lugar deixa stale; recibo antigo (`"hash"` único) continua lendo por posição. (9) Runner ganhou `build`
+  (uma vez por checkout e invocação; falha no red = `did-not-build`), o sample compila uma vez e roda
+  `dotnet test --no-build`, e o `--with-impacted` reaproveita a sessão do green. `record 0009 --with-impacted`: 29,8 s
+  → 18,8 s (red 4,1 s, green 3,2 s, seis impactados 11,4 s; cada spec da API 3,2 s → 2,1 s sem o build).

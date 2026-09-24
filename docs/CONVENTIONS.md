@@ -256,31 +256,57 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
 - **Failure modes come before code**, one `- FM-n <text>` line each in `spec.md`. The human reviews that list.
 - **The test title is the only link.** A case whose name starts with `FM-n` covers that mode
   (`[Fact(DisplayName = "FM-2: double cancel refunds once")]`, `test("FM-2: …")`). No attributes or manifests.
-- **A receipt proves red and green.** `skies proof record <spec>` runs the E2E on the red revision (the merge-base,
-  or `HEAD` plus the spec's `red.patch` for a spec written after the code), where every mode must fail, then on the
-  working tree, where every mode must pass. E2E that do not build on red count as failing, with the build output as
-  evidence. A mode already passing on red is non-discriminating and needs a written justification in `spec.md`.
+- **Run the cases while you write them.** `skies proof run <spec>` runs the spec's E2E once on the working tree and
+  prints each failure mode's pass or fail, with what each failing case reported. It writes nothing (no receipt, no
+  evidence), so it is the loop for "the cases fail now" before the code and "they pass now" after it.
+- **A receipt proves red and green.** `skies proof record <spec>` runs the E2E on the red revision, where every mode
+  must fail, then on the working tree, where every mode must pass. Red is, in order: `--red <rev>`; `HEAD` plus the
+  spec's `red.patch` (for a spec written after the code); the merge-base of `HEAD` with `[workspace] default_branch`
+  from `Skies.toml`; with the current branch's upstream, when that is another branch (`feature` tracking
+  `origin/develop`); with `origin/HEAD` (else `main`, else `master`). `record` prints the choice and how far back it is
+  (`red 5e2f092 (merge-base with origin/main, default branch from origin/HEAD; 116 commits before HEAD)`) and warns
+  when a red it chose is more than 50 commits back: work on a long-lived branch sets `default_branch`. A mode already
+  passing on red is non-discriminating and needs a written justification in `spec.md`.
+- **Cases that never ran on red count as failing (`did-not-build`), whatever the runner**: no report at all (.NET E2E
+  that reference a type the feature adds), or a report where no case names a failure mode and a case failed or the
+  runner exited non-zero (vitest's one file-level failure for an import that does not exist yet, Playwright or Flutter
+  failing to load). The runner's output is the evidence, `evidence/red.log`. The rule is never applied on green. When
+  red does not match `spec.md` otherwise, `record` prints the tail of red's output (kept as `evidence/red.log` while the
+  spec has no receipt), since the usual cause is a red revision that is not the one intended.
 - **A receipt is a record, not a gate.** It pins the code the feature depends on (its footprint) and hashes
-  everything under `evidence/`. `skies proof status` shows `stale` (footprint code or spec inputs changed) and
-  `tampered` (evidence edited) receipts from the filesystem alone, in milliseconds; `skies proof verify --stale`
-  reruns them. Nothing runs in a hook unless the team adds one.
+  everything under `evidence/`. `skies proof status` shows `current`, `stale` (footprint code or spec inputs
+  changed), `tampered` (evidence edited), and `unrecorded` (no receipt yet) from the filesystem alone, in
+  milliseconds. Nothing runs in a hook unless the team adds one.
+- **`verify` reruns green and writes only what changed.** `skies proof verify <ids…> [--stale] [--all]` never reruns
+  red. A receipt that is current and still passes is left byte for byte (`verified (current, unchanged)`), so a
+  baseline before changing code dirties nothing; a stale one gets fresh green evidence and a re-anchored footprint;
+  `--refresh` does that for current ones too, and is the only way to rewrite a `tampered` receipt's green evidence
+  (red evidence keeps its recorded hashes). A spec without a receipt is `unrecorded`: reported, never a failure.
 - **The footprint is the lines green executed.** When the runner writes coverage, the footprint is the executed
   lines of every project file the green run executed (build output, generated code, and `.specs/` left out), plus
   the files changed since red, plus `touches`; the receipt says `"footprint_source": "coverage"`. A covered file is
-  recorded as `{ "lines": "12-18,40,55-60", "hash": "blake3:…" }`: the executed line numbers and a hash of those
-  lines' text (line endings normalized, whitespace inside a line kept). Every other footprint file (changed since
-  red without executing, or matched by `touches`, which always pins the whole file) and every spec input keep a
-  whole-file hash.
-- **What makes a receipt stale:** a recorded executed line whose text changed, a covered file that no longer has
-  that many lines, any change to a whole-file footprint file or spec input (spec.md, `e2e/`, root lockfiles), or a
-  new file matching `touches`. An edit confined to lines the spec never executed leaves it current, so editing one
-  slice's handler marks only the specs that run that handler, while an edit to startup code every host executes
-  (route mapping, service registration) marks every spec that boots the host. Inserting or deleting lines above an
-  executed line shifts it, and reads as stale: conservative, since the receipt can no longer tell which code ran.
+  recorded as `{ "lines": "12-18,40,55-60", "ranges": "9f2c…,03ab…,77e1…" }`: the executed line numbers and one hash
+  per contiguous run of them (the first 64 bits of blake3 over the run's text, line endings normalized, whitespace
+  inside a line kept). Every other footprint file (changed since red without executing, or matched by `touches`,
+  which always pins the whole file) and every spec input keep a whole-file hash.
+- **What makes a receipt stale:** an executed run whose text changed or can no longer be found in order, any change
+  to a whole-file footprint file or spec input (spec.md, `e2e/`, root lockfiles), or a new file matching `touches`.
+  An edit confined to lines the spec never executed leaves it current, so editing one slice's handler marks only the
+  specs that run that handler, while an edit to startup code every host executes (route mapping, service
+  registration) marks every spec that boots the host. Line fingerprints are shift-tolerant: lines inserted or deleted
+  above or between executed runs only move them, and each run not at its recorded place is looked for further on,
+  after the run before it; the receipt stays current while every run's text is there, in the same order, without
+  overlap. A line inserted inside an executed run changes that run, and runs that swap places are stale. A receipt
+  written before per-run hashes (`"hash": "blake3:…"` over every executed line) still reads by position, as then.
   Without coverage the footprint is the diff plus `touches` (`"diff"`), whole files only, and `record` says so.
   `verify` refreshes the executed files and lines from its own run and keeps the recorded changed files
-  (`footprint_changed`); a receipt with whole-file hashes for covered files still reads, and its next `verify`
-  pins lines. Coverage never enters `evidence/`: the footprint is the record.
+  (`footprint_changed`); a receipt with whole-file hashes for covered files still reads, and its next refreshing
+  `verify` pins lines. Coverage never enters `evidence/`: the footprint is the record.
+- **A runner's `scope` keeps receipts to their surface.** `scope = ["backend/"]` (paths relative to the root) limits
+  what counts for that runner's specs to files under those paths: the diff part of a footprint, `touches` matches,
+  coverage, and the ctx notes. An API spec recorded on a branch that also changed a screen does not pin the screen,
+  and a screen's spec neither pins `Transfer.cs` nor hears that `Wallets.ctx.md` was not revised. Without `scope`,
+  every file in the project counts.
 - **Evidence is a frozen, portable artifact.** Runners get `SKIES_EVIDENCE` (the run's evidence folder, absolute)
   and `SKIES_SPEC` (the spec folder name) in their environment, besides the `{evidence}` placeholder. What a test
   writes there is copied into `evidence/` and hashed. .NET tests use `SpecEvidence.Save("name.json", value)` from
@@ -293,15 +319,23 @@ A feature is accepted by **evidence in its spec folder**, not annotations in pro
   Optional: an untagged mode is decided by its cases alone.
 - **The receipts are the impact index.** `skies proof impact <paths>` (or `--diff [<rev>]`, the default without
   paths) inverts footprints and `touches` into path → specs, printing each impacted spec's failure modes and receipt
-  state, then the ctx.md of each module the paths reach. Read them before changing shared code;
-  `skies proof record <spec> --with-impacted` re-proves them after and names the passing ones in `verified_with`.
+  state (full failure-mode text, continuation lines joined), then the ctx.md of each module the paths reach. Without
+  paths it diffs from the same base `record` would choose for red, and prints which. Read them before changing
+  shared code (`skies proof verify <ids>` is the read-only baseline); `skies proof record <spec> --with-impacted`
+  re-proves them after, in the same session as green (the runner's `build` does not run again), and names the
+  passing ones in `verified_with`. An impacted spec without a receipt is `unrecorded`, never a breakage.
 - **Runners are declared in `Skies.toml`**: a shell command that runs one spec's `e2e/` and writes a JUnit or TRX
   report. The engine knows nothing about xUnit, Playwright, or Flutter:
 
   ```toml
   [runners.api]
-  command = "dotnet test tests/App.Tests --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\" --collect \"XPlat Code Coverage\" --results-directory {coverage} -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura"
+  scope = ["src/"]
+  build = "dotnet build tests/App.Tests"
+  command = "dotnet test tests/App.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\" --collect \"XPlat Code Coverage\" --results-directory {coverage} -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura"
   ```
+
+  `build` is optional: it runs once per checkout per invocation (after `setup`), so `command` can skip building and
+  `verify --all` or `record --with-impacted` compile once; a failing build on red is `did-not-build`.
 
   Placeholders: `{id}`, `{spec}`, `{dir}` (the spec's `e2e/`), `{report}`, `{evidence}`, and `{coverage}`. Coverage
   is optional: a runner opts in by passing `{coverage}` (a path the engine picks; also `SKIES_COVERAGE`) or by
