@@ -42,7 +42,7 @@ lib/features/<audience>/<feature>/
   <feature>_view.dart
   <feature>_view_model.dart
 lib/l10n/features/
-  <feature>_{pt_BR,en,es}.arb
+  <feature>_<locale>.arb      (one per locale the app already has; en in a new app)
 ```
 
 `<audience>` mirrors how the product is experienced, never the backend module tree.
@@ -130,7 +130,8 @@ one, dedupes later pages by stable key, and lets the fresh copy win. ViewModels 
 
 ## Localization and stable error codes
 
-Feature scaffolding emits equal-key ARB catalogs for pt-BR, English, and Spanish. `skies i18n` merges them into the
+Feature scaffolding emits one equal-key ARB catalog per locale the app already has (read from its
+`lib/l10n/features/` catalogs; a new app starts with English only). `skies i18n` merges them into the
 `app_<locale>.arb` inputs of `gen_l10n`, refusing duplicate keys and locale gaps (`SKYFL011`). `apiErrorCode` /
 `apiErrorCopy` resolve a stable `ErrorBody.code` to catalog copy, with a generic fallback.
 
@@ -187,9 +188,10 @@ for what no static rule can see (contrast, tap-target size).
 
 ## Flutter doctor rule catalog
 
-Numbers up to `SKYFL036` keep the `SKYFE` slot of the same concern; gaps are removed rules. `SKYFL009` has no live
-React twin: a Flutter ViewModel still must not reach device plugins. `SKYFL037`–`040` are Flutter-only (the web's
-floor is jsx-a11y). `SKYFL028`, `031`, `032`, `039`, and `040` are warnings; every other finding is an error.
+Numbers up to `SKYFL036` keep the `SKYFE` slot of the same concern; gaps are removed rules. The latest,
+`SKYFL009`, flagged a device plugin imported by a ViewModel; like its React twin it is gone, and injecting platform
+capabilities as constructor ports stays a convention the review holds, not a rule. `SKYFL037`–`040` are Flutter-only
+(the web's floor is jsx-a11y). `SKYFL028`, `031`, `032`, `039`, and `040` are warnings; every other finding is an error.
 
 | Rule | Flutter enforcement |
 |---|---|
@@ -198,7 +200,6 @@ floor is jsx-a11y). `SKYFL028`, `031`, `032`, `039`, and `040` are warnings; eve
 | `SKYFL003` | No mock/fixture framework in production Dart. |
 | `SKYFL004` | ViewModel contains no Widget, `BuildContext`, Material, Cupertino, or navigation API. |
 | `SKYFL007` | A server-backed ViewModel exposes closed `AsyncState`. |
-| `SKYFL009` | ViewModel imports no device/plugin capability; inject a port. |
 | `SKYFL010` | A View renders async state through `ResourceBuilder`. |
 | `SKYFL011` | Every ARB locale family has identical keys. |
 | `SKYFL013` | Every mutation has global or explicit visible failure handling. |

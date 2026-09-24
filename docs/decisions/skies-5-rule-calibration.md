@@ -76,3 +76,8 @@ Also newly in reach: 13 `part of '*_view.dart'` files now meet the View rules (n
 3. Route files are `app/`, TanStack Router's `src/routes/**`, and React Router's `routes/`; the generated
    `routeTree.gen.ts` and tests are not.
 4. Re-run this calibration before each major release on the same applications.
+5. Tiers follow what a rule guards, decided after the calibration: an architecture rule is an error, a taste is a
+   warning. `SKY0007` (the 500-line file ceiling) and `SKY0019` (an unused error-code constant) become warnings;
+   `@skiesjs/eslint-plugin`'s `recommended` raises every SKYFE architecture rule to error, leaving SKYFE028, 031, and
+   032 as warnings; `SKYFL009` (device plugins in a ViewModel) is retired with its React twin. The findings above
+   are unchanged; only how loudly they are reported moved.

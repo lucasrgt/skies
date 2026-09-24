@@ -10,7 +10,12 @@ use std::process::Command;
 
 /// The docs copied into the plugin, by file name, from `docs/`. Relative links between them keep working because
 /// the copies keep the same names side by side.
-const COPIED: [&str; 3] = ["CONVENTIONS.md", "FRONTEND-CONVENTIONS.md", "FLUTTER-CONVENTIONS.md"];
+const COPIED: [&str; 4] = [
+    "CONVENTIONS.md",
+    "AUTH.md",
+    "FRONTEND-CONVENTIONS.md",
+    "FLUTTER-CONVENTIONS.md",
+];
 
 const CLI_REFERENCE: &str = "cli.md";
 

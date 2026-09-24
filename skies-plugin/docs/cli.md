@@ -47,11 +47,11 @@ Generate code that follows the Skies conventions
 Usage: skies g <COMMAND>
 
 Commands:
-  module       A module: <Name>Module.cs, error codes, ctx.md, wired into the module registry
+  module       A module: <Name>Module.cs and a ctx.md skeleton for you to write, wired into the module registry
   slice        A slice inside a module, mapped under the module's route group
   entity       A rich [Entity] with an EnsureValid invariant funnel
   vo           An always-valid [ValueObject] in BuildingBlocks
-  crud         List/lookup/create/update/delete slices for a tenant-scoped [Entity], plus the Open/Update they call
+  crud         List/lookup/create/update/delete slices and a view record for an [Entity], its DbSet, and its Open/Update
   hub          A SignalR hub for real-time fan-out
   auth         The auth module: register, login, refresh, logout, me, sessions
   auth:otp     Phone verification by SMS code
@@ -69,7 +69,7 @@ Options:
 ## skies g module
 
 ```text
-A module: <Name>Module.cs, error codes, ctx.md, wired into the module registry
+A module: <Name>Module.cs and a ctx.md skeleton for you to write, wired into the module registry
 
 Usage: skies g module [OPTIONS] <NAME>
 
@@ -131,7 +131,7 @@ Options:
 ## skies g crud
 
 ```text
-List/lookup/create/update/delete slices for a tenant-scoped [Entity], plus the Open/Update they call
+List/lookup/create/update/delete slices and a view record for an [Entity], its DbSet, and its Open/Update
 
 Usage: skies g crud [OPTIONS] <MODULE> <ENTITY>
 
