@@ -142,8 +142,10 @@ pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
     text::write(&path, body)?;
     println!("created {}", path.display());
 
-    // The scaffold answers with an honest "not implemented" business error rather than fake behavior, so every
-    // spec case fails until the operation is written; its code lives on the registry like any other (SKY0018).
+    // The slice is live on purpose: mapped and in the OpenAPI contract, so `g client` and `g feature` can bind a
+    // screen to it before its behavior exists. It answers an honest "not implemented" business error instead of fake
+    // behavior, so every spec case against it fails red until the operation is written; the code lives on the
+    // registry like any other (SKY0018).
     let not_implemented = format!("{name}NotImplemented");
     let value = format!(
         "{}.{}_not_implemented",
@@ -168,6 +170,10 @@ pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
             module_file.display()
         );
     }
+    println!(
+        "next: {name} is mapped and answers {module}ErrorCodes.{not_implemented} until you write its Input, Output, \
+         and Handle, so a spec's E2E against it starts red. Remove the code once it is implemented."
+    );
     Ok(0)
 }
 
@@ -193,9 +199,12 @@ pub fn entity(root: &Path, module: &str, name: &str) -> Result<u8> {
     text::write(&path, body)?;
     println!("created {}", path.display());
 
+    // Codes are namespaced by their module, like every other code on the registry, so two modules' "id required"
+    // stay two keys the frontend can translate apart.
+    let value = format!("{}.id_required", module.to_lowercase());
     let code = ErrorCode {
         name: "IdRequired",
-        value: "id.required",
+        value: &value,
         summary: "The id is required (entity invariant).",
     };
     error_codes::ensure(&module_dir, &project.namespace, module, &code)?;
@@ -426,6 +435,12 @@ mod tests {
         assert_eq!(entity(dir.path(), "Billing", "Invoice").unwrap(), 0);
         let source = read(dir.path(), "Modules/Billing/Invoice.cs");
         assert!(!source.contains("SKY") && !source.contains(" a Invoice"));
+        assert!(
+            !source.contains("updates validate"),
+            "no comment promises an update the entity does not have"
+        );
+        let codes = read(dir.path(), "Modules/Billing/BillingErrorCodes.cs");
+        assert!(codes.contains("public const string IdRequired = \"billing.id_required\";"));
     }
 
     #[test]

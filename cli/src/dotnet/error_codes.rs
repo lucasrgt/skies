@@ -60,7 +60,7 @@ mod tests {
 
     const CODE: ErrorCode = ErrorCode {
         name: "IdRequired",
-        value: "id.required",
+        value: "billing.id_required",
         summary: "The id is required.",
     };
 
