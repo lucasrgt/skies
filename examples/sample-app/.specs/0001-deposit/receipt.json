@@ -2,7 +2,7 @@
   "spec": "0001-deposit",
   "runner": "api",
   "red": {
-    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:0d3afb14bf21674581316804e9666219543752a63c1b16c77f1b429801841034"
@@ -12,21 +12,45 @@
       "FM-2": "fail",
       "FM-3": "fail",
       "FM-4": "fail",
-      "FM-5": "fail",
-      "FM-6": "fail"
+      "FM-5": {
+        "result": "fail",
+        "avp": [
+          "idempotency-key-honored"
+        ],
+        "verdict": "evidence/red.avp-FM-5.json"
+      },
+      "FM-6": {
+        "result": "fail",
+        "avp": [
+          "idempotency-key-honored"
+        ],
+        "verdict": "evidence/red.avp-FM-6.json"
+      }
     },
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "703633a2d49c125347f000fc020b288a55f27e1a",
+    "commit": "6bd9b75d80eef91af0a4b7c99d1046fa53631140",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
       "FM-2": "pass",
       "FM-3": "pass",
       "FM-4": "pass",
-      "FM-5": "pass",
-      "FM-6": "pass"
+      "FM-5": {
+        "result": "pass",
+        "avp": [
+          "idempotency-key-honored"
+        ],
+        "verdict": "evidence/avp-FM-5.json"
+      },
+      "FM-6": {
+        "result": "pass",
+        "avp": [
+          "idempotency-key-honored"
+        ],
+        "verdict": "evidence/avp-FM-6.json"
+      }
     },
     "report": "evidence/green.trx"
   },
@@ -37,7 +61,15 @@
     "backend/Sample.Api/Platform.Idempotency.cs": "blake3:0d6785d4534506b9d17d3241a53f0b9aaac333440aa4be639504e06b3fb4b99a"
   },
   "inputs": {
-    ".specs/0001-deposit/e2e/DepositSpec.cs": "blake3:bc306cb55413abe8cc9605ae291dd18154eec5438510894ee127306ed7dc9c4b",
-    ".specs/0001-deposit/spec.md": "blake3:e7de4dec2a4a46e639e720387741914bd184722e3f6489be39237e4d54d34679"
+    ".specs/0001-deposit/e2e/DepositSpec.cs": "blake3:2fbcb0f5afa37daaf8aac0fb3a668424e706502251731fdcf11d4ad375330fd9",
+    ".specs/0001-deposit/spec.md": "blake3:43cc52626b36804dfa1f46549706ec93cad2c34608cabf1a33db3ef923c5c5a9"
+  },
+  "evidence": {
+    "evidence/avp-FM-5.json": "blake3:ac0416e277483aa3a63554cba5dffdc597d3a178f37d3c3a2306415644ba66e5",
+    "evidence/avp-FM-6.json": "blake3:f9d081a18ba245dcb53067e5664104d058b9ce4de818da876ff90a8986440ec0",
+    "evidence/green.trx": "blake3:5ce2c094ebf7d67a65d86a3a084bea279d3731a676d5beb908e1c57c042321ee",
+    "evidence/red.avp-FM-5.json": "blake3:14c6843d6f2a9c9cd0291e39ca534ed1de91a65f56909ec7cad44e103d4c6cbc",
+    "evidence/red.avp-FM-6.json": "blake3:6bf191094ec7c075dff1aa142b82bec91e0a9506721da6f0ce7251ac0680fd0c",
+    "evidence/red.trx": "blake3:665c84a051f2348b3c1f6e3be0a51c2cf7b77627ae1b52361561492c98c0451d"
   }
 }
