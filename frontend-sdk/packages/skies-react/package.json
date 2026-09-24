@@ -1,6 +1,6 @@
 {
   "name": "@skiesjs/react",
-  "version": "5.0.0",
+  "version": "5.0.0-rc.1",
   "description": "Skies Framework frontend spine — router/design-system-agnostic React primitives (AsyncState, Resource, session, paging, …) the app composes.",
   "license": "MIT",
   "author": "Lucas Tinoco",

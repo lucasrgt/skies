@@ -13,11 +13,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
-    <PackageReference Include="Skies.Framework.Testing" Version="5.0.0" />
+    <PackageReference Include="Skies.Framework.Testing" Version="5.0.0-rc.1" />
     <!-- The doctor runs here too: every test lives in a spec, and SKY0029 flags one compiled from anywhere else.
          Remove it and the tests still build and run (Law 2). -->
-    <PackageReference Include="Skies.Framework.Doctor" Version="5.0.0" PrivateAssets="all" />
-    <PackageReference Include="Skies.Framework.Testing.InMemory" Version="5.0.0" />
+    <PackageReference Include="Skies.Framework.Doctor" Version="5.0.0-rc.1" PrivateAssets="all" />
+    <PackageReference Include="Skies.Framework.Testing.InMemory" Version="5.0.0-rc.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,17 +1,27 @@
 {
   "name": "@skiesjs/cli",
-  "version": "5.0.0",
+  "version": "5.0.0-rc.1",
   "description": "The skies binary: scaffolders, doctor, and spec proofs for Skies applications.",
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/lucasrgt/skies.git", "directory": "cli/npm" },
-  "bin": { "skies": "bin/skies.js" },
-  "files": ["bin/skies.js"],
-  "engines": { "node": ">=18" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucasrgt/skies.git",
+    "directory": "cli/npm"
+  },
+  "bin": {
+    "skies": "bin/skies.js"
+  },
+  "files": [
+    "bin/skies.js"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "optionalDependencies": {
-    "@skiesjs/cli-linux-x64": "5.0.0",
-    "@skiesjs/cli-linux-arm64": "5.0.0",
-    "@skiesjs/cli-darwin-x64": "5.0.0",
-    "@skiesjs/cli-darwin-arm64": "5.0.0",
-    "@skiesjs/cli-win32-x64": "5.0.0"
+    "@skiesjs/cli-linux-x64": "5.0.0-rc.1",
+    "@skiesjs/cli-linux-arm64": "5.0.0-rc.1",
+    "@skiesjs/cli-darwin-x64": "5.0.0-rc.1",
+    "@skiesjs/cli-darwin-arm64": "5.0.0-rc.1",
+    "@skiesjs/cli-win32-x64": "5.0.0-rc.1"
   }
 }
