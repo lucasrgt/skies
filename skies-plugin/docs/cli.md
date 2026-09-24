@@ -322,39 +322,19 @@ Record and check the evidence that a spec's failure modes are handled
 Usage: skies proof <COMMAND>
 
 Commands:
-  record  Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json. Notes (never fails) a touched module whose ctx.md was not revised in the same change
-  run     Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the spec's gitignored evidence/raw/ for inspection. Exits 1 unless every mode passes
-  status  List receipts that are current, stale (their files changed), tampered (their evidence was edited), or unrecorded (no receipt yet), and red-rotted specs (red.patch no longer applies). Hashes only; runs no tests, and git only for a red.patch that changed, or whose files did, since the last check
-  impact  Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no paths, uses the files changed on this branch
-  verify  Rerun specs' green. A receipt that is current and still passes is left untouched ("verified (current, unchanged)"); a stale one gets fresh green evidence and footprint. Red is never rerun
+  run     Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the spec's gitignored evidence/raw/. Exits 1 unless every mode passes
+  record  Run the spec's E2E on the red revision (every failure mode must fail) and on the working tree (every one must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards
+  impact  Show which specs a change reaches: the specs cited by the ctx.md of every module the paths sit in (`**/Modules/<M>/` -> `<M>.ctx.md`), and the specs whose `touches:` globs match them, with their failure modes. With no paths, uses the files changed on this branch
   help    Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help  Print help
 ```
 
-## skies proof record
-
-```text
-Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json. Notes (never fails) a touched module whose ctx.md was not revised in the same change
-
-Usage: skies proof record [OPTIONS] <SPEC>
-
-Arguments:
-  <SPEC>  The spec id or folder name
-
-Options:
-      --red <RED>              The revision the failure modes must fail on. Defaults to HEAD plus the spec's red.patch when it has one, else the merge-base of HEAD with `[workspace] default_branch` from Skies.toml, else with the current branch's upstream (when it is another branch), else with origin/HEAD. The choice is printed
-      --red-patch <RED_PATCH>  A patch applied to the red checkout before running, for specs written after the code
-      --with-impacted          After recording, rerun green for every other spec whose footprint overlaps this one's and name the ones that pass in the receipt's `verified_with`. Exits 1 if any of them fails; a spec without a receipt is reported as unrecorded and does not count
-      --red-only               Rerun red alone (with the spec's red.patch, --red-patch, or --red) and rewrite only the red half of an existing receipt, keeping green, the footprint, and green's evidence: the fix for a `red-rotted` spec
-  -h, --help                   Print help
-```
-
 ## skies proof run
 
 ```text
-Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the spec's gitignored evidence/raw/ for inspection. Exits 1 unless every mode passes
+Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the spec's gitignored evidence/raw/. Exits 1 unless every mode passes
 
 Usage: skies proof run <SPEC>
 
@@ -365,47 +345,34 @@ Options:
   -h, --help  Print help
 ```
 
-## skies proof status
+## skies proof record
 
 ```text
-List receipts that are current, stale (their files changed), tampered (their evidence was edited), or unrecorded (no receipt yet), and red-rotted specs (red.patch no longer applies). Hashes only; runs no tests, and git only for a red.patch that changed, or whose files did, since the last check
+Run the spec's E2E on the red revision (every failure mode must fail) and on the working tree (every one must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards
 
-Usage: skies proof status
+Usage: skies proof record [OPTIONS] <SPEC>
+
+Arguments:
+  <SPEC>  The spec id or folder name
 
 Options:
-  -h, --help  Print help
+      --red <RED>              The revision the failure modes must fail on. Defaults to HEAD plus the spec's red.patch when it has one, else the merge-base of HEAD with `[workspace] default_branch` from Skies.toml, else with the current branch's upstream (when it is another branch), else with origin/HEAD. The choice is printed
+      --red-patch <RED_PATCH>  A patch applied to HEAD for red, for specs written after the code; kept as the spec's red.patch
+  -h, --help                   Print help
 ```
 
 ## skies proof impact
 
 ```text
-Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no paths, uses the files changed on this branch
+Show which specs a change reaches: the specs cited by the ctx.md of every module the paths sit in (`**/Modules/<M>/` -> `<M>.ctx.md`), and the specs whose `touches:` globs match them, with their failure modes. With no paths, uses the files changed on this branch
 
-Usage: skies proof impact [OPTIONS] [PATHS]...
+Usage: skies proof impact [PATHS]...
 
 Arguments:
   [PATHS]...  Files or directories to look up, relative to the current directory
 
 Options:
-      --diff [<REV>]  Also look up the files changed since <rev> (default: the merge-base with the default branch), including uncommitted and untracked files
-  -h, --help          Print help
-```
-
-## skies proof verify
-
-```text
-Rerun specs' green. A receipt that is current and still passes is left untouched ("verified (current, unchanged)"); a stale one gets fresh green evidence and footprint. Red is never rerun
-
-Usage: skies proof verify [OPTIONS] [SPECS]...
-
-Arguments:
-  [SPECS]...  Spec ids or folder names
-
-Options:
-      --stale    Rerun every spec whose receipt is stale
-      --all      Rerun every spec
-      --refresh  Rewrite the green evidence and footprint of current receipts too (and of tampered ones, whose red evidence keeps its recorded hashes)
-  -h, --help     Print help
+  -h, --help  Print help
 ```
 
 ## skies migrate

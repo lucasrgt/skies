@@ -199,8 +199,15 @@ pub enum Spec {
 
 #[derive(Subcommand)]
 pub enum Proof {
-    /// Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json.
-    /// Notes (never fails) a touched module whose ctx.md was not revised in the same change.
+    /// Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the
+    /// failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the
+    /// spec's gitignored evidence/raw/. Exits 1 unless every mode passes.
+    Run {
+        /// The spec id or folder name.
+        spec: String,
+    },
+    /// Run the spec's E2E on the red revision (every failure mode must fail) and on the working tree (every one
+    /// must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards.
     Record {
         /// The spec id or folder name.
         spec: String,
@@ -209,56 +216,16 @@ pub enum Proof {
         /// branch's upstream (when it is another branch), else with origin/HEAD. The choice is printed.
         #[arg(long)]
         red: Option<String>,
-        /// A patch applied to the red checkout before running, for specs written after the code.
+        /// A patch applied to HEAD for red, for specs written after the code; kept as the spec's red.patch.
         #[arg(long)]
         red_patch: Option<PathBuf>,
-        /// After recording, rerun green for every other spec whose footprint overlaps this one's and name the ones
-        /// that pass in the receipt's `verified_with`. Exits 1 if any of them fails; a spec without a receipt is
-        /// reported as unrecorded and does not count.
-        #[arg(long)]
-        with_impacted: bool,
-        /// Rerun red alone (with the spec's red.patch, --red-patch, or --red) and rewrite only the red half of an
-        /// existing receipt, keeping green, the footprint, and green's evidence: the fix for a `red-rotted` spec.
-        #[arg(long)]
-        red_only: bool,
     },
-    /// Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the
-    /// failing cases reported. Writes no receipt and no committed evidence; the report and output stay in the
-    /// spec's gitignored evidence/raw/ for inspection. Exits 1 unless every mode passes.
-    Run {
-        /// The spec id or folder name.
-        spec: String,
-    },
-    /// List receipts that are current, stale (their files changed), tampered (their evidence was edited), or
-    /// unrecorded (no receipt yet), and red-rotted specs (red.patch no longer applies). Hashes only; runs no tests,
-    /// and git only for a red.patch that changed, or whose files did, since the last check.
-    Status,
-    /// Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its
-    /// failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no
-    /// paths, uses the files changed on this branch.
+    /// Show which specs a change reaches: the specs cited by the ctx.md of every module the paths sit in
+    /// (`**/Modules/<M>/` -> `<M>.ctx.md`), and the specs whose `touches:` globs match them, with their failure
+    /// modes. With no paths, uses the files changed on this branch.
     Impact {
         /// Files or directories to look up, relative to the current directory.
         paths: Vec<PathBuf>,
-        /// Also look up the files changed since <rev> (default: the merge-base with the default branch), including
-        /// uncommitted and untracked files.
-        #[arg(long, value_name = "REV", num_args = 0..=1, default_missing_value = "")]
-        diff: Option<String>,
-    },
-    /// Rerun specs' green. A receipt that is current and still passes is left untouched ("verified (current,
-    /// unchanged)"); a stale one gets fresh green evidence and footprint. Red is never rerun.
-    Verify {
-        /// Spec ids or folder names.
-        specs: Vec<String>,
-        /// Rerun every spec whose receipt is stale.
-        #[arg(long)]
-        stale: bool,
-        /// Rerun every spec.
-        #[arg(long)]
-        all: bool,
-        /// Rewrite the green evidence and footprint of current receipts too (and of tampered ones, whose red
-        /// evidence keeps its recorded hashes).
-        #[arg(long)]
-        refresh: bool,
     },
 }
 
@@ -270,30 +237,11 @@ fn main() -> ExitCode {
         Command::I18n { package } => web::i18n(package.as_deref()),
         Command::Doctor { package, build_args } => doctor::run(&build_args, package.as_deref()),
         Command::Spec(Spec::New { slug, runner }) => proof::spec_new(&slug, runner.as_deref()),
-        Command::Proof(Proof::Record {
-            spec,
-            red,
-            red_patch,
-            with_impacted,
-            red_only,
-        }) => proof::record(
-            &spec,
-            &proof::RecordOptions {
-                red: red.as_deref(),
-                red_patch: red_patch.as_deref(),
-                with_impacted,
-                red_only,
-            },
-        ),
         Command::Proof(Proof::Run { spec }) => proof::run(&spec),
-        Command::Proof(Proof::Status) => proof::status(),
-        Command::Proof(Proof::Impact { paths, diff }) => proof::impact(&paths, diff.as_deref()),
-        Command::Proof(Proof::Verify {
-            specs,
-            stale,
-            all,
-            refresh,
-        }) => proof::verify(&specs, stale, all, refresh),
+        Command::Proof(Proof::Record { spec, red, red_patch }) => {
+            proof::record(&spec, red.as_deref(), red_patch.as_deref())
+        }
+        Command::Proof(Proof::Impact { paths }) => proof::impact(&paths),
         Command::Migrate { version, dry_run } => migrate::run(version, dry_run),
     };
     match result {

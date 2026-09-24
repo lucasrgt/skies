@@ -3,79 +3,44 @@
 //! Every failure mode must fail there. Cases that cannot even run count as failing (`did-not-build`), whatever the
 //! runner: no report at all (.NET E2E that reference a type the feature adds), or a report in which no case names a
 //! failure mode while something failed (vitest's one file-level case for an import that does not exist yet,
-//! Playwright or Flutter failing at load). The runner's output is kept locally as `evidence/raw/red.log`, summarized
-//! in the receipt, and printed whenever red does not match spec.md, so a wrong red revision is visible instead of a
-//! riddle.
+//! Playwright or Flutter failing at load). The runner's output is kept locally as `evidence/raw/red.log` and printed
+//! whenever red does not match spec.md, so a wrong red revision is visible instead of a riddle.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
-use super::evidence::{self, Files, RAW_DIR};
+use super::evidence::RAW_DIR;
 use super::git::Repo;
-use super::hash;
-use super::receipt::{self, Entry, Patch, RedCase};
+use super::receipt::RedResult;
 use super::report::{self, Case, FmId, Outcome, fm_ids};
-use super::runner::{Job, NoReport, Run, Session, tail};
-use super::scrub::Scrub;
-use super::spec::{E2E_DIR, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
-use super::{avp, green, summary};
+use super::runner::{self, Job, NoReport, tail};
+use super::spec::{E2E_DIR, EVIDENCE_DIR, SPEC_FILE, SpecDir, SpecDoc};
+use super::summary::{self, Scrub};
+use super::{avp, green};
 use crate::manifest::Runner;
 
-/// What red established, ready to be published with green.
+/// What red established.
 pub struct Red {
-    pub cases: BTreeMap<FmId, Entry<RedCase>>,
-    /// The runner's report, kept past the worktree, and its extension; `None` when red did not build.
+    pub results: BTreeMap<FmId, RedResult>,
+    /// Per mode, the start of what its first failing case said.
+    pub messages: BTreeMap<FmId, String>,
+    /// The runner's report and its extension; `None` when red did not build.
     pub report: Option<(PathBuf, &'static str)>,
-    /// The runner's output, kept past the worktree.
+    /// The runner's output.
     pub log: PathBuf,
     /// When red did not build, the lines of output that say why.
     pub output: Option<String>,
-    /// Where the red run's `{evidence}` went, so Assay verdicts saved there survive the worktree.
+    /// Where the red run's `{evidence}` went (Assay verdicts).
     pub evidence: PathBuf,
-    /// Built while the worktree existed: red and green paths both become `{root}` in the evidence.
-    pub scrub: Scrub,
 }
 
 impl Red {
-    /// What red publishes: the verdicts of tagged modes, committed as `red.avp-FM-n.json`, and the report and log,
-    /// kept locally under raw/.
-    pub fn files(&self, doc: &SpecDoc) -> Files<'static> {
-        let mut committed = Vec::new();
-        for id in &doc.failure_modes {
-            let name = avp::verdict_file(*id);
-            if !doc.avp(*id).is_empty() && self.evidence.join(&name).is_file() {
-                committed.push((self.evidence.join(&name), format!("red.{name}")));
-            }
-        }
-        let mut raw = vec![(self.log.clone(), "red.log".to_string())];
-        if let Some((file, extension)) = &self.report {
-            raw.push((file.clone(), format!("red.{extension}")));
-        }
-        Files {
-            staged: None,
-            committed,
-            raw,
-        }
-    }
-
-    /// The receipt's red half, once [`Red::files`] is published into the spec.
-    pub fn into_receipt(self, spec: &SpecDir, commit: String, patch: Option<&Path>) -> receipt::Red {
-        let name = match &self.report {
-            Some((_, extension)) => format!("red.{extension}"),
-            None => "red.log".to_string(),
-        };
-        receipt::Red {
-            commit,
-            patch: patch.map(|file| Patch {
-                file: RED_PATCH_FILE.to_string(),
-                hash: hash::hash_file(file).unwrap_or_else(|| hash::ABSENT.to_string()),
-            }),
-            cases: self.cases,
-            report: evidence::raw_report(spec, &name),
-            output: self.output,
-        }
+    /// The verdict red saved for a tagged mode, if its case got far enough to write one.
+    pub fn verdict(&self, doc: &SpecDoc, id: FmId) -> Option<PathBuf> {
+        let file = self.evidence.join(avp::verdict_file(id));
+        (!doc.avp(id).is_empty() && file.is_file()).then_some(file)
     }
 }
 
@@ -92,128 +57,102 @@ pub fn run(
     doc: &SpecDoc,
     runner: (&str, &Runner),
     revision: &Revision,
-    session: &mut Session,
     scratch: &Path,
 ) -> Result<Option<Red>> {
+    // The report, the log, and the evidence land in the scratch folder, so they outlive the worktree.
     let evidence = scratch.join("red-evidence");
-    let (outcome, scrub) = {
-        let worktree = repo.temp_worktree(revision.commit)?;
-        let scrub = Scrub::new(&[&repo.top, &worktree.path]);
-        let red_root = worktree.path.join(&repo.prefix);
-        let red_spec = SpecDir {
-            path: red_root.join(spec.rel()),
-            ..spec.clone()
-        };
-        copy_spec_sources(spec, &red_spec)?;
-        if let Some(patch) = revision.patch {
-            repo.apply(&worktree.path, patch).with_context(|| {
-                format!(
-                    "red rotted: {}/{RED_PATCH_FILE} no longer removes the feature from {}. Stub the feature out \
-                     again, save the diff (`git diff --relative > {}/{RED_PATCH_FILE}`), restore the code, then \
-                     `skies proof record {} --red-only`",
-                    spec.rel(),
-                    &revision.commit[..revision.commit.len().min(7)],
-                    spec.rel(),
-                    spec.id
-                )
-            })?;
-        }
-        let run = session.run(&Job {
-            runner_name: runner.0,
-            runner: runner.1,
-            spec: &red_spec,
-            root: &red_root,
-            evidence: &evidence,
-            scratch,
-            label: "red",
-        });
-        // A configured report path lives inside the worktree; keep the report and the log past its removal.
-        let log = scratch.join("red.kept.log");
-        let outcome = match run {
-            Ok(run) => {
-                std::fs::copy(&run.log, &log)?;
-                let kept = scratch.join("red.report");
-                std::fs::copy(&run.file, &kept)?;
-                RedRun::Report(run, kept, log)
-            }
-            Err(error) => match error.downcast_ref::<NoReport>() {
-                Some(no_report) => {
-                    std::fs::copy(&no_report.log, &log)?;
-                    RedRun::NoReport(log)
-                }
-                None => return Err(error),
-            },
-        };
-        (outcome, scrub)
+    let worktree = repo.temp_worktree(revision.commit)?;
+    let scrub = Scrub::new(&[&repo.top, &worktree.path]);
+    let red_root = worktree.path.join(&repo.prefix);
+    let red_spec = SpecDir {
+        path: red_root.join(spec.rel()),
+        ..spec.clone()
     };
-    let (run, file, log) = match outcome {
-        RedRun::NoReport(log) => {
-            return Ok(Some(did_not_build(
-                doc,
-                "the runner wrote no report",
-                log,
-                evidence,
-                scrub,
-            )));
-        }
-        RedRun::Report(run, file, log) => (run, file, log),
+    copy_spec_sources(spec, &red_spec)?;
+    if let Some(patch) = revision.patch {
+        repo.apply(&worktree.path, patch).with_context(|| {
+            format!(
+                "{} no longer removes the feature from {}: stub the feature out again, save the diff \
+                 (`git diff --relative > {}/red.patch`), restore the code, and record again",
+                patch.display(),
+                &revision.commit[..revision.commit.len().min(7)],
+                spec.rel(),
+            )
+        })?;
+    }
+    let job = Job {
+        runner_name: runner.0,
+        runner: runner.1,
+        spec: &red_spec,
+        root: &red_root,
+        evidence: &evidence,
+        scratch,
+        label: "red",
+    };
+    let run = match runner::run(&job) {
+        Ok(run) => run,
+        Err(error) => match error.downcast_ref::<NoReport>() {
+            Some(no_report) => {
+                let log = no_report.log.clone();
+                let why = "the runner wrote no report";
+                return Ok(Some(did_not_build(doc, why, log, evidence, &scrub)));
+            }
+            None => return Err(error),
+        },
     };
     if let Some(why) = never_ran(&run.report.cases, run.success) {
-        return Ok(Some(did_not_build(doc, why, log, evidence, scrub)));
+        return Ok(Some(did_not_build(doc, why, run.log, evidence, &scrub)));
     }
     let evaluation = match report::evaluate(&doc.failure_modes, &run.report.cases) {
         Ok(evaluation) => evaluation,
         Err(problems) => {
-            mismatch(spec, &problems.to_string(), &log)?;
+            mismatch(spec, &problems.to_string(), &run.log)?;
             return Ok(None);
         }
     };
-    let cases = evaluation
-        .passed
-        .iter()
-        .map(|(id, passed)| {
-            let named = evaluation.cases.get(id).map(Vec::as_slice).unwrap_or_default();
-            let message = summary::first_failure(named, &scrub);
-            (
-                *id,
-                entry(doc, *id, *passed, &evidence).with_cases(summary::names(named), message),
-            )
-        })
-        .collect();
+    let mut messages = BTreeMap::new();
+    let mut results = BTreeMap::new();
+    for (id, passed) in &evaluation.passed {
+        let named = evaluation.cases.get(id).map(Vec::as_slice).unwrap_or_default();
+        if let Some(message) = summary::first_failure(named, &scrub) {
+            messages.insert(*id, message);
+        }
+        // A mode passes red, and so bites nothing, only as green would count it passing: every case passed and, for
+        // a tagged mode, the verdict passed too. A missing verdict on red is simply a failure.
+        let bites = !*passed || avp::check(doc, *id, &evidence).is_err();
+        let result = if bites {
+            RedResult::Fail
+        } else {
+            RedResult::NonDiscriminating
+        };
+        results.insert(*id, result);
+    }
     Ok(Some(Red {
-        cases,
-        report: Some((file, run.report.format.extension())),
-        log,
+        results,
+        messages,
+        report: Some((run.file, run.report.format.extension())),
+        log: run.log,
         output: None,
         evidence,
-        scrub,
     }))
 }
 
-/// What the red checkout produced: a report (with its kept copy and log), or only a log.
-enum RedRun {
-    Report(Run, PathBuf, PathBuf),
-    NoReport(PathBuf),
-}
-
-/// Every failure mode fails red because its cases never ran; the output is the evidence.
-fn did_not_build(doc: &SpecDoc, why: &str, log: PathBuf, evidence: PathBuf, scrub: Scrub) -> Red {
+/// Every failure mode fails red because its cases never ran; the output says why.
+fn did_not_build(doc: &SpecDoc, why: &str, log: PathBuf, evidence: PathBuf, scrub: &Scrub) -> Red {
     println!(
         "  red did not build: {why}, so every failure mode counts as failing (output in {EVIDENCE_DIR}/{RAW_DIR}/red.log)"
     );
-    let cases = doc
-        .failure_modes
-        .iter()
-        .map(|id| (*id, Entry::new(RedCase::DidNotBuild, doc.avp(*id), None)))
-        .collect();
-    let output = summary::output(&log, &scrub);
     Red {
-        cases,
+        results: doc
+            .failure_modes
+            .iter()
+            .map(|id| (*id, RedResult::DidNotBuild))
+            .collect(),
+        messages: BTreeMap::new(),
         report: None,
+        output: summary::output(&log, scrub),
         log,
-        output,
         evidence,
-        scrub,
     }
 }
 
@@ -234,7 +173,7 @@ pub fn never_ran(cases: &[Case], success: bool) -> Option<&'static str> {
 }
 
 /// Says why red does not match spec.md, with the runner's last output, and keeps that output locally as the spec's
-/// `evidence/raw/red.log` (never committed, so it overwrites no recorded evidence).
+/// `evidence/raw/red.log`.
 fn mismatch(spec: &SpecDir, problems: &str, log: &Path) -> Result<()> {
     eprintln!("{}: the red run does not match spec.md:\n{problems}", spec.name);
     eprintln!("red's last output:\n{}", tail(log));
@@ -250,22 +189,6 @@ fn mismatch(spec: &SpecDir, problems: &str, log: &Path) -> Result<()> {
          [workspace] in Skies.toml."
     );
     Ok(())
-}
-
-/// A failure mode passes red, and so bites nothing, only as green would count it passing: every case passed and,
-/// for a tagged mode, the verdict passed too. A missing verdict on red is simply a failure.
-fn entry(doc: &SpecDoc, id: FmId, cases_passed: bool, evidence: &Path) -> Entry<RedCase> {
-    let result = if cases_passed && avp::check(doc, id, evidence).is_ok() {
-        RedCase::NonDiscriminating
-    } else {
-        RedCase::Fail
-    };
-    let name = avp::verdict_file(id);
-    let verdict = evidence
-        .join(&name)
-        .is_file()
-        .then(|| format!("{EVIDENCE_DIR}/red.{name}"));
-    Entry::new(result, doc.avp(id), verdict)
 }
 
 /// The spec usually does not exist at the red revision, so its spec.md and e2e/ come from the working tree.

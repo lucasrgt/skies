@@ -1,179 +1,146 @@
-//! `skies proof impact`: which specs a change reaches, read straight from the receipts.
+//! `skies proof impact`: which specs a change reaches, read from the module ctx.md citations and `touches`.
 //!
-//! Every receipt already lists the files its feature covers (the footprint), and every spec.md may widen that with
-//! `touches` globs. Inverting those gives path → specs, so the receipts are the index: there is no index file to
-//! build, commit, or let drift. Nothing is hashed to answer "which specs"; only the specs that turn out impacted
-//! are rehashed, to say whether their receipt is current. The ctx.md of every module the paths reach is named too,
-//! since its invariants are what a new failure mode must not contradict.
+//! A path under `**/Modules/<M>/` belongs to `<M>.ctx.md`, whose design notes cite the specs proving the module's
+//! invariants (`` `0002-withdraw` ``, `` `0002-withdraw#FM-2` ``; SKY0005 keeps those citations resolvable). A spec
+//! may also claim paths with `touches:` globs in its frontmatter. Nothing is hashed and no receipt is read: the
+//! answer is what a reader must keep true before writing new failure modes, not a verdict.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
+use std::sync::LazyLock;
 
 use anyhow::{Context, Result};
-use globset::{Glob, GlobSet, GlobSetBuilder};
+use globset::Glob;
+use regex::Regex;
 
 use super::base::Base;
-use super::ctx;
 use super::git::Repo;
-use super::receipt::Receipt;
-use super::spec::{self, SpecDir, SpecDoc};
+use super::report::FmId;
+use super::spec::{self, SpecDoc};
 use crate::manifest::Project;
 
-/// One spec as the index sees it: what it covers, and the failure modes a reader must keep true.
-pub struct Indexed {
-    pub spec: SpecDir,
-    pub doc: SpecDoc,
-    footprint: BTreeSet<String>,
-    touches: GlobSet,
+/// Why a spec is impacted, and which of its failure modes to show (`None`: all of them).
+#[derive(Default)]
+struct Hit {
+    via: BTreeSet<String>,
+    modes: Option<BTreeSet<FmId>>,
+    whole: bool,
 }
 
-impl Indexed {
-    /// Whether a change to `path` (a file or a directory, relative to the project root) can reach this spec: it is
-    /// in the recorded footprint, matches a `touches` glob, or sits in the spec's own folder.
-    pub fn covers(&self, path: &str) -> bool {
-        let dir = format!("{}/", path.trim_end_matches('/'));
-        let own = self.spec.rel();
-        self.footprint.contains(path)
-            || self.touches.is_match(path)
-            || path == own
-            || path.starts_with(&format!("{own}/"))
-            || self.footprint.iter().any(|file| file.starts_with(&dir))
-    }
-}
-
-/// Every spec with its receipt footprint and `touches`. A spec without a receipt is still indexed by its globs.
-pub fn index(root: &Path) -> Result<Vec<Indexed>> {
-    let mut indexed = Vec::new();
-    for spec in spec::discover(root)? {
-        let doc = SpecDoc::load(&spec)?;
-        let footprint = Receipt::load(&spec)?
-            .map(|receipt| receipt.footprint.into_keys().collect())
-            .unwrap_or_default();
-        let mut builder = GlobSetBuilder::new();
-        for glob in &doc.touches {
-            builder.add(Glob::new(glob).with_context(|| format!("{}: invalid touches glob '{glob}'", spec.rel()))?);
-        }
-        indexed.push(Indexed {
-            touches: builder.build()?,
-            footprint,
-            doc,
-            spec,
-        });
-    }
-    Ok(indexed)
-}
-
-/// The specs other than `name` that a change to any of `paths` reaches: what `record --with-impacted` re-proves.
-pub fn impacted_by<'a>(index: &'a [Indexed], name: &str, paths: &BTreeSet<String>) -> Vec<&'a Indexed> {
-    index
-        .iter()
-        .filter(|entry| entry.spec.name != name && paths.iter().any(|path| entry.covers(path)))
-        .collect()
-}
-
-pub fn impact(paths: &[PathBuf], diff: Option<&str>) -> Result<u8> {
+pub fn impact(paths: &[PathBuf]) -> Result<u8> {
     let project = Project::from_cwd()?;
     let root = project.root.as_path();
-    let changed: Vec<String> = if paths.is_empty() || diff.is_some() {
+    let cwd = std::env::current_dir()?;
+    let changed: BTreeSet<String> = if paths.is_empty() {
         let repo = Repo::open(root)?;
-        let base = match diff.filter(|rev| !rev.is_empty()) {
-            Some(rev) => Base::explicit(&repo, rev, "--diff")?,
-            None => Base::default(&repo, project.manifest.workspace.default_branch.as_deref())?,
-        };
+        let base = Base::default(&repo, project.manifest.workspace.default_branch.as_deref())?;
         let (line, warning) = base.describe(&repo);
         println!("changes since {line}");
         if let Some(warning) = warning {
             eprintln!("{warning}");
         }
-        let mut changed = repo.changed_since(&base.commit)?;
-        let cwd = std::env::current_dir()?;
-        changed.extend(paths.iter().map(|path| project_path(root, &cwd, path)));
-        changed
+        repo.changed_since(&base.commit)?.into_iter().collect()
     } else {
-        let cwd = std::env::current_dir()?;
         paths.iter().map(|path| project_path(root, &cwd, path)).collect()
     };
-    let changed: BTreeSet<String> = changed.into_iter().collect();
     if changed.is_empty() {
         println!("no changed files");
         return Ok(0);
     }
 
-    let index = index(root)?;
-    let mut uncovered: Vec<&String> = Vec::new();
-    let mut hits: Vec<(&Indexed, Vec<&String>)> = index.iter().map(|entry| (entry, Vec::new())).collect();
-    for path in &changed {
-        let mut covered = false;
-        for (entry, via) in hits.iter_mut() {
-            if entry.covers(path) {
-                via.push(path);
-                covered = true;
+    let specs = spec::discover(root)?;
+    let mut hits: BTreeMap<String, Hit> = BTreeMap::new();
+    let ctxs: BTreeSet<String> = changed.iter().filter_map(|path| module_ctx(path)).collect();
+    for ctx in ctxs.iter().filter(|ctx| root.join(ctx).is_file()) {
+        let text = std::fs::read_to_string(root.join(ctx)).with_context(|| format!("reading {ctx}"))?;
+        let name = ctx.rsplit('/').next().unwrap_or(ctx);
+        for (cited, mode) in citations(&text) {
+            let hit = hits.entry(cited).or_default();
+            hit.via.insert(format!("cited by {name}"));
+            match mode {
+                Some(id) => {
+                    hit.modes.get_or_insert_with(BTreeSet::new).insert(id);
+                }
+                None => hit.whole = true,
             }
         }
-        if !covered {
-            uncovered.push(path);
-        }
+        println!("module context, read before writing failure modes: {ctx}");
     }
-    hits.retain(|(_, via)| !via.is_empty());
+    let mut docs = BTreeMap::new();
+    for spec in &specs {
+        let doc = SpecDoc::load(spec)?;
+        for glob in &doc.touches {
+            let matcher = Glob::new(glob)
+                .with_context(|| format!("{}: invalid touches glob '{glob}'", spec.rel()))?
+                .compile_matcher();
+            if let Some(path) = changed.iter().find(|path| matcher.is_match(path)) {
+                let hit = hits.entry(spec.name.clone()).or_default();
+                hit.via.insert(format!("touches {path}"));
+                hit.whole = true;
+            }
+        }
+        docs.insert(spec.name.clone(), doc);
+    }
 
-    for (entry, via) in &hits {
-        println!(
-            "{}  {}",
-            entry.spec.name,
-            super::freshness_line(&project, &entry.spec).0
-        );
-        println!("  via {}", abbreviate(via));
-        for id in &entry.doc.failure_modes {
-            let mode = &entry.doc.modes[id];
-            let tag = if mode.avp.is_empty() {
-                String::new()
-            } else {
-                format!(" [avp: {}]", mode.avp.join(", "))
-            };
-            println!("  - {id} {}{tag}", mode.text);
+    let mut count = 0;
+    for (name, hit) in &hits {
+        // A citation of a spec that does not exist is SKY0005's finding, not an impact.
+        let Some(doc) = docs.get(name) else { continue };
+        count += 1;
+        println!("{name}  ({})", hit.via.iter().cloned().collect::<Vec<_>>().join(", "));
+        for id in &doc.failure_modes {
+            if hit.whole || hit.modes.as_ref().is_some_and(|modes| modes.contains(id)) {
+                let mode = &doc.modes[id];
+                let tag = if mode.avp.is_empty() {
+                    String::new()
+                } else {
+                    format!(" [avp: {}]", mode.avp.join(", "))
+                };
+                println!("  - {id} {}{tag}", mode.text);
+            }
         }
     }
-    if !uncovered.is_empty() {
-        let noun = if uncovered.len() == 1 { "path" } else { "paths" };
-        println!("{} {noun} in no spec: {}", uncovered.len(), abbreviate(&uncovered));
-    }
-    // The invariants of every module the change reaches, and the specs they cite: read them before writing the
-    // failure modes, so a new mode does not contradict one the module already promises.
-    for file in ctx::touched(root, &changed) {
-        println!("module context, read before writing failure modes: {file}");
-    }
-    match hits.len() {
-        0 => println!("no spec covers these paths"),
-        count => {
-            let ids: Vec<&str> = hits.iter().map(|(entry, _)| entry.spec.id.as_str()).collect();
-            println!(
-                "{count} spec{} impacted; baseline before changing code: skies proof verify {}",
-                if count == 1 { "" } else { "s" },
-                ids.join(" ")
-            );
-        }
+    match count {
+        0 => println!("no spec cites or touches these paths"),
+        1 => println!("1 spec impacted"),
+        count => println!("{count} specs impacted"),
     }
     Ok(0)
 }
 
-/// A few names and a count, so a wide diff stays readable.
-fn abbreviate(paths: &[&String]) -> String {
-    const SHOWN: usize = 4;
-    let mut text = paths
+/// The ctx.md of the module `path` sits in (a file or a folder under `Modules/<M>/`), by convention only; whether it
+/// exists is the caller's question. The innermost `Modules/` segment wins.
+fn module_ctx(path: &str) -> Option<String> {
+    let parts: Vec<&str> = path.trim_end_matches('/').split('/').collect();
+    let at = parts[..parts.len().saturating_sub(1)]
         .iter()
-        .take(SHOWN)
-        .map(|path| path.as_str())
-        .collect::<Vec<_>>()
-        .join(", ");
-    if paths.len() > SHOWN {
-        text.push_str(&format!(", … ({} more)", paths.len() - SHOWN));
-    }
-    text
+        .rposition(|part| *part == "Modules")?;
+    let module = parts[at + 1];
+    Some(format!("{}/{module}/{module}.ctx.md", parts[..=at].join("/")))
+}
+
+/// `` `<digits>-<slug>` `` or `` `<digits>-<slug>#FM-n` ``, the same citation SKY0005 resolves. The slug must hold a
+/// letter, so a backticked date or range is prose.
+static CITATION: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"`([0-9]+-[a-z0-9]+(?:-[a-z0-9]+)*)(?:#FM-([0-9]+))?`").expect("valid regex"));
+
+/// Every spec citation in a ctx: the spec folder and the failure mode, if one is named.
+fn citations(text: &str) -> Vec<(String, Option<FmId>)> {
+    CITATION
+        .captures_iter(text)
+        .filter(|capture| {
+            let slug = capture[1].split_once('-').map_or("", |(_, slug)| slug);
+            slug.chars().any(|ch| ch.is_ascii_lowercase())
+        })
+        .map(|capture| {
+            let mode = capture.get(2).and_then(|n| n.as_str().parse().ok()).map(FmId);
+            (capture[1].to_string(), mode)
+        })
+        .collect()
 }
 
 /// A path given on the command line (relative to where the user stands, or absolute), made relative to the project
-/// root with forward slashes, the form footprints are keyed by. Resolved lexically so a file that was deleted still
-/// maps to the specs that covered it.
+/// root with forward slashes. Resolved lexically so a file that was deleted still maps to its module.
 fn project_path(root: &Path, cwd: &Path, given: &Path) -> String {
     let joined = cwd.join(given);
     let mut parts: Vec<Component> = Vec::new();
@@ -204,6 +171,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_path_under_a_module_maps_to_that_modules_ctx() {
+        assert_eq!(
+            module_ctx("backend/Api/Modules/Wallets/Slices/Deposit.cs").as_deref(),
+            Some("backend/Api/Modules/Wallets/Wallets.ctx.md")
+        );
+        assert_eq!(
+            module_ctx("Modules/Wallets/Wallet.cs").as_deref(),
+            Some("Modules/Wallets/Wallets.ctx.md")
+        );
+        assert_eq!(
+            module_ctx("backend/Api/Modules/Wallets").as_deref(),
+            Some("backend/Api/Modules/Wallets/Wallets.ctx.md")
+        );
+        assert_eq!(module_ctx("backend/Api/Modules"), None);
+        assert_eq!(module_ctx("frontend/web/src/features/deposit/Deposit.tsx"), None);
+    }
+
+    #[test]
+    fn reads_spec_citations_and_ignores_numbers_in_prose() {
+        let text = "Overdraw is refused (`0002-withdraw#FM-2`; see `0001-deposit`). Week `2026-31`, `Wallet`.";
+        assert_eq!(
+            citations(text),
+            [
+                ("0002-withdraw".to_string(), Some(FmId(2))),
+                ("0001-deposit".to_string(), None)
+            ]
+        );
+    }
+
+    #[test]
     fn command_line_paths_become_project_paths() {
         let root = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(root.path().join("src/a")).unwrap();
@@ -211,32 +208,5 @@ mod tests {
         assert_eq!(project_path(root.path(), &cwd, Path::new("a/B.cs")), "src/a/B.cs");
         assert_eq!(project_path(root.path(), &cwd, Path::new("../Other.cs")), "Other.cs");
         assert_eq!(project_path(root.path(), &cwd, &root.path().join("src/a")), "src/a");
-    }
-
-    #[test]
-    fn a_spec_covers_its_footprint_globs_folder_and_directories_above_them() {
-        let root = tempfile::tempdir().unwrap();
-        let dir = root.path().join(".specs/0001-a");
-        std::fs::create_dir_all(&dir).unwrap();
-        let entry = Indexed {
-            spec: SpecDir {
-                name: "0001-a".into(),
-                id: "0001".into(),
-                path: dir,
-            },
-            doc: SpecDoc::default(),
-            footprint: ["src/Pay/Charge.cs".to_string()].into(),
-            touches: {
-                let mut builder = GlobSetBuilder::new();
-                builder.add(Glob::new("src/Money/**").unwrap());
-                builder.build().unwrap()
-            },
-        };
-        assert!(entry.covers("src/Pay/Charge.cs"));
-        assert!(entry.covers("src/Pay"));
-        assert!(entry.covers("src/Money/Amount.cs"));
-        assert!(entry.covers(".specs/0001-a/e2e/x.cs"));
-        assert!(!entry.covers("src/Other.cs"));
-        assert!(!entry.covers("src/Pa"));
     }
 }

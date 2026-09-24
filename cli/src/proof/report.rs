@@ -10,7 +10,7 @@ use std::sync::LazyLock;
 
 use anyhow::{Context, Result, bail};
 use regex::Regex;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Serialize, Serializer};
 
 /// A failure-mode id such as `FM-3`. Ordered numerically so `FM-10` sorts after `FM-9` in receipts and output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -25,16 +25,6 @@ impl fmt::Display for FmId {
 impl Serialize for FmId {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.collect_str(self)
-    }
-}
-
-impl<'de> Deserialize<'de> for FmId {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let text = String::deserialize(deserializer)?;
-        match fm_ids(&text).as_slice() {
-            [id] => Ok(*id),
-            _ => Err(serde::de::Error::custom(format!("'{text}' is not a failure-mode id"))),
-        }
     }
 }
 
@@ -255,12 +245,10 @@ mod tests {
     }
 
     #[test]
-    fn fm_ids_round_trip_through_json_in_numeric_order() {
+    fn fm_ids_serialize_in_numeric_order() {
         let map: BTreeMap<FmId, &str> = [(FmId(10), "pass"), (FmId(2), "fail")].into();
         let json = serde_json::to_string(&map).unwrap();
         assert_eq!(json, r#"{"FM-2":"fail","FM-10":"pass"}"#);
-        let back: BTreeMap<FmId, String> = serde_json::from_str(&json).unwrap();
-        assert_eq!(back.keys().copied().collect::<Vec<_>>(), [FmId(2), FmId(10)]);
     }
 
     #[test]

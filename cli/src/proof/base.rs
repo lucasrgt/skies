@@ -78,33 +78,14 @@ impl Base {
         };
         let line = format!("{} ({}{distance})", short(&self.commit), self.how);
         let warning = match behind {
-            Some(count) if count > FAR && !self.explicit => Some(self.far_warning(repo, count)),
+            Some(count) if count > FAR && !self.explicit => Some(format!(
+                "warning: the base is {count} commits before HEAD; if the feature started later, set \
+                 `default_branch` under [workspace] in Skies.toml or pass the revision explicitly"
+            )),
             _ => None,
         };
         (line, warning)
     }
-
-    fn far_warning(&self, repo: &Repo, count: usize) -> String {
-        let upstream = repo
-            .upstream()
-            .and_then(|upstream| {
-                let fork = repo.merge_base("HEAD", &upstream).ok()?;
-                let ahead = repo.count(&self.commit, &fork).ok().filter(|ahead| *ahead > 0)?;
-                Some(format!(
-                    " ({upstream}, this branch's upstream, is {ahead} commit{} past it)",
-                    plural(ahead)
-                ))
-            })
-            .unwrap_or_default();
-        format!(
-            "warning: the base is {count} commits before HEAD{upstream}; if the feature started later, set \
-             `default_branch` under [workspace] in Skies.toml or pass the revision explicitly"
-        )
-    }
-}
-
-fn plural(count: usize) -> &'static str {
-    if count == 1 { "" } else { "s" }
 }
 
 /// A configured branch as given (`develop`), or its remote copy when there is no local one (`origin/develop`).

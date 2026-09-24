@@ -156,11 +156,8 @@ fn cases_that_never_ran_on_red_did_not_build_whatever_the_runner() {
         text(&recorded)
     );
     let receipt = repo.json(&format!("{SPEC}/receipt.json"));
-    assert_eq!(
-        receipt["red"]["cases"],
-        serde_json::json!({"FM-1": {"result": "did-not-build"}, "FM-2": {"result": "did-not-build"}})
-    );
-    assert_eq!(receipt["red"]["report"]["file"], "evidence/raw/red.log");
+    assert_eq!(receipt["failure_modes"]["FM-1"]["red"], "did-not-build");
+    assert_eq!(receipt["failure_modes"]["FM-2"]["red"], "did-not-build");
     assert!(
         repo.read(&format!("{SPEC}/evidence/raw/red.log"))
             .contains("Failed to resolve import")
@@ -168,17 +165,13 @@ fn cases_that_never_ran_on_red_did_not_build_whatever_the_runner() {
 
     // Never on green: the same report there is a mismatch with spec.md, not a pass.
     repo.write("src/feature.txt", "off\n");
-    let verify = repo.skies(&["proof", "verify", "1"]);
-    assert_eq!(verify.status.code(), Some(1), "{}", text(&verify));
+    let run = repo.skies(&["proof", "run", "1"]);
+    assert_eq!(run.status.code(), Some(1), "{}", text(&run));
+    assert!(text(&run).contains("does not match spec.md"), "{}", text(&run));
     assert!(
-        text(&verify).contains("the green run does not match spec.md"),
-        "{}",
-        text(&verify)
-    );
-    assert!(
-        text(&verify).contains("Failed to resolve import"),
+        text(&run).contains("Failed to resolve import"),
         "the output shows: {}",
-        text(&verify)
+        text(&run)
     );
 }
 
@@ -223,15 +216,12 @@ fn a_runner_build_runs_once_per_checkout_and_failing_on_red_did_not_build() {
         "one build on red, one on green"
     );
 
-    std::fs::remove_file(&counter).unwrap();
-    let recorded = repo.skies(&["proof", "record", "2", "--red", "HEAD~1"]);
-    assert!(recorded.status.success(), "{}", text(&recorded));
-    let verified = repo.skies(&["proof", "verify", "--all", "--refresh"]);
-    assert!(verified.status.success(), "{}", text(&verified));
+    let run = repo.skies(&["proof", "run", "2"]);
+    assert!(run.status.success(), "{}", text(&run));
     assert_eq!(
         repo.read("builds.log").lines().count(),
         3,
-        "record 2 builds red and green; verifying both specs builds the working tree once"
+        "one build per checkout per invocation"
     );
 }
 

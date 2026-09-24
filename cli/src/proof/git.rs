@@ -1,15 +1,12 @@
-//! The few git operations `record`, `verify`, and `impact` need, through the git CLI.
+//! The few git operations `record` and `impact` need, through the git CLI.
 //!
 //! Shelling out keeps the binary free of libgit2 and behaves exactly like the git the author already uses
-//! (config, worktrees, sparse checkouts). `status` and `run` never call it.
+//! (config, worktrees, sparse checkouts). `run` never calls it.
 
-use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{Context, Result, bail};
-
-use super::spec::SPECS_DIR;
 
 /// A git repository seen from a project root that may sit below the repository's top level (a monorepo app,
 /// or the framework's own sample).
@@ -84,14 +81,6 @@ impl Repo {
         Ok(paths)
     }
 
-    /// Whether the working tree differs from HEAD (untracked files included) outside `.specs/`. Spec folders are
-    /// left out because recording writes into them and they are no part of the code under test.
-    pub fn dirty(&self) -> Result<bool> {
-        let exclude = format!(":(exclude){SPECS_DIR}");
-        let status = self.run(&["status", "--porcelain", "--untracked-files=all", "--", ".", &exclude])?;
-        Ok(!status.is_empty())
-    }
-
     /// Checks out `commit` in a fresh detached worktree under the system temp directory. The returned guard removes
     /// it on drop, so an early return or a failing runner never leaves a stray worktree behind.
     pub fn temp_worktree(&self, commit: &str) -> Result<TempWorktree> {
@@ -118,16 +107,6 @@ impl Repo {
     /// Applies a patch whose paths are relative to the project root (what `git diff --relative` writes from the app)
     /// or, failing that, to the repository top (what a plain `git diff` writes), so both habits just work.
     pub fn apply(&self, checkout_top: &Path, patch: &Path) -> Result<()> {
-        self.apply_in(checkout_top, patch, false)
-    }
-
-    /// Whether the patch would apply to the working tree, without touching it: `git apply --check`, in both path
-    /// styles [`Repo::apply`] accepts. A retro-spec's red.patch that no longer applies has rotted.
-    pub fn applies(&self, patch: &Path) -> bool {
-        self.apply_in(&self.top, patch, true).is_ok()
-    }
-
-    fn apply_in(&self, checkout_top: &Path, patch: &Path, check_only: bool) -> Result<()> {
         let patch_text = patch.to_str().context("the patch path is not UTF-8")?;
         let directory = format!("--directory={}", self.prefix.trim_end_matches('/'));
         let mut styles: Vec<Vec<&str>> = Vec::new();
@@ -142,76 +121,12 @@ impl Repo {
                 last_error = Some(error);
                 continue;
             }
-            if !check_only {
-                let apply: Vec<&str> = style.iter().copied().chain([patch_text]).collect();
-                git(checkout_top, &apply)?;
-            }
-            return Ok(());
+            let apply: Vec<&str> = style.iter().copied().chain([patch_text]).collect();
+            return git(checkout_top, &apply).map(|_| ());
         }
         Err(last_error.expect("at least one patch style"))
             .with_context(|| format!("{} does not apply", patch.display()))
     }
-
-    /// Which of `paths` (relative to the project root, existing or not) git would ignore.
-    pub fn ignored(&self, paths: &[String]) -> Result<BTreeSet<String>> {
-        let output = Command::new("git")
-            .args(["-c", "core.quotepath=off", "check-ignore"])
-            .args(paths)
-            .current_dir(&self.root)
-            .output()
-            .context("running git check-ignore")?;
-        // 0: some are ignored, 1: none is; anything else is an error.
-        if !matches!(output.status.code(), Some(0 | 1)) {
-            bail!(
-                "git check-ignore failed: {}",
-                String::from_utf8_lossy(&output.stderr).trim()
-            );
-        }
-        Ok(lines(&String::from_utf8_lossy(&output.stdout)).into_iter().collect())
-    }
-
-    /// The paths a patch touches, relative to the project root, without applying it.
-    pub fn patch_footprint(&self, patch: &Path) -> Result<Vec<String>> {
-        let rooted = patch_paths(patch, "")?;
-        // A patch written from the repository top names paths with the project prefix; strip it so both styles
-        // land on the same project-relative footprint.
-        if !self.prefix.is_empty() && rooted.iter().all(|path| path.starts_with(&self.prefix)) {
-            return patch_paths(patch, &self.prefix);
-        }
-        Ok(rooted)
-    }
-}
-
-/// Reads `--- a/x` / `+++ b/x` headers, dropping the first path component as `git apply -p1` does, so mnemonic
-/// prefixes (`i/`, `w/`) work too. `strip` is a prefix removed from each path; paths without it are dropped.
-fn patch_paths(patch: &Path, strip: &str) -> Result<Vec<String>> {
-    let text = std::fs::read_to_string(patch).with_context(|| format!("reading {}", patch.display()))?;
-    let paths: Vec<String> = patch_files(&text)
-        .into_iter()
-        .filter_map(|path| path.strip_prefix(strip).map(String::from))
-        .collect();
-    if paths.is_empty() {
-        bail!(
-            "{} touches no files (expected unified diff headers like `--- a/src/X.cs`)",
-            patch.display()
-        );
-    }
-    Ok(paths)
-}
-
-/// The paths a unified diff names, as written after its first component (`a/`, `b/`), sorted and deduplicated.
-pub fn patch_files(text: &str) -> Vec<String> {
-    let mut paths: Vec<String> = text
-        .lines()
-        .filter_map(|line| line.strip_prefix("--- ").or_else(|| line.strip_prefix("+++ ")))
-        .map(|path| path.split('\t').next().unwrap_or(path).trim_end())
-        .filter(|path| *path != "/dev/null")
-        .filter_map(|path| path.split_once('/').map(|(_, rest)| rest))
-        .map(String::from)
-        .collect();
-    paths.sort();
-    paths.dedup();
-    paths
 }
 
 pub struct TempWorktree {
@@ -231,7 +146,7 @@ impl Drop for TempWorktree {
 }
 
 fn git(dir: &Path, args: &[&str]) -> Result<String> {
-    // quotepath=off keeps non-ASCII paths literal, so they hash and match `touches` like any other path.
+    // quotepath=off keeps non-ASCII paths literal, so they match `touches` and module folders like any other path.
     let output = Command::new("git")
         .args(["-c", "core.quotepath=off"])
         .args(args)

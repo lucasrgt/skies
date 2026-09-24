@@ -4,7 +4,7 @@
 //! directory, and reads back the report; it never interprets the command's exit code, because on the red revision
 //! failing tests are the expected outcome. Only a missing or unreadable report is an error.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -12,7 +12,6 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 
-use super::coverage::Location;
 use super::report::{self, Report};
 use super::spec::{E2E_DIR, SpecDir};
 use crate::manifest::Runner;
@@ -24,16 +23,16 @@ pub struct Job<'a> {
     pub spec: &'a SpecDir,
     /// The project root inside the checkout being exercised (the working tree, or the red worktree).
     pub root: &'a Path,
-    /// Where the runner may drop artifacts (`{evidence}`).
+    /// Where the runner may drop artifacts (`{evidence}`, `$SKIES_EVIDENCE`).
     pub evidence: &'a Path,
     /// A scratch directory for the report and the captured log.
     pub scratch: &'a Path,
-    /// `red` or `green`, for messages.
+    /// `red` or `green`, for messages and file names.
     pub label: &'a str,
 }
 
-/// The runner finished without writing a report, which means the tests did not build or did not start. On the
-/// red revision that is the expected state of a feature whose E2E references code that does not exist yet.
+/// The runner finished without writing a report: the tests did not build or did not start. On red that is the
+/// expected state of a feature whose E2E references code that does not exist yet.
 #[derive(Debug)]
 pub struct NoReport {
     pub message: String,
@@ -49,12 +48,10 @@ impl std::fmt::Display for NoReport {
 
 impl std::error::Error for NoReport {}
 
-/// A finished run: the parsed report and the file it came from, which the caller copies into evidence verbatim,
-/// where the run's coverage landed, if it wrote any, and the runner's captured output and exit status.
+/// A finished run: the parsed report and its file, the runner's captured output, and its exit status.
 pub struct Run {
     pub report: Report,
     pub file: PathBuf,
-    pub coverage: Location,
     pub log: PathBuf,
     /// Whether the command exited 0. Never decides a failure mode (the report does), but a red run whose report
     /// names no failure mode and whose command failed did not get far enough to run the cases.
@@ -62,165 +59,77 @@ pub struct Run {
     pub elapsed: Duration,
 }
 
-/// Remembers which setups and builds already ran, so each runs once per runner and checkout in a single
-/// invocation even when `verify` exercises many specs.
-#[derive(Default)]
-pub struct Session {
-    done: BTreeSet<(String, PathBuf)>,
-    built: BTreeSet<(String, PathBuf)>,
+/// Runs one spec in one checkout: `setup`, then `build`, then `command`, each once. Every run gets fresh scratch
+/// paths, so nothing an earlier run left can count as this run's report or evidence.
+pub fn run(job: &Job) -> Result<Run> {
+    let started = Instant::now();
+    let values = placeholders(job)?;
+    // Tests find where to drop artifacts (an Assay verdict, a screenshot) and which spec they serve, whatever the test
+    // framework and however the command is written.
+    let env = BTreeMap::from([
+        ("SKIES_EVIDENCE", values["evidence"].clone()),
+        ("SKIES_SPEC", values["spec"].clone()),
+    ]);
+    std::fs::create_dir_all(job.evidence)?;
+    if let Some(setup) = &job.runner.setup {
+        let log = job.scratch.join(format!("{}-setup.log", job.label));
+        if !shell(&expand(setup, &values), job.root, &env, &log)? {
+            bail!(
+                "runner '{}' setup failed on {}:\n{}",
+                job.runner_name,
+                job.label,
+                tail(&log)
+            );
+        }
+    }
+    let log = job.scratch.join(format!("{}.log", job.label));
+    if let Some(build) = &job.runner.build
+        && !shell(&expand(build, &values), job.root, &env, &log)?
+    {
+        return Err(no_report(job, "build failed", log));
+    }
+    let success = shell(&expand(&job.runner.command, &values), job.root, &env, &log)?;
+    let report_path = PathBuf::from(&values["report"]);
+    let Ok(text) = std::fs::read_to_string(&report_path) else {
+        return Err(no_report(job, "wrote no report (did the tests build?)", log));
+    };
+    let report =
+        report::parse(&text).with_context(|| format!("reading the {} report {}", job.label, report_path.display()))?;
+    Ok(Run {
+        report,
+        file: report_path,
+        log,
+        success,
+        elapsed: started.elapsed(),
+    })
 }
 
-impl Session {
-    pub fn run(&mut self, job: &Job) -> Result<Run> {
-        let started = Instant::now();
-        let values = placeholders(job)?;
-        let mut env = automatic_env(&values);
-        env.extend(
-            job.runner
-                .env
-                .iter()
-                .map(|(key, value)| (key.clone(), expand(value, &values))),
-        );
-
-        if let Some(setup) = &job.runner.setup
-            && self.done.insert((job.runner_name.to_string(), job.root.to_path_buf()))
-        {
-            let log = job.scratch.join(format!("{}-setup.log", job.label));
-            let status = shell(&expand(setup, &values), job.root, &env, &log)?;
-            if !status {
-                bail!(
-                    "runner '{}' setup failed on {}:\n{}",
-                    job.runner_name,
-                    job.label,
-                    tail(&log)
-                );
-            }
-        }
-
-        let report_path = PathBuf::from(&values["report"]);
-        if report_path.exists() {
-            std::fs::remove_file(&report_path)
-                .with_context(|| format!("removing the previous report {}", report_path.display()))?;
-        }
-        if let Some(parent) = report_path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        // Coverage from an earlier run describes other code; a runner that writes none must find nothing there.
-        let coverage = Location {
-            path: PathBuf::from(&values["coverage"]),
-            configured: job.runner.coverage.is_some() || mentions_coverage(job.runner),
-        };
-        remove(&coverage.path)?;
-        // A verdict or artifact left by an earlier run must never count as this run's evidence.
-        if job.evidence.exists() {
-            std::fs::remove_dir_all(job.evidence).with_context(|| format!("clearing {}", job.evidence.display()))?;
-        }
-        std::fs::create_dir_all(job.evidence)?;
-
-        let log = job.scratch.join(format!("{}.log", job.label));
-        if let Some(build) = &job.runner.build
-            && self.built.insert((job.runner_name.to_string(), job.root.to_path_buf()))
-        {
-            let build_log = job.scratch.join(format!("{}-build.log", job.label));
-            if !shell(&expand(build, &values), job.root, &env, &build_log)? {
-                // Unbuilt, so the next spec on this checkout builds again rather than running stale binaries.
-                self.built
-                    .remove(&(job.runner_name.to_string(), job.root.to_path_buf()));
-                std::fs::copy(&build_log, &log)?;
-                return Err(NoReport {
-                    message: format!(
-                        "runner '{}' build failed on {}. Last output:\n{}",
-                        job.runner_name,
-                        job.label,
-                        tail(&log)
-                    ),
-                    log,
-                }
-                .into());
-            }
-        }
-        let success = shell(&expand(&job.runner.command, &values), job.root, &env, &log)?;
-        let Ok(text) = std::fs::read_to_string(&report_path) else {
-            return Err(NoReport {
-                message: format!(
-                    "runner '{}' wrote no report at {} on {} (did the tests build?). Last output:\n{}",
-                    job.runner_name,
-                    report_path.display(),
-                    job.label,
-                    tail(&log)
-                ),
-                log,
-            }
-            .into());
-        };
-        let report = report::parse(&text)
-            .with_context(|| format!("reading the {} report {}", job.label, report_path.display()))?;
-        Ok(Run {
-            report,
-            file: report_path,
-            coverage,
-            log,
-            success,
-            elapsed: started.elapsed(),
-        })
+fn no_report(job: &Job, what: &str, log: PathBuf) -> anyhow::Error {
+    NoReport {
+        message: format!(
+            "runner '{}' {what} on {}. Last output:\n{}",
+            job.runner_name,
+            job.label,
+            tail(&log)
+        ),
+        log,
     }
+    .into()
 }
 
 fn placeholders(job: &Job) -> Result<BTreeMap<&'static str, String>> {
-    let mut values = BTreeMap::from([
+    let text = |path: &Path| {
+        path.to_str()
+            .map(String::from)
+            .with_context(|| format!("{} is not valid UTF-8", path.display()))
+    };
+    Ok(BTreeMap::from([
         ("id", job.spec.id.clone()),
         ("spec", job.spec.name.clone()),
         ("dir", format!("{}/{E2E_DIR}", job.spec.rel())),
-        ("evidence", path_text(job.evidence)?),
-    ]);
-    let report = match &job.runner.report {
-        Some(configured) => job.root.join(expand(configured, &values)),
-        None => job.scratch.join(format!("{}-report.xml", job.label)),
-    };
-    values.insert("report", path_text(&report)?);
-    let coverage = match &job.runner.coverage {
-        Some(configured) => job.root.join(expand(configured, &values)),
-        None => job.scratch.join(format!("{}-coverage", job.label)),
-    };
-    values.insert("coverage", path_text(&coverage)?);
-    Ok(values)
-}
-
-/// Whether the runner passes `{coverage}` anywhere, which is how a runner without a fixed `coverage` path opts in.
-fn mentions_coverage(runner: &Runner) -> bool {
-    let placeholder = "{coverage}";
-    runner.command.contains(placeholder)
-        || runner.setup.as_deref().is_some_and(|setup| setup.contains(placeholder))
-        || runner.env.values().any(|value| value.contains(placeholder))
-}
-
-/// Deletes a file or a folder, if there is one.
-fn remove(path: &Path) -> Result<()> {
-    let result = if path.is_dir() {
-        std::fs::remove_dir_all(path)
-    } else if path.exists() {
-        std::fs::remove_file(path)
-    } else {
-        return Ok(());
-    };
-    result.with_context(|| format!("removing the previous coverage {}", path.display()))
-}
-
-/// Environment every runner gets without configuring it: tests find where to drop artifacts (an Assay verdict, a
-/// screenshot), which spec they serve, and where coverage goes, whatever the test framework and however the command
-/// is written. A runner's own `env` still wins on a name clash.
-fn automatic_env(values: &BTreeMap<&'static str, String>) -> BTreeMap<String, String> {
-    BTreeMap::from([
-        ("SKIES_EVIDENCE".to_string(), values["evidence"].clone()),
-        ("SKIES_SPEC".to_string(), values["spec"].clone()),
-        ("SKIES_COVERAGE".to_string(), values["coverage"].clone()),
-    ])
-}
-
-fn path_text(path: &Path) -> Result<String> {
-    path.to_str()
-        .map(String::from)
-        .with_context(|| format!("{} is not valid UTF-8", path.display()))
+        ("evidence", text(job.evidence)?),
+        ("report", text(&job.scratch.join(format!("{}-report.xml", job.label)))?),
+    ]))
 }
 
 /// Replaces `{name}` for every known placeholder; unknown braces are left alone so shell syntax like `${VAR}` or
@@ -232,19 +141,13 @@ pub fn expand(template: &str, values: &BTreeMap<&'static str, String>) -> String
 }
 
 /// Runs `command` through the platform shell, output captured to `log`. Returns whether it exited successfully.
-fn shell(command: &str, cwd: &Path, env: &BTreeMap<String, String>, log: &Path) -> Result<bool> {
+fn shell(command: &str, cwd: &Path, env: &BTreeMap<&str, String>, log: &Path) -> Result<bool> {
     let out = File::create(log).with_context(|| format!("creating {}", log.display()))?;
     let err = out.try_clone()?;
-    let mut process = if cfg!(windows) {
-        let mut process = Command::new("cmd");
-        process.arg("/C").arg(command);
-        process
-    } else {
-        let mut process = Command::new("sh");
-        process.arg("-c").arg(command);
-        process
-    };
-    let status = process
+    let (shell, flag) = if cfg!(windows) { ("cmd", "/C") } else { ("sh", "-c") };
+    let status = Command::new(shell)
+        .arg(flag)
+        .arg(command)
         .current_dir(cwd)
         .envs(env)
         .stdin(Stdio::null())
@@ -265,8 +168,7 @@ pub fn tail(log: &Path) -> String {
     const LINES: usize = 30;
     let text = std::fs::read_to_string(log).unwrap_or_default();
     let lines: Vec<&str> = text.lines().collect();
-    let start = lines.len().saturating_sub(LINES);
-    lines[start..]
+    lines[lines.len().saturating_sub(LINES)..]
         .iter()
         .map(|line| format!("  | {line}"))
         .collect::<Vec<_>>()

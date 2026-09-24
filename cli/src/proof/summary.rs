@@ -2,7 +2,7 @@
 //! the first failing case said; and when red did not build, the lines of output that say why.
 //!
 //! The full report stays local (evidence/raw/), so this is what a reviewer reads in the pull request. It must be
-//! short, and stable: the same run twice yields the same text (no timings, machine paths scrubbed, cases sorted).
+//! short, and stable: the same run twice yields the same text (no timings, checkout paths replaced, cases sorted).
 
 use std::path::Path;
 use std::sync::LazyLock;
@@ -10,7 +10,29 @@ use std::sync::LazyLock;
 use regex::Regex;
 
 use super::report::{Case, Outcome};
-use super::scrub::Scrub;
+
+/// The checkouts a run's messages may name (the working tree, a temporary red worktree), replaced by `{root}` so a
+/// receipt reads the same on every machine and every run.
+pub struct Scrub(Vec<String>);
+
+impl Scrub {
+    pub fn new(roots: &[&Path]) -> Scrub {
+        let mut roots: Vec<String> = roots
+            .iter()
+            .map(|root| root.to_string_lossy().into_owned())
+            .filter(|root| !root.is_empty())
+            .collect();
+        // The longest first, so a worktree inside another root is replaced whole.
+        roots.sort_by_key(|root| std::cmp::Reverse(root.len()));
+        Scrub(roots)
+    }
+
+    pub fn text(&self, text: &str) -> String {
+        self.0
+            .iter()
+            .fold(text.to_string(), |text, root| text.replace(root.as_str(), "{root}"))
+    }
+}
 
 /// At most this many lines of a message, each cut to [`WIDTH`] characters.
 const LINES: usize = 4;
@@ -125,8 +147,9 @@ mod tests {
             case("FM-1: c", Outcome::Passed, None),
         ];
         assert_eq!(names(&cases), ["FM-1: a", "FM-1: b", "FM-1: c"]);
-        let scrub = Scrub::new(&[]);
+        let scrub = Scrub::new(&[Path::new("/tmp/w")]);
         assert_eq!(first_failure(&cases, &scrub).as_deref(), Some("first"));
+        assert_eq!(scrub.text("at /tmp/w/src/X.cs"), "at {root}/src/X.cs");
         assert_eq!(first_failure(&cases[2..], &scrub), None);
     }
 
