@@ -4,15 +4,15 @@
   "red": {
     "commit": "dd9185ad21f6389f03c606b0e3633d5a486cb74c",
     "cases": {
-      "FM-1": "fail",
-      "FM-2": "fail",
-      "FM-3": "fail",
-      "FM-4": "fail"
+      "FM-1": "did-not-build",
+      "FM-2": "did-not-build",
+      "FM-3": "did-not-build",
+      "FM-4": "did-not-build"
     },
-    "report": "evidence/red.xml"
+    "report": "evidence/red.log"
   },
   "green": {
-    "commit": "d9ab5d79993267eb138b224da4b821d760f910cc",
+    "commit": "1f3fc846faae20ba5f7e6cec54cf7ddbfddd74a2",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -24,21 +24,81 @@
   },
   "footprint": {
     "frontend/web/package.json": "blake3:8f309ab6481f644c74f5a5a28af3a69f7390c644c19a8a5f747caee14e6cc863",
+    "frontend/web/src/api.ts": {
+      "lines": "2",
+      "ranges": "8e7e0918124efcc0"
+    },
     "frontend/web/src/client.gen/sample.ts": "blake3:288508d20320640fffcd1276f0bd64c65a7445300bdfbe6f274f6fa36c1e248e",
     "frontend/web/src/deposit/Deposit.viewModel.ts": "blake3:9f52c28b9c3a0ded9ade1569a9fcad6761a0c4b11ec3cedaf1b625d20796dc05",
-    "frontend/web/src/i18n.ts": "blake3:be327133bc485f18a2b4e10a937c0a5cfed534c3aba1e13c1d1cd6b06e84c9d3",
-    "frontend/web/src/i18n/resources.generated.ts": "blake3:57f8aad5fa7eb7df5eec66ab8c453f509a168de29580894fb5dba3179e95d734",
+    "frontend/web/src/deposit/deposit.i18n.ts": {
+      "lines": "2,16,30",
+      "ranges": "b4fcbf7240480bf1,49c5acd9c991b4f7,55b2e168c60319f9"
+    },
+    "frontend/web/src/i18n.ts": {
+      "lines": "8",
+      "ranges": "b560e7b7f50799ab"
+    },
+    "frontend/web/src/i18n/resources.generated.ts": {
+      "lines": "6",
+      "ranges": "775feb43163cf6a2"
+    },
+    "frontend/web/src/items/items.i18n.ts": {
+      "lines": "3,12,21",
+      "ranges": "b4fcbf7240480bf1,49c5acd9c991b4f7,55b2e168c60319f9"
+    },
     "frontend/web/src/transfer/Transfer.view.tsx": "blake3:c0a5f7667e1a3af882ffaf6403cacbdd81d1b1a900182328f6decee6089cc613",
     "frontend/web/src/transfer/Transfer.viewModel.ts": "blake3:f997017f5a45a0d49e3a1f3629ac62552b24baaf08761684e15d7dbc799d9848",
-    "frontend/web/src/transfer/transfer.i18n.ts": "blake3:d0db27679c498f52e0599551a96a1e4f5bac500e7f3d9696033c484c05c1d564"
+    "frontend/web/src/transfer/transfer.i18n.ts": "blake3:d0db27679c498f52e0599551a96a1e4f5bac500e7f3d9696033c484c05c1d564",
+    "frontend/web/src/ui/Button.tsx": {
+      "lines": "1,11,33-38,40",
+      "ranges": "a26a11ba3249b658,d64ef2a70135ffda,98120cfe48b4416f,55002434f3092575"
+    },
+    "frontend/web/src/ui/Card.tsx": {
+      "lines": "15",
+      "ranges": "55002434f3092575"
+    },
+    "frontend/web/src/ui/Field.tsx": {
+      "lines": "1,13,17,33-34,40",
+      "ranges": "a26a11ba3249b658,c1f2c538506bfda1,332e324d211dd88a,eac287088237f1ce,55002434f3092575"
+    },
+    "frontend/web/src/ui/Input.tsx": {
+      "lines": "1,26-28,30,36",
+      "ranges": "a26a11ba3249b658,e007979c38627320,55002434f3092575,965c4c92eee9cf5a"
+    },
+    "frontend/web/src/ui/Screen.tsx": {
+      "lines": "8",
+      "ranges": "55002434f3092575"
+    },
+    "frontend/web/src/ui/Stack.tsx": {
+      "lines": "4,21",
+      "ranges": "89c76d839f0ae60b,55002434f3092575"
+    },
+    "frontend/web/src/ui/Text.tsx": {
+      "lines": "6,28-31",
+      "ranges": "7d7c9fe60b692281,6995543b93af073c"
+    },
+    "frontend/web/src/ui/theme.ts": {
+      "lines": "7,9,11,20,38,40",
+      "ranges": "665d7008adbdda75,cfb79a92c6135ba2,0699eeaa3e2ba908,3d3ca33170bb5ca3,6876ed9bb6ceb06e,89d24a18fb83dbef"
+    }
   },
-  "footprint_source": "diff",
+  "footprint_source": "coverage",
+  "footprint_changed": [
+    "frontend/web/package.json",
+    "frontend/web/src/client.gen/sample.ts",
+    "frontend/web/src/deposit/Deposit.viewModel.ts",
+    "frontend/web/src/i18n.ts",
+    "frontend/web/src/i18n/resources.generated.ts",
+    "frontend/web/src/transfer/Transfer.view.tsx",
+    "frontend/web/src/transfer/Transfer.viewModel.ts",
+    "frontend/web/src/transfer/transfer.i18n.ts"
+  ],
   "inputs": {
     ".specs/0010-transfer-screen/e2e/Transfer.test.tsx": "blake3:357b27435a76765cac8eff13499cf94a678700f610c5f066d0bb8bca6673b782",
     ".specs/0010-transfer-screen/spec.md": "blake3:be0edef9ea5153785836eab35e94ae6d18df8b57895144b42792c92887c068e1"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:2f132b9bb02f22018e7fa3b4c8d130fa1a15f62f56e95341bf97333a7351174e",
-    "evidence/red.xml": "blake3:b606cacc10f29b76b0a373416a3c1d124ddd28fe30d8be89502f138979d2b1ce"
+    "evidence/green.xml": "blake3:cc1688c19feed9e65959d3cf63f162f30b91931ac2d1dab55eb901796e9c587f",
+    "evidence/red.log": "blake3:bac890eca9eb65569fc4bc52ad17d1298a2cd162608f8e7f21ec739db9dac8ff"
   }
 }

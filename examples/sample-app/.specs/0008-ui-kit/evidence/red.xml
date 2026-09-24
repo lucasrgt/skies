@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="14" failures="11" errors="0" time="0.120794128">
-    <testsuite name="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" timestamp="2026-09-24T06:29:32.244Z" hostname="{machine}" tests="14" failures="11" errors="0" skipped="0" time="0.120794128">
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-1: the label is the accessible name and a press fires the action" time="0.0615802">
+<testsuites name="vitest tests" tests="14" failures="11" errors="0" time="0.148884502">
+    <testsuite name="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" timestamp="2026-09-24T08:12:25.636Z" hostname="{machine}" tests="14" failures="11" errors="0" skipped="0" time="0.148884502">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-1: the label is the accessible name and a press fires the action" time="0.07610022">
             <failure message="expected &quot;vi.fn()&quot; to be called 1 times, but got 0 times" type="AssertionError">
 AssertionError: expected &quot;vi.fn()&quot; to be called 1 times, but got 0 times
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:25:21
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a loading button blocks the action and announces itself" time="0.0053218">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a loading button blocks the action and announces itself" time="0.006587226">
             <failure message="expected &quot;vi.fn()&quot; to be called +0 times, but got 1 times" type="AssertionError">
 AssertionError: expected &quot;vi.fn()&quot; to be called +0 times, but got 1 times
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:33:21
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a disabled button blocks the action" time="0.005983196">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-2: a disabled button blocks the action" time="0.006600845">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-3: focus shows the focus ring and blur drops it, never outline:none alone" time="0.005785446">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Button &gt; FM-3: focus shows the focus ring and blur drops it, never outline:none alone" time="0.007121853">
             <failure message="expected &apos;none&apos; to be &apos;0 0 0 2px #2563eb&apos; // Object.is equality" type="AssertionError">
 AssertionError: expected &apos;none&apos; to be &apos;0 0 0 2px #2563eb&apos; // Object.is equality
 
@@ -25,7 +25,7 @@ Received: &quot;none&quot;
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:49:33
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: the label is associated and describedby points at the hint" time="0.006853719">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: the label is associated and describedby points at the hint" time="0.008363303">
             <failure message="Found a label with the text of: Email, however no form control was found associated to that label. Make sure you&apos;re using the &quot;for&quot; attribute or &quot;aria-labelledby&quot; attribute correctly.
 
 Ignored nodes: comments, script, style
@@ -93,7 +93,7 @@ Ignored nodes: comments, script, style
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:62:26
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: an error replaces the hint as a role=alert and flips the control invalid" time="0.013750188">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-4: an error replaces the hint as a role=alert and flips the control invalid" time="0.01794211">
             <failure message="Unable to find an accessible element with the role &quot;alert&quot;
 
 Here are the accessible roles:
@@ -193,7 +193,7 @@ Ignored nodes: comments, script, style
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:74:26
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-5: the input hands the View a string through onChangeText, not an event" time="0.00266268">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Field and Input, the form anatomy &gt; FM-5: the input hands the View a string through onChangeText, not an event" time="0.002950161">
             <failure message="Found a label with the text of: Name, however no form control was found associated to that label. Make sure you&apos;re using the &quot;for&quot; attribute or &quot;aria-labelledby&quot; attribute correctly.
 
 Ignored nodes: comments, script, style
@@ -245,7 +245,7 @@ Ignored nodes: comments, script, style
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:90:29
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a role maps to its type scale and the document outline" time="0.001613298">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a role maps to its type scale and the document outline" time="0.001843968">
             <failure message="expected &apos;SPAN&apos; to be &apos;H1&apos; // Object.is equality" type="AssertionError">
 AssertionError: expected &apos;SPAN&apos; to be &apos;H1&apos; // Object.is equality
 
@@ -255,9 +255,9 @@ Received: &quot;SPAN&quot;
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:99:24
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a tone maps to its semantic color role" time="0.001827177">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: a tone maps to its semantic color role" time="0.001798998">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: the alert flag announces the text, the command-error surface" time="0.003844931">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Text, typography as one decision &gt; FM-6: the alert flag announces the text, the command-error surface" time="0.00445484">
             <failure message="Unable to find an accessible element with the role &quot;alert&quot;
 
 There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
@@ -293,7 +293,7 @@ Ignored nodes: comments, script, style
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:116:19
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Stack, rhythm from the scale &gt; FM-7: children are spaced by the gap scale and carry no margin" time="0.002172394">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Stack, rhythm from the scale &gt; FM-7: children are spaced by the gap scale and carry no margin" time="0.002649502">
             <failure message="expected &apos;&apos; to be &apos;16px&apos; // Object.is equality" type="AssertionError">
 AssertionError: expected &apos;&apos; to be &apos;16px&apos; // Object.is equality
 
@@ -305,7 +305,7 @@ AssertionError: expected &apos;&apos; to be &apos;16px&apos; // Object.is equali
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:129:29
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the empty state renders its title and description" time="0.001953855">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the empty state renders its title and description" time="0.002410614">
             <failure message="Unable to find an element with the text: Create one. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
 
 Ignored nodes: comments, script, style
@@ -345,7 +345,7 @@ Ignored nodes: comments, script, style
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:138:19
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the error state offers its retry action" time="0.004554657">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="Async states &gt; FM-8: the error state offers its retry action" time="0.006258488">
             <failure message="Unable to find an accessible element with the role &quot;button&quot; and name &quot;Try again&quot;
 
 Here are the accessible roles:
@@ -407,7 +407,7 @@ Ignored nodes: comments, script, style
  ❯ examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx:144:28
             </failure>
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="FM-9: the prop surface stays closed, with no className or style passthrough" time="0.000334808">
+        <testcase classname="examples/sample-app/.specs/0008-ui-kit/e2e/UiKit.test.tsx" name="FM-9: the prop surface stays closed, with no className or style passthrough" time="0.000460387">
         </testcase>
     </testsuite>
 </testsuites>

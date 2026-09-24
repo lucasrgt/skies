@@ -2,7 +2,7 @@
   "spec": "0008-ui-kit",
   "runner": "web",
   "red": {
-    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
+    "commit": "1f3fc846faae20ba5f7e6cec54cf7ddbfddd74a2",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:e21a028aaa6e4f8f4423be6cc8f499bf75ba3895ced2d66d0a16fb4118305ae4"
@@ -21,7 +21,7 @@
     "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "ab3c0b0c0e952beeb46d63a26b51598d992bce23",
+    "commit": "1f3fc846faae20ba5f7e6cec54cf7ddbfddd74a2",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -37,22 +37,52 @@
     "report": "evidence/green.xml"
   },
   "footprint": {
-    "frontend/web/src/ui/Button.tsx": "blake3:c50fcdadeb6e55c7dc10031fa18d2d30e246cde2da5354e36f007434753abada",
-    "frontend/web/src/ui/Field.tsx": "blake3:f9650272b0d6a5c76e8270f02d12b51a7be1e51be5dfa91792cf8bfc10a2dc3f",
-    "frontend/web/src/ui/Input.tsx": "blake3:b30cb5d7fadfbcd35eccc61901a9d661cac1a5ae7771cdef463c6472360e6d7d",
-    "frontend/web/src/ui/Stack.tsx": "blake3:6848148f963e8d440542f37abf6966e3110029e1f8844f0ee12d1173407cacae",
-    "frontend/web/src/ui/Text.tsx": "blake3:f86e6e9f28afd165d0f67ebf8339035a233efe18abe65d42d9101d96eb12fe52",
+    "frontend/web/src/api.ts": {
+      "lines": "2",
+      "ranges": "8e7e0918124efcc0"
+    },
+    "frontend/web/src/ui/Button.tsx": {
+      "lines": "1,11,33-38,40,53-54",
+      "ranges": "a26a11ba3249b658,d64ef2a70135ffda,98120cfe48b4416f,55002434f3092575,f79386fa18089e93"
+    },
+    "frontend/web/src/ui/Field.tsx": {
+      "lines": "1,13,17,33-34,40",
+      "ranges": "a26a11ba3249b658,c1f2c538506bfda1,332e324d211dd88a,eac287088237f1ce,55002434f3092575"
+    },
+    "frontend/web/src/ui/Input.tsx": {
+      "lines": "1,26-28,30,36",
+      "ranges": "a26a11ba3249b658,e007979c38627320,55002434f3092575,965c4c92eee9cf5a"
+    },
+    "frontend/web/src/ui/Stack.tsx": {
+      "lines": "4,21",
+      "ranges": "89c76d839f0ae60b,55002434f3092575"
+    },
+    "frontend/web/src/ui/Text.tsx": {
+      "lines": "6,28-31",
+      "ranges": "7d7c9fe60b692281,6995543b93af073c"
+    },
     "frontend/web/src/ui/index.ts": "blake3:52291a3fee7c9a6796c0062564896c9967aa165f039d45d15699f0b90cfa6be0",
-    "frontend/web/src/ui/states.tsx": "blake3:a6490651b2384d01c30a5a9b5938d5aa7ed7ae238b620734eef685ffb20e50d1",
+    "frontend/web/src/ui/states.tsx": {
+      "lines": "8,25",
+      "ranges": "55002434f3092575,55002434f3092575"
+    },
     "frontend/web/src/ui/theme.ts": "blake3:1015317fe0f61dfefa1cfb688bdbc9b3ada56f4e31fa740a0e4302a3beb70a13"
   },
-  "footprint_source": "diff",
+  "footprint_source": "coverage",
+  "footprint_changed": [
+    "frontend/web/src/ui/Button.tsx",
+    "frontend/web/src/ui/Field.tsx",
+    "frontend/web/src/ui/Input.tsx",
+    "frontend/web/src/ui/Stack.tsx",
+    "frontend/web/src/ui/Text.tsx",
+    "frontend/web/src/ui/states.tsx"
+  ],
   "inputs": {
     ".specs/0008-ui-kit/e2e/UiKit.test.tsx": "blake3:5a7f25bcba0041b0c735dbe20f2df54d2bd3f073023f32a90baff42c60b0abc5",
     ".specs/0008-ui-kit/spec.md": "blake3:e11309936199987b09add39b88e1a3b7dfaf16289c4fb58f7c60551aaf1bc20b"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:69a836db4b40c5e1c68839fd534b0822e43977e96d0c7de119e91ccab92a777a",
-    "evidence/red.xml": "blake3:3bfa4d670a959ee4c1f0549cb897afaf7248362fd38bcb1567d41a618c6de4ca"
+    "evidence/green.xml": "blake3:81c28f2ca503063294fdf086f91866c65817038350061bb4e1b20199359b2972",
+    "evidence/red.xml": "blake3:019e8977af77a2d2c1fa78ab1559965ddee57c1f2412a7430c95bd51c90400db"
   }
 }

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="3" failures="0" errors="0" time="0.29747836">
-    <testsuite name="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" timestamp="2026-09-24T08:11:12.419Z" hostname="{machine}" tests="3" failures="0" errors="0" skipped="0" time="0.29747836">
-        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-1: an invalid submit is blocked with field errors inside the Field anatomy" time="0.126345197">
+<testsuites name="vitest tests" tests="3" failures="0" errors="0" time="0.292644262">
+    <testsuite name="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" timestamp="2026-09-24T08:12:18.344Z" hostname="{machine}" tests="3" failures="0" errors="0" skipped="0" time="0.292644262">
+        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-1: an invalid submit is blocked with field errors inside the Field anatomy" time="0.123711853">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-2: a valid submit announces while pending, then reaches the success surface" time="0.096363125">
+        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-2: a valid submit announces while pending, then reaches the success surface" time="0.093441925">
         </testcase>
-        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-3: a command failure surfaces as a role=alert block and keeps the form" time="0.071731008">
+        <testcase classname="examples/sample-app/.specs/0006-deposit-screen/e2e/Deposit.test.tsx" name="Deposit screen &gt; FM-3: a command failure surfaces as a role=alert block and keeps the form" time="0.071866419">
         </testcase>
     </testsuite>
 </testsuites>

@@ -2,21 +2,21 @@
   "spec": "0006-deposit-screen",
   "runner": "web",
   "red": {
-    "commit": "d9ab5d79993267eb138b224da4b821d760f910cc",
+    "commit": "1f3fc846faae20ba5f7e6cec54cf7ddbfddd74a2",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:d4d2a52a41484886fb7db3764eb4e2193cabcca737f9e6a93db761475de401d1"
     },
     "cases": {
-      "FM-1": "did-not-build",
-      "FM-2": "did-not-build",
-      "FM-3": "did-not-build"
+      "FM-1": "fail",
+      "FM-2": "fail",
+      "FM-3": "fail"
     },
-    "report": "evidence/red.log"
+    "report": "evidence/red.xml"
   },
   "green": {
-    "commit": "d9ab5d79993267eb138b224da4b821d760f910cc",
-    "dirty": true,
+    "commit": "1f3fc846faae20ba5f7e6cec54cf7ddbfddd74a2",
+    "dirty": false,
     "cases": {
       "FM-1": "pass",
       "FM-2": "pass",
@@ -25,9 +25,64 @@
     "report": "evidence/green.xml"
   },
   "footprint": {
+    "frontend/web/src/api.ts": {
+      "lines": "2",
+      "ranges": "8e7e0918124efcc0"
+    },
     "frontend/web/src/deposit/Deposit.view.tsx": "blake3:e46d7e36fb1528faaa1dba7436548afa292a130d801721873e0e6751c75d7553",
-    "frontend/web/src/deposit/Deposit.viewModel.ts": "blake3:9f52c28b9c3a0ded9ade1569a9fcad6761a0c4b11ec3cedaf1b625d20796dc05",
-    "frontend/web/src/deposit/deposit.i18n.ts": "blake3:f5de3851f031c9124b9766753841f805f78d5769eae876a37ea3615e947755fc"
+    "frontend/web/src/deposit/Deposit.viewModel.ts": {
+      "lines": "30,32,34,37,45,47-48,51,53",
+      "ranges": "5eec81379d8896be,84da8621b49d0106,69b571691b9cb5c7,748e090c21d7dfb6,5d684a90f18dcac8,965d4be589dd2344,b27041e57e982403,23375637f730e2ae"
+    },
+    "frontend/web/src/deposit/deposit.i18n.ts": "blake3:f5de3851f031c9124b9766753841f805f78d5769eae876a37ea3615e947755fc",
+    "frontend/web/src/i18n.ts": {
+      "lines": "8",
+      "ranges": "b560e7b7f50799ab"
+    },
+    "frontend/web/src/i18n/resources.generated.ts": {
+      "lines": "6",
+      "ranges": "775feb43163cf6a2"
+    },
+    "frontend/web/src/items/items.i18n.ts": {
+      "lines": "3,12,21",
+      "ranges": "b4fcbf7240480bf1,49c5acd9c991b4f7,55b2e168c60319f9"
+    },
+    "frontend/web/src/transfer/transfer.i18n.ts": {
+      "lines": "2,18,34",
+      "ranges": "b4fcbf7240480bf1,49c5acd9c991b4f7,55b2e168c60319f9"
+    },
+    "frontend/web/src/ui/Button.tsx": {
+      "lines": "1,11,33-38,40",
+      "ranges": "a26a11ba3249b658,d64ef2a70135ffda,98120cfe48b4416f,55002434f3092575"
+    },
+    "frontend/web/src/ui/Card.tsx": {
+      "lines": "15",
+      "ranges": "55002434f3092575"
+    },
+    "frontend/web/src/ui/Field.tsx": {
+      "lines": "1,13,17,33-34,40",
+      "ranges": "a26a11ba3249b658,c1f2c538506bfda1,332e324d211dd88a,eac287088237f1ce,55002434f3092575"
+    },
+    "frontend/web/src/ui/Input.tsx": {
+      "lines": "1,26-28,30,36",
+      "ranges": "a26a11ba3249b658,e007979c38627320,55002434f3092575,965c4c92eee9cf5a"
+    },
+    "frontend/web/src/ui/Screen.tsx": {
+      "lines": "8",
+      "ranges": "55002434f3092575"
+    },
+    "frontend/web/src/ui/Stack.tsx": {
+      "lines": "4,21",
+      "ranges": "89c76d839f0ae60b,55002434f3092575"
+    },
+    "frontend/web/src/ui/Text.tsx": {
+      "lines": "6,28-31",
+      "ranges": "7d7c9fe60b692281,6995543b93af073c"
+    },
+    "frontend/web/src/ui/theme.ts": {
+      "lines": "7,9,11,20,38,40",
+      "ranges": "665d7008adbdda75,cfb79a92c6135ba2,0699eeaa3e2ba908,3d3ca33170bb5ca3,6876ed9bb6ceb06e,89d24a18fb83dbef"
+    }
   },
   "footprint_source": "coverage",
   "footprint_changed": [
@@ -38,7 +93,7 @@
     ".specs/0006-deposit-screen/spec.md": "blake3:a8484742b8a4f393e41da8308b91e33f21652e44c47f82e17af4fbbbdc4c9c2f"
   },
   "evidence": {
-    "evidence/green.xml": "blake3:4403b6c9221018bf8b4a474232a1c093dd66d12c502a99b8e73d9b7b3866fafb",
-    "evidence/red.log": "blake3:bac890eca9eb65569fc4bc52ad17d1298a2cd162608f8e7f21ec739db9dac8ff"
+    "evidence/green.xml": "blake3:32f2a04cbc8bc6889d0423e52a1472ab9f36a0bb49f2e57ecb8e858e7ff887b9",
+    "evidence/red.xml": "blake3:48e74a531e19a5d258e45517277ec3153315f98ea8d20ce327fdec3e02f9c600"
   }
 }
