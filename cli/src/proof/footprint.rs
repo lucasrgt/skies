@@ -89,7 +89,8 @@ pub fn describe(footprint: &Footprint, proven: &ProvenGreen) -> String {
     }
 }
 
-fn files(count: usize) -> String {
+/// `1 file`, `12 files`.
+pub fn files(count: usize) -> String {
     format!("{count} file{}", if count == 1 { "" } else { "s" })
 }
 

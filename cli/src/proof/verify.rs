@@ -173,8 +173,8 @@ fn verify_one(
     receipt.inputs = hash::hash_all(root, &hash::input_paths(root, spec)?);
     receipt.evidence = Some(green::evidence_hashes(spec, receipt.evidence.as_ref())?);
     let footprint = format!(
-        "footprint {} files, {}",
-        receipt.footprint.len(),
+        "footprint {}, {}",
+        footprint::files(receipt.footprint.len()),
         match receipt.footprint_source {
             Source::Coverage => "coverage",
             Source::Diff => "diff",

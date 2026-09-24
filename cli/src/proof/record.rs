@@ -220,11 +220,11 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
     };
     receipt.save(&spec)?;
     println!(
-        "wrote {}/receipt.json (footprint {} files, inputs {} files, evidence {} files)",
+        "wrote {}/receipt.json (footprint {}, inputs {}, evidence {})",
         spec.rel(),
-        receipt.footprint.len(),
-        receipt.inputs.len(),
-        receipt.evidence.as_ref().map_or(0, |evidence| evidence.len())
+        footprint::files(receipt.footprint.len()),
+        footprint::files(receipt.inputs.len()),
+        footprint::files(receipt.evidence.as_ref().map_or(0, |evidence| evidence.len()))
     );
     note_unrevised_ctx(root, &spec, &footprint_paths, &receipt.ctx_revised);
     impacted(&project, &spec, &mut receipt, options.with_impacted)
