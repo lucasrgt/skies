@@ -42,7 +42,7 @@ export function DepositView() {
                   <Input
                     id="walletId"
                     value={field.value}
-                    onChangeText={field.onChange}
+                    onChange={field.onChange}
                     placeholder={t("fields.walletId.placeholder")}
                   />
                 </Field>
@@ -53,7 +53,7 @@ export function DepositView() {
               name="amount"
               render={({ field, fieldState }) => (
                 <Field fieldId="amount" label={t("fields.amount.label")} error={fieldState.error?.message}>
-                  <Input id="amount" value={field.value} onChangeText={field.onChange} kind="number" />
+                  <Input id="amount" value={field.value} onChange={field.onChange} kind="number" />
                 </Field>
               )}
             />
@@ -62,7 +62,7 @@ export function DepositView() {
                 {submitError}
               </Text>
             ) : null}
-            <Button label={t("submit")} onPress={submit} loading={submitting} />
+            <Button label={t("submit")} onClick={submit} loading={submitting} />
           </Stack>
         </Card>
       </Stack>

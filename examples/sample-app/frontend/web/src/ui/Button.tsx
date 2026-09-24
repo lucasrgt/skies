@@ -19,13 +19,13 @@ const FILL: Record<Variant, { rest: string; hover: string; active: string; on: s
 // it suppresses (never removed without one).
 export function Button({
   label,
-  onPress,
+  onClick,
   variant = "primary",
   disabled = false,
   loading = false,
 }: {
   label: string;
-  onPress: () => void;
+  onClick: () => void;
   variant?: Variant;
   disabled?: boolean;
   loading?: boolean;
@@ -42,7 +42,7 @@ export function Button({
       type="button"
       disabled={blocked}
       aria-busy={loading || undefined}
-      onClick={onPress}
+      onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => {
         setHover(false);

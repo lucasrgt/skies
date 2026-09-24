@@ -27,7 +27,7 @@ export function ErrorState({
       <Text role="heading" tone="danger">
         {title}
       </Text>
-      {onRetry && retryLabel ? <Button label={retryLabel} onPress={onRetry} variant="secondary" /> : null}
+      {onRetry && retryLabel ? <Button label={retryLabel} onClick={onRetry} variant="secondary" /> : null}
     </Stack>
   );
 }

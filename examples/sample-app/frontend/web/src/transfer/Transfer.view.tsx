@@ -35,7 +35,7 @@ export function TransferView() {
               name="amount"
               render={({ field, fieldState }) => (
                 <Field fieldId="amount" label={t("fields.amount.label")} error={fieldState.error?.message}>
-                  <Input id="amount" value={field.value} onChangeText={field.onChange} kind="number" />
+                  <Input id="amount" value={field.value} onChange={field.onChange} kind="number" />
                 </Field>
               )}
             />
@@ -44,7 +44,7 @@ export function TransferView() {
                 {submitError}
               </Text>
             ) : null}
-            <Button label={t("submit")} onPress={submit} loading={submitting} />
+            <Button label={t("submit")} onClick={submit} loading={submitting} />
           </Stack>
         </Card>
       </Stack>
@@ -71,7 +71,7 @@ function WalletField({
           <Input
             id={name}
             value={field.value}
-            onChangeText={field.onChange}
+            onChange={field.onChange}
             placeholder={t("fields.walletId.placeholder")}
           />
         </Field>

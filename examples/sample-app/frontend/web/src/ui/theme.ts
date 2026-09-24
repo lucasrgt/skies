@@ -1,4 +1,4 @@
-// The sample kit's style constants. Plain app code: change the values freely.
+// The kit's style constants. Plain app code: change the values freely.
 
 export type Space = "none" | "xs" | "sm" | "md" | "lg" | "xl";
 export type TextRole = "display" | "title" | "heading" | "body" | "label" | "caption";

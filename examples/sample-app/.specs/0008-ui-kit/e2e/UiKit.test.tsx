@@ -19,31 +19,31 @@ const sameColor = (actual: string, hex: string) => expect([hex, rgb(hex)]).toCon
 
 describe("Button", () => {
   it("FM-1: the label is the accessible name and a press fires the action", () => {
-    const onPress = vi.fn();
-    render(<Button label="Save" onPress={onPress} />);
+    const onClick = vi.fn();
+    render(<Button label="Save" onClick={onClick} />);
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it("FM-2: a loading button blocks the action and announces itself", () => {
-    const onPress = vi.fn();
-    render(<Button label="Save" onPress={onPress} loading />);
+    const onClick = vi.fn();
+    render(<Button label="Save" onClick={onClick} loading />);
     const btn = screen.getByRole("button") as HTMLButtonElement;
     fireEvent.click(btn);
-    expect(onPress).toHaveBeenCalledTimes(0);
+    expect(onClick).toHaveBeenCalledTimes(0);
     expect(btn.disabled).toBe(true);
     expect(btn.getAttribute("aria-busy")).toBe("true");
   });
 
   it("FM-2: a disabled button blocks the action", () => {
-    const onPress = vi.fn();
-    render(<Button label="Save" onPress={onPress} disabled />);
+    const onClick = vi.fn();
+    render(<Button label="Save" onClick={onClick} disabled />);
     fireEvent.click(screen.getByRole("button"));
-    expect(onPress).toHaveBeenCalledTimes(0);
+    expect(onClick).toHaveBeenCalledTimes(0);
   });
 
   it("FM-3: focus shows the focus ring and blur drops it, never outline:none alone", () => {
-    render(<Button label="Go" onPress={() => {}} />);
+    render(<Button label="Go" onClick={() => {}} />);
     const btn = screen.getByRole("button") as HTMLButtonElement;
     fireEvent.focus(btn);
     expect(btn.style.boxShadow).toBe("0 0 0 2px " + color.focusRing);
@@ -56,7 +56,7 @@ describe("Field and Input, the form anatomy", () => {
   it("FM-4: the label is associated and describedby points at the hint", () => {
     render(
       <Field fieldId="email" label="Email" hint="We never share it">
-        <Input id="email" value="" onChangeText={() => {}} kind="email" />
+        <Input id="email" value="" onChange={() => {}} kind="email" />
       </Field>,
     );
     const input = screen.getByLabelText("Email");
@@ -67,7 +67,7 @@ describe("Field and Input, the form anatomy", () => {
   it("FM-4: an error replaces the hint as a role=alert and flips the control invalid", () => {
     render(
       <Field fieldId="email" label="Email" hint="We never share it" error="Required">
-        <Input id="email" value="" onChangeText={() => {}} />
+        <Input id="email" value="" onChange={() => {}} />
       </Field>,
     );
     expect(screen.queryByText("We never share it")).toBeNull();
@@ -80,15 +80,19 @@ describe("Field and Input, the form anatomy", () => {
     sameColor(input.style.borderColor, color.danger);
   });
 
-  it("FM-5: the input hands the View a string through onChangeText, not an event", () => {
-    const onChangeText = vi.fn();
+  it("FM-5: the input hands onChange the DOM change event carrying the typed value, and reports blur", () => {
+    const typed: string[] = [];
+    const onBlur = vi.fn();
     render(
       <Field fieldId="name" label="Name">
-        <Input id="name" value="" onChangeText={onChangeText} />
+        <Input id="name" value="" onChange={(event) => typed.push(event.target.value)} onBlur={onBlur} />
       </Field>,
     );
-    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ada" } });
-    expect(onChangeText).toHaveBeenCalledWith("Ada");
+    const input = screen.getByLabelText("Name");
+    fireEvent.change(input, { target: { value: "Ada" } });
+    fireEvent.blur(input);
+    expect(typed).toEqual(["Ada"]);
+    expect(onBlur).toHaveBeenCalledTimes(1);
   });
 });
 

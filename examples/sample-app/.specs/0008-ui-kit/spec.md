@@ -16,7 +16,8 @@ its own, with values read from the theme.
 - FM-3 A focused button shows no focus ring in place of the outline it suppresses, or keeps the ring after blur.
 - FM-4 A field's label, hint, and error are not wired to its control (label association, `aria-describedby`, the
   error as `role=alert`, `aria-invalid`).
-- FM-5 An input hands the View the change event instead of the string value.
+- FM-5 An input does not hand `onChange` the DOM change event with the typed value, or does not report its blur
+  (`onBlur`), so a react-hook-form `field` cannot bind to it as it binds to a plain `<input>`.
 - FM-6 Text does not map its role to the type scale and the document outline, its tone to a semantic color, or its
   alert flag to `role=alert`.
 - FM-7 A stack does not space its children from the gap scale, or its children carry their own margin.
