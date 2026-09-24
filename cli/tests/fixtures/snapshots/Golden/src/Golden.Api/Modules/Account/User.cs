@@ -1,5 +1,5 @@
-using Golden.Api.Tenancy;
 using Skies.Framework.Auth;
+using Skies.Framework.EntityFrameworkCore;
 
 namespace Golden.Api.Modules.Account;
 
@@ -13,8 +13,8 @@ public class User : ITenantScoped
 {
     /// <summary>The account's identity, assigned when it is registered.</summary>
     public Guid Id { get; private set; }
-    /// <summary>The owning org. Stamped on insert by <c>TenantDbContext</c> through EF metadata — never set
-    /// by a slice, so a user cannot leak across tenants.</summary>
+    /// <summary>The owning org, named once at registration (the org the account opened) and never changed, so a
+    /// user cannot move across tenants.</summary>
     public Guid OrgId { get; private set; }
 
     /// <summary>The globally-unique email — how a user signs in, regardless of org.</summary>
@@ -55,13 +55,14 @@ public class User : ITenantScoped
     // via Register, so there is no public way to construct a blank account.
     private User() { }
 
-    /// <summary>Register a new account — a fresh identity, the email as the initial display name, and the
-    /// already-hashed password. Creation funnels through <see cref="EnsureValid"/>, so a user is valid the
-    /// instant it exists.</summary>
-    public static Result<User> Register(Email email, PasswordHash passwordHash, DateTime now) =>
+    /// <summary>Register a new account in <paramref name="orgId"/> — a fresh identity, the email as the initial
+    /// display name, and the already-hashed password. Creation funnels through <see cref="EnsureValid"/>, so a user is
+    /// valid the instant it exists.</summary>
+    public static Result<User> Register(Guid orgId, Email email, PasswordHash passwordHash, DateTime now) =>
         new User
         {
             Id = Guid.NewGuid(),
+            OrgId = orgId,
             Email = email,
             Name = email.Value,
             PasswordHash = passwordHash,
@@ -82,13 +83,14 @@ public class User : ITenantScoped
         RegistrationStep = RegistrationStep.Complete;
     }
 
-    /// <summary>Register an account from a Google identity: Google has already verified the email,
-    /// so the user is email-verified from the start, has no usable password (Google is the
-    /// credential), and lands at PhonePending. Funnels through EnsureValid.</summary>
-    public static Result<User> RegisterViaGoogle(Email email, DateTime now) =>
+    /// <summary>Register an account in <paramref name="orgId"/> from a Google identity: Google has
+    /// already verified the email, so the user is email-verified from the start, has no usable password
+    /// (Google is the credential), and lands at PhonePending. Funnels through EnsureValid.</summary>
+    public static Result<User> RegisterViaGoogle(Guid orgId, Email email, DateTime now) =>
         new User
         {
             Id = Guid.NewGuid(),
+            OrgId = orgId,
             Email = email,
             Name = email.Value,
             PasswordHash = PasswordHash.None,
@@ -104,6 +106,7 @@ public class User : ITenantScoped
     {
         var validation = new Validation()
             .Require(Id, "id", AccountErrorCodes.InvalidState)
+            .Require(OrgId, "org_id", AccountErrorCodes.InvalidState)
             .NotBlank(Name, "name", AccountErrorCodes.InvalidState);
         if (validation.Failed)
             return validation.ToError();

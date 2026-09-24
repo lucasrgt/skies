@@ -1,4 +1,5 @@
 using Skies.Framework.Auth;
+using Skies.Framework.EntityFrameworkCore;
 using Golden.Api.Tenancy;
 
 namespace Golden.Api.Modules.Account;
@@ -14,17 +15,22 @@ public static class AccountModule
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<ITenant, RequestTenant>();
         services.AddSkiesAuth<UserSessionStore>(new SkiesAuthOptions(jwtSecret, Issuer: "golden", Audience: "golden"));
-        services.AddAuthorization();
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AppPolicies.AppAdmin, policy => policy.RequireRole(nameof(Role.Admin)));
+        CredentialRateLimit.AddTo(services, configuration);
+        services.AddSingleton<IAccountNotices, NoAccountNotices>();
         return services;
     }
 
     public static void Map(IEndpointRouteBuilder app)
     {
         var account = app.MapGroup("/account");
-        Register.Map(account);
-        Login.Map(account);
-        Refresh.Map(account);
-        Logout.Map(account);
+        // Everything that takes a credential or sends a message is throttled per client (CredentialRateLimit).
+        var credentials = account.MapGroup("").RequireRateLimiting(CredentialRateLimit.Policy);
+        Register.Map(credentials);
+        Login.Map(credentials);
+        Refresh.Map(credentials);
+        Logout.Map(credentials);
         Me.Map(account);
         ListMySessions.Map(account);
         RevokeSession.Map(account);

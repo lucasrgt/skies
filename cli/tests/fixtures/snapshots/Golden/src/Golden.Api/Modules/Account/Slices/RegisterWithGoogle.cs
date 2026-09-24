@@ -4,9 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Golden.Api.Modules.Account;
 
-/// <summary>Create an account from a Google identity. Google has already verified the email, so the new
-/// user is email-verified from the start and a session is issued immediately; phone is still pending.
-/// Fails if the email is already taken.</summary>
+/// <summary>Create an account, in an org of its own, from a Google identity. Google has already verified the email,
+/// so the new user is email-verified from the start and a session is issued immediately; phone is still pending.
+/// Fails with a conflict if the email is already taken: the caller has just proven it owns that address, so saying
+/// it has an account tells its owner, not a stranger.</summary>
 /// <remarks>Security contract: the sad path is the bypass guard — an unverifiable token must create no account.
 /// If it passed silently, a forged token mints an account for any identity (spoofing). Its spec under `.specs/` proves both
 /// the happy sign-up and the forged-token rejection end-to-end.</remarks>
@@ -31,10 +32,14 @@ public static class RegisterWithGoogle
             return Error.Conflict(AccountErrorCodes.EmailTaken, "an account with this email already exists");
 
         var now = clock.GetUtcNow().UtcDateTime;
-        var created = User.RegisterViaGoogle(email.Value, now);
+        var org = Org.Open(email.Value.Value, now);
+        if (org.IsFailure)
+            return org.Error;
+        var created = User.RegisterViaGoogle(org.Value.Id, email.Value, now);
         if (created.IsFailure)
             return created.Error;
         var user = created.Value;
+        db.Orgs.Add(org.Value);
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
 

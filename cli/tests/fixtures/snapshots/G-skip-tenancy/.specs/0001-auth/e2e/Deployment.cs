@@ -5,10 +5,10 @@ namespace Specs.S0001;
 
 public class Deployment
 {
-    [Fact(DisplayName = "FM-20: local providers cannot start in Production")]
+    [Fact(DisplayName = "FM-23: local providers cannot start in Production")]
     public void Production_requires_configuration() => CannotStart("Production");
 
-    [Fact(DisplayName = "FM-20: local providers cannot start in Staging")]
+    [Fact(DisplayName = "FM-23: local providers cannot start in Staging")]
     public void Staging_requires_configuration() => CannotStart("Staging");
 
     private static void CannotStart(string environment)

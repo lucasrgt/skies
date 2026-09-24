@@ -1,4 +1,5 @@
 using Skies.Framework.Auth;
+using Skies.Framework.EntityFrameworkCore;
 using Golden.Api.Tenancy;
 
 namespace Golden.Api.Modules.Account;
@@ -17,7 +18,10 @@ public static class AccountModule
         {
             RefreshCookie = new RefreshCookieOptions("golden_refresh", Path: "/account"),
         });
-        services.AddAuthorization();
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AppPolicies.AppAdmin, policy => policy.RequireRole(nameof(Role.Admin)));
+        CredentialRateLimit.AddTo(services, configuration);
+        services.AddSingleton<IAccountNotices, EmailAccountNotices>();
         services.AddVerificationTokens<VerificationTokenStore>();
         return services;
     }
@@ -25,21 +29,23 @@ public static class AccountModule
     public static void Map(IEndpointRouteBuilder app)
     {
         var account = app.MapGroup("/account");
-        Register.Map(account);
-        Login.Map(account);
-        Refresh.Map(account);
-        Logout.Map(account);
+        // Everything that takes a credential or sends a message is throttled per client (CredentialRateLimit).
+        var credentials = account.MapGroup("").RequireRateLimiting(CredentialRateLimit.Policy);
+        Register.Map(credentials);
+        Login.Map(credentials);
+        Refresh.Map(credentials);
+        Logout.Map(credentials);
         Me.Map(account);
         ListMySessions.Map(account);
         RevokeSession.Map(account);
         RevokeOtherSessions.Map(account);
-        ResendPhoneCode.Map(account);
-        VerifyPhone.Map(account);
-        RegisterWithGoogle.Map(account);
-        LoginWithGoogle.Map(account);
-        RequestEmailVerification.Map(account);
-        VerifyEmail.Map(account);
-        RequestPasswordReset.Map(account);
-        ResetPassword.Map(account);
+        ResendPhoneCode.Map(credentials);
+        VerifyPhone.Map(credentials);
+        RegisterWithGoogle.Map(credentials);
+        LoginWithGoogle.Map(credentials);
+        RequestEmailVerification.Map(credentials);
+        VerifyEmail.Map(credentials);
+        RequestPasswordReset.Map(credentials);
+        ResetPassword.Map(credentials);
     }
 }

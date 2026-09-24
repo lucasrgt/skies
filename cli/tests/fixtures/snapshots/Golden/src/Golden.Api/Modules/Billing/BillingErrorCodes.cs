@@ -11,5 +11,5 @@ public static class BillingErrorCodes
     public const string GetInvoiceNotImplemented = "billing.get_invoice_not_implemented";
 
     /// <summary>The id is required (entity invariant).</summary>
-    public const string IdRequired = "id.required";
+    public const string IdRequired = "billing.id_required";
 }

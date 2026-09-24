@@ -22,4 +22,4 @@ layered over the real one, because the code is stored hashed and only ever leave
 ## Out of scope
 
 - Delivery: the dev `ConsoleSmsSender` prints the message. A real provider is an `ISmsSender` the app registers.
-- Rate limiting how often a code can be requested.
+- The throttle on requesting a code: the Account module's credential rate limit, proven with the auth spec.

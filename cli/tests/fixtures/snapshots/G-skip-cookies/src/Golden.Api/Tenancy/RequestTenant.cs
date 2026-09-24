@@ -1,15 +1,15 @@
 using Skies.Framework.Auth;
+using Skies.Framework.EntityFrameworkCore;
 
 namespace Golden.Api.Tenancy;
 
-/// <summary>Resolves the request's org. For an authenticated request the org comes from the access
-/// token (the JWT carries it, read via <see cref="ICurrentUser"/>), so the tenant and the caller agree by
-/// construction. Public requests (register/login) have no token yet and fall back to a single default org
-/// — real public-request resolution (subdomain) is a later step. This is app tenancy <em>policy</em>, so
-/// it lives with the rest of tenancy, not with the auth mechanism the framework owns.</summary>
+/// <summary>How this app resolves a request's org, the one tenancy decision the app owns (the filtering and stamping
+/// are Skies.Framework.EntityFrameworkCore's). A signed-in request acts in the org its access token carries, so the
+/// tenant and the caller agree by construction. An anonymous request resolves no org: it reads no tenant-scoped row
+/// and can store one only when the row names its org itself, as registration does for the org it opens. There is no
+/// default org to fall back to. A page that must show one org's data to signed-out visitors (a storefront on its own
+/// subdomain) resolves that org here, explicitly, from the host.</summary>
 public sealed class RequestTenant(ICurrentUser user) : ITenant
 {
-    private static readonly Guid DefaultOrg = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
-    public Guid OrgId => user.IsAuthenticated ? user.OrgId : DefaultOrg;
+    public Guid OrgId => user.IsAuthenticated ? user.OrgId : Guid.Empty;
 }

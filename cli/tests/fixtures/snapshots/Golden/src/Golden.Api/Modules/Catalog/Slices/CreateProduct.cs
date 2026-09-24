@@ -9,7 +9,7 @@ public static class CreateProduct
 {
     public record Input(string Name);
 
-    public record Output(Guid Id);
+    public record Output(Guid Id, Guid Version);
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct)
     {
@@ -19,11 +19,11 @@ public static class CreateProduct
 
         db.Products.Add(opened.Value);
         await db.SaveChangesAsync(ct);
-        return new Output(opened.Value.Id);
+        return new Output(opened.Value.Id, opened.Value.Version);
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/product", async (Input input, AppDb db, CancellationToken ct) =>
+        app.MapPost("/products", async (Input input, AppDb db, CancellationToken ct) =>
                 (await Handle(input, db, ct)).ToHttp())
             .WithName(nameof(CreateProduct));
 }
