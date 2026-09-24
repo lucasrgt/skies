@@ -201,6 +201,15 @@ fn csproj(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
     (out != text).then_some(out)
 }
 
+/// An Assay proof keeps its tags; only its imports of removed Skies helpers are rewritten (by the vendor step).
+fn assay_proof(_: &str, relative: &str, plan: &mut Plan) -> Option<String> {
+    plan.follow_up_file(
+        "is an Assay proof; keep avp-assay or rewrite it as a spec E2E",
+        relative,
+    );
+    None
+}
+
 /// Removes `@verify`/`@avp`/`@e2e` doc-comment lines, then any doc comment left empty.
 fn doc_tags(text: &str, relative: &str, plan: &mut Plan) -> Option<String> {
     if text.contains("defineVerification") {
