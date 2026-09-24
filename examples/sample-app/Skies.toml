@@ -12,14 +12,19 @@ frontend = "frontend/web"        # its `lint` runs frontend-sdk's ESLint config,
 # Every .specs/<id>/e2e/ folder is compiled into Sample.Tests (see its csproj); the filter runs one spec's namespace
 # and the TRX logger writes the report `skies proof` reads back. coverlet.collector writes Cobertura under
 # {coverage}/<guid>/, so each receipt's footprint is the files its spec executes (Platform.cs, AppDb.cs, the entity),
-# not only the ones its change edited.
+# not only the ones its change edited. `build` compiles once per checkout, so a verify of several specs (or
+# `record --with-impacted`) builds once and each run skips it. `scope` keeps an API receipt to backend/ files.
 [runners.api]
-command = "dotnet test backend/Sample.Tests --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\" --collect \"XPlat Code Coverage\" --results-directory {coverage} -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura"
+scope = ["backend/"]
+build = "dotnet build backend/Sample.Tests"
+command = "dotnet test backend/Sample.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\" --collect \"XPlat Code Coverage\" --results-directory {coverage} -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura"
 
 # The web specs (.specs/*/e2e/*.test.tsx) cover the React package in frontend/web. They run with frontend-sdk's vitest
 # config, which resolves the package's aliases and stubs its HTTP layer; the spec folder is the filter and vitest's
 # JUnit reporter writes the report. A red checkout is a fresh git worktree without node_modules, so setup installs
-# them there (a no-op where they exist).
+# them there (a no-op where they exist). `scope` keeps a screen's receipt to frontend/ files, even when the same
+# branch changed the backend.
 [runners.web]
+scope = ["frontend/"]
 setup = "test -d ../../frontend-sdk/node_modules || npm --prefix ../../frontend-sdk ci --no-audit --no-fund --prefer-offline"
 command = "node ../../frontend-sdk/node_modules/vitest/vitest.mjs run --config ../../frontend-sdk/vitest.config.ts --reporter=junit --outputFile={report} {dir}"
