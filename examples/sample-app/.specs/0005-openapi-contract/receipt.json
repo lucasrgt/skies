@@ -19,8 +19,8 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
-    "dirty": false,
+    "commit": "c563c5881780cbec363290215ab73add4eaeac16",
+    "dirty": true,
     "cases": {
       "FM-1": "pass",
       "FM-2": "pass",
@@ -35,7 +35,7 @@
   "footprint": {
     "backend/Sample.Api/Platform.cs": "blake3:1f8b78ea166f048d8e9d58ea28d0548f9f0a7910fbff7491ab530e4e9d35a0d0",
     "backend/Sample.Api/Program.cs": "blake3:8e8b672056e6d89b7567e99796aa2489c4b09abaa92dee49bc19ff5030493868",
-    "backend/Sample.Api/Sample.Api.csproj": "blake3:ca72ab40666c6583bd8c3770f3fdb47b886bffd81efee3365d47a6bb1dc17467"
+    "backend/Sample.Api/Sample.Api.csproj": "blake3:d321e56bcf423af630bfcd8788438498f3b28a181cf4fd0c06ff4bf814241f56"
   },
   "inputs": {
     ".specs/0005-openapi-contract/e2e/ErrorCodeContractSpec.cs": "blake3:73806a752bb83eed284575dc57477089fd666afe94fccc49600af7cc63ee5c84",
@@ -43,7 +43,7 @@
     ".specs/0005-openapi-contract/spec.md": "blake3:ea2bdf9821350d311c22cd4edd80d65b74f078e647b70916e530acb95ae6eb1b"
   },
   "evidence": {
-    "evidence/green.trx": "blake3:8fea1c5f88ef136e98841705db43fecfedc2f20c8cedceb0ed22eef197eb3a82",
+    "evidence/green.trx": "blake3:74a495368cf7e4b05e86adba960ba29e51b2b1916b165147cd28c00a6801b68c",
     "evidence/red.trx": "blake3:40a398bd25ca0822a5479248d290967c0c29f2550d36dc624486029e63653e78"
   }
 }

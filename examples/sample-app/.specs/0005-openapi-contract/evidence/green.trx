@@ -1,62 +1,62 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <TestRun id="00000000-0000-0000-0000-000000000001" name="{run}" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2026-09-24T03:29:17.0588639-03:00" queuing="2026-09-24T03:29:17.0588639-03:00" start="2026-09-24T03:29:16.1069820-03:00" finish="2026-09-24T03:29:17.0616767-03:00" />
+  <Times creation="2026-09-24T03:38:33.2053537-03:00" queuing="2026-09-24T03:38:33.2053537-03:00" start="2026-09-24T03:38:32.0700282-03:00" finish="2026-09-24T03:38:33.2085357-03:00" />
   <TestSettings name="default" id="00000000-0000-0000-0000-000000000002">
     <Deployment runDeploymentRoot="{run}" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="3b424cf8-b5b0-e09a-f50a-55abe842c748" testName="FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes" computerName="{machine}" duration="00:00:00.0175115" startTime="2026-09-24T03:29:16.9211101-03:00" endTime="2026-09-24T03:29:16.9387887-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="c534da32-25c5-d8df-0546-d03b5af946a3" testName="FM-1: ErrorBody.code enumerates the app's registry codes" computerName="{machine}" duration="00:00:00.4459334" startTime="2026-09-24T03:29:16.4236519-03:00" endTime="2026-09-24T03:29:16.8750963-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="6f2fdeda-946d-34f8-1a69-a20141d0e032" testName="FM-2: a dependency loaded in the process does not widen the contract" computerName="{machine}" duration="00:00:00.0468927" startTime="2026-09-24T03:29:16.8869028-03:00" endTime="2026-09-24T03:29:16.9210518-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="4072c344-28f8-451f-a2d4-ad532f7c2861" testName="FM-4: a scalar value object reached only through a nullable property mirrors its primitive" computerName="{machine}" duration="00:00:00.0464274" startTime="2026-09-24T03:29:16.8869178-03:00" endTime="2026-09-24T03:29:16.9206110-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000007" testId="b422ae4a-9e62-cecc-9d59-f7972d9302fe" testName="FM-5: a numeric query parameter accepts no strings" computerName="{machine}" duration="00:00:00.0176530" startTime="2026-09-24T03:29:16.9369920-03:00" endTime="2026-09-24T03:29:16.9547310-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000007" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000008" testId="269e1e8c-d94a-bc52-2899-95723aeed0c0" testName="FM-3: a numeric body property is a plain number" computerName="{machine}" duration="00:00:00.4465889" startTime="2026-09-24T03:29:16.4228503-03:00" endTime="2026-09-24T03:29:16.8731561-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000008" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000009" testId="cc8369cb-8341-4613-c613-2c95bc629f24" testName="FM-6: the page's four members are required, plain array and integers" computerName="{machine}" duration="00:00:00.0276273" startTime="2026-09-24T03:29:16.9548594-03:00" endTime="2026-09-24T03:29:16.9826196-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000009" />
-    <UnitTestResult executionId="00000000-0000-0000-0000-000000000010" testId="8090b0c6-e1bb-4cec-d38e-ae5396e91e7a" testName="FM-7: a slice's output references its own slice-qualified page" computerName="{machine}" duration="00:00:00.0159811" startTime="2026-09-24T03:29:16.9209597-03:00" endTime="2026-09-24T03:29:16.9368489-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000010" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000003" testId="8090b0c6-e1bb-4cec-d38e-ae5396e91e7a" testName="FM-7: a slice's output references its own slice-qualified page" computerName="{machine}" duration="00:00:00.0183192" startTime="2026-09-24T03:38:33.0454798-03:00" endTime="2026-09-24T03:38:33.0636799-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000003" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000004" testId="b422ae4a-9e62-cecc-9d59-f7972d9302fe" testName="FM-5: a numeric query parameter accepts no strings" computerName="{machine}" duration="00:00:00.0206872" startTime="2026-09-24T03:38:33.0638457-03:00" endTime="2026-09-24T03:38:33.0846043-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000004" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000005" testId="cc8369cb-8341-4613-c613-2c95bc629f24" testName="FM-6: the page's four members are required, plain array and integers" computerName="{machine}" duration="00:00:00.0338542" startTime="2026-09-24T03:38:33.0847969-03:00" endTime="2026-09-24T03:38:33.1187353-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000005" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000006" testId="269e1e8c-d94a-bc52-2899-95723aeed0c0" testName="FM-3: a numeric body property is a plain number" computerName="{machine}" duration="00:00:00.5161211" startTime="2026-09-24T03:38:32.4645983-03:00" endTime="2026-09-24T03:38:32.9890615-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000006" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000007" testId="c534da32-25c5-d8df-0546-d03b5af946a3" testName="FM-1: ErrorBody.code enumerates the app's registry codes" computerName="{machine}" duration="00:00:00.5158888" startTime="2026-09-24T03:38:32.4655349-03:00" endTime="2026-09-24T03:38:32.9869440-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000007" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000008" testId="3b424cf8-b5b0-e09a-f50a-55abe842c748" testName="FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes" computerName="{machine}" duration="00:00:00.0197261" startTime="2026-09-24T03:38:33.0473052-03:00" endTime="2026-09-24T03:38:33.0671543-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000008" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000009" testId="6f2fdeda-946d-34f8-1a69-a20141d0e032" testName="FM-2: a dependency loaded in the process does not widen the contract" computerName="{machine}" duration="00:00:00.0591122" startTime="2026-09-24T03:38:33.0047418-03:00" endTime="2026-09-24T03:38:33.0471848-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000009" />
+    <UnitTestResult executionId="00000000-0000-0000-0000-000000000010" testId="4072c344-28f8-451f-a2d4-ad532f7c2861" testName="FM-4: a scalar value object reached only through a nullable property mirrors its primitive" computerName="{machine}" duration="00:00:00.0568887" startTime="2026-09-24T03:38:33.0047605-03:00" endTime="2026-09-24T03:38:33.0450913-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00000000-0000-0000-0000-000000000010" />
   </Results>
   <TestDefinitions>
     <UnitTest name="FM-2: a dependency loaded in the process does not widen the contract" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="6f2fdeda-946d-34f8-1a69-a20141d0e032">
-      <Execution id="00000000-0000-0000-0000-000000000005" />
+      <Execution id="00000000-0000-0000-0000-000000000009" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.ErrorCodeContractSpec" name="A_loaded_dependency_does_not_widen_the_contract" />
     </UnitTest>
     <UnitTest name="FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="3b424cf8-b5b0-e09a-f50a-55abe842c748">
-      <Execution id="00000000-0000-0000-0000-000000000003" />
+      <Execution id="00000000-0000-0000-0000-000000000008" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.ErrorCodeContractSpec" name="An_explicitly_registered_assembly_is_enumerated_once" />
     </UnitTest>
     <UnitTest name="FM-4: a scalar value object reached only through a nullable property mirrors its primitive" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="4072c344-28f8-451f-a2d4-ad532f7c2861">
-      <Execution id="00000000-0000-0000-0000-000000000006" />
+      <Execution id="00000000-0000-0000-0000-000000000010" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="A_nullable_only_scalar_value_object_mirrors_its_primitive" />
     </UnitTest>
     <UnitTest name="FM-6: the page's four members are required, plain array and integers" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="cc8369cb-8341-4613-c613-2c95bc629f24">
-      <Execution id="00000000-0000-0000-0000-000000000009" />
+      <Execution id="00000000-0000-0000-0000-000000000005" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="The_page_schema_is_required_and_plainly_typed" />
     </UnitTest>
     <UnitTest name="FM-5: a numeric query parameter accepts no strings" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="b422ae4a-9e62-cecc-9d59-f7972d9302fe">
-      <Execution id="00000000-0000-0000-0000-000000000007" />
+      <Execution id="00000000-0000-0000-0000-000000000004" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="A_numeric_query_parameter_is_plainly_typed" />
     </UnitTest>
     <UnitTest name="FM-3: a numeric body property is a plain number" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="269e1e8c-d94a-bc52-2899-95723aeed0c0">
-      <Execution id="00000000-0000-0000-0000-000000000008" />
+      <Execution id="00000000-0000-0000-0000-000000000006" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="A_numeric_body_property_is_plainly_typed" />
     </UnitTest>
     <UnitTest name="FM-7: a slice's output references its own slice-qualified page" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="8090b0c6-e1bb-4cec-d38e-ae5396e91e7a">
-      <Execution id="00000000-0000-0000-0000-000000000010" />
+      <Execution id="00000000-0000-0000-0000-000000000003" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.SchemaContractSpec" name="The_slice_output_references_its_qualified_page" />
     </UnitTest>
     <UnitTest name="FM-1: ErrorBody.code enumerates the app's registry codes" storage="{root}/examples/sample-app/backend/sample.tests/bin/debug/net10.0/sample.tests.dll" id="c534da32-25c5-d8df-0546-d03b5af946a3">
-      <Execution id="00000000-0000-0000-0000-000000000004" />
+      <Execution id="00000000-0000-0000-0000-000000000007" />
       <TestMethod codeBase="{root}/examples/sample-app/backend/Sample.Tests/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Specs.S0005.ErrorCodeContractSpec" name="ErrorBody_code_enumerates_the_registries" />
     </UnitTest>
   </TestDefinitions>
   <TestEntries>
-    <TestEntry testId="3b424cf8-b5b0-e09a-f50a-55abe842c748" executionId="00000000-0000-0000-0000-000000000003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="c534da32-25c5-d8df-0546-d03b5af946a3" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="6f2fdeda-946d-34f8-1a69-a20141d0e032" executionId="00000000-0000-0000-0000-000000000005" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="4072c344-28f8-451f-a2d4-ad532f7c2861" executionId="00000000-0000-0000-0000-000000000006" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="b422ae4a-9e62-cecc-9d59-f7972d9302fe" executionId="00000000-0000-0000-0000-000000000007" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="269e1e8c-d94a-bc52-2899-95723aeed0c0" executionId="00000000-0000-0000-0000-000000000008" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="cc8369cb-8341-4613-c613-2c95bc629f24" executionId="00000000-0000-0000-0000-000000000009" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="8090b0c6-e1bb-4cec-d38e-ae5396e91e7a" executionId="00000000-0000-0000-0000-000000000010" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8090b0c6-e1bb-4cec-d38e-ae5396e91e7a" executionId="00000000-0000-0000-0000-000000000003" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b422ae4a-9e62-cecc-9d59-f7972d9302fe" executionId="00000000-0000-0000-0000-000000000004" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cc8369cb-8341-4613-c613-2c95bc629f24" executionId="00000000-0000-0000-0000-000000000005" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="269e1e8c-d94a-bc52-2899-95723aeed0c0" executionId="00000000-0000-0000-0000-000000000006" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c534da32-25c5-d8df-0546-d03b5af946a3" executionId="00000000-0000-0000-0000-000000000007" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3b424cf8-b5b0-e09a-f50a-55abe842c748" executionId="00000000-0000-0000-0000-000000000008" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6f2fdeda-946d-34f8-1a69-a20141d0e032" executionId="00000000-0000-0000-0000-000000000009" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4072c344-28f8-451f-a2d4-ad532f7c2861" executionId="00000000-0000-0000-0000-000000000010" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
     <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
@@ -66,9 +66,9 @@
     <Counters total="8" executed="8" passed="8" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
     <Output>
       <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
-[xUnit.net 00:00:00.04]   Discovering: Sample.Tests
-[xUnit.net 00:00:00.06]   Discovered:  Sample.Tests
-[xUnit.net 00:00:00.07]   Starting:    Sample.Tests
+[xUnit.net 00:00:00.06]   Discovering: Sample.Tests
+[xUnit.net 00:00:00.10]   Discovered:  Sample.Tests
+[xUnit.net 00:00:00.11]   Starting:    Sample.Tests
 info: Microsoft.EntityFrameworkCore.Update[30100]
       Saved 1 entities to in-memory store.
 info: Microsoft.EntityFrameworkCore.Update[30100]
@@ -98,29 +98,9 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: {root}/examples/sample-app/backend/Sample.Api
-info: Microsoft.Hosting.Lifetime[0]
       Application started. Press Ctrl+C to shut down.
 info: Microsoft.Hosting.Lifetime[0]
-      Hosting environment: Development
-info: Microsoft.Hosting.Lifetime[0]
       Content root path: {root}/examples/sample-app/backend/Sample.Api
-info: Microsoft.Hosting.Lifetime[0]
-      Application is shutting down...
-info: Microsoft.Hosting.Lifetime[0]
-      Application is shutting down...
-info: Microsoft.EntityFrameworkCore.Update[30100]
-      Saved 1 entities to in-memory store.
-info: Microsoft.EntityFrameworkCore.Update[30100]
-      Saved 1 entities to in-memory store.
-info: Microsoft.Hosting.Lifetime[0]
-      Application started. Press Ctrl+C to shut down.
-info: Microsoft.Hosting.Lifetime[0]
-      Hosting environment: Development
-info: Microsoft.Hosting.Lifetime[0]
-      Content root path: {root}/examples/sample-app/backend/Sample.Api
-info: Microsoft.Hosting.Lifetime[0]
-      Application started. Press Ctrl+C to shut down.
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
@@ -137,6 +117,16 @@ info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
       Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
 info: Microsoft.EntityFrameworkCore.Update[30100]
@@ -149,7 +139,17 @@ info: Microsoft.Hosting.Lifetime[0]
       Content root path: {root}/examples/sample-app/backend/Sample.Api
 info: Microsoft.Hosting.Lifetime[0]
       Application is shutting down...
-[xUnit.net 00:00:00.65]   Finished:    Sample.Tests
+info: Microsoft.EntityFrameworkCore.Update[30100]
+      Saved 1 entities to in-memory store.
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: {root}/examples/sample-app/backend/Sample.Api
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+[xUnit.net 00:00:00.79]   Finished:    Sample.Tests
 </StdOut>
     </Output>
   </ResultSummary>

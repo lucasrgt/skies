@@ -18,8 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The doctor reads the module context docs (SKY0004/SKY0005) as AdditionalFiles. -->
+    <!-- The doctor reads the module context docs (SKY0004/SKY0005) and the specs they cite (SKY0005) as
+         AdditionalFiles. -->
     <AdditionalFiles Include="**\*.ctx.md" />
+    <AdditionalFiles Include="..\..\.specs\*\spec.md" />
   </ItemGroup>
 
   <PropertyGroup>
