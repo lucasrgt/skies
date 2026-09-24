@@ -24,7 +24,7 @@
     "output": "MISSING DEPENDENCY  Cannot find dependency '@vitest/coverage-v8'"
   },
   "green": {
-    "commit": "af1d31345d2b9961fde2ebf510a8565e1cf50536",
+    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
     "dirty": false,
     "cases": {
       "FM-1": {
@@ -54,7 +54,7 @@
     },
     "report": {
       "file": "evidence/raw/green.xml",
-      "hash": "blake3:1ed46c41120139c770cd4b8b47d5aa73eded27502b039684adb9d803fc38bb3e"
+      "hash": "blake3:52235d74abef82bc2e90af70a2034ea2f749f61cb8234436b0477ff38f958373"
     }
   },
   "footprint": {

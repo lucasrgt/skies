@@ -29,7 +29,7 @@
     }
   },
   "green": {
-    "commit": "af1d31345d2b9961fde2ebf510a8565e1cf50536",
+    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
     "dirty": false,
     "cases": {
       "FM-1": {
@@ -47,7 +47,7 @@
     },
     "report": {
       "file": "evidence/raw/green.xml",
-      "hash": "blake3:3b37e6f3cb864bc35a2acc99f547dd5f182a8862e60a40fbb795e2863fea4c2b"
+      "hash": "blake3:e317c2909e360589f0eeed8481111f9379f485c374ae43aaa164e41cb03884e1"
     }
   },
   "footprint": {

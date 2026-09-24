@@ -50,7 +50,7 @@
     }
   },
   "green": {
-    "commit": "af1d31345d2b9961fde2ebf510a8565e1cf50536",
+    "commit": "32d2f46646b6905e995b38d96b14ec6520694ded",
     "dirty": false,
     "cases": {
       "FM-1": {
@@ -86,7 +86,7 @@
     },
     "report": {
       "file": "evidence/raw/green.trx",
-      "hash": "blake3:6413eaf54d8cb2d6089d9d051ba3022af4ddba2313cb22832043a0e9c81a8425"
+      "hash": "blake3:fd3f6523ce46d728e7e8b2c3948628a3ea51604989f45ba553419a17debf99b7"
     }
   },
   "footprint": {
