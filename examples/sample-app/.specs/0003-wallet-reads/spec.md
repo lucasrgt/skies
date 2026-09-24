@@ -1,7 +1,6 @@
 ---
 id: "0003"
 runner: api
-touches: [backend/Sample.Api/Modules/Wallets/Wallet.cs]
 ---
 # Read wallets
 

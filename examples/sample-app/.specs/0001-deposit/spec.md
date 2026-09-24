@@ -1,7 +1,6 @@
 ---
 id: "0001"
 runner: api
-touches: [backend/Sample.Api/Modules/Wallets/Wallet.cs, backend/Sample.Api/Platform.Idempotency.cs, backend/Sample.Api/BuildingBlocks/Money.cs]
 ---
 # Deposit money into a wallet
 

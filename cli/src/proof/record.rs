@@ -17,7 +17,7 @@ use super::report::{self, FmId, Report};
 use super::runner::{Job, NoReport, Session};
 use super::scrub::Scrub;
 use super::spec::{self, E2E_DIR, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
-use super::{avp, ctx, impact, verify};
+use super::{avp, ctx, footprint, impact, verify};
 use crate::manifest::Project;
 
 /// What `skies proof record` was asked to do.
@@ -188,7 +188,9 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
         Some(patch) => repo.patch_footprint(patch)?,
         None => repo.changed_since(&red_commit)?,
     };
-    let footprint_paths = footprint(root, &doc, &changed)?;
+    let footprint = footprint::build(root, &doc, &changed, &proven)?;
+    println!("  {}", footprint::describe(&footprint, &proven));
+    let footprint_paths = footprint.paths;
     let ctx_revised = revised_ctx(&repo, &changed, patch.is_some().then_some(head.as_str()))?;
     let mut receipt = Receipt {
         spec: spec.name.clone(),
@@ -209,6 +211,8 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
             report: proven.report,
         },
         footprint: hash::hash_all(root, &footprint_paths),
+        footprint_source: footprint.source,
+        footprint_changed: footprint.changed,
         inputs: hash::hash_all(root, &hash::input_paths(root, &spec)?),
         evidence: Some(green::evidence_hashes(&spec, None)?),
         ctx_revised,
@@ -216,11 +220,11 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
     };
     receipt.save(&spec)?;
     println!(
-        "wrote {}/receipt.json (footprint {} files, inputs {} files, evidence {} files)",
+        "wrote {}/receipt.json (footprint {}, inputs {}, evidence {})",
         spec.rel(),
-        receipt.footprint.len(),
-        receipt.inputs.len(),
-        receipt.evidence.as_ref().map_or(0, |evidence| evidence.len())
+        footprint::files(receipt.footprint.len()),
+        footprint::files(receipt.inputs.len()),
+        footprint::files(receipt.evidence.as_ref().map_or(0, |evidence| evidence.len()))
     );
     note_unrevised_ctx(root, &spec, &footprint_paths, &receipt.ctx_revised);
     impacted(&project, &spec, &mut receipt, options.with_impacted)
@@ -353,16 +357,6 @@ fn copy_spec_sources(from: &SpecDir, to: &SpecDir) -> Result<()> {
         green::copy_dir(&from.file(E2E_DIR), &e2e)?;
     }
     Ok(())
-}
-
-/// What changed between red and the working tree, plus `touches`, minus every spec folder. A module ctx.md is prose
-/// kept fresh by citation (SKY0005), not by hash, so it joins the footprint only when `touches` lists it; a revision
-/// is recorded in `ctx_revised` instead.
-fn footprint(root: &Path, doc: &SpecDoc, changed: &[String]) -> Result<BTreeSet<String>> {
-    let mut paths: BTreeSet<String> = changed.iter().filter(|path| !ctx::is_ctx(path)).cloned().collect();
-    paths.extend(hash::touched_paths(root, &doc.touches)?);
-    paths.retain(|path| !hash::is_spec_path(path));
-    Ok(paths)
 }
 
 /// Red outcome per failure mode; green is only printed on success, where every one of them passed.

@@ -9,9 +9,11 @@ backend = "backend/Sample.Api"
 tests = "backend/Sample.Tests"   # `skies doctor` builds it, so the SKY rules (SKY0029 included) see the spec cases
 
 # Every .specs/<id>/e2e/ folder is compiled into Sample.Tests (see its csproj); the filter runs one spec's namespace
-# and the TRX logger writes the report `skies proof` reads back.
+# and the TRX logger writes the report `skies proof` reads back. coverlet.collector writes Cobertura under
+# {coverage}/<guid>/, so each receipt's footprint is the files its spec executes (Platform.cs, AppDb.cs, the entity),
+# not only the ones its change edited.
 [runners.api]
-command = "dotnet test backend/Sample.Tests --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\""
+command = "dotnet test backend/Sample.Tests --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\" --collect \"XPlat Code Coverage\" --results-directory {coverage} -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura"
 
 # The web specs (.specs/*/e2e/*.test.tsx) cover the React package in frontend/web. They run with frontend-sdk's vitest
 # config, which resolves the package's aliases and stubs its HTTP layer; the spec folder is the filter and vitest's

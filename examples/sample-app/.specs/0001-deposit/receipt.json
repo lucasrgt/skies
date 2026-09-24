@@ -2,7 +2,7 @@
   "spec": "0001-deposit",
   "runner": "api",
   "red": {
-    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
+    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
     "patch": {
       "file": "red.patch",
       "hash": "blake3:0d3afb14bf21674581316804e9666219543752a63c1b16c77f1b429801841034"
@@ -30,7 +30,7 @@
     "report": "evidence/red.trx"
   },
   "green": {
-    "commit": "ec84b383fdafe944bdbf8d7fe9968918daed9aa5",
+    "commit": "3908e826cd5b597d58b9f8784d239bb109385c47",
     "dirty": false,
     "cases": {
       "FM-1": "pass",
@@ -55,21 +55,33 @@
     "report": "evidence/green.trx"
   },
   "footprint": {
+    "backend/Sample.Api/AppDb.cs": "blake3:ab9df24eef15dbe04005af78ca07d96492a5e6c5de47cf1f6e59dedb9b1d2b50",
     "backend/Sample.Api/BuildingBlocks/Money.cs": "blake3:746bb641ce503821d81ffc6f84bf498b75c9d591e519afb9247ec2618a992823",
+    "backend/Sample.Api/Modules/Modules.cs": "blake3:58702aa394e61cf58229aa208af36cfe6d7beb5b40b88b9126a3dc3075ca94e8",
     "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs": "blake3:c70ccfc1ea1d031a7104cdd925856c01095e4acc53a037b8ec8e5fea233837cd",
+    "backend/Sample.Api/Modules/Wallets/Slices/GetBalance.cs": "blake3:f8ac77a4260eea442ea7db39068d3f91367f395be382d2b82531f2f404dba747",
+    "backend/Sample.Api/Modules/Wallets/Slices/ListWallets.cs": "blake3:f9444e82971a6dbed78ead832ed14b8d953bb880ef18718dadd795dbb37b7da9",
+    "backend/Sample.Api/Modules/Wallets/Slices/Withdraw.cs": "blake3:d0c1902518b8c886fb8e4aa23d916679c35ae5ff044ed0cb7c6887e84fde86e5",
     "backend/Sample.Api/Modules/Wallets/Wallet.cs": "blake3:525682962aa385e8d24d4811c93aebc1464f304670f40cc0fad2bf13cfac09aa",
-    "backend/Sample.Api/Platform.Idempotency.cs": "blake3:0d6785d4534506b9d17d3241a53f0b9aaac333440aa4be639504e06b3fb4b99a"
+    "backend/Sample.Api/Modules/Wallets/WalletsModule.cs": "blake3:3ca71c2c3906dffa3d75b7b8e50281f3953c5b30b7c826a4ea98a049cda4e87a",
+    "backend/Sample.Api/Platform.Idempotency.cs": "blake3:0d6785d4534506b9d17d3241a53f0b9aaac333440aa4be639504e06b3fb4b99a",
+    "backend/Sample.Api/Platform.cs": "blake3:1f8b78ea166f048d8e9d58ea28d0548f9f0a7910fbff7491ab530e4e9d35a0d0",
+    "backend/Sample.Api/Program.cs": "blake3:8e8b672056e6d89b7567e99796aa2489c4b09abaa92dee49bc19ff5030493868"
   },
+  "footprint_source": "coverage",
+  "footprint_changed": [
+    "backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs"
+  ],
   "inputs": {
     ".specs/0001-deposit/e2e/DepositSpec.cs": "blake3:2fbcb0f5afa37daaf8aac0fb3a668424e706502251731fdcf11d4ad375330fd9",
-    ".specs/0001-deposit/spec.md": "blake3:43cc52626b36804dfa1f46549706ec93cad2c34608cabf1a33db3ef923c5c5a9"
+    ".specs/0001-deposit/spec.md": "blake3:77077ab78bdf6c14030d4bb85f18695865257c67c109a3cd500848db8d4de78a"
   },
   "evidence": {
-    "evidence/avp-FM-5.json": "blake3:6acb335839fc1f7b138749d62756dd4aece1e12d9cffc165986e9ffcda635692",
-    "evidence/avp-FM-6.json": "blake3:6ba41c8ba00fb4281d0125cdedaa3e1df60f5c87dd57724c1859a9b53cc301ea",
-    "evidence/green.trx": "blake3:04019c189a68c5b813c6b356f9442ccff2cf40450f4febfc0b75269437d832e2",
-    "evidence/red.avp-FM-5.json": "blake3:54aa3c53fc2eb66f13284b4bf71019e46ec91944d666e973645a7c485e343b87",
-    "evidence/red.avp-FM-6.json": "blake3:4dc67c5bc8c626fa4df1f9f1988aa17509db32679d37d16c210294c4693d035c",
-    "evidence/red.trx": "blake3:04e55fbe321f27fce619dcc849cf347caf35d3189ceb1d563907f360d0541bf1"
+    "evidence/avp-FM-5.json": "blake3:746e2c1287cbfb4169c0e38844bb974a1274b87a2a51b01fbe123d3dffad8def",
+    "evidence/avp-FM-6.json": "blake3:4380c2d701df4dd2c12011e9f72b9a808c1fdff2b312e0a74b6fe5016a3b788d",
+    "evidence/green.trx": "blake3:db764178a56ccabd09939658d729e047c87984bc9042bf6bc95585648935c4d8",
+    "evidence/red.avp-FM-5.json": "blake3:e4fa69c56cdc0562128cd359ef79e80589f3cf9a9f5c0b02adeeaa5e92260f27",
+    "evidence/red.avp-FM-6.json": "blake3:318125fa6807f8fccb0dcf38330b0536877981d536bd44b4b1cf1a0f822193eb",
+    "evidence/red.trx": "blake3:d611104d873c29e33fdd5a3cc927c35147094f0bcf80f1c9557f95e8fcf3defe"
   }
 }

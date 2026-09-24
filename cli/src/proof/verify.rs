@@ -3,14 +3,16 @@
 //! Red is never rerun here. It was established once, at the revision without the feature; what drifts afterwards is
 //! the code under the feature, so verify re-proves green and re-anchors the hashes to today's files.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::path::Path;
 
 use anyhow::{Result, bail};
 
+use super::coverage;
+use super::footprint::{self, Source};
 use super::git::Repo;
-use super::green::{self, GreenOutcome};
-use super::hash::{self, Hashes};
+use super::green::{self, GreenOutcome, ProvenGreen};
+use super::hash;
 use super::receipt::{self, Freshness, Receipt};
 use super::report::FmId;
 use super::runner::Session;
@@ -47,6 +49,8 @@ pub struct Outcome {
 
 pub struct Verified {
     pub modes: usize,
+    /// The refreshed footprint in a few words (`footprint 14 files, coverage`), so a fallback to the diff shows.
+    pub footprint: String,
     /// The blake3 of the refreshed receipt.json, which names exactly the receipt state that was proven.
     pub receipt: String,
 }
@@ -61,8 +65,9 @@ pub fn verify_specs(project: &Project, specs: &[SpecDir]) -> Result<Vec<Outcome>
     let mut outcomes = Vec::new();
     for spec in specs {
         let result = match verify_one(root, spec, project, &repo, &head, &mut session, scratch.path()) {
-            Ok(Ok(modes)) => Ok(Verified {
+            Ok(Ok((modes, footprint))) => Ok(Verified {
                 modes,
+                footprint,
                 receipt: hash::hash_file(&spec.file(RECEIPT_FILE)).unwrap_or_else(|| hash::ABSENT.to_string()),
             }),
             Ok(Err(finding)) => Err(finding),
@@ -81,7 +86,10 @@ pub fn print_outcomes(outcomes: &[Outcome]) {
     let width = outcomes.iter().map(|outcome| outcome.name.len()).max().unwrap_or(0);
     for outcome in outcomes {
         let (verdict, detail) = match &outcome.result {
-            Ok(verified) => ("verified", format!("{0}/{0} FMs pass", verified.modes)),
+            Ok(verified) => (
+                "verified",
+                format!("{0}/{0} FMs pass ({1})", verified.modes, verified.footprint),
+            ),
             Err(finding) => ("failed  ", finding.clone()),
         };
         let mut lines = detail.lines();
@@ -114,7 +122,7 @@ fn select(root: &Path, keys: &[String], stale: bool, all: bool) -> Result<Vec<Sp
         .collect())
 }
 
-/// `Ok(Ok(n))` when all n failure modes pass and the receipt was refreshed; `Ok(Err(why))` when the run does not
+/// `Ok(Ok((n, footprint)))` when all n failure modes pass and the receipt was refreshed; `Ok(Err(why))` when the run does not
 /// prove the spec; `Err` when it could not run at all.
 fn verify_one(
     root: &Path,
@@ -124,7 +132,7 @@ fn verify_one(
     head: &str,
     session: &mut Session,
     scratch: &Path,
-) -> Result<Result<usize, String>> {
+) -> Result<Result<(usize, String), String>> {
     let Some(mut receipt) = Receipt::load(spec)? else {
         return Ok(Err(format!("no receipt; run `skies proof record {}` first", spec.name)));
     };
@@ -155,26 +163,53 @@ fn verify_one(
         &Scrub::new(&[&repo.top]),
     )?;
 
-    let (footprint, inputs) = rehash(root, spec, &doc, &receipt.footprint)?;
+    refresh_footprint(root, &doc, &mut receipt, &proven)?;
     let count = proven.cases.len();
     receipt.runner = doc.runner(spec)?.to_string();
     receipt.green.commit = head.to_string();
     receipt.green.dirty = repo.dirty()?;
     receipt.green.cases = proven.cases;
     receipt.green.report = proven.report;
-    receipt.footprint = footprint;
-    receipt.inputs = inputs;
+    receipt.inputs = hash::hash_all(root, &hash::input_paths(root, spec)?);
     receipt.evidence = Some(green::evidence_hashes(spec, receipt.evidence.as_ref())?);
+    let footprint = format!(
+        "footprint {}, {}",
+        footprint::files(receipt.footprint.len()),
+        match receipt.footprint_source {
+            Source::Coverage => "coverage",
+            Source::Diff => "diff",
+        }
+    );
     receipt.save(spec)?;
-    Ok(Ok(count))
+    Ok(Ok((count, footprint)))
 }
 
-/// Keeps the recorded footprint's file set (recomputing it from git would sweep in every commit since red) and adds
-/// whatever `touches` matches today; inputs are recollected so new e2e files are covered.
-fn rehash(root: &Path, spec: &SpecDir, doc: &SpecDoc, footprint: &Hashes) -> Result<(Hashes, Hashes)> {
-    let mut paths: BTreeSet<String> = footprint.keys().cloned().collect();
-    paths.extend(hash::touched_paths(root, &doc.touches)?);
-    paths.retain(|path| !hash::is_spec_path(path));
-    let footprint: BTreeMap<String, String> = hash::hash_all(root, &paths);
-    Ok((footprint, hash::hash_all(root, &hash::input_paths(root, spec)?)))
+/// Re-anchors the footprint to today's files. The changed part is never recomputed from git (that would sweep in
+/// every commit since red): a coverage receipt keeps its recorded `footprint_changed`, and a diff receipt its
+/// recorded files. When this green run wrote coverage, the executed part is replaced by what it executed today, so
+/// the footprint follows the code as it evolves, and a diff receipt is upgraded to coverage. Without coverage the
+/// recorded file set is kept as it was. `touches` is re-matched either way.
+fn refresh_footprint(root: &Path, doc: &SpecDoc, receipt: &mut Receipt, proven: &ProvenGreen) -> Result<()> {
+    let touched = hash::touched_paths(root, &doc.touches)?;
+    let recorded: BTreeSet<String> = receipt.footprint.keys().cloned().collect();
+    let paths = match (&proven.coverage, receipt.footprint_source) {
+        (coverage::Outcome::Covered(_), source) => {
+            let changed = match source {
+                Source::Coverage => receipt.footprint_changed.clone(),
+                Source::Diff => footprint::recorded_changed(&recorded, &touched),
+            };
+            let refreshed = footprint::build(root, doc, &changed, proven)?;
+            receipt.footprint_source = refreshed.source;
+            receipt.footprint_changed = refreshed.changed;
+            refreshed.paths
+        }
+        (coverage::Outcome::Missing(_), _) => {
+            let mut paths = recorded;
+            paths.extend(touched);
+            paths.retain(|path| !hash::is_spec_path(path));
+            paths
+        }
+    };
+    receipt.footprint = hash::hash_all(root, &paths);
+    Ok(())
 }
