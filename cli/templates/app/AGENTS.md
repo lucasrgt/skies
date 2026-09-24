@@ -28,8 +28,10 @@ Follow the `skies-sdd` skill (`.claude/skills/skies-sdd/SKILL.md`):
 3. Generate the shapes (`skies g module|slice|entity|vo|crud|hub`) and implement. Keep `skies doctor` clean.
 4. `skies proof record <id>` and report the receipt.
 
-Never write unit tests after the code. Unit-test an isolated system (a value object, a calculation) only after
-writing down how it can fail.
+**Every test lives in a spec**, and nowhere else: never a unit test written after the code to cover it, never a
+test file beside the code. An isolated system (a value object, a calculation, a parser) gets its own spec whose
+`e2e/` holds isolated cases, each titled after the failure mode it covers. The doctor flags a test outside
+`.specs/` (`SKY0029`, `SKYFE036`, `SKYFL036`).
 
 ---
 
@@ -38,7 +40,7 @@ writing down how it can fail.
 - **Backend** `src/Skies.Framework.Starter.Api` — .NET vertical slices; the `SKY*` Roslyn analyzers run in its
   build.
 - **Tests** `tests/Skies.Framework.Starter.Tests` — boots the real app (`SkiesWebTest<Program>`) and compiles the
-  spec E2E under `.specs/*/e2e`.
+  spec cases under `.specs/*/e2e`, and nothing else.
 - **Specs** `.specs/` — one folder per feature.
 - `Skies.toml` — the topology `skies doctor` checks and the runners `skies proof` uses.
 
@@ -86,7 +88,7 @@ public static class Deposit
   shorthands `Require(guid, field, code)`, `NotBlank`, `InRange`.
 - **Errors are registry constants** on a `*ErrorCodes` class (`SKY0018/19`) — the OpenAPI + i18n seam.
   `.WithName(nameof(Slice))` (`SKY0012`) is what the typed client turns into the `use<Slice>` hook.
-- Files ≤ 500 LOC (`SKY0007`).
+- Files ≤ 500 LOC (`SKY0007`). A test method outside `.specs/` is flagged (`SKY0029`).
 
 ---
 
@@ -144,7 +146,7 @@ A badly-wired route **fails the build**.
 
 ```
 skies doctor                 # dotnet build (SKY*), eslint (SKYFE*), Flutter rules (SKYFL*)
-dotnet test                  # every test, including the spec E2E
+dotnet test                  # every spec case (the only tests there are)
 skies proof status           # which receipts went stale (hashes only)
 skies proof verify --stale   # rerun them when your change could affect them
 ```

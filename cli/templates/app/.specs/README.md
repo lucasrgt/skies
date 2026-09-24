@@ -12,3 +12,6 @@ creates the next one.
 
 The E2E cases here compile into the tests project (namespace `Specs.S<id>`). A case maps to a failure mode by
 its title prefix, nothing else: every FM needs at least one case, and every `FM-*` case must be in `spec.md`.
+
+This is the only home for a test. An isolated system (a value object, a calculation, a parser) gets its own spec
+here, and its `e2e/` holds isolated cases; `e2e/` means "the spec's cases", not strictly end-to-end.

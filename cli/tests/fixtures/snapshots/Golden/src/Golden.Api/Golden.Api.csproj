@@ -23,9 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- A unit test may live next to the code it tests; the tests project compiles it, the app never
-         does (no test deps ship). -->
-    <Compile Remove="**\*.Tests.cs" />
     <!-- The doctor reads the module ctx docs (SKY0004/SKY0005) as AdditionalFiles. -->
     <AdditionalFiles Include="**\*.ctx.md" />
   </ItemGroup>

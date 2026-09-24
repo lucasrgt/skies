@@ -6,8 +6,11 @@ name = "Skies.Framework.Starter"
 
 [products.app]
 backend = "src/Skies.Framework.Starter.Api"   # .NET vertical slices; the SKY* analyzers run in its build
+tests = "tests/Skies.Framework.Starter.Tests" # compiles every spec's e2e/; `skies doctor` builds it (and the backend)
 # frontend = "clients/web"                     # a React or Flutter package, declared when you add one
 
+# Every test lives in a spec: .specs/<id>-<slug>/e2e/ holds its cases, titled "FM-n: ...". There is no other
+# place for a test, unit or not (SKY0029, SKYFE036, SKYFL036); an isolated system gets its own spec.
 # A runner executes one spec's e2e/ folder and writes a JUnit or TRX report that `skies proof` reads back.
 # Placeholders: {id} (0001), {dir} (.specs/0001-auth/e2e), {spec} (0001-auth), {report} (the report path).
 # Specs name their runner in spec.md (`runner: api`).

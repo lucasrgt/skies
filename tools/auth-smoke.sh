@@ -9,8 +9,9 @@
 #   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, with no edit after crud.
 #
 # Legs per app:
-#   DOCTOR — build the API with the SKY* analyzers ON; the build must succeed with zero SKY diagnostics
-#            (errors and warnings alike, for every app).
+#   DOCTOR — build the tests project (and through it the API) with the SKY* analyzers ON, as `skies doctor` does;
+#            the build must succeed with zero SKY diagnostics (errors and warnings alike, for every app), so the
+#            generated spec cases are held to SKY0029 (every test lives in a spec) with the rest.
 #   SPECS  — build and run the tests project (analyzers off), which compiles .specs/*/e2e; every case must pass
 #            and the count of passed tests must equal the number of FM cases in the specs.
 #
@@ -50,12 +51,14 @@ new_app() {
 
 g() { (cd "$API" && "$SKIES" g "$@" >/dev/null); }
 
-# doctor <App> — build with the analyzers on; any SKY finding, error or warning, fails.
+# doctor <App> — build the tests project (it references the API) with the analyzers on; any SKY finding, error or
+# warning, fails.
 doctor() {
   local app="$1" out ok=1 findings
   echo "==> [$app] DOCTOR: build with the SKY* analyzers on"
   use_working_tree "$WORK/$app/src/$app.Api/$app.Api.csproj"
-  out="$(dotnet build "$WORK/$app/src/$app.Api/$app.Api.csproj" -c Debug 2>&1)" || ok=0
+  use_working_tree "$WORK/$app/tests/$app.Tests/$app.Tests.csproj"
+  out="$(dotnet build "$WORK/$app/tests/$app.Tests/$app.Tests.csproj" -c Debug 2>&1)" || ok=0
   findings="$(echo "$out" | grep -oE "(error|warning) SKY[0-9]+" | sort | uniq -c | sort -rn || true)"
   if [ "$ok" -ne 1 ] || [ -n "$findings" ]; then
     echo "FAIL: [$app] must build doctor-clean. Reported:"; echo "${findings:-<no SKY findings; the build failed>}"
@@ -69,7 +72,6 @@ doctor() {
 specs() {
   local app="$1" out expected passed
   echo "==> [$app] SPECS: run the spec E2E"
-  use_working_tree "$WORK/$app/tests/$app.Tests/$app.Tests.csproj"
   expected="$(cat "$WORK/$app"/.specs/*/e2e/*.cs | grep -c 'DisplayName = "FM-')"
   if ! out="$(dotnet test "$WORK/$app/tests/$app.Tests/$app.Tests.csproj" -p:RunAnalyzers=false 2>&1)"; then
     echo "$out" | tail -60

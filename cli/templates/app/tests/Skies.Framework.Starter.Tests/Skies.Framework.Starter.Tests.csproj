@@ -12,6 +12,9 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <PackageReference Include="Skies.Framework.Testing" Version="5.0.0" />
+    <!-- The doctor runs here too: every test lives in a spec, and SKY0029 flags one compiled from anywhere else.
+         Remove it and the tests still build and run (Law 2). -->
+    <PackageReference Include="Skies.Framework.Doctor" Version="5.0.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,11 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Spec E2E: each .specs/<id>-<slug>/e2e folder holds the black-box cases for one spec's failure
-         modes (namespace Specs.S<id>, display names "FM-n: ..."). `skies proof record` runs them. -->
+    <!-- Every test lives in a spec: each .specs/<id>-<slug>/e2e folder holds the cases for one spec's failure
+         modes (namespace Specs.S<id>, display names "FM-n: ..."), and this project compiles nothing else.
+         An isolated system (a value object, a calculation) gets its own spec. `skies proof record` runs them. -->
     <Compile Include="..\..\.specs\*\e2e\**\*.cs" />
-    <!-- Co-located unit tests: the files live next to the code in src/, compiled here. -->
-    <Compile Include="..\..\src\Skies.Framework.Starter.Api\**\*.Tests.cs" />
   </ItemGroup>
 
 </Project>
