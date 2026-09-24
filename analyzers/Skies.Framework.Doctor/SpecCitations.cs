@@ -16,14 +16,16 @@ namespace Skies.Framework.Doctor;
 /// failure mode, exactly like a code citation goes stale when the type is renamed.
 ///
 /// The specs arrive as <c>AdditionalFiles</c> (<c>.specs/&lt;id&gt;-&lt;slug&gt;/spec.md</c>); a spec is known by its
-/// folder name and its failure modes are the lines under <c>## Failure modes</c> that start <c>- FM-&lt;n&gt; </c>, the
-/// one grammar <c>skies proof</c> reads. A citation starts with digits, so it can never be mistaken for a PascalCase
-/// code citation, and a code citation can never be mistaken for it.
+/// folder name and its failure modes are the <c>- FM-&lt;n&gt; text</c> (or <c>* FM-&lt;n&gt;: text</c>) bullets
+/// under <c>## Failure modes</c>. That is the one grammar, defined in <c>cli/src/proof/grammar.rs</c> and mirrored
+/// here regex for regex, so a mode <c>skies proof</c> sees is the mode a citation resolves against. A citation starts
+/// with digits, so it can never be mistaken for a PascalCase code citation, and a code citation can never be
+/// mistaken for it.
 ///
-/// The grammar is exact on both sides, and a look-alike is reported rather than silently skipped: a citation whose
-/// fragment is not <c>FM-&lt;n&gt;</c> (a lowercase <c>fm-n</c>, a missing dash, a zero-padded number) is malformed,
-/// and a cited mode that the spec lists only on a look-alike line (a <c>*</c> bullet, a missing dash, emphasis, a
-/// colon after the id) is named with the line to rewrite.
+/// A look-alike is reported rather than silently skipped, as the engine errors on one: a citation whose fragment is
+/// not <c>FM-&lt;n&gt;</c> (a lowercase <c>fm</c>, a missing hyphen, an underscore) is malformed, and a cited mode that
+/// the spec writes only on a look-alike line (a space or underscore for the hyphen, a lowercase <c>fm</c>, an id with
+/// no bullet) is named with the line to rewrite.
 /// </summary>
 internal static class SpecCitations
 {
@@ -34,16 +36,23 @@ internal static class SpecCitations
     private static readonly Regex CitationPattern = new(
         @"`(?<spec>[0-9]+-(?=[a-z0-9-]*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*)(?:#(?<fragment>[^`\s]*))?`", RegexOptions.Compiled);
 
-    // The one fragment a citation may carry: `FM-<n>`, n a positive number without a leading zero.
-    private static readonly Regex FailureModeFragment = new(@"^FM-(?<n>[1-9][0-9]*)$", RegexOptions.Compiled);
+    // The one fragment a citation may carry: `FM-<n>`, upper-case FM and the hyphen required (the engine's title).
+    private static readonly Regex FailureModeFragment = new(@"^FM-(?<n>[0-9]+)$", RegexOptions.Compiled);
 
-    // The one failure-mode line: `- FM-<n> text`, at the start of the line, the id followed by a space or the end.
-    private static readonly Regex FailureModeLine = new(@"^- FM-(?<n>[1-9][0-9]*)(?:[ \t]|$)", RegexOptions.Compiled);
+    // grammar.rs SPEC_LINE: a `-` or `*` bullet, then `FM-<n>`, then a colon, whitespace, or the end.
+    private static readonly Regex FailureModeLine = new(@"^\s*[-*]\s+FM-(?<n>[0-9]+)(?::|\s|$)", RegexOptions.Compiled);
 
-    // A line that means a failure mode but is not in the grammar: another bullet, no dash in the id, emphasis, a
-    // colon, indentation. It names the number it was meant to declare.
-    private static readonly Regex LookAlikeLine = new(
-        @"^\s*[-*+]\s*[*_]{0,2}FM[- ]?0*(?<n>[1-9][0-9]*)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    // grammar.rs MARKER: the list marker a look-alike may sit behind (`-`, `*`, `1.`, `1)`).
+    private static readonly Regex Marker = new(@"^\s*(?:[-*]|[0-9]+[.)])?\s*", RegexOptions.Compiled);
+
+    // grammar.rs LOOK_ALIKE: starts like an id but is not one (`FM 3`, `fm_3`, `FM3:`, `FM-[x]`).
+    private static readonly Regex LookAlike = new(@"^fm(?:-|[_ ]?[0-9\[])", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // grammar.rs TITLE: an id with no bullet in front of it is a look-alike line too.
+    private static readonly Regex Title = new(@"^FM-(?<n>[0-9]+)(?::|\s|$)", RegexOptions.Compiled);
+
+    // The number a look-alike meant, when it has one.
+    private static readonly Regex MeantNumber = new(@"^fm[-_ ]?(?<n>[0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>One spec citation in a ctx: the cited folder, the failure mode (if any), and its span.</summary>
     internal readonly struct Citation
@@ -140,9 +149,19 @@ internal static class SpecCitations
         if (citation.FailureMode is { } fm && !spec.Modes.Contains(fm))
             return spec.LookAlikes.TryGetValue(fm, out var line)
                 ? $"but .specs/{citation.Spec}/spec.md declares FM-{fm} only as '{line}', which is not a failure "
-                  + $"mode; write it as '- FM-{fm} …'"
+                  + $"mode; write it as '- FM-{fm} <what goes wrong>' (a dash, FM, a hyphen, the number)"
                 : $"but .specs/{citation.Spec}/spec.md lists no FM-{fm}";
         return null;
+    }
+
+    // The number a look-alike line meant to declare (grammar.rs `spec_line`'s error case), or null.
+    private static int? LookAlikeNumber(string line)
+    {
+        var item = line.Substring(Marker.Match(line).Length);
+        if (!LookAlike.IsMatch(item) && !Title.IsMatch(item))
+            return null;
+        var meant = MeantNumber.Match(item);
+        return meant.Success && int.TryParse(meant.Groups["n"].Value, out var number) ? number : null;
     }
 
     // `…/.specs/<folder>/spec.md` → `<folder>`; any other path → null. Splits on both separators so an MSBuild
@@ -174,9 +193,7 @@ internal static class SpecCitations
             var match = FailureModeLine.Match(line);
             if (match.Success && int.TryParse(match.Groups["n"].Value, out var number))
                 spec.Modes.Add(number);
-            else if (LookAlikeLine.Match(line) is { Success: true } lookAlike
-                     && int.TryParse(lookAlike.Groups["n"].Value, out var meant)
-                     && !spec.LookAlikes.ContainsKey(meant))
+            else if (LookAlikeNumber(line) is { } meant && !spec.LookAlikes.ContainsKey(meant))
                 spec.LookAlikes[meant] = line.Trim();
         }
 

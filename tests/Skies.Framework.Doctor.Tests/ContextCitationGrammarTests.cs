@@ -28,7 +28,8 @@ public class ContextCitationGrammarTests
     [Theory]
     [InlineData("fm-2")]
     [InlineData("FM2")]
-    [InlineData("FM-02")]
+    [InlineData("FM_2")]
+    [InlineData("FM-[x]")]
     [InlineData("FM-")]
     [InlineData("2")]
     public Task A_look_alike_fragment_is_reported_with_the_grammar(string fragment)
@@ -43,10 +44,10 @@ public class ContextCitationGrammarTests
     }
 
     [Theory]
-    [InlineData(3, "* FM-3 A second session reuses the token.")]
-    [InlineData(4, "- FM-4: The refresh races the restore.")]
-    [InlineData(5, "- **FM-5** A replay burns the family.")]
-    [InlineData(6, "- FM6 The cookie outlives the session.")]
+    [InlineData(3, "- FM 3 A second session reuses the token.")]
+    [InlineData(4, "- fm_4 The refresh races the restore.")]
+    [InlineData(5, "- FM5: A replay burns the family.")]
+    [InlineData(6, "FM-6 The cookie outlives the session.")]
     public Task A_mode_declared_only_on_a_look_alike_line_names_the_line(int mode, string line)
     {
         var cited = $"0002-withdraw#FM-{mode}";
@@ -54,13 +55,15 @@ public class ContextCitationGrammarTests
         test.TestState.AdditionalFiles.Add((".specs/0002-withdraw/spec.md", Spec));
         test.TestState.ExpectedDiagnostics.Add(SpecDiagnostic(12, 12 + cited.Length, cited,
             $"but .specs/0002-withdraw/spec.md declares FM-{mode} only as '{line}', which is not a failure mode; "
-            + $"write it as '- FM-{mode} …'"));
+            + $"write it as '- FM-{mode} <what goes wrong>' (a dash, FM, a hyphen, the number)"));
         return test.RunAsync();
     }
 
+    // The engine's grammar (cli/src/proof/grammar.rs): a `-` or `*` bullet, an optional colon after the id.
     [Fact]
-    public Task Only_the_exact_grammar_declares_a_mode() =>
-        WithSpec("`0002-withdraw#FM-1` and `0002-withdraw#FM-2` hold.").RunAsync();
+    public Task The_engine_grammar_declares_a_mode() =>
+        WithSpec("`0002-withdraw#FM-1`, `0002-withdraw#FM-2`, `0002-withdraw#FM-7`, `0002-withdraw#FM-8` hold.")
+            .RunAsync();
 
     private static CSharpAnalyzerTest<ContextFreshnessAnalyzer, DefaultVerifier> WithSpec(string note)
     {
@@ -76,10 +79,12 @@ public class ContextCitationGrammarTests
 
         - FM-1 A valid withdrawal does not move the balance.
         - FM-2 Overdrawing is accepted.
-        * FM-3 A second session reuses the token.
-        - FM-4: The refresh races the restore.
-        - **FM-5** A replay burns the family.
-        - FM6 The cookie outlives the session.
+        - FM 3 A second session reuses the token.
+        - fm_4 The refresh races the restore.
+        - FM5: A replay burns the family.
+        FM-6 The cookie outlives the session.
+        * FM-7 A star bullet declares a mode.
+          - FM-8: So does an indented one with a colon.
         """;
 
     private static string CtxCiting(string note) => $"""
