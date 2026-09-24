@@ -1,7 +1,7 @@
 namespace Golden.Api.Modules.Account;
 
 /// <summary>The Account module's error codes — stable, namespaced i18n keys the frontend localizes from. Every
-/// Error/Check references a const here (SKY0018), so the full set stays discoverable: AddSkiesOpenApi enumerates
+/// Error/Check references a const here, so the full set stays discoverable: AddSkiesOpenApi enumerates
 /// it into the OpenAPI ErrorBody.code schema for the typed client. Auth sub-flows (otp/oauth/email) append their
 /// own codes here when added.</summary>
 public static class AccountErrorCodes

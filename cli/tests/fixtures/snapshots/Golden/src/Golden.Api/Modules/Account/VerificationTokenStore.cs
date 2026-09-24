@@ -5,7 +5,7 @@ namespace Golden.Api.Modules.Account;
 
 /// <summary>The Account module's side of verification secrets: the <see cref="VerificationToken"/> table behind the
 /// framework's <see cref="VerificationTokens"/>. Plain data access with no decisions in it; expiry, single use, purpose
-/// binding, and the attempt cap are the package's. Registered by <c>AddVerificationTokens</c> in <see cref="AccountSetup"/>.</summary>
+/// binding, and the attempt cap are the package's. Registered by <c>AddVerificationTokens</c> in <see cref="AccountModule"/>.</summary>
 public sealed class VerificationTokenStore(AppDb db) : IVerificationStore
 {
     public async Task AddAsync(VerificationRecord record, CancellationToken ct)

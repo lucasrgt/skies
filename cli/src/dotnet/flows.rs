@@ -1,7 +1,7 @@
 //! `skies g auth:otp|auth:oauth|auth:email`: augment a generated Account module with a provider-backed flow.
 //!
 //! Emits the flow's slices and entities, then edits the existing `User`, `AppDb`, `AccountModule`,
-//! `AccountSetup`, and the API csproj to wire them in. Every edit is idempotent (re-running never duplicates a
+//! `Platform`, and the API csproj to wire them in. Every edit is idempotent (re-running never duplicates a
 //! field, DbSet, map line, registration, or reference) and a missing anchor prints the manual step instead of
 //! failing. The flow's tests arrive as a spec, `.specs/<id>-auth-<flow>/`.
 //!
@@ -50,7 +50,8 @@ pub fn generate(root: &Path, flow: Flow) -> Result<u8> {
     augment_user(&user_file, spec)?;
     augment_app_db(&project.root.join("AppDb.cs"), spec)?;
     augment_account_module(&account_module, spec)?;
-    augment_account_setup(&account.join("AccountSetup.cs"), spec)?;
+    augment_account_services(&account_module, spec)?;
+    augment_platform(&project.root.join("Platform.cs"), spec)?;
     augment_api_project(&project.csproj, spec)?;
     let folder = specs::emit(&project, spec.folder, Flags::DEFAULT)?.folder;
 
@@ -232,13 +233,11 @@ fn augment_account_module(module_file: &Path, spec: &FlowSpec) -> Result<()> {
     Ok(())
 }
 
-/// The flow's registrations join the module's composition after `AddAuthorization()`, with the provider's using
-/// grouped after `Skies.Framework.Auth`. A line already present (the verification service a second flow shares) is
-/// kept as is.
-fn augment_account_setup(setup_file: &Path, spec: &FlowSpec) -> Result<()> {
+/// Domain services join the module after `AddAuthorization()`; shared registrations are added once.
+fn augment_account_services(setup_file: &Path, spec: &FlowSpec) -> Result<()> {
     if !setup_file.exists() {
         for line in spec.di_lines {
-            println!("note: no AccountSetup.cs — register `{line}` in AddAccount.");
+            println!("note: no AccountModule.cs — register `{line}` in AddServices.");
         }
         return Ok(());
     }
@@ -246,16 +245,7 @@ fn augment_account_setup(setup_file: &Path, spec: &FlowSpec) -> Result<()> {
     let nl = text::newline_of(&source);
     let mut changed = false;
 
-    let using = format!("using {};", spec.provider_namespace);
-    if !source.contains(&using) {
-        source = text::replace_first(
-            &source,
-            "using Skies.Framework.Auth;",
-            &format!("using Skies.Framework.Auth;{nl}{using}"),
-        );
-        changed = true;
-    }
-    let mut after = "        builder.Services.AddAuthorization();".to_string();
+    let mut after = "        services.AddAuthorization();".to_string();
     let missing: Vec<&str> = spec
         .di_lines
         .iter()
@@ -269,15 +259,43 @@ fn augment_account_setup(setup_file: &Path, spec: &FlowSpec) -> Result<()> {
             after = format!("        {line}");
             changed = true;
         } else {
-            println!("note: add `{line}` to AddAccount in AccountSetup.cs");
+            println!("note: add `{line}` to AddServices in AccountModule.cs");
         }
     }
 
     if changed {
         std::fs::write(setup_file, source)?;
-        println!("registered {} provider in AccountSetup.cs", spec.provider_namespace);
+        println!("registered {} services in AccountModule.cs", spec.token);
     }
     Ok(())
+}
+
+/// Development providers follow the environment guard in Platform, never the module's auth wiring.
+fn augment_platform(path: &Path, spec: &FlowSpec) -> Result<()> {
+    if !path.exists() {
+        println!(
+            "note: configure {} in your platform; the local implementation is {}",
+            spec.provider_namespace, spec.provider_line
+        );
+        return Ok(());
+    }
+    let mut source = text::read(path)?;
+    if source.contains(spec.provider_line) {
+        return Ok(());
+    }
+    let anchor = "        return services;";
+    // Only edit the generated development-only shape; custom platforms own provider selection.
+    if !source.contains("if (!environment.IsDevelopment())") || !source.contains(anchor) {
+        println!(
+            "note: configure {} in Platform.AddPlatform; register development providers only in Development.",
+            spec.provider_namespace
+        );
+        return Ok(());
+    }
+    let nl = text::newline_of(&source);
+    source = format!("using {};{nl}{source}", spec.provider_namespace);
+    source = text::replace_first(&source, anchor, &format!("        {}{nl}{anchor}", spec.provider_line));
+    text::write(path, source)
 }
 
 /// Matches the csproj's existing framework reference style: a ProjectReference beside `Skies.Framework.AspNetCore`

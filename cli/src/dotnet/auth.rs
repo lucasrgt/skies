@@ -3,7 +3,7 @@
 //! Register, login, refresh, logout, me, and session management, plus, unless opted out, multi-tenant scoping and
 //! web-cookie refresh delivery. The auth *mechanism* is not emitted: reading the caller, minting and validating JWTs,
 //! password hashing, refresh rotation with the family burn on replay, revocation, and cookie delivery are the
-//! `Skies.Framework.Auth` package, wired by one `AddSkiesAuth` call in `AccountSetup`, so a security fix reaches the
+//! `Skies.Framework.Auth` package, wired by one `AddSkiesAuth` call in `AccountModule`, so a security fix reaches the
 //! app through a package version. What is emitted is plain C# the app owns: the slices (input, output, error codes,
 //! auth posture), the entities, and the small store that keeps the session table.
 //!
@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 
 use super::blueprint::{self, Flags};
-use super::{ApiProject, FRAMEWORK_VERSION, embedded, first_csproj, specs, text};
+use super::{ApiProject, FRAMEWORK_VERSION, embedded, first_csproj, scaffold, specs, text};
 
 pub fn generate(root: &Path, tenancy: bool, cookies: bool) -> Result<u8> {
     let Some(project) = ApiProject::open(root)? else {
@@ -28,16 +28,39 @@ pub fn generate(root: &Path, tenancy: bool, cookies: bool) -> Result<u8> {
 
     let flags = Flags { tenancy, cookies };
     let (app_name, app_lower) = (project.app_name().to_string(), project.app_lower());
-    for (logical, body) in embedded::dotnet_folder("auth") {
-        if !tenancy && logical.starts_with("Tenancy/") {
-            continue;
-        }
-        let destination = destination(&project, &blueprint::render_path(&logical, &app_name, &app_lower));
-        text::write(&destination, blueprint::render(body, &app_name, &app_lower, flags))?;
-        println!("created {}", destination.display());
+    let files: Vec<_> = embedded::dotnet_folder("auth")
+        .into_iter()
+        .filter(|(logical, _)| tenancy || !logical.starts_with("Tenancy/"))
+        .map(|(logical, body)| {
+            let path = destination(&project, &blueprint::render_path(&logical, &app_name, &app_lower));
+            (path, blueprint::render(body, &app_name, &app_lower, flags))
+        })
+        .collect();
+    let conflicts: Vec<_> = files
+        .iter()
+        .filter(|(path, body)| {
+            if !path.exists() {
+                return false;
+            }
+            let existing = std::fs::read_to_string(path).ok();
+            existing.as_ref() != Some(body)
+        })
+        .map(|(path, _)| path.display().to_string())
+        .collect();
+    if !conflicts.is_empty() {
+        eprintln!(
+            "skies: auth would overwrite existing files; no files were changed:\n{}\nGenerate auth in a fresh app and merge these files explicitly.",
+            conflicts.join("\n")
+        );
+        return Ok(1);
+    }
+    for (path, body) in files {
+        text::write(&path, body)?;
+        println!("created {}", path.display());
     }
 
     wire_program(&project)?;
+    scaffold::wire_into_registry(&project, "Account")?;
     wire_api_project(&project.csproj)?;
     wire_test_project(&project.test_dir())?;
     wire_global_usings(&project)?;
@@ -58,43 +81,37 @@ fn destination(project: &ApiProject, rendered: &str) -> PathBuf {
     }
 }
 
-/// Two lines in `Program.cs`: `builder.AddAccount();` before `Build()` and `AccountModule.Map(app);` before
-/// `app.Run();`. No middleware is wired: `WebApplication` adds authentication and authorization itself once
-/// `AddAccount` registered them, so the composition root stays the thin index SKY0017 requires.
+/// Registers the platform before the module registry consumes its configuration.
 fn wire_program(project: &ApiProject) -> Result<()> {
     let program = project.root.join("Program.cs");
     if !program.exists() {
-        println!("note: no Program.cs — register auth with builder.AddAccount(); and AccountModule.Map(app);");
-        return Ok(());
-    }
-
-    let mut source = text::read(&program)?;
-    if source.contains("AccountModule.Map") {
-        return Ok(());
-    }
-    let nl = text::newline_of(&source);
-    let using = format!("using {}.Api.Modules.Account;{nl}", project.app_name());
-    if !source.contains(&using) {
-        source = format!("{using}{source}");
-    }
-
-    if !source.contains("var builder") || !source.contains("var app =") || !source.contains("app.Run();") {
-        std::fs::write(&program, source)?;
         println!(
-            "note: Program.cs looks unusual — add builder.AddAccount(); before Build(), then \
-             AccountModule.Map(app); before app.Run(); (WebApplication auto-adds the auth middleware)."
+            "note: call builder.Services.AddPlatform(builder.Configuration, builder.Environment) before AddModules."
         );
         return Ok(());
     }
-
-    source = text::replace_first(&source, "var app =", &format!("builder.AddAccount();{nl}{nl}var app ="));
+    let mut source = text::read(&program)?;
+    if source.contains(".AddPlatform(") {
+        return Ok(());
+    }
+    let anchor = "builder.Services.AddModules(builder.Configuration);";
+    if !source.contains(anchor) {
+        println!(
+            "note: call builder.Services.AddPlatform(builder.Configuration, builder.Environment) before AddModules."
+        );
+        return Ok(());
+    }
+    let nl = text::newline_of(&source);
+    let using = format!("using {};{nl}", project.namespace);
+    if !source.contains(&using) {
+        source = format!("{using}{source}");
+    }
     source = text::replace_first(
         &source,
-        "app.Run();",
-        &format!("AccountModule.Map(app);{nl}{nl}app.Run();"),
+        anchor,
+        &format!("builder.Services.AddPlatform(builder.Configuration, builder.Environment);{nl}{anchor}"),
     );
     std::fs::write(&program, source)?;
-    println!("wired auth into Program.cs (builder.AddAccount(); + AccountModule.Map(app);)");
     Ok(())
 }
 
@@ -179,7 +196,7 @@ pub(super) fn file_name(path: &Path) -> String {
 
 fn summary(flags: Flags, spec: &Path) -> String {
     format!(
-        "auth generated — {}, {}. Its failure modes and E2E are in {}; run them with `dotnet test`.",
+        "auth generated — {}, {}. Its failure modes and E2E are in {}; run them with `dotnet test`.\nConfigure Platform.cs with persistent storage and real providers before deploying.",
         if flags.tenancy { "multi-tenant" } else { "single-tenant" },
         if flags.cookies {
             "web-cookie + body delivery"

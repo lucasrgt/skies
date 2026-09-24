@@ -35,7 +35,7 @@ export function setAccessToken(token: string | null): void {
   accessToken = token;
 }
 
-// ── Token refresh — the SEAM rotates, the client only retries (SKYFE029: refresh-one-door) ───────────────
+// ── Token refresh — the SEAM rotates, the client only retries ───────────────
 // The 401 interceptor restores the session transparently, but it does NOT know HOW to rotate. The rotation (an
 // empty post; the refresh rides the httpOnly cookie) is the session seam's concern — and it rotates SINGLE-FLIGHT
 // there (its bootstrapSession), so concurrent 401s share ONE in-flight rotation instead of replaying a spent token

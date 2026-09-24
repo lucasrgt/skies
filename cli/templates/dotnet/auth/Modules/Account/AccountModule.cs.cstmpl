@@ -1,8 +1,35 @@
+using Skies.Framework.Auth;
+//<lz:tenancy>
+using MyApp.Api.Tenancy;
+//</lz:tenancy>
+
 namespace MyApp.Api.Modules.Account;
 
-/// <summary>The Account module groups its slices under /account.</summary>
+/// <summary>Registers account services and routes through the application's module registry.</summary>
+[Module]
 public static class AccountModule
 {
+    public static IServiceCollection AddServices(IServiceCollection services, IConfiguration configuration)
+    {
+        var jwtSecret = configuration["Jwt:Secret"]
+            ?? throw new InvalidOperationException("Configure Jwt:Secret before starting the application.");
+        services.AddSingleton(TimeProvider.System);
+        //<lz:tenancy>
+        services.AddScoped<ITenant, RequestTenant>();
+        //</lz:tenancy>
+        //<lz:cookies>
+        services.AddSkiesAuth<UserSessionStore>(new SkiesAuthOptions(jwtSecret, Issuer: "myapp", Audience: "myapp")
+        {
+            RefreshCookie = new RefreshCookieOptions("myapp_refresh", Path: "/account"),
+        });
+        //</lz:cookies>
+        //<lz:!cookies>
+        services.AddSkiesAuth<UserSessionStore>(new SkiesAuthOptions(jwtSecret, Issuer: "myapp", Audience: "myapp"));
+        //</lz:!cookies>
+        services.AddAuthorization();
+        return services;
+    }
+
     public static void Map(IEndpointRouteBuilder app)
     {
         var account = app.MapGroup("/account");

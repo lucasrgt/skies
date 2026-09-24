@@ -126,7 +126,8 @@ fn crud_output_is_doctor_shaped(api: &Path) {
     assert!(product.contains(
         "    public static Result<Product> Open(Guid id, string name) =>\n        new Product { Id = id, Name = name }.EnsureValid();\n"
     ));
-    assert!(product.contains("    public Result<Product> Update(string name)\n    {\n        Name = name;\n        return EnsureValid();\n    }\n"));
+    assert!(product.contains("proposed.Name = name;"));
+    assert!(product.contains("if (validation.IsFailure) return validation.Error;\n        Name = proposed.Name;"));
     assert!(product.contains(
         "[System.ComponentModel.DataAnnotations.Timestamp]\n    public byte[]? RowVersion { get; private set; }"
     ));
@@ -217,4 +218,43 @@ fn crud_refuses_an_entity_that_is_not_tenant_scoped() {
     assert_eq!(output.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&output.stderr).contains("Product is not ITenantScoped"));
     assert!(!api.join("Modules/Catalog/Slices").exists());
+}
+
+#[test]
+fn auth_refuses_to_overwrite_owner_files_before_writing_anything() {
+    for relative in [
+        "src/Golden.Api/AppDb.cs",
+        "src/Golden.Api/AppJson.cs",
+        "src/Golden.Api/Platform.cs",
+        "tests/Golden.Tests/TestApp.cs",
+    ] {
+        let work = tempfile::tempdir().unwrap();
+        skies(work.path(), &["new", "Golden"]);
+        let root = work.path().join("Golden");
+        std::fs::write(root.join(relative), "// application-owned code\n").unwrap();
+        let before = files(&root);
+        let output = Command::new(env!("CARGO_BIN_EXE_skies"))
+            .args(["g", "auth"])
+            .current_dir(&root)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&output.stderr).contains("no files were changed"));
+        assert_eq!(files(&root), before, "{relative}");
+    }
+}
+
+#[test]
+fn auth_uses_the_same_module_registry_as_other_features() {
+    let work = tempfile::tempdir().unwrap();
+    skies(work.path(), &["new", "Golden"]);
+    let root = work.path().join("Golden");
+    skies(&root, &["g", "auth"]);
+    let api = root.join("src/Golden.Api");
+    let registry = std::fs::read_to_string(api.join("Modules/Modules.cs")).unwrap();
+    assert!(registry.contains("AccountModule.AddServices(services, configuration)"));
+    assert!(registry.contains("AccountModule.Map(app)"));
+    let program = std::fs::read_to_string(api.join("Program.cs")).unwrap();
+    assert!(!program.contains("AccountModule") && !program.contains("AddAccount"));
+    assert!(!api.join("Modules/Account/AccountSetup.cs").exists());
 }

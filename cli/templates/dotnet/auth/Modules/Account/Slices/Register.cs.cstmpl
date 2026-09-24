@@ -49,5 +49,5 @@ public static class Register
         app.MapPost("/register", async (Input input, AppDb db, IPasswordHasher hasher, TimeProvider clock, CancellationToken ct) =>
             (await Handle(input, db, hasher, clock, ct)).ToHttp())
             .WithName(nameof(Register))
-            .AllowAnonymous();   // public: registering is pre-identity (SKY0022 — the decision, made visible)
+            .AllowAnonymous();   // public: registering is pre-identity
 }

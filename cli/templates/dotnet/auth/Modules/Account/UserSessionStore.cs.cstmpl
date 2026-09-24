@@ -6,7 +6,7 @@ namespace MyApp.Api.Modules.Account;
 /// <summary>The Account module's side of refresh sessions: the <see cref="UserSession"/> table behind the framework's
 /// <see cref="RefreshSessions"/>. Plain data access with no decisions in it; rotation, reuse detection, the family burn,
 /// and the age ceiling are the package's, so a fix to them arrives with a version bump. Registered by the
-/// <c>AddSkiesAuth</c> call in <see cref="AccountSetup"/>.</summary>
+/// <c>AddSkiesAuth</c> call in <see cref="AccountModule"/>.</summary>
 public sealed class UserSessionStore(AppDb db) : IRefreshSessionStore
 {
     public async Task<RefreshSlot?> FindAsync(string tokenHash, CancellationToken ct) =>

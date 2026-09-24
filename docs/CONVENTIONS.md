@@ -134,14 +134,13 @@ on legitimate data (API paths, storage paths, webhook URLs), and the client side
 
 Rich, self-validating types; no repositories, base classes, or internal event buses (they fail the laws).
 
-- **Value objects (`[ValueObject]`) are always valid by construction**: immutable, no public constructor, built
-  only through a static smart constructor returning `Result<T>` (`Money.From`), so an invalid instance cannot exist
-  (`SKY0013`). They live in `BuildingBlocks/` when generic, in the module when specific.
-- **Entities (`[Entity]`) guard their invariants**: no public constructor (born through a factory like
-  `Wallet.Open`; EF rehydrates through a private parameterless one), no public setter (state changes through
-  intention-revealing methods like `Deposit`/`Withdraw`), and one private invariant funnel, `EnsureValid` returning
-  `Result<T>`, that every create and mutate path returns through (`SKY0014`). The entity can never be persisted
-  broken, and no slice can bypass the check.
+- **Value objects (`[ValueObject]`) encapsulate construction**: immutable, no accessible constructor, setter, or
+  init accessor, and a static factory returning `Result<T>` (`Money.From`). `SKY0013` checks this shape, not the
+  factory's validation logic. Structs still allow `default(T)`; use a class when that zero state is invalid.
+- **Entities (`[Entity]`) encapsulate state**: no accessible constructor, setter, or init accessor (`SKY0014`).
+  Factories and domain methods validate their inputs and proposed state before applying mutations. A private
+  `EnsureValid` helper can share checks, but is not required: merely naming a method cannot enforce invariants.
+  Behavior tests prove rejected transitions leave the entity unchanged.
 - **Concurrency posture.** An entity a persisted update or delete touches declares a token: `[Timestamp] public
   byte[]? RowVersion { get; private set; }` or `[ConcurrencyCheck]` on a domain field, so concurrent requests cannot
   silently last-write-win (`SKY0026`, warning; insert-only rows and entities merely read are not reported).
@@ -151,12 +150,13 @@ Rich, self-validating types; no repositories, base classes, or internal event bu
   schema, so the generated client types it as the primitive, not an empty object.
 - **Where behavior lives.** The slice owns orchestration and input validation; the entity and its VOs own invariants
   and state transitions. A change that cannot fail is a `void` method (`Wallet.Deposit`); one that can violate a rule
-  returns `Result<T>` through `EnsureValid` (`Wallet.Withdraw` refusing an overdraw).
+  returns `Result<T>` (`Wallet.Withdraw` refusing an overdraw).
 - **Generated CRUD keeps the split.** `skies g crud <Module> <Entity>` never writes a column from a slice: it adds
   `Open(Guid id, <fields>[, Guid userId][, DateTime now])` and `Update(<fields>[, DateTime now])` to the entity
   (from its `{ get; private set; }` fields, through `EnsureValid`, plus `RowVersion` when missing), keeping any the
   author wrote. Create calls `Open`, Update calls `Update` and saves on success, Delete is a plain `Remove`. Rename
-  `Update` to the domain's verb once there is one.
+  `Update` to the domain's verb once there is one. The generated update validates a shallow copy before applying
+  scalar fields to the original; keep `EnsureValid` free of side effects, including changes to referenced objects.
 - **The markers are pure** (like `[Slice]`): no base class, no EF semantics; without the doctor they are inert.
 - **The mark is not optional where the type is persisted or owned** (`SKY0021`): a `DbSet<T>` type must be
   `[Entity]`, and a complex member of an `[Entity]` must be `[ValueObject]`. Without it, leaving the mark off skips
@@ -205,6 +205,13 @@ A new app has no hub; `skies g hub <Module> <Name>` scaffolds one at `Modules/<M
   in-memory singleton on one instance; scaling out swaps in a backplane and Redis at the composition root.
 
 ## Auth — the mechanism is a package, the policy is the app's
+
+Generated Account modules use `[Module]`, `AddServices`, and `Map` through the same registry as other modules.
+`Platform.AddPlatform` owns the database and external providers. The starter's InMemory database, local JWT key,
+and fake/console providers are Development-only: startup refuses other environments until the owner replaces
+that platform setup with persistent storage, a configured `Jwt:Secret`, and real providers. For OAuth use
+`OidcIdTokenVerifier` with the provider authority and client id. Keep local substitutes inside an explicit
+Development branch. Generation refuses to overwrite existing owner files before writing anything.
 
 `skies g auth` (and `auth:otp`, `auth:oauth`, `auth:email`) generates the Account module's slices, entities, and
 spec, but not the security mechanics: those are `Skies.Framework.Auth` (and the `Identity` port), so a fix reaches
@@ -395,8 +402,8 @@ forcing awkward code, that is a finding to report against the rule.
 | `SKY0007` | File ≤ 500 lines (EF `Migrations/` exempt: tool-emitted, append-only) | locality for readers and agents |
 | `SKY0009` | Write-ownership: a write (Add/Update/Remove/…) on another module's entity is flagged, on a `DbSet` or through `DbContext.Add(entity)`; cross-module reads, joins, and calls are free. `.Tests.cs` exempt | keeps a module carvable later |
 | `SKY0012` | A `[Slice]`'s `Map` calls `.WithName("<SliceName>")` (or `nameof`): the OpenAPI `operationId` the typed client names its hook after (`use<SliceName>`). A missing `Map` is SKY0001's | backend ↔ frontend stay 1:1 |
-| `SKY0013` | `[ValueObject]` always valid: immutable, no public constructor or setter, built only through a static smart constructor returning `Result<T>` | an invalid value must be unconstructable |
-| `SKY0014` | `[Entity]` encapsulation: no public constructor (factory; EF uses a private one), no public setter, a private `EnsureValid()` (or `Validate()`) returning `Result<T>` that every create/mutate path returns through | invariants live on the entity, unbypassable |
+| `SKY0013` | `[ValueObject]` has encapsulated construction and immutable properties, including init accessors, plus a Result-returning factory | validation enters through one factory; struct defaults still exist |
+| `SKY0014` | `[Entity]` has no accessible constructor, setter, or init accessor | state changes through domain operations; validation behavior is tested |
 | `SKY0015` | `[Module]` shape: a static class with public static `AddServices(IServiceCollection, IConfiguration)` and `Map(IEndpointRouteBuilder)` | a module's DI scatters into `Program.cs` |
 | `SKY0016` | Every `[Module]`'s `AddServices` and `Map` are called in the explicit registry (`AddModules` / `MapModules`); compile-time, no reflection | a forgotten module is a silent 404 |
 | `SKY0017` | `Program.cs` wires only `AddSkies`/`AddPlatform`/`AddModules` and `UseSkies`/`UsePlatform`/`MapModules`; any other service registration, pipeline step, or endpoint mapping there is flagged | the index rots into a dumping ground |

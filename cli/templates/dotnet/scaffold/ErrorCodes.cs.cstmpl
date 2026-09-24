@@ -1,7 +1,7 @@
 namespace __NAMESPACE__.Modules.__MODULE__;
 
 /// <summary>The __MODULE__ module's error codes — stable, namespaced i18n keys the frontend localizes from.
-/// Every Error/Check references a const here (SKY0018), so the full set stays discoverable: AddSkiesOpenApi
+/// Every Error/Check references a const here, so the full set stays discoverable: AddSkiesOpenApi
 /// enumerates it into the OpenAPI ErrorBody.code schema for the typed client.</summary>
 public static class __MODULE__ErrorCodes
 {

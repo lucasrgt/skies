@@ -157,6 +157,57 @@ grep -q 'DbSet<Crud.Api.Modules.Catalog.Product>' "$API/AppDb.cs" \
   || { echo "FAIL: AppDb.cs changed shape; the smoke could not register the DbSet" >&2; exit 1; }
 g crud Catalog Product
 
+# Exercise a real domain rejection: a tracked object must retain its original state after a failed update.
+sed -i 's/\.Check(Id != Guid.Empty, "id", CatalogErrorCodes.IdRequired, "is required");/.Check(Id != Guid.Empty, "id", CatalogErrorCodes.IdRequired, "is required")\n            .Check(!string.IsNullOrWhiteSpace(Name), "name", CatalogErrorCodes.NameRequired, "is required");/' "$ENTITY"
+sed -i '/^public static class CatalogErrorCodes/{n;a\
+    public const string NameRequired = "catalog.name_required";
+}' "$API/Modules/Catalog/CatalogErrorCodes.cs"
+mkdir -p "$WORK/Crud/.specs/9999-crud/e2e"
+cat > "$WORK/Crud/.specs/9999-crud/spec.md" <<'EOF'
+# Generated CRUD state transitions
+
+## Failure modes
+- FM-[rejected-update]: invalid input changes an existing entity.
+- FM-[accepted-update]: valid input fails to update an existing entity.
+EOF
+cat > "$WORK/Crud/.specs/9999-crud/e2e/Mutation.cs" <<'EOF'
+using Crud.Api.Modules.Catalog;
+
+namespace Specs.S9999;
+
+public class Mutation
+{
+    [Fact(DisplayName = "FM-[rejected-update]: failed validation preserves the original fields and timestamp")]
+    public void Rejected_update_preserves_state()
+    {
+        var now = DateTime.UtcNow;
+        var item = Product.Open(Guid.NewGuid(), "Original", 10m, now).Value;
+
+        var result = item.Update("", 20m, now.AddMinutes(1));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("Original", item.Name);
+        Assert.Equal(10m, item.Price);
+        Assert.Equal(now, item.UpdatedAt);
+    }
+
+    [Fact(DisplayName = "FM-[accepted-update]: successful validation applies changes to the same entity")]
+    public void Accepted_update_changes_the_same_instance()
+    {
+        var now = DateTime.UtcNow;
+        var item = Product.Open(Guid.NewGuid(), "Original", 10m, now).Value;
+
+        var result = item.Update("Updated", 20m, now.AddMinutes(1));
+
+        Assert.True(result.IsSuccess);
+        Assert.Same(item, result.Value);
+        Assert.Equal("Updated", item.Name);
+        Assert.Equal(20m, item.Price);
+        Assert.Equal(now.AddMinutes(1), item.UpdatedAt);
+    }
+}
+EOF
+
 package Full
 doctor Full
 specs Full

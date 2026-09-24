@@ -35,7 +35,7 @@ The generators, all runnable from the app root:
 ```
 skies g module <Name>                     # <Name>Module.cs + ctx.md, wired into Modules/Modules.cs
 skies g slice <Module> <Name>             # one slice file, mapped under the module's route group
-skies g entity|crud <Module> <Name>       # an always-valid [Entity]; list/lookup/create/update/delete slices
+skies g entity|crud <Module> <Name>       # an encapsulated [Entity]; list/lookup/create/update/delete slices
 skies g vo <Name>  /  skies g hub <Module> <Name>
 skies g auth [--skip-tenancy] [--skip-cookies]  /  skies g auth:otp|auth:oauth|auth:email
 skies g feature <Name> --kind list|form --package <dir>  # React or Flutter screen: ViewModel + View + copy
@@ -99,7 +99,7 @@ public static class Deposit
 - **Modules** own both halves of their wiring — `AddServices` + `Map` (`SKY0015/16`); `Program.cs` is only an
   index (`SKY0017`). Each module carries a `<Module>.ctx.md` (`## Boundaries` + `## Design notes`, non-empty and
   kept **fresh** — `SKY0004/05`).
-- **Domain is always-valid**: a `[ValueObject]`/`[Entity]` exposes no public constructor or setter and is built
+- **Domain encapsulates validation**: a `[ValueObject]`/`[Entity]` exposes no accessible constructor, setter, or init accessor and is built
   only through a smart constructor returning `Result<T>` (`SKY0013/14`); a persisted or entity-owned type must
   declare its mark (`SKY0021`). **Write-ownership**: a module writes only its own entities — on a `DbSet` or
   through the untyped `db.Add(entity)` (`SKY0009`). A held `Result<T>` is **checked before unwrapped** —
@@ -186,10 +186,9 @@ defect class; the fix *is* the convention.
 
 ## The boundary (anti-drift — the Rails posture)
 
-The framework ships the **skeleton + enforcement**; this app brings its own **libraries** (a hashing lib, a
+The framework ships the **skeleton, enforcement, and shared runtime mechanisms**; this app brings its own **libraries** (a
 payment SDK, a maps client) and its **business logic**, in plain code. No source-gen of behavior, no vendor
-adapters in core, no runtime you inherit from. When a need smells like *capability* rather than
-*convention + enforcement*, it lives in the app — not the framework.
+adapters in core, no runtime you inherit from. Product policy and vendor integrations live in the app. Shared auth mechanisms live in versioned Skies packages.
 
 ---
 

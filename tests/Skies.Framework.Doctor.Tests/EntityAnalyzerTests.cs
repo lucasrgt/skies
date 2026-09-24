@@ -19,8 +19,21 @@ public class EntityAnalyzerTests
         Harness<EntityAnalyzer>.Verify(NoConstructor);
 
     [Fact]
-    public Task Entity_without_an_invariant_funnel_is_flagged() =>
+    public Task Validation_does_not_require_a_ceremonial_helper() =>
         Harness<EntityAnalyzer>.Verify(NoFunnel);
+
+    [Fact]
+    public Task Public_init_is_not_an_encapsulation_boundary() =>
+        Harness<EntityAnalyzer>.Verify(PublicSetter.Replace("get; set;", "get; init;"));
+
+    [Theory]
+    [InlineData("internal")]
+    [InlineData("protected")]
+    [InlineData("protected internal")]
+    public Task Setters_accessible_outside_the_type_are_flagged(string accessibility) =>
+        Harness<EntityAnalyzer>.Verify(PublicSetter
+            .Replace("sealed class", "class")
+            .Replace("get; set;", $"get; {accessibility} set;"));
 
     // The Wallet shape: private setters, a private ctor for EF, a static factory, and the EnsureValid funnel.
     private const string Valid = """
@@ -89,7 +102,7 @@ public class EntityAnalyzerTests
         using System;
 
         [Entity]
-        public class {|SKY0014:Wallet|}
+        public class Wallet
         {
             public Guid Id { get; private set; }
             private Wallet() { }

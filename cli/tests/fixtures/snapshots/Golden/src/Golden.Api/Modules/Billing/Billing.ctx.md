@@ -12,4 +12,4 @@ What the Billing module is for, in the business's words: the capability it owns 
 ### Wiring
 `BillingModule` registers the module's services and maps its routes; the module registry calls both. Record
 each decision a stranger would otherwise undo here, with its reason, as the module grows.
-Each invariant noted here cites the spec that proves it, as `<id>-<slug>#FM-n` (SKY0005 keeps the citation true).
+Each invariant noted here cites the spec that proves it, as `<id>-<slug>#FM-n`.

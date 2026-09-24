@@ -1,3 +1,4 @@
+using Golden.Api.Modules.Account;
 using Golden.Api.Modules.Health;
 
 namespace Golden.Api.Modules;
@@ -11,11 +12,13 @@ public static class Modules
     public static IServiceCollection AddModules(this IServiceCollection services, IConfiguration configuration)
     {
         HealthModule.AddServices(services, configuration);
+        AccountModule.AddServices(services, configuration);
         return services;
     }
 
     public static void MapModules(this WebApplication app)
     {
         HealthModule.Map(app);
+        AccountModule.Map(app);
     }
 }

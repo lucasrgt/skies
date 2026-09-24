@@ -30,9 +30,10 @@ pub struct FlowSpec {
     /// Shared template folders under `templates/dotnet` the flow also emits (skipped when already present), so two
     /// flows needing the same entity and store write it once.
     pub shared_folders: &'static [&'static str],
-    /// The registrations added to `AccountSetup.AddAccount` (never `Program.cs`, SKY0017): the dev provider and, when
-    /// the flow needs one, the framework service over the app's store.
+    /// Domain registrations added to `AccountModule.AddServices`. External providers belong to Platform.
     pub di_lines: &'static [&'static str],
+    /// The local provider registration, added only to the development platform.
+    pub provider_line: &'static str,
     pub user_fields: &'static [&'static str],
     pub user_methods: &'static [UserMethod],
     /// (entity type, DbSet declaration)
@@ -55,7 +56,7 @@ impl Flow {
 }
 
 /// The framework's verification service over the app's store, shared by the phone and email flows.
-const VERIFICATION_DI: &str = "builder.Services.AddVerificationTokens<VerificationTokenStore>();";
+const VERIFICATION_DI: &str = "services.AddVerificationTokens<VerificationTokenStore>();";
 
 /// The one table behind every verification secret (phone codes and email links), shared by the phone and email flows.
 const VERIFICATION_DB_SETS: &[(&str, &str)] = &[(
@@ -75,10 +76,8 @@ static OTP: FlowSpec = FlowSpec {
     package_id: "Skies.Framework.Sms",
     provider_namespace: "Skies.Framework.Sms",
     shared_folders: &["auth-verification"],
-    di_lines: &[
-        "builder.Services.AddSingleton<ISmsSender, ConsoleSmsSender>();",
-        VERIFICATION_DI,
-    ],
+    di_lines: &[VERIFICATION_DI],
+    provider_line: "services.AddSingleton<ISmsSender, ConsoleSmsSender>();",
     user_fields: &[
         "    /// <summary>The verified phone number, set once VerifyPhone succeeds.</summary>\n    public string? Phone { get; private set; }",
         "    /// <summary>Whether the phone number has been verified.</summary>\n    public bool IsPhoneVerified { get; private set; }",
@@ -118,7 +117,8 @@ static OAUTH: FlowSpec = FlowSpec {
     package_id: "Skies.Framework.Identity",
     provider_namespace: "Skies.Framework.Identity",
     shared_folders: &[],
-    di_lines: &["builder.Services.AddSingleton<IExternalIdentityVerifier, FakeExternalIdentity>();"],
+    di_lines: &[],
+    provider_line: "services.AddSingleton<IExternalIdentityVerifier, FakeExternalIdentity>();",
     user_fields: &[
         "    /// <summary>Whether the account's email has been verified.</summary>\n    public bool IsEmailVerified { get; private set; }",
     ],
@@ -159,10 +159,8 @@ static EMAIL: FlowSpec = FlowSpec {
     package_id: "Skies.Framework.Mail",
     provider_namespace: "Skies.Framework.Mail",
     shared_folders: &["auth-verification"],
-    di_lines: &[
-        "builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();",
-        VERIFICATION_DI,
-    ],
+    di_lines: &[VERIFICATION_DI],
+    provider_line: "services.AddSingleton<IEmailSender, ConsoleEmailSender>();",
     user_fields: &[
         "    /// <summary>Whether the account's email has been verified.</summary>\n    public bool IsEmailVerified { get; private set; }",
     ],

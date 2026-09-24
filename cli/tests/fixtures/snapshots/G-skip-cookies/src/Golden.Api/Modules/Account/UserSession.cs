@@ -30,7 +30,7 @@ public class UserSession
     /// presenting this token again is a reuse — the theft signal (outside the rotation grace window).</summary>
     public DateTime? UsedAt { get; private set; }
 
-    /// <summary>The optimistic-concurrency token (SKY0026): two refreshes of the same live token that race lose
+    /// <summary>The optimistic-concurrency token: two refreshes of the same live token that race lose
     /// the second save to a <c>DbUpdateConcurrencyException</c> instead of both forking the family.</summary>
     [System.ComponentModel.DataAnnotations.Timestamp]
     public byte[]? RowVersion { get; private set; }
@@ -56,8 +56,7 @@ public class UserSession
     /// cannot fail — a void mutation, not a Result.</summary>
     public void MarkUsed(DateTime now) => UsedAt = now;
 
-    // The single invariant funnel: every create path returns through here, so a broken slot can never be
-    // observed or persisted.
+    // Validate a newly opened session before returning it.
     private Result<UserSession> EnsureValid()
     {
         var validation = new Validation()

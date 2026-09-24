@@ -1,4 +1,4 @@
-// Feature-scoped copy for a command screen. Three locales with identical keys (SKYFE011) — fill in the real strings.
+// Feature-scoped copy for a command screen. Three locales with identical keys — fill in the real strings.
 export const ptBR = {
   title: "{{ name }}",
   submit: "{{ name }}",

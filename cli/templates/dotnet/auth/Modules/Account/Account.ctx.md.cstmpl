@@ -15,7 +15,7 @@ Role is optional at registration — chosen later, after sign-in.
 ## Wiring
 
 - The auth **mechanism** is the `Skies.Framework.Auth` package, registered by the one `AddSkiesAuth` call in
-  `AccountSetup`: token minting and validation, `IPasswordHasher`, `RefreshSessions` (over this module's
+  `AccountModule`: token minting and validation, `IPasswordHasher`, `RefreshSessions` (over this module's
   `UserSessionStore`), and `RefreshCookie`. A security fix there reaches this app through a package version, so
   nothing below re-implements it; see "Mechanism and policy".
 //<lz:tenancy>
@@ -70,8 +70,7 @@ Login issues a 15-minute JWT carrying `sub` (userId), `role`, and `sid` (the ses
 
 ### JWT claim mapping
 JwtBearer is configured with `MapInboundClaims = false`. The default remaps `sub` to
-`ClaimTypes.NameIdentifier`, which makes `FindFirst("sub")` null and breaks `ICurrentUser`. The
-integration test in `AuthFlow.Tests` guards against a regression here.
+`ClaimTypes.NameIdentifier`, which makes `FindFirst("sub")` null and breaks `ICurrentUser`. The profile cases in the auth spec guard this mapping.
 
 ### Mechanism and policy
 The split is deliberate: what an edit could silently weaken lives in the package; what the product decides lives

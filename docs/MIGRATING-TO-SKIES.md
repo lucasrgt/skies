@@ -60,3 +60,17 @@ for the reasons.
 Existing tests keep running as ordinary tests. They are not converted into specs. New features start with
 `skies spec new`. For a critical area, write a spec after the fact and record it with a `red.patch` that removes the
 behavior, so the receipt still shows every failure mode failing before and passing after.
+
+## Runtime and generator changes
+
+- `IExternalIdentity` and its synchronous `Verify` are removed. Implement `IExternalIdentityVerifier.VerifyAsync`
+  instead; discovery/key retrieval is asynchronous. `ExternalUser` retains its shape.
+- New auth scaffolds use the standard module registry and put provider selection in `Platform.AddPlatform`.
+  Existing generated code remains app-owned: compare a fresh scaffold and merge the changes manually.
+  Development providers refuse to start outside Development. Before deployment, configure a persistent AppDb,
+  a private `Jwt:Secret`, and real email/SMS/OIDC providers in that platform setup.
+- Value-object and entity rules reject accessible `init` accessors. Use get-only or private-init properties.
+  Entities no longer need an unused `EnsureValid` method to satisfy the doctor; factories and mutations still
+  own validation. A failed mutation must leave the entity unchanged.
+- Session seams discard a refresh that predates sign-out or another sign-in. Flutter serializes secure-storage
+  writes as well, so sign-out cannot leave a refresh credential saved by an older request.

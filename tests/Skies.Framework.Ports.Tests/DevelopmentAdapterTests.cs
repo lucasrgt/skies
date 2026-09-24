@@ -9,9 +9,9 @@ namespace Skies.Framework.Ports.Tests;
 public class DevelopmentAdapterTests
 {
     [Fact]
-    public void Fake_identity_accepts_a_visible_development_token_as_the_external_user()
+    public async Task Fake_identity_accepts_a_visible_development_token_as_the_external_user()
     {
-        var result = new FakeExternalIdentity().Verify("dev@example.test");
+        var result = await new FakeExternalIdentity().VerifyAsync("dev@example.test");
 
         Assert.True(result.IsSuccess);
         Assert.Equal(new ExternalUser("fake", "dev@example.test", "dev@example.test"), result.Value);
@@ -20,9 +20,9 @@ public class DevelopmentAdapterTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void Fake_identity_rejects_an_empty_token(string token)
+    public async Task Fake_identity_rejects_an_empty_token(string token)
     {
-        Result<ExternalUser> result = new FakeExternalIdentity().Verify(token);
+        Result<ExternalUser> result = await new FakeExternalIdentity().VerifyAsync(token);
 
         Assert.True(result.IsFailure);
         Assert.Equal(ErrorKind.Unauthorized, result.Error.Kind);

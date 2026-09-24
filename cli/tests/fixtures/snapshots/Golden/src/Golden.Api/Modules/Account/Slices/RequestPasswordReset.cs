@@ -40,5 +40,5 @@ public static class RequestPasswordReset
         app.MapPost("/password-reset/request", async (Input input, AppDb db, VerificationTokens verification, IEmailSender email, CancellationToken ct) =>
             (await Handle(input, db, verification, email, ct)).ToHttp())
             .WithName(nameof(RequestPasswordReset))
-            .AllowAnonymous();   // public: a locked-out user has no token (SKY0022 — the decision, made visible)
+            .AllowAnonymous();   // public: a locked-out user has no token
 }

@@ -13,7 +13,7 @@
 //!
 //! Every generated member returns through the entity's private `EnsureValid`, so the invariants the author adds
 //! there hold for CRUD writes too. The edits are anchored on the private constructor and the invariant funnel,
-//! which every doctor-clean entity has; the file's newline style is preserved.
+//! which the entity scaffold supplies; the file's newline style is preserved.
 
 use std::sync::LazyLock;
 
@@ -119,26 +119,33 @@ impl Shape<'_> {
     fn update_member(&self) -> String {
         let e = self.entity;
         let mut params = self.field_params();
-        let mut body: Vec<String> = self
+        let mut changes: Vec<(String, String)> = self
             .fields
             .iter()
-            .map(|f| format!("        {} = {};\n", f.name, parameter(&f.name)))
+            .map(|f| (f.name.clone(), parameter(&f.name)))
             .collect();
         if self.has_updated_at {
             params.push("DateTime now".to_string());
-            body.push("        UpdatedAt = now;\n".to_string());
+            changes.push(("UpdatedAt".to_string(), "now".to_string()));
         }
-        let doc = format!(
-            "    /// <summary>Replace the {e}'s fields in one step. It returns through\n    \
-             /// <see cref=\"EnsureValid\"/>; the caller saves only on success, so a refused change never\n    \
-             /// reaches the database. Give it the domain's own verb once the entity has one.</summary>\n"
-        );
+        let proposed = changes
+            .iter()
+            .map(|(name, value)| format!("        proposed.{name} = {value};\n"))
+            .collect::<String>();
+        let applied = changes
+            .iter()
+            .map(|(name, _)| format!("        {name} = proposed.{name};\n"))
+            .collect::<String>();
         let signature = format!("    public Result<{e}> Update({})\n    {{\n", params.join(", "));
         [
-            doc,
+            format!("    /// <summary>Validate proposed values before changing this {e}.</summary>\n"),
             signature,
-            body.concat(),
-            "        return EnsureValid();\n    }\n".to_string(),
+            format!("        var proposed = ({e})MemberwiseClone();\n"),
+            proposed,
+            "        var validation = proposed.EnsureValid();\n".to_string(),
+            "        if (validation.IsFailure) return validation.Error;\n".to_string(),
+            applied,
+            "        return this;\n    }\n".to_string(),
         ]
         .concat()
     }
@@ -154,23 +161,19 @@ impl Shape<'_> {
 }
 
 const ROW_VERSION: &str = concat!(
-    "    /// <summary>The optimistic-concurrency token (SKY0026): a concurrent update or delete of the same\n",
+    "    /// <summary>The optimistic-concurrency token: a concurrent update or delete of the same\n",
     "    /// row fails loudly with DbUpdateConcurrencyException instead of silently erasing the other\n",
     "    /// write.</summary>\n",
     "    [System.ComponentModel.DataAnnotations.Timestamp]\n",
     "    public byte[]? RowVersion { get; private set; }\n",
 );
 
-/// Adds the members the CRUD slices call. Fails (with the reason) when the entity lacks the anchors every
-/// doctor-clean `[Entity]` has: the private parameterless constructor and the private `EnsureValid` funnel.
+/// Adds the members the CRUD slices call. Fails (with the reason) when the entity lacks the scaffold anchors: the private parameterless constructor and the private `EnsureValid` funnel.
 pub(super) fn complete(source: &str, shape: &Shape) -> Result<(String, Added), String> {
     let e = regex::escape(shape.entity);
     let nl = super::text::newline_of(source);
     let mut text = super::text::normalize_newlines(source);
-    let funnel = Regex::new(&format!(
-        r"(?m)^[ \t]*private\s+Result<{e}>\s+(?:EnsureValid|Validate)\s*\("
-    ))
-    .unwrap();
+    let funnel = Regex::new(&format!(r"(?m)^[ \t]*private\s+Result<{e}>\s+EnsureValid\s*\(")).unwrap();
     let ctor = Regex::new(&format!(r"(?m)^[ \t]*private\s+{e}\s*\(\s*\)")).unwrap();
     if !funnel.is_match(&text) || !ctor.is_match(&text) {
         return Err(format!(
@@ -275,10 +278,10 @@ mod tests {
              new Product { Id = id, Name = name, UpdatedAt = now }.EnsureValid();"
         ));
         assert!(!text.contains("Open(Guid id) =>"));
-        assert!(text.contains(
-            "public Result<Product> Update(string name, DateTime now)\n    {\n        Name = name;\n        \
-             UpdatedAt = now;\n        return EnsureValid();\n    }\n\n    // The single invariant funnel."
-        ));
+        assert!(text.contains("var proposed = (Product)MemberwiseClone();"));
+        assert!(text.contains("proposed.Name = name;"));
+        assert!(text.contains("var validation = proposed.EnsureValid();"));
+        assert!(text.contains("if (validation.IsFailure) return validation.Error;\n        Name = proposed.Name;"));
         assert!(text.contains("public byte[]? RowVersion { get; private set; }\n\n    // Parameterless and private"));
         assert!(!text.contains("{ get; set; }"));
     }

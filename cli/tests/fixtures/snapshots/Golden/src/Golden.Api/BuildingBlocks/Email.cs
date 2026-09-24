@@ -1,17 +1,15 @@
 namespace Golden.Api.BuildingBlocks;
 
 /// <summary>Error codes for the <see cref="Email"/> value object — stable i18n keys (a registry constant, not an
-/// inline literal, so the set stays discoverable: SKY0018).</summary>
+/// inline literal, so the set stays discoverable).</summary>
 public static class EmailErrorCodes
 {
     /// <summary>The value is not a valid email address.</summary>
     public const string Invalid = "email.invalid";
 }
 
-/// <summary>A normalized email address. The type is the rule: you cannot hold an invalid or
-/// non-normalized <see cref="Email"/>, so anything downstream (uniqueness, storage) is already
-/// clean. Validation is deliberately light — presence of a local@domain shape, lowercased and
-/// trimmed — not an RFC novel; the app owns stricter rules if it needs them.</summary>
+/// <summary>An email normalized by <see cref="From"/>. Validation checks a local@domain shape; the app owns
+/// stricter rules. As a struct, default(Email) remains possible and must not be used as a validated value.</summary>
 [ValueObject]
 public readonly record struct Email
 {

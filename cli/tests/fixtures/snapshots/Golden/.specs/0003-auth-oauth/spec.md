@@ -26,5 +26,5 @@ same bypass guard a real verifier sits behind.
 ## Out of scope
 
 - Real Google token validation: register an `OidcIdTokenVerifier` (or another `IExternalIdentityVerifier`) in
-  `AccountSetup`.
+  `AccountModule`.
 - Linking a Google identity to an existing password account.

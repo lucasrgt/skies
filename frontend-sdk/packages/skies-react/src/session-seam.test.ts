@@ -118,4 +118,45 @@ describe("createSessionSeam", () => {
     expect(await Promise.all([a, b])).toEqual([true, true]);
     expect(refresh).toHaveBeenCalledOnce();
   });
+  it.each(["logout", "sign-in"])("ignores an old refresh after %s", async (change) => {
+    let release!: (tokens: { accessToken: string }) => void;
+    let token: string | null = "A";
+    const onSessionChanged = vi.fn();
+    const seam = createSessionSeam({
+      setAccessToken: (value) => { token = value; },
+      refresh: () => new Promise((resolve) => { release = resolve; }),
+      onIdentityChanged: vi.fn(), onSessionChanged,
+    });
+    const pending = seam.bootstrapSession();
+    if (change === "logout") await seam.clearSession();
+    else await seam.signIn({ accessToken: "B" });
+    release({ accessToken: "old-A" });
+    expect(await pending).toBe(false);
+    expect(token).toBe(change === "logout" ? null : "B");
+    expect(onSessionChanged).not.toHaveBeenCalled();
+  });
+
+  it("a new identity refreshes without joining the previous identity's request", async () => {
+    let release!: (tokens: { accessToken: string }) => void;
+    const refresh = vi.fn()
+      .mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }))
+      .mockResolvedValue({ accessToken: "fresh-B" });
+    const setAccessToken = vi.fn();
+    const seam = createSessionSeam({ refresh, setAccessToken, onIdentityChanged: vi.fn() });
+    const old = seam.bootstrapSession();
+    await seam.signIn({ accessToken: "B" });
+    expect(await seam.bootstrapSession()).toBe(true);
+    release({ accessToken: "old-A" });
+    expect(await old).toBe(false);
+    expect(setAccessToken).toHaveBeenLastCalledWith("fresh-B");
+  });
+
+  it("an empty refresh does not report a restored session", async () => {
+    const onSessionChanged = vi.fn();
+    const seam = createSessionSeam({ setAccessToken: vi.fn(), onIdentityChanged: vi.fn(),
+      refresh: async () => null, onSessionChanged });
+    expect(await seam.bootstrapSession()).toBe(false);
+    expect(onSessionChanged).not.toHaveBeenCalled();
+  });
+
 });

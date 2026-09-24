@@ -42,6 +42,8 @@ the module, and add a failure mode here before changing behavior.
 - FM-19 Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
 - FM-20 A read scoped to one org sees another org's rows, or an insert is not stamped with the current org
 
+- FM-21 The development database and providers can start outside Development
+
 ## Out of scope
 
 - Password strength beyond the minimum length, rate limiting, and account lockout.

@@ -45,6 +45,8 @@ the module, and add a failure mode here before changing behavior.
 - FM-21 A web login returns the refresh token in the body, or without an httpOnly cookie
 - FM-22 A web refresh ignores the refresh cookie or does not reissue it
 
+- FM-23 The development database and providers can start outside Development
+
 ## Out of scope
 
 - Password strength beyond the minimum length, rate limiting, and account lockout.

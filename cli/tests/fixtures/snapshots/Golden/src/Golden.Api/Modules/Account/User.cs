@@ -46,7 +46,7 @@ public class User : ITenantScoped
     /// <summary>Whether the phone number has been verified.</summary>
     public bool IsPhoneVerified { get; private set; }
 
-    /// <summary>The optimistic-concurrency token (SKY0026): a concurrent write to the same user row fails loudly
+    /// <summary>The optimistic-concurrency token: a concurrent write to the same user row fails loudly
     /// with a <c>DbUpdateConcurrencyException</c> instead of silently losing the first change.</summary>
     [System.ComponentModel.DataAnnotations.Timestamp]
     public byte[]? RowVersion { get; private set; }
@@ -72,8 +72,7 @@ public class User : ITenantScoped
     /// already guarantees a valid hash, so this cannot fail — a void mutation, not a Result.</summary>
     public void ResetPassword(PasswordHash passwordHash) => PasswordHash = passwordHash;
 
-    // The single invariant funnel: every create path returns through here, so a broken User can never be
-    // observed or persisted.
+    // Validate registration input before returning the new user.
     /// <summary>Complete phone verification: record the verified phone, flag it verified, and
     /// advance registration to Complete. Cannot fail — a void mutation.</summary>
     public void CompletePhoneVerification(string phone)

@@ -21,9 +21,9 @@ export interface {{ name }}Model {
   control: Control<{{ name }}Form>;
   submit: () => void;
   submitting: boolean;
-  /** The command's failure surface (SKYFE013): the mutation's error state, localized. */
+  /** The command's failure surface: the mutation's error state, localized. */
   submitError: string | null;
-  /** The command's success surface: a routed app redirects on it declaratively (SKYFE015). */
+  /** The command's success surface: a routed app redirects on it declaratively. */
   completed: boolean;
 }
 
@@ -39,7 +39,7 @@ export function use{{ name }}Model(): {{ name }}Model {
     defaultValues: { id: "" },
   });
 
-  // The submit always carries its invalid path (SKYFE031): submitOrReveal forces the surface and resolves the first
+  // The submit always carries its invalid path: submitOrReveal forces the surface and resolves the first
   // invalid field, focused here; the inline field errors in the View do the showing.
   const submit = submitOrReveal(
     form.handleSubmit,

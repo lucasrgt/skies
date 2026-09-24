@@ -22,5 +22,5 @@ public static class Logout
         app.MapPost("/logout", async (Input body, RefreshSessions sessions, CancellationToken ct) =>
             (await Handle(body, sessions, ct)).ToHttp())
             .WithName(nameof(Logout))
-            .AllowAnonymous();   // public: logout takes the refresh token, not the (possibly expired) access token (SKY0022)
+            .AllowAnonymous();   // public: logout takes the refresh token, not the (possibly expired) access token
 }

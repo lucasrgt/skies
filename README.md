@@ -185,12 +185,13 @@ own spec whose `e2e/` holds isolated cases, and the doctors flag a test anywhere
 
 ## The convention model
 
-### Two laws
+### Three laws
 
 1. **Stranger-maintainable.** Output is ordinary, idiomatic application code. Reading, debugging, or extending it
    needs no Skies knowledge.
 2. **Doctor-removable.** Remove the analyzers and lint plugins and the application still compiles and behaves the
    same. Only enforcement disappears.
+3. **Evidence over apparatus.** Features carry reproducible receipts; the framework installs no agent-process gates.
 
 These laws exclude hidden source generation of behavior, DSLs, base-controller runtimes, reflection discovery,
 generated UI behavior, and framework-owned business logic.
@@ -221,7 +222,7 @@ All packages share one version and are released together.
 | `Skies.Framework.Abstractions` | `Result<T>`, `Error`, `Validation`, `Page<T>`, and marker attributes |
 | `Skies.Framework.AspNetCore` | `AddSkies`, `UseSkies`, slice-aware OpenAPI, `Result` to HTTP |
 | `Skies.Framework.EntityFrameworkCore` | Ordered, bounded EF Core pagination |
-| `Skies.Framework.Auth` | Typed current user and refresh-cookie conventions |
+| `Skies.Framework.Auth` | JWTs, password hashing, refresh sessions, verification tokens, and cookies |
 | `Skies.Framework.Identity`, `.Mail`, `.Sms`, `.Storage` | Provider-independent ports |
 | `Skies.Framework.Testing`, `.Testing.InMemory`, `.Testing.Postgres` | Real-host test boot and isolated databases |
 | `Skies.Framework.Doctor` | The `SKY####` analyzers, for analyzer-only use |

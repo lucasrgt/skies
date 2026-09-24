@@ -57,6 +57,8 @@ the module, and add a failure mode here before changing behavior.
 - FM-[cookie-refresh] A web refresh ignores the refresh cookie or does not reissue it
 //</lz:cookies>
 
+- FM-[production-config] The development database and providers can start outside Development
+
 ## Out of scope
 
 - Password strength beyond the minimum length, rate limiting, and account lockout.

@@ -47,5 +47,5 @@ public static class RegisterWithGoogle
         app.MapPost("/register/google", async (Input input, AppDb db, IExternalIdentityVerifier google, RefreshSessions sessions, IAccessTokens tokens, TimeProvider clock, CancellationToken ct) =>
             (await Handle(input, db, google, sessions, tokens, clock, ct)).ToHttp())
             .WithName(nameof(RegisterWithGoogle))
-            .AllowAnonymous();   // public: registering with Google is pre-identity (SKY0022 — the decision, made visible)
+            .AllowAnonymous();   // public: registering with Google is pre-identity
 }

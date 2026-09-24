@@ -45,5 +45,5 @@ public static class Refresh
         app.MapPost("/refresh", async (Input body, AppDb db, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct) =>
             (await Handle(body, db, sessions, tokens, ct)).ToHttp())
             .WithName(nameof(Refresh))
-            .AllowAnonymous();   // public: the refresh token IS the credential, the access token is expired (SKY0022)
+            .AllowAnonymous();   // public: the refresh token IS the credential, the access token is expired
 }

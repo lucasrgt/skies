@@ -1,4 +1,4 @@
-// Feature-scoped copy. Three locales with identical keys (SKYFE011) — fill in the real strings.
+// Feature-scoped copy. Three locales with identical keys — fill in the real strings.
 export const ptBR = {
   error: "Não foi possível carregar.",
   "empty.title": "Nada por aqui ainda",

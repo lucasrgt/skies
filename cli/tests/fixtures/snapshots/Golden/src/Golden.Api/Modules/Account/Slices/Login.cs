@@ -41,7 +41,7 @@ public static class Login
         app.MapPost("/login", async (Input input, HttpContext http, AppDb db, IPasswordHasher hasher, RefreshSessions sessions, IAccessTokens tokens, RefreshCookie cookies, CancellationToken ct) =>
             Respond(await Handle(input, db, hasher, sessions, tokens, ct), http, cookies))
             .WithName(nameof(Login))
-            .AllowAnonymous();   // public: logging in is how you get a token (SKY0022 — the decision, made visible)
+            .AllowAnonymous();   // public: logging in is how you get a token
 
     // Delivery, not logic (keeps the route thin): web gets the refresh in an httpOnly cookie and never
     // in the body; mobile/API gets the whole Output.

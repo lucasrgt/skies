@@ -8,7 +8,7 @@ namespace Specs.S0001;
 /// body. The client does not handle cookies, so the raw Set-Cookie is visible and the cookie is replayed by hand.</summary>
 public class CookieDelivery
 {
-    // The name AccountSetup configures via AddRefreshCookie: the wire contract a browser client depends on.
+    // The name AccountModule configures via RefreshCookieOptions: the wire contract a browser client depends on.
     private const string Cookie = "golden_refresh";
     private const string Email = "web@example.com";
 

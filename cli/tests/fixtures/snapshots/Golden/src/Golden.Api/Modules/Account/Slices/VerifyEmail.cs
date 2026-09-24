@@ -35,5 +35,5 @@ public static class VerifyEmail
         app.MapPost("/verify-email", async (Input input, AppDb db, VerificationTokens verification, CancellationToken ct) =>
             (await Handle(input, db, verification, ct)).ToHttp())
             .WithName(nameof(VerifyEmail))
-            .AllowAnonymous();   // public: the verification token IS the credential (SKY0022 — the decision, made visible)
+            .AllowAnonymous();   // public: the verification token IS the credential
 }

@@ -58,7 +58,7 @@ pub fn module(root: &Path, name: &str) -> Result<u8> {
 /// that closes `AddModules`, `Map` after the last module's `Map` in `MapModules`, and the using. Skies discovers
 /// nothing by reflection, so an unwired module is a silent 404; when the registry is missing or unusual the
 /// generator says exactly which two lines to add.
-fn wire_into_registry(project: &ApiProject, name: &str) -> Result<()> {
+pub(super) fn wire_into_registry(project: &ApiProject, name: &str) -> Result<()> {
     let note = format!(
         "note: wire the module — add {name}Module.AddServices(services, configuration); to AddModules \
          and {name}Module.Map(app); to MapModules (Modules/Modules.cs)."
@@ -114,7 +114,7 @@ pub fn slice(root: &Path, module: &str, name: &str) -> Result<u8> {
     let module_file = project.module_dir(module).join(format!("{module}Module.cs"));
     let inherits = module_file.is_file() && group::group_decides(&text::read(&module_file)?);
     let posture = if inherits {
-        "; // authorization: the module's route group decides (SKY0022)"
+        ";"
     } else {
         "\n            .RequireAuthorization();"
     };
@@ -336,11 +336,7 @@ mod tests {
         assert_eq!(slice(dir.path(), "Wallets", "Transfer").unwrap(), 0);
 
         let slice = read(dir.path(), "Modules/Wallets/Slices/Transfer.cs");
-        assert!(
-            slice.contains(
-                ".WithName(nameof(Transfer)); // authorization: the module's route group decides (SKY0022)\n"
-            )
-        );
+        assert!(slice.contains(".WithName(nameof(Transfer));\n"));
         assert!(!slice.contains("RequireAuthorization"));
         let module = read(dir.path(), "Modules/Wallets/WalletsModule.cs");
         assert!(module.contains("        Deposit.Map(wallets);\n        Transfer.Map(wallets);\n    }\n}\n"));
@@ -360,7 +356,8 @@ mod tests {
              CreateInvoice.Map(billing);\n    }\n}\n"
         ));
         let slice = read(dir.path(), "Modules/Billing/Slices/CreateInvoice.cs");
-        assert!(slice.contains("// authorization: the module's route group decides (SKY0022)"));
+        assert!(slice.contains(".WithName(nameof(CreateInvoice));"));
+        assert!(!slice.contains("RequireAuthorization"));
     }
 
     #[test]

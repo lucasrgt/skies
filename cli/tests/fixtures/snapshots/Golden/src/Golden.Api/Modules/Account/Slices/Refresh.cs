@@ -45,7 +45,7 @@ public static class Refresh
         app.MapPost("/refresh", async (Input? body, HttpContext http, AppDb db, RefreshSessions sessions, IAccessTokens tokens, RefreshCookie cookies, CancellationToken ct) =>
             Respond(await Handle(new Input(cookies.RefreshFrom(http.Request, body?.RefreshToken)), db, sessions, tokens, ct), http, cookies))
             .WithName(nameof(Refresh))
-            .AllowAnonymous();   // public: the refresh token IS the credential, the access token is expired (SKY0022)
+            .AllowAnonymous();   // public: the refresh token IS the credential, the access token is expired
 
     private static IResult Respond(Result<Output> result, HttpContext http, RefreshCookie cookies)
     {

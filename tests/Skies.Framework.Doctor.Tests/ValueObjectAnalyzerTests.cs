@@ -3,7 +3,7 @@ namespace Skies.Framework.Doctor.Tests;
 public class ValueObjectAnalyzerTests
 {
     [Fact]
-    public Task Always_valid_value_object_reports_nothing() =>
+    public Task Encapsulated_value_object_reports_nothing() =>
         Harness<ValueObjectAnalyzer>.Verify(Valid);
 
     [Fact]
@@ -21,6 +21,40 @@ public class ValueObjectAnalyzerTests
     [Fact]
     public Task Positional_value_object_is_flagged() =>
         Harness<ValueObjectAnalyzer>.Verify(Positional);
+
+    [Fact]
+    public Task Public_init_allows_copying_a_record_with_invalid_state() =>
+        Harness<ValueObjectAnalyzer>.Verify(PublicSetter
+            .Replace("sealed class Email", "sealed record Email")
+            .Replace("get; set;", "get; init;"));
+
+    [Fact]
+    public Task Private_init_keeps_record_copies_encapsulated() =>
+        Harness<ValueObjectAnalyzer>.Verify(PublicSetter
+            .Replace("{|SKY0013:Value|}", "Value")
+            .Replace("get; set;", "get; private init;"));
+
+    [Fact]
+    public Task Implicit_public_construction_cannot_skip_the_factory() =>
+        Harness<ValueObjectAnalyzer>.Verify("""
+            using System;
+            [ValueObject]
+            public class {|SKY0013:Email|}
+            {
+                public static Result<Email> From(string input) => new Result<Email>();
+            }
+            public sealed class ValueObjectAttribute : Attribute { }
+            public struct Result<T> { }
+            """);
+
+    [Theory]
+    [InlineData("internal")]
+    [InlineData("protected")]
+    [InlineData("protected internal")]
+    public Task Setters_accessible_outside_the_type_are_flagged(string accessibility) =>
+        Harness<ValueObjectAnalyzer>.Verify(PublicSetter
+            .Replace("sealed class", "class")
+            .Replace("get; set;", $"get; {accessibility} set;"));
 
     // The Money shape: immutable, private ctor, a static From returning Result<Money> — nothing to flag.
     private const string Valid = """

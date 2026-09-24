@@ -1,3 +1,4 @@
+using Golden.Api.Modules.Account;
 using Golden.Api.Modules.Catalog;
 using Golden.Api.Modules.Billing;
 using Golden.Api.Modules.Health;
@@ -15,6 +16,7 @@ public static class Modules
         HealthModule.AddServices(services, configuration);
         BillingModule.AddServices(services, configuration);
         CatalogModule.AddServices(services, configuration);
+        AccountModule.AddServices(services, configuration);
         return services;
     }
 
@@ -23,5 +25,6 @@ public static class Modules
         HealthModule.Map(app);
         BillingModule.Map(app);
         CatalogModule.Map(app);
+        AccountModule.Map(app);
     }
 }

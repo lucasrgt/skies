@@ -20,5 +20,5 @@ public static class CreateInvoice
     public static void Map(IEndpointRouteBuilder app) =>
         app.MapPost("/createinvoice", async (Input input, CancellationToken ct) =>
                 (await Handle(input, ct)).ToHttp())
-            .WithName(nameof(CreateInvoice)); // authorization: the module's route group decides (SKY0022)
+            .WithName(nameof(CreateInvoice));
 }
