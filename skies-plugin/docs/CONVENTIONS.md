@@ -106,7 +106,8 @@ A paginated list returns one page shape, so the typed client and the frontend pa
   degrading with a tenant's data.
 - **When `SKY0027` fires**, one answer per shape:
   1. **The set has a nameable domain bound** → `.Take(N)` with `N` a named const (`MaxQueue`) and a comment saying
-     why the set is small. A generous cap you cannot justify is silent truncation, not a fix.
+     why the set is small. A generous cap you cannot justify is silent truncation, not a fix, so a bare number
+     (`.Take(500)`) is flagged too.
   2. **The set accretes with usage** (inbox, agenda, history) → `ToPageAsync`/`Page<T>` even before any paging UI;
      page 1 at a generous size is today's response with an honest contract.
   3. **A write over a set that is not aggregate-scoped** (purge, bulk re-status) → set-based
@@ -380,6 +381,10 @@ The doctor enforces **architecture only**; no rule demands that a test, a tag, o
 comes from drift observed in a real application. It catches structural drift, not logic errors: correctness is the
 spec's E2E and review. Never suppress a rule: a firing rule means the shape is wrong.
 
+Write code for the reader, not for the doctor. A comment that cites a rule id ("to satisfy SKY0018") or explains why
+a line exists only to pass a check is noise; if the shape is right, the code needs no apology, and if a rule keeps
+forcing awkward code, that is a finding to report against the rule.
+
 | Rule | Enforces | Why |
 |------|----------|-----|
 | `SKY0001` | Slice conformance: static class; nested `Input` and `Output`; `Handle → Task<Result<T>>`; `Map`; ordered Input → Output → Handle → Map | one readable shape per feature |
@@ -403,7 +408,7 @@ spec's E2E and review. Never suppress a rule: a firing rule means the shape is w
 | `SKY0024` | A `*Raw` EF call (`FromSqlRaw`, `ExecuteSqlRaw`/`Async`, `SqlQueryRaw`) whose SQL interpolates or concatenates a non-literal is flagged; use `FromSql`/`ExecuteSql`/`SqlQuery`, which parameterize every hole. Constant SQL through `*Raw` stays legal | SQL injection |
 | `SKY0025` | Reading `.Value`/`.Error` on a `Result<T>` held in a local or parameter with no earlier outcome check in the member (`IsSuccess`/`IsFailure`, an `is { IsSuccess: … }` pattern, a `Validation.Collect` fold) is flagged. Inline unwrap of a fresh construction (`Money.From(10m).Value`) stays legal | an exception where an `Error` should flow |
 | `SKY0026` | Warning. A slice whose `Handle` mutates or updates/removes an entity with no visible token (`[Timestamp]`, `[ConcurrencyCheck]`, `RowVersion`) is flagged. Insert-only rows and entities read beside another write are excluded; fluent-only configuration is invisible, hence warning | concurrent writes silently lose data |
-| `SKY0027` | Warning. `ToListAsync`/`ToList` (or array twins) ending a `DbSet`-rooted chain, directly or through a queryable local, with no `Take`/`ToPageAsync` is flagged. Parent-scoped queries are exempt (a `Where` equating or `Contains`-matching a `*Id`: the steps of one job); `OrgId`/`TenantId` equality is the tenant scope and stays flagged. Fix per the ladder above | unbounded lists degrade with data |
+| `SKY0027` | Warning. `ToListAsync`/`ToList` (or array twins) ending a `DbSet`-rooted chain, directly or through a queryable local, with no `Take`/`ToPageAsync` is flagged, and so is a `Take` whose bound is a bare number instead of a named const. Parent-scoped queries are exempt (a `Where` equating or `Contains`-matching a `*Id`: the steps of one job); `OrgId`/`TenantId` equality is the tenant scope and stays flagged. Fix per the ladder above | unbounded lists degrade with data |
 | `SKY0028` | Warning. The ordering chain feeding `ToPageAsync` must contain the entity's primary key (`Id`, or `{Entity}Id` on the queried entity; a foreign `*Id` does not count), else the final key is flagged. An unreadable pre-ordered local stays silent | ties repeat and drop rows across pages |
 | `SKY0029` | A method with a test attribute (xUnit `[Fact]`/`[Theory]`, NUnit `[Test]`/`[TestCase]`/`[TestCaseSource]`/`[Theory]`, MSTest `[TestMethod]`/`[DataTestMethod]`, and derived ones such as `[SkippableFact]`) in a file with no `.specs` path segment is flagged; unresolved frameworks fall back to the written name (`Fact`, `*Fact`, `*Theory`, …). It asks where a test lives, never that one exists. It fires in the tests project, which references the doctor | tests written as coverage prove nothing |
 
