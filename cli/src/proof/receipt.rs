@@ -28,6 +28,10 @@ pub struct Receipt {
     /// written before evidence was hashed, which are then not checked.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evidence: Option<Hashes>,
+    /// The module ctx.md files revised in the same change (red..working tree), relative to the project root: the
+    /// record that the prose explaining the touched modules was revisited with this proof.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ctx_revised: Vec<String>,
     /// Other specs whose footprint overlaps this one's and that `record --with-impacted` re-proved green in the same
     /// run: spec folder → the blake3 of that spec's receipt right after its verify.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -214,6 +218,7 @@ mod tests {
             footprint: [("src/A.cs".into(), "blake3:00".into())].into(),
             inputs: Hashes::new(),
             evidence: Some([("evidence/green.xml".into(), "blake3:01".into())].into()),
+            ctx_revised: Vec::new(),
             verified_with: BTreeMap::new(),
         };
         let json = serde_json::to_string(&receipt).unwrap();
@@ -232,6 +237,7 @@ mod tests {
         let old = r#"{"spec":"0001-a","runner":"api","red":{"commit":"a","cases":{"FM-1":"fail"},"report":"r"},"green":{"commit":"b","dirty":false,"cases":{"FM-1":"pass"},"report":"g"},"footprint":{},"inputs":{}}"#;
         let receipt: Receipt = serde_json::from_str(old).unwrap();
         assert!(receipt.evidence.is_none());
+        assert!(receipt.ctx_revised.is_empty());
         assert!(receipt.verified_with.is_empty());
     }
 }

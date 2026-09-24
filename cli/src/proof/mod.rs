@@ -5,6 +5,7 @@
 //! in a hook or blocks anything by default.
 
 mod avp;
+mod ctx;
 mod git;
 mod green;
 mod hash;

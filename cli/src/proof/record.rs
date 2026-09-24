@@ -17,7 +17,7 @@ use super::report::{self, FmId, Report};
 use super::runner::{Job, NoReport, Session};
 use super::scrub::Scrub;
 use super::spec::{self, E2E_DIR, EVIDENCE_DIR, RED_PATCH_FILE, SPEC_FILE, SpecDir, SpecDoc};
-use super::{avp, impact, verify};
+use super::{avp, ctx, impact, verify};
 use crate::manifest::Project;
 
 /// What `skies proof record` was asked to do.
@@ -184,7 +184,12 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
     }
     green::publish_evidence(&spec, &proven.staged, &files, false, &scrub)?;
 
-    let footprint_paths = footprint(&repo, root, &doc, &red_commit, patch.as_deref())?;
+    let changed = match patch.as_deref() {
+        Some(patch) => repo.patch_footprint(patch)?,
+        None => repo.changed_since(&red_commit)?,
+    };
+    let footprint_paths = footprint(root, &doc, &changed)?;
+    let ctx_revised = revised_ctx(&repo, &changed, patch.is_some().then_some(head.as_str()))?;
     let mut receipt = Receipt {
         spec: spec.name.clone(),
         runner: runner_name.to_string(),
@@ -206,6 +211,7 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
         footprint: hash::hash_all(root, &footprint_paths),
         inputs: hash::hash_all(root, &hash::input_paths(root, &spec)?),
         evidence: Some(green::evidence_hashes(&spec, None)?),
+        ctx_revised,
         verified_with: BTreeMap::new(),
     };
     receipt.save(&spec)?;
@@ -216,7 +222,32 @@ pub fn record(key: &str, options: &Options) -> Result<u8> {
         receipt.inputs.len(),
         receipt.evidence.as_ref().map_or(0, |evidence| evidence.len())
     );
+    note_unrevised_ctx(root, &spec, &footprint_paths, &receipt.ctx_revised);
     impacted(&project, &spec, &mut receipt, options.with_impacted)
+}
+
+/// A spec that touched a module whose ctx.md stayed as it was gets a note, never a failure: the change may well
+/// have left every invariant intact, and only the author can tell.
+fn note_unrevised_ctx(root: &Path, spec: &SpecDir, footprint: &BTreeSet<String>, revised: &[String]) {
+    for file in ctx::touched(root, footprint) {
+        if !revised.contains(&file) {
+            println!(
+                "note: {} was not revised in this change; update its design notes and cite this spec (`{}#FM-n`) if an invariant changed.",
+                ctx::file_name(&file),
+                spec.name
+            );
+        }
+    }
+}
+
+/// The ctx files revised in this change: those in the red..working-tree diff and, when red is HEAD plus a
+/// red.patch (which removes the feature and rarely touches prose), those edited in the working tree since HEAD.
+fn revised_ctx(repo: &Repo, changed: &[String], patched_head: Option<&str>) -> Result<Vec<String>> {
+    let mut revised: BTreeSet<String> = changed.iter().filter(|path| ctx::is_ctx(path)).cloned().collect();
+    if let Some(head) = patched_head {
+        revised.extend(repo.changed_since(head)?.into_iter().filter(|path| ctx::is_ctx(path)));
+    }
+    Ok(revised.into_iter().collect())
 }
 
 /// Lists the other specs this receipt's footprint reaches and, with `--with-impacted`, re-proves them green. The
@@ -324,13 +355,11 @@ fn copy_spec_sources(from: &SpecDir, to: &SpecDir) -> Result<()> {
     Ok(())
 }
 
-/// What changed between red and the working tree, plus `touches`, minus every spec folder.
-fn footprint(repo: &Repo, root: &Path, doc: &SpecDoc, red: &str, patch: Option<&Path>) -> Result<BTreeSet<String>> {
-    let changed = match patch {
-        Some(patch) => repo.patch_footprint(patch)?,
-        None => repo.changed_since(red)?,
-    };
-    let mut paths: BTreeSet<String> = changed.into_iter().collect();
+/// What changed between red and the working tree, plus `touches`, minus every spec folder. A module ctx.md is prose
+/// kept fresh by citation (SKY0005), not by hash, so it joins the footprint only when `touches` lists it; a revision
+/// is recorded in `ctx_revised` instead.
+fn footprint(root: &Path, doc: &SpecDoc, changed: &[String]) -> Result<BTreeSet<String>> {
+    let mut paths: BTreeSet<String> = changed.iter().filter(|path| !ctx::is_ctx(path)).cloned().collect();
     paths.extend(hash::touched_paths(root, &doc.touches)?);
     paths.retain(|path| !hash::is_spec_path(path));
     Ok(paths)

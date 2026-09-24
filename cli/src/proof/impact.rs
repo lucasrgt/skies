@@ -3,7 +3,8 @@
 //! Every receipt already lists the files its feature covers (the footprint), and every spec.md may widen that with
 //! `touches` globs. Inverting those gives path → specs, so the receipts are the index: there is no index file to
 //! build, commit, or let drift. Nothing is hashed to answer "which specs"; only the specs that turn out impacted
-//! are rehashed, to say whether their receipt is current.
+//! are rehashed, to say whether their receipt is current. The ctx.md of every module the paths reach is named too,
+//! since its invariants are what a new failure mode must not contradict.
 
 use std::collections::BTreeSet;
 use std::path::{Component, Path, PathBuf};
@@ -11,6 +12,7 @@ use std::path::{Component, Path, PathBuf};
 use anyhow::{Context, Result};
 use globset::{Glob, GlobSet, GlobSetBuilder};
 
+use super::ctx;
 use super::git::Repo;
 use super::receipt::Receipt;
 use super::spec::{self, SpecDir, SpecDoc};
@@ -124,6 +126,11 @@ pub fn impact(paths: &[PathBuf], diff: Option<&str>) -> Result<u8> {
     if !uncovered.is_empty() {
         let noun = if uncovered.len() == 1 { "path" } else { "paths" };
         println!("{} {noun} in no spec: {}", uncovered.len(), abbreviate(&uncovered));
+    }
+    // The invariants of every module the change reaches, and the specs they cite: read them before writing the
+    // failure modes, so a new mode does not contradict one the module already promises.
+    for file in ctx::touched(root, &changed) {
+        println!("module context, read before writing failure modes: {file}");
     }
     match hits.len() {
         0 => println!("no spec covers these paths"),

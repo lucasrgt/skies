@@ -311,9 +311,9 @@ Record and check the evidence that a spec's failure modes are handled
 Usage: skies proof <COMMAND>
 
 Commands:
-  record  Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json
+  record  Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json. Notes (never fails) a touched module whose ctx.md was not revised in the same change
   status  List receipts that are current, stale (their files changed), or tampered (their evidence was edited). Hashes only; runs nothing
-  impact  Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current. With no paths, uses the files changed on this branch
+  impact  Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no paths, uses the files changed on this branch
   verify  Rerun specs and refresh their green evidence
   help    Print this message or the help of the given subcommand(s)
 
@@ -324,7 +324,7 @@ Options:
 ## skies proof record
 
 ```text
-Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json
+Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json. Notes (never fails) a touched module whose ctx.md was not revised in the same change
 
 Usage: skies proof record [OPTIONS] <SPEC>
 
@@ -352,7 +352,7 @@ Options:
 ## skies proof impact
 
 ```text
-Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current. With no paths, uses the files changed on this branch
+Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no paths, uses the files changed on this branch
 
 Usage: skies proof impact [OPTIONS] [PATHS]...
 

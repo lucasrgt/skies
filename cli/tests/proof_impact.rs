@@ -135,3 +135,83 @@ fn an_impacted_spec_that_fails_is_reported_and_left_out() {
         "a failed verify leaves its receipt alone"
     );
 }
+
+/// A repo whose feature lives in a module with a ctx.md, committed on main so red sees both.
+fn module_repo() -> Repo {
+    let repo = Repo::new();
+    repo.git(&["checkout", "--quiet", "main"]);
+    repo.write("src/Modules/Toggle/Toggle.cs", "class Toggle {}\n");
+    repo.write("src/Modules/Toggle/Toggle.ctx.md", "# toggle\n");
+    repo.write("web/src/features/toggle/Toggle.tsx", "export {}\n");
+    repo.git(&["add", "."]);
+    repo.git(&["commit", "--quiet", "-m", "add the module"]);
+    repo.git(&["checkout", "--quiet", "-B", "feature"]);
+    repo.write(
+        &format!("{SPEC}/spec.md"),
+        &spec_md("0001", &["FM-1 toggling does nothing"]),
+    );
+    repo.write(&format!("{SPEC}/e2e/cases.txt"), "FM-1: toggles\n");
+    repo
+}
+
+#[test]
+fn impact_names_the_ctx_of_every_module_the_paths_reach() {
+    let repo = module_repo();
+    let output = text(&repo.skies(&[
+        "proof",
+        "impact",
+        "src/Modules/Toggle/Toggle.cs",
+        "web/src/features/toggle/Toggle.tsx",
+        "src/unrelated.txt",
+    ]));
+    assert!(
+        output.contains("module context, read before writing failure modes: src/Modules/Toggle/Toggle.ctx.md\n"),
+        "{output}"
+    );
+    assert_eq!(
+        output.matches("module context").count(),
+        1,
+        "a frontend feature has no ctx: {output}"
+    );
+}
+
+#[test]
+fn record_notes_an_unrevised_ctx_and_records_a_revised_one() {
+    let repo = module_repo();
+    repo.write("src/Modules/Toggle/Toggle.cs", "class Toggle { bool on; }\n");
+    repo.implement();
+
+    let unrevised = repo.skies(&["proof", "record", "1"]);
+    assert!(
+        unrevised.status.success(),
+        "a note never fails the record: {}",
+        text(&unrevised)
+    );
+    assert!(
+        text(&unrevised).contains(
+            "note: Toggle.ctx.md was not revised in this change; update its design notes and cite this spec \
+             (`0001-toggle#FM-n`) if an invariant changed."
+        ),
+        "{}",
+        text(&unrevised)
+    );
+    assert!(repo.json(&format!("{SPEC}/receipt.json")).get("ctx_revised").is_none());
+
+    repo.write(
+        "src/Modules/Toggle/Toggle.ctx.md",
+        "# toggle\n\nToggling flips once (`0001-toggle#FM-1`).\n",
+    );
+    let revised = repo.skies(&["proof", "record", "1"]);
+    assert!(revised.status.success(), "{}", text(&revised));
+    assert!(!text(&revised).contains("was not revised"), "{}", text(&revised));
+    let receipt = repo.json(&format!("{SPEC}/receipt.json"));
+    assert_eq!(
+        receipt["ctx_revised"],
+        serde_json::json!(["src/Modules/Toggle/Toggle.ctx.md"])
+    );
+    assert!(
+        receipt["footprint"].get("src/Modules/Toggle/Toggle.ctx.md").is_none(),
+        "a ctx is kept fresh by citation, not hashed into the footprint: {receipt}"
+    );
+    assert!(receipt["footprint"].get("src/Modules/Toggle/Toggle.cs").is_some());
+}

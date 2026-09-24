@@ -147,6 +147,7 @@ pub enum Spec {
 #[derive(Subcommand)]
 pub enum Proof {
     /// Run the spec's E2E against the red revision (must fail) and the working tree (must pass); write receipt.json.
+    /// Notes (never fails) a touched module whose ctx.md was not revised in the same change.
     Record {
         /// The spec id or folder name.
         spec: String,
@@ -165,7 +166,8 @@ pub enum Proof {
     /// Hashes only; runs nothing.
     Status,
     /// Show which specs a change reaches, from the receipts' footprints and spec.md `touches`: each spec with its
-    /// failure modes and whether its receipt is current. With no paths, uses the files changed on this branch.
+    /// failure modes and whether its receipt is current, then the ctx.md of every module the paths reach. With no
+    /// paths, uses the files changed on this branch.
     Impact {
         /// Files or directories to look up, relative to the current directory.
         paths: Vec<PathBuf>,
