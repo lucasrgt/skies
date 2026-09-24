@@ -108,6 +108,18 @@ pub enum Generate {
         /// The frontend package directory (defaults to the current directory).
         #[arg(long)]
         package: Option<PathBuf>,
+        /// Flutter: the OpenAPI document (defaults to the backend contract `Skies.toml` points at).
+        #[arg(long)]
+        input: Option<PathBuf>,
+        /// Flutter: the generated package directory (defaults to packages/<name>).
+        #[arg(long)]
+        output: Option<PathBuf>,
+        /// Flutter: the generated Dart package name (defaults to <backend>_api).
+        #[arg(long)]
+        name: Option<String>,
+        /// Flutter: the generated package's pub version (defaults to 0.1.0).
+        #[arg(long)]
+        version: Option<String>,
     },
     /// A Flutter application package wired to the Skies spine.
     #[command(name = "flutter-app")]
@@ -188,10 +200,31 @@ fn generate_command(generate: Generate) -> anyhow::Result<u8> {
             FrontendKind::React => web::feature(dir, &name),
             FrontendKind::Flutter => flutter::feature(dir, &name),
         }),
-        Generate::Client { package } => frontend_package(package.as_deref(), |kind, dir| match kind {
-            FrontendKind::React => web::client(dir),
-            FrontendKind::Flutter => flutter::client(dir),
-        }),
+        Generate::Client {
+            package,
+            input,
+            output,
+            name,
+            version,
+        } => {
+            let options = flutter::ClientOptions {
+                input,
+                output,
+                name,
+                version,
+            };
+            frontend_package(package.as_deref(), |kind, dir| match kind {
+                FrontendKind::React
+                    if options.input.is_some() || options.output.is_some() || options.name.is_some() =>
+                {
+                    anyhow::bail!(
+                        "--input, --output, and --name apply to Flutter packages; React reads orval.config.ts"
+                    )
+                }
+                FrontendKind::React => web::client(dir),
+                FrontendKind::Flutter => flutter::client(dir, &options),
+            })
+        }
         Generate::FlutterApp { name, path } => flutter::app(&name, path.as_deref()),
         backend => dotnet::generate(backend),
     }

@@ -94,6 +94,13 @@ unreachable components, invokes stock OpenAPI Generator, runs `build_runner`, fo
 source contract, then atomically replaces only a marked generated directory. Parsing, models, serialization, and
 HTTP behavior remain OpenAPI Generator/Dio responsibilities.
 
+By default the contract is the one `Skies.toml` assigns to the package and the output is `packages/<backend>_api`.
+`--input <openapi.json>`, `--output <dir>`, `--name <dart_package>`, and `--version <semver>` override those defaults
+(relative paths resolve against the current directory), so a package with its own schema can keep
+`skies g client --package . --input schema/Accounts.json --output packages/accounts_api --name accounts_api` in its
+`generate:api` script. With `--input` or `--output`, only the package is generated: the app already owns its seams
+and its pubspec entry.
+
 The hand-owned client accepts its base URL and auth ports from the composition root, performs one single-flight
 refresh replay after a non-auth 401, unwraps `Response<T>`, and maps the canonical generated `ErrorBody` to
 `SkiesApiException<ErrorBody>`. Transport failures retain their original Dio cause.
@@ -186,7 +193,8 @@ enforces architecture only.
 | `SKYFL031` | Form submit carries an explicit invalid path. |
 | `SKYFL032` | App form fields surface validator/error state. |
 
-`skies doctor` runs these rules natively over every Flutter package declared in `Skies.toml`. `SKYFL028`, `031`,
+`skies doctor` runs these rules natively over every Flutter package declared in `Skies.toml`;
+`skies doctor --package .` runs them over one package, which is what a package's own `lint` script calls. `SKYFL028`, `031`,
 and `032` are warnings; every other finding is an error. The numbers keep the corresponding `SKYFE` slots, so gaps
 are the React rules that were removed in Skies 5.
 
