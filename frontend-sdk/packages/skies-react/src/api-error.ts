@@ -1,7 +1,7 @@
 // The error-code → copy bridge — the runtime half of the error-code discipline. The backend ships every
 // failure as an ErrorBody { error, code, message, fields } where `code` is a stable, language-neutral registry
 // key (SKY0018/19) enumerated into the OpenAPI contract; the front owns the copy in an "api-errors" i18n
-// namespace whose completeness the error-code-coverage tool proves. This consumes that pair: code off the
+// namespace typed against the generated code union, so a missing code is a type error. This consumes that pair: code off the
 // failed request, copy out of the catalog, a generic fallback when the error carries no known code — so a
 // ViewModel never hardcodes a per-screen error string. Structural like the rest of the spine: the i18n
 // instance is injected, not imported. Graduated from the hostpoint pilot.
@@ -16,7 +16,7 @@ export interface I18nLike {
 
 /** Where the bridge looks copy up; both have catalog-convention defaults. */
 export interface ApiErrorCopyOptions {
-  /** The namespace the error-code catalog lives in (default `api-errors` — the coverage tool's convention). */
+  /** The namespace the error-code catalog lives in (default `api-errors`, the catalog's conventional namespace). */
   namespace?: string;
   /** The generic key used when the error carries no known code (default `common:state.loadError`). */
   fallbackKey?: string;
