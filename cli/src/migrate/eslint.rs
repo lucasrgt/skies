@@ -158,6 +158,12 @@ mod tests {
     }
 
     #[test]
+    fn leaves_third_party_rules_such_as_the_a11y_floor_alone() {
+        let text = "      \"jsx-a11y/alt-text\": \"off\",\n      \"jsx-a11y/aria-role\": [\"error\", { ignoreNonDOM: true }],\n      \"skies/no-mock\": \"error\",\n";
+        assert!(migrate(text, "eslint.config.mjs", &mut Plan::default()).is_none());
+    }
+
+    #[test]
     fn json_configs_stay_valid() {
         let text = "{\n  \"rules\": {\n    \"skies/no-mock\": \"error\",\n    \"skies/ui-door\": \"error\"\n  }\n}\n";
         let out = migrate(text, ".eslintrc.json", &mut Plan::default()).unwrap();
