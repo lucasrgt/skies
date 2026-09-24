@@ -26,6 +26,11 @@ namespace Skies.Framework.Doctor;
 /// lowercase tokens (claim names, paths), and qualified or punctuated spans are ignored. The expensive
 /// walk of referenced assemblies runs only when a suspect appears — an identifier absent from this
 /// source — so a fresh ctx costs nothing.
+///
+/// A ctx also cites the specs that prove its invariants, as <c>`0002-withdraw`</c> or
+/// <c>`0002-withdraw#FM-n`</c> (see <see cref="SpecCitations"/>): the spec must exist and, when a failure mode is
+/// named, its spec.md must list it. The specs are read as AdditionalFiles (<c>.specs/*/spec.md</c>); a spec
+/// citation starts with digits, so the two kinds of citation never overlap.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
@@ -45,12 +50,24 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
                    + "reference is documentation rot.",
         customTags: WellKnownDiagnosticTags.CompilationEnd);
 
+    private static readonly DiagnosticDescriptor SpecRule = new(
+        id: DiagnosticId,
+        title: "ctx.md must not cite a spec or failure mode that does not exist",
+        messageFormat: "{0} cites `{1}`, {2}; update or remove the citation",
+        category: "Skies.Framework.Convention",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A module .ctx.md cites the spec that proves an invariant as `<id>-<slug>` or "
+                   + "`<id>-<slug>#FM-n`. The spec folder must exist under .specs/ and, when a failure mode is "
+                   + "cited, its spec.md must list it. A dangling spec citation is documentation rot.",
+        customTags: WellKnownDiagnosticTags.CompilationEnd);
+
     // A citation: a single PascalCase identifier whose entire backtick span is that identifier. Prose,
     // lowercase (claim/header names), and punctuated spans (`a.b`, `f(x)`, `X-Client`) never match.
     private static readonly Regex CitationPattern = new(@"`([A-Z][A-Za-z0-9_]*)`", RegexOptions.Compiled);
 
     /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule, SpecRule);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -75,6 +92,8 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
             .Select(x => (x.file, x.text!, citations: Citations(x.text!)))
             .ToArray();
 
+        ReportSpecCitations(context, perFile.Select(x => (x.file, x.Item2)));
+
         var allNames = perFile.SelectMany(x => x.citations.Select(c => c.Name)).ToImmutableHashSet();
         if (allNames.IsEmpty)
             return;
@@ -93,6 +112,21 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
                     var location = Location.Create(file.Path, citation.Span, text.Lines.GetLinePositionSpan(citation.Span));
                     context.ReportDiagnostic(Diagnostic.Create(Rule, location, Path.GetFileName(file.Path), citation.Name));
                 }
+    }
+
+    // A spec citation that names a missing spec folder, or a failure mode its spec.md does not list, is stale.
+    private static void ReportSpecCitations(CompilationAnalysisContext context, IEnumerable<(AdditionalText File, SourceText Text)> ctxs)
+    {
+        Dictionary<string, HashSet<int>>? specs = null;
+        foreach (var (file, text) in ctxs)
+            foreach (var citation in SpecCitations.In(text))
+            {
+                specs ??= SpecCitations.Index(context.Options.AdditionalFiles, context.CancellationToken);
+                if (SpecCitations.Problem(citation, specs) is not { } problem)
+                    continue;
+                var location = Location.Create(file.Path, citation.Span, text.Lines.GetLinePositionSpan(citation.Span));
+                context.ReportDiagnostic(Diagnostic.Create(SpecRule, location, Path.GetFileName(file.Path), citation.Text, problem));
+            }
     }
 
     private static List<(string Name, TextSpan Span)> Citations(SourceText text)

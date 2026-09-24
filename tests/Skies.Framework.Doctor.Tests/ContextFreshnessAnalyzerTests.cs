@@ -70,6 +70,94 @@ public class ContextFreshnessAnalyzerTests
         return test.RunAsync();
     }
 
+    [Fact]
+    public Task A_cited_spec_and_failure_mode_that_exist_report_nothing()
+    {
+        // A spec citation starts with digits, so it is never read as a PascalCase code citation, and `Login` beside
+        // it is still resolved as code.
+        var test = Make(CtxCiting("`Login` refuses overdraw (`0002-withdraw#FM-2`), proven by `0002-withdraw`."));
+        test.TestState.AdditionalFiles.Add((".specs/0002-withdraw/spec.md", WithdrawSpec));
+        return test.RunAsync();
+    }
+
+    [Fact]
+    public Task A_cited_spec_that_does_not_exist_is_flagged()
+    {
+        var test = Make(CtxCiting("Overdraw is refused (`0009-withdraw`)."));
+        test.TestState.AdditionalFiles.Add((".specs/0002-withdraw/spec.md", WithdrawSpec));
+        test.TestState.ExpectedDiagnostics.Add(SpecDiagnostic(9, 23, 9, 36, "0009-withdraw",
+            "but there is no .specs/0009-withdraw/spec.md"));
+        return test.RunAsync();
+    }
+
+    [Fact]
+    public Task A_cited_failure_mode_the_spec_does_not_list_is_flagged()
+    {
+        // FM-9 appears in the spec's prose, but only a bullet under ## Failure modes declares a mode.
+        var test = Make(CtxCiting("Overdraw is refused (`0002-withdraw#FM-9`)."));
+        test.TestState.AdditionalFiles.Add((".specs/0002-withdraw/spec.md", WithdrawSpec));
+        test.TestState.ExpectedDiagnostics.Add(SpecDiagnostic(9, 23, 9, 41, "0002-withdraw#FM-9",
+            "but .specs/0002-withdraw/spec.md lists no FM-9"));
+        return test.RunAsync();
+    }
+
+    [Fact]
+    public Task Spec_citations_are_flagged_when_no_spec_is_fed_to_the_doctor()
+    {
+        var test = Make(CtxCiting("Overdraw is refused (`0002-withdraw#FM-2`)."));
+        test.TestState.ExpectedDiagnostics.Add(SpecDiagnostic(9, 23, 9, 41, "0002-withdraw#FM-2",
+            "but no spec.md reached the doctor; feed .specs/*/spec.md to it as AdditionalFiles"));
+        return test.RunAsync();
+    }
+
+    [Fact]
+    public Task A_dangling_code_citation_beside_a_valid_spec_citation_is_still_flagged()
+    {
+        var test = Make(CtxCiting("`AttachCtx` is proven by `0002-withdraw#FM-1`."));
+        test.TestState.AdditionalFiles.Add((".specs/0002-withdraw/spec.md", WithdrawSpec));
+        test.TestState.ExpectedDiagnostics.Add(
+            new DiagnosticResult(ContextFreshnessAnalyzer.DiagnosticId, DiagnosticSeverity.Error)
+                .WithSpan("Account.ctx.md", 9, 2, 9, 11)
+                .WithArguments("Account.ctx.md", "AttachCtx"));
+        return test.RunAsync();
+    }
+
+    private static string CtxCiting(string note) => $"""
+        # account
+
+        ## Boundaries
+
+        - x
+
+        ## Design notes
+
+        {note}
+        """;
+
+    private static DiagnosticResult SpecDiagnostic(int line, int column, int endLine, int endColumn, string cited, string problem) =>
+        new DiagnosticResult(ContextFreshnessAnalyzer.DiagnosticId, DiagnosticSeverity.Error)
+            .WithSpan("Account.ctx.md", line, column, endLine, endColumn)
+            .WithArguments("Account.ctx.md", cited, problem);
+
+    private const string WithdrawSpec = """
+        ---
+        id: "0002"
+        runner: api
+        ---
+        # Withdraw
+
+        Debits a wallet. FM-9 is mentioned here only in prose.
+
+        ## Failure modes
+
+        - FM-1 A valid withdrawal does not move the balance.
+        - FM-2 Overdrawing is accepted.
+
+        ## Out of scope
+
+        - FM-9 is not a mode here either.
+        """;
+
     private const string Source = """
         namespace Demo.Modules.Account;
 
