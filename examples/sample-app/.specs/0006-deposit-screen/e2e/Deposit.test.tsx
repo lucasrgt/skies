@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DepositView } from "../../../frontend/web/src/deposit/Deposit.view";
 
 // The Deposit screen through its View and ViewModel, against the real generated client (the HTTP layer is an MSW
-// stand-in, frontend-sdk/vitest.setup.ts). Success replaces the form; a routed app would <Navigate> (SKYFE015).
+// stand-in, .specs/web.setup.ts). Success replaces the form; a routed app would <Navigate> (SKYFE015).
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },

@@ -13,7 +13,8 @@ export default defineConfig({
     maxWorkers: 2,
     root: r(".."),
     environment: "jsdom",
-    setupFiles: [r("./vitest.setup.ts")],
+    // The framework's jsdom setup, then the sample specs' own stand-in backend (MSW), which the sample owns.
+    setupFiles: [r("./vitest.setup.ts"), r("../examples/sample-app/.specs/web.setup.ts")],
     include: [
       "frontend-sdk/packages/**/*.test.{ts,tsx}",
       "examples/sample-app/.specs/*/e2e/**/*.test.{ts,tsx}",
@@ -36,6 +37,7 @@ export default defineConfig({
       "react-hook-form": r("./node_modules/react-hook-form"),
       zod: r("./node_modules/zod"),
       "@hookform/resolvers": r("./node_modules/@hookform/resolvers"),
+      msw: r("./node_modules/msw"),
     },
   },
 });

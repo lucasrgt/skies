@@ -6,7 +6,7 @@ import { useItemsModel } from "../../../frontend/web/src/items/Items.viewModel";
 import { ItemsView } from "../../../frontend/web/src/items/Items.view";
 
 // The Items screen: the ViewModel (the data door) against the real generated client, the HTTP layer an MSW stand-in
-// (frontend-sdk/vitest.setup.ts), and the View rendered through its states.
+// (.specs/web.setup.ts), and the View rendered through its states.
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;

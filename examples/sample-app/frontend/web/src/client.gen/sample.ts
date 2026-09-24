@@ -15,8 +15,9 @@ export function useListItems() {
   });
 }
 
-// Stand-in for the orval hook of the backend's REAL `Deposit` slice (`MapPost("/deposit").WithName(nameof(Deposit))`
-// → operationId `Deposit` → `useDeposit`, the SKY0012 1:1).
+// Stand-in for the orval hook of the backend's REAL `Deposit` slice (`MapPost("/deposit")` under the `/wallets` group,
+// `.WithName(nameof(Deposit))` → operationId `Deposit` → `useDeposit`, the SKY0012 1:1). Like orval's, its variables
+// carry the body as `data`.
 export interface DepositInput {
   walletId: string;
   amount: number;
@@ -29,11 +30,11 @@ export interface DepositOutput {
 
 export function useDeposit() {
   return useMutation({
-    mutationFn: async (input: DepositInput): Promise<DepositOutput> => {
-      const response = await fetch(`${SAMPLE_API_BASE}/deposit`, {
+    mutationFn: async ({ data }: { data: DepositInput }): Promise<DepositOutput> => {
+      const response = await fetch(`${SAMPLE_API_BASE}/wallets/deposit`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(input),
+        body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error(`deposit failed (${response.status})`);
       return (await response.json()) as DepositOutput;

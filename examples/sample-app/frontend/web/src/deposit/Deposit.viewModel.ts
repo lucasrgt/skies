@@ -44,7 +44,7 @@ export function useDepositModel(): DepositModel {
   // fieldState surface in the View) do the showing; a multi-tab shell would map the field to its tab instead.
   const submit = submitOrReveal(
     form.handleSubmit,
-    (values) => mutation.mutate({ walletId: values.walletId, amount: Number(values.amount) }),
+    (values) => mutation.mutate({ data: { walletId: values.walletId, amount: Number(values.amount) } }),
     { onInvalid: (first) => form.setFocus(first), order: ["walletId", "amount"] },
   );
 

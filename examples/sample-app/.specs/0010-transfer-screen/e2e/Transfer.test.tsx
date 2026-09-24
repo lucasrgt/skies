@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // The Transfer screen through its View and ViewModel, against the real client hook (the HTTP layer is an MSW
-// stand-in, frontend-sdk/vitest.setup.ts: a transfer above 100 answers 422 insufficient funds).
+// stand-in, .specs/web.setup.ts: a transfer above 100 answers 422 insufficient funds).
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
