@@ -44,11 +44,11 @@ features/<zone>/<name>/
 - **`<zone>` is the audience, not the backend domain**: the feature tree mirrors the route tree and how the product
   is experienced (`features/{host,traveler,account,shared}/<name>/`). The generated client already carries the
   domain axis. Rules match by filename, so depth is free; single-persona apps stay flat (`features/<name>/`).
-- **The ViewModel is a plain custom hook**, never a class, and render-agnostic (no JSX, no `react-dom`).
+- **The ViewModel is a plain custom hook**, never a class, and render-agnostic (no JSX, no `react-dom`: `SKYFE004`).
 - **The View is pure render**: no data access, a function of the ViewModel's return, so mock-free by construction.
 - **TanStack Query is the Model.** The ViewModel composes the generated hooks directly; wrapping every query in
   ceremony is the frontend's `IRepository` (`SKY0006`). **One ViewModel per screen, never per query.**
-- **Mandatory states.** A ViewModel exposing server data exposes `loading`, `error`, and `empty` explicitly. The
+- **Mandatory states.** A ViewModel exposing server data exposes `loading`, `error`, and `empty` explicitly (`SKYFE007`). The
   spine (`@skiesjs/react`) projects each query through `toAsyncState` into the closed `AsyncState<T>` union
   (`combineAsyncStates` folds several: `error > loading > empty > ready`, combined retry), and the View renders it
   through `<Resource>` (`SKYFE010`). Routes project raw params through `requiredParam` (`missing | ready`)
@@ -317,37 +317,47 @@ and route files in any of their layouts: `app/`, `src/routes/**`, `routes/` (the
 tests are not routes). Each rule was calibrated on real apps
 ([decision](decisions/skies-5-rule-calibration.md)).
 
+**One catalog, two ecosystems.** The rules that exist are the ones `@skiesjs/eslint-plugin` registers (`index.cjs`)
+and the Flutter doctor catalogs (`RULES` in `cli/src/flutter/rules/mod.rs`); `cli/src/doctor/catalog_tests.rs` pins
+this table and the [Flutter catalog](FLUTTER-CONVENTIONS.md#flutter-doctor-rule-catalog) to them. A number up to 036
+means one rule in both: `SKYFE016` and `SKYFL016` share the intent and the tier, and differ only in the ecosystem's
+spelling. `SKYFL037`–`040` (the native a11y floor) are Flutter-only; the web's floor is jsx-a11y.
+
 | Rule | Enforces | Why |
 |------|----------|-----|
 | `SKYFE001` | View purity: a `*.view.tsx` imports no data layer (generated hooks, the client, `fetch`/`axios`); type-only contract imports exempt | keeps the View mock-free |
 | `SKYFE002` | Only `*.viewModel.ts` (plus the `lib/session`/`lib/guards` seams) consume generated operations; re-exporting them (`export … from "client.gen"`) elsewhere is flagged; contract types and generated enums stay free, and so do tests and spec cases (they exercise the door) | one data path, one policed surface |
 | `SKYFE003` | No import from `**/__mocks__`/`**/fixtures`/MSW outside `*.test.*` | fixtures shipped as data |
-| `SKYFE004` | (planned) A `*.viewModel.ts` imports no JSX/`react-dom` | ViewModel testable without rendering |
-| `SKYFE007` | (planned) A ViewModel exposing server data exposes `loading` + `error` + `empty` | failures need an explicit state |
+| `SKYFE004` | A ViewModel (`*.viewModel.ts`/`.tsx`) is render-agnostic: it renders no JSX and imports no `react-dom` (type-only imports exempt) | ViewModel testable without rendering |
+| `SKYFE007` | A ViewModel exposing server data (a generated query hook's `data`) exposes its states: `toAsyncState`/`combineAsyncStates` (`AsyncState`), or a query's pending and error flags projected beside it. Asked once per ViewModel: a secondary read of a query the screen already loads passes; a mutation's `data` (its success surface) is a command, not a resource | failures need an explicit state |
 | `SKYFE010` | A `*.view.tsx` routes loading/error/empty through `<Resource>`, not raw `isPending`/`isError` | no async state forgotten |
 | `SKYFE011` | Every locale catalog in a `*.i18n.ts` declares the same keys, compared as flattened paths (`empty.title`). A catalog is named like a locale: sibling objects (`ptBR`, `en_US`, `en`) or the children of one locale-keyed object (`{ "pt-BR": {…}, "en-US": {…} }`); lookup maps beside them are not compared | no string ships untranslated |
 | `SKYFE013` | A `.mutate()`/`.mutateAsync()` in a ViewModel routes its failure somewhere (`onError`, a read `.isError`, try/catch or `.catch()`, a propagated return); an empty `onError: () => {}` is flagged. With `{ globalSurface: true }` (the SKYFE027 defaults wired), a bare `.mutate()` passes and only the empty handler is flagged | no silent failure, no `onError` theater |
 | `SKYFE014` | User-facing JSX text and copy props (`placeholder`, `label`, `title`, `aria-label`, `alt`…) in a View go through `t()` | feeds the catalog SKYFE011 keeps complete |
 | `SKYFE015` | No `router.navigate`/`useNavigate()` call inside `useEffect`; redirect-on-state is declarative (`return <Navigate … />`). Navigation on a user action stays allowed. Views and routes only | effect redirects flash and loop |
-| `SKYFE016` | A `*.viewModel`/`*.view` never imports the token setter (`setAccessToken`…) or writes a token-ish key to `localStorage`/`sessionStorage`; the write goes through `lib/session`, paired with the `me` reset | a scattered write forgets the reset |
-| `SKYFE017` | A route guard redirects on a `SessionState` (`loading \| authenticated \| anonymous`), never a raw `isAuthenticated` boolean | a boolean reads "loading" as "signed out" |
+| `SKYFE016` | Outside `lib/session`/`lib/guards` (and tests), no import of a token setter (`setAccessToken`, `setToken`, `setSession`) and no `localStorage`/`sessionStorage` write of a session key: a key one of whose words is `token`, `jwt`, `session`, or `auth` (`accessToken`, `auth_token`; not `authorName`). The write goes through `lib/session`, paired with the `me` reset | a scattered write forgets the reset |
+| `SKYFE017` | In a route or guard file, a redirect (`return <Navigate/>`, `return`/`throw redirect(…)`) is never decided on a raw auth boolean (`isAuthenticated`, `isLoggedIn`, `isSignedIn`…); branch on a `SessionState` (`loading \| authenticated \| anonymous`) | a boolean reads "loading" as "signed out" |
 | `SKYFE018` | A route reading a required id through a loose `useParams()` (React Router bare, TanStack `{ strict: false }`) guards its absence with a declarative redirect: `requiredParam()` (`if (id.status === "missing") return <Navigate/>`) or `!id`; a `throw` on that test (`throw notFound()`) or `invariant(id)` also guards, `return null` does not. Strict TanStack reads are exempt | a param-less hit renders a ghost screen |
 | `SKYFE019` | No bare `history.back()` (`window.history` or TanStack's `router.history`) or `navigate(-1)`; use `safeBack` / an app `useGoBack` that falls back to a parent | a dead Back button on deep links |
 | `SKYFE020` | The API base URL comes from configuration (`VITE_API_URL`, a relative base, an injected default), never a host in `axios.create({ baseURL: "http://…" })`; the backend pins its dev port in `launchSettings`. A tool's own config (`playwright.config.ts`'s `use.baseURL`) is not the client | front and API ports drift apart |
 | `SKYFE021` | No `dangerouslySetInnerHTML` outside the audited `lib/html` seam, where any sanitizer lives | raw HTML is the XSS door |
 | `SKYFE022` | Never navigate to a URL-derived value (`navigate({ to: returnTo })`, `<Navigate to={next}>`, `location.href = next` off `useSearch`/`Route.useSearch()`/`useSearchParams`) without mapping it through an allowlist of in-app routes. Only the target counts: a value forwarded in `search`/`params`, a lookup key (`ROUTES[next]`), or a conditional's test is not flagged | open redirect, the phishing primitive |
-| `SKYFE023` | (planned) No orphan placeholder: `// wire later`, `TODO`/`FIXME`, `WAR-*`, or `@ts-expect-error` on a data call | "almost done" is not done |
-| `SKYFE027` | Every production `new QueryClient(...)` wires `mutationCache: new MutationCache({ onSuccess, onError })`: success invalidates and posts the note (`meta.silent` opts out), failure goes through the feedback seam. Tests and `test/`/`test-utils/` build bare clients freely. Scaffolded as `lib/query.ts` | stale lists after a write, no toast |
-| `SKYFE028` | Warning. An `onSuccess` whose whole body is refetch/invalidate calls (inline, named, or `useCallback`-wrapped) duplicates SKYFE027; delete it. Handlers doing more (navigate, reset, hand off an id) are never flagged | a cargo-culted ritual |
+| `SKYFE023` | Warning. No unfinished placeholder in production code (tests, specs, and `client.gen/` exempt): an uppercase `TODO`/`FIXME`/`HACK`/`XXX` or "wire later" comment, a `@ts-expect-error`/`@ts-ignore`, or a `throw new Error("not implemented")` stub | "almost done" is not done |
+| `SKYFE027` | Writes run through the app's one mutation surface with the write-side defaults wired: every production `new QueryClient(...)` carries `mutationCache: new MutationCache({ onSuccess, onError })`: success invalidates and posts the note (`meta.silent` opts out), failure goes through the feedback seam. Tests and `test/`/`test-utils/` build bare clients freely. Scaffolded as `lib/query.ts` | stale lists after a write, no toast |
+| `SKYFE028` | Warning. In a ViewModel, an `onSuccess` whose whole body is refetch/invalidate calls (inline, named, or `useCallback`-wrapped) duplicates SKYFE027; delete it. Handlers doing more (navigate, reset, hand off an id) are never flagged | a cargo-culted ritual |
 | `SKYFE029` | The refresh hook/operation (or a hand-rolled POST to a refresh route) is consumed only in `lib/skies-client` / `lib/session`; type-only imports free | two rotations burn the session family |
 | `SKYFE030` | No `as never`/`as any`/`as unknown` on a `router.navigate`/`useNavigate()` argument or a `<Navigate>`/`<Link>` `to`. Pass a typed literal or `{ to, params }`. Config pair: typed routes on | a cast lets a drifted route 404 in production |
 | `SKYFE031` | Warning. In a `*.viewModel.ts`, a one-argument `handleSubmit(onValid)` is flagged; use `submitOrReveal(form.handleSubmit, onValid, { onInvalid })` or pass `onInvalid`. Promotes with SKYFE032 | Save goes mute on a hidden invalid field |
-| `SKYFE032` | Warning. A `<Controller>` whose inline `render` never reads `fieldState` is flagged; pass `error={fieldState.error?.message}`. A non-inline surface must still expose the error explicitly | a field's error has no surface |
+| `SKYFE032` | Warning. A validated field shows its error where the control is: a `<Controller>` whose inline `render` never reads `fieldState` is flagged (a resolver's error reaches the field only through it); pass `error={fieldState.error?.message}`. A non-inline surface must still expose the error explicitly | a field's error has no surface |
 | `SKYFE036` | A `test`/`it`/`describe` call (or a declaring member: `test.describe`, `it.each([…])(…)`, `describe.skip`) from `vitest`, `@playwright/test`, `@jest/globals`, `bun:test`, `node:test`, a global, or the app's re-export of an extended runner (called with a title and a body), in a file with no `.specs/` path segment is flagged, once per file. A local function of the same name is not a test, nor is a fixture file (`test.extend`, `test.step`, hooks). It asks where a test lives, never that one exists | tests as coverage prove nothing |
 
-**Tiers.** `recommended` sets every rule to **error** except the polish ones, which stay **warnings**: `SKYFE028`
-(a redundant refetch is harmless), and `SKYFE031`/`SKYFE032` (a single-screen form with every error visible inline
-may skip `submitOrReveal`). An app promotes those in its own config; it never needs to promote the rest.
+**Tiers.** An architecture or security rule is an **error**; a taste or review signal is a **warning**, the same
+split as the [.NET catalog](CONVENTIONS.md#the-doctor--rule-catalog) and the same tier as each rule's Flutter twin.
+`recommended` sets every rule to error except `SKYFE023` (an unfinished-work marker is for review), `SKYFE028` (a
+redundant refetch is harmless), and `SKYFE031`/`SKYFE032` (a single-screen form with every error visible inline may
+skip `submitOrReveal`). An app promotes those in its own config; it never needs to promote the rest. To suppress one
+finding, use `// eslint-disable-next-line skies/<rule> -- <reason>`: one rule, one line, the reason written
+([Suppression](CONVENTIONS.md#suppression) covers all three ecosystems).
 
 Numbering gaps are removed rules (the latest, `SKYFE009`, kept ViewModels free of React Native imports). Beside
 these, `recommended` carries the [accessibility floor](#accessibility--the-a11y-floor-on-by-default) (third-party

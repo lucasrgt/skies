@@ -14,7 +14,7 @@ Commands:
   new      Create a new Skies application in ./<Name>
   g        Generate code that follows the Skies conventions
   i18n     Assemble per-feature i18n catalogs into the package's locale files
-  doctor   Run the architecture doctors: the declared repository root (SKYWS*), dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*)
+  doctor   Run the architecture doctors: the declared repository root (SKYWS*), dotnet build (SKY* and the CA* security floor), eslint (SKYFE*), and the Flutter rules (SKYFL*). Errors fail the run; warnings are reported. A Flutter finding silenced by `// skies-ignore: SKYFLnnn <reason>` is listed with its reason, never dropped
   spec     Work with feature specs under .specs/
   proof    Record and check the evidence that a spec's failure modes are handled
   migrate  Migrate an application to a new Skies major version
@@ -272,7 +272,7 @@ Options:
 ## skies doctor
 
 ```text
-Run the architecture doctors: the declared repository root (SKYWS*), dotnet build (SKY*), eslint (SKYFE*), and the Flutter rules (SKYFL*)
+Run the architecture doctors: the declared repository root (SKYWS*), dotnet build (SKY* and the CA* security floor), eslint (SKYFE*), and the Flutter rules (SKYFL*). Errors fail the run; warnings are reported. A Flutter finding silenced by `// skies-ignore: SKYFLnnn <reason>` is listed with its reason, never dropped
 
 Usage: skies doctor [OPTIONS] [BUILD_ARGS]...
 

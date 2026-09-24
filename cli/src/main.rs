@@ -40,8 +40,9 @@ enum Command {
         #[arg(long)]
         package: Option<PathBuf>,
     },
-    /// Run the architecture doctors: the declared repository root (SKYWS*), dotnet build (SKY*), eslint (SKYFE*),
-    /// and the Flutter rules (SKYFL*).
+    /// Run the architecture doctors: the declared repository root (SKYWS*), dotnet build (SKY* and the CA* security
+    /// floor), eslint (SKYFE*), and the Flutter rules (SKYFL*). Errors fail the run; warnings are reported. A Flutter
+    /// finding silenced by `// skies-ignore: SKYFLnnn <reason>` is listed with its reason, never dropped.
     Doctor {
         /// Check only this package directory (a Flutter or React package, or a .NET project or its folder), so a
         /// package's own `lint` script can call the doctor (the root is not checked).

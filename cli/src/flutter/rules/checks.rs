@@ -9,8 +9,9 @@ use regex::Regex;
 
 use super::facts::{Call, Facts};
 use super::navigation::navigation_rules;
-use super::{Source, code, generated};
-use crate::doctor::{Finding, Severity};
+use super::session::session_rules;
+use super::{Source, finding, generated};
+use crate::doctor::Finding;
 
 const MUTATIONS: [&str; 8] = [
     "submit", "save", "create", "update", "delete", "remove", "deposit", "withdraw",
@@ -25,22 +26,10 @@ pub(super) struct Report<'a> {
 }
 
 impl Report<'_> {
+    /// Reports the named rule at its catalogued tier (see [`super::RULES`]).
     pub(super) fn add(&mut self, rule: &str, line: Option<usize>, message: &str) {
-        self.push(rule, Severity::Error, line, message);
-    }
-
-    pub(super) fn warn(&mut self, rule: &str, line: Option<usize>, message: &str) {
-        self.push(rule, Severity::Warning, line, message);
-    }
-
-    fn push(&mut self, rule: &str, severity: Severity, line: Option<usize>, message: &str) {
-        self.findings.push(Finding::new(
-            code(rule),
-            severity,
-            self.source.path.clone(),
-            line,
-            message.to_string(),
-        ));
+        let finding = finding(rule, self.source.path.clone(), line, message.to_string());
+        self.findings.push(finding);
     }
 }
 
@@ -109,16 +98,7 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
         model_rules(&mut report, facts, &import);
     }
     navigation_rules(&mut report, facts);
-    session_rules(&mut report, facts, role.session_door);
-    if role.routing
-        && let Some(id) = facts.first_identifier(&["isAuthenticated"])
-    {
-        report.add(
-            "guard-tristate",
-            Some(id.line),
-            "route guard collapses session loading into a boolean",
-        );
-    }
+    session_rules(&mut report, facts, role.session_door, role.routing);
     let hardcoded_url = facts.calls_named(&["BaseOptions", "Dio"]).find(|call| {
         call.named("baseUrl")
             .and_then(|arg| arg.string.as_deref())
@@ -145,28 +125,11 @@ pub fn file(source: &Source, sources: &HashMap<&Path, &Source>) -> Vec<Finding> 
     if !role.test {
         placeholder(&mut report, facts);
     }
-    if let Some(binding) = facts.bindings.iter().find(|b| {
-        b.name == "onSuccess"
-            && b.identifiers
-                .iter()
-                .any(|id| ["refetch", "reload", "invalidate"].iter().any(|w| id.contains(w)))
-    }) {
-        report.warn(
-            "no-manual-refetch",
-            Some(binding.line),
-            "success callback only repeats global invalidation",
-        );
+    if role.model || role.model_part {
+        manual_refetch(&mut report, facts);
     }
-    if role.ui
-        && let Some(call) = facts
-            .calls_named(&["TextFormField"])
-            .find(|call| call.named("validator").is_none() && call.named("errorText").is_none())
-    {
-        report.warn(
-            "field-error-surface",
-            Some(call.line),
-            "form field exposes no validation error surface",
-        );
+    if role.ui {
+        field_error_surface(&mut report, facts);
     }
     tests_live_in_specs(&mut report, facts, &import);
     report.findings
@@ -241,7 +204,18 @@ fn model_rules(report: &mut Report, facts: &Facts, import: &ImportLine) {
             "ViewModel imports or names rendering APIs",
         );
     }
-    if !facts.generics.contains("AsyncState") {
+    // SKYFL007, the SKYFE007 twin: a server-backed ViewModel (it calls the generated client or loads anything
+    // asynchronously) exposes its states as the closed AsyncState. A purely local one (a wizard's step state) has
+    // no load to fail.
+    let server_backed = facts
+        .calls
+        .iter()
+        .any(|c| c.is_operation || c.name == "executeSkiesRequest")
+        || facts
+            .signatures
+            .iter()
+            .any(|s| s.returns == "Future" || s.returns == "Stream");
+    if server_backed && !facts.generics.contains("AsyncState") {
         report.add("mandatory-state", None, "server-backed ViewModel exposes no AsyncState");
     }
     let local_surface = facts.catch_blocks.iter().any(|block| {
@@ -279,7 +253,7 @@ fn model_rules(report: &mut Report, facts: &Facts, import: &ImportLine) {
     if let Some(call) = validates.first()
         && !has_invalid_path
     {
-        report.warn(
+        report.add(
             "submit-invalid-path",
             Some(call.line),
             "form validation has no explicit invalid path",
@@ -296,45 +270,63 @@ pub fn mutation(facts: &Facts) -> Option<usize> {
         .map(|s| s.line)
 }
 
-fn session_rules(report: &mut Report, facts: &Facts, session_door: bool) {
-    if session_door {
-        return;
-    }
-    let token_write = facts.calls.iter().find(|call| {
-        call.name == "setAccessToken"
-            || (["write", "setString"].contains(&call.name.as_str())
-                && call
-                    .args
-                    .iter()
-                    .find(|arg| arg.label.is_none() || arg.label.as_deref() == Some("key"))
-                    .and_then(|arg| arg.string.as_deref())
-                    .is_some_and(|key| key.to_ascii_lowercase().contains("token")))
+/// The refetch calls a success handler repeats although the `MutationBoundary` already invalidates (SKYFE028's
+/// `refetch`/`invalidateQueries` set, in Dart's spellings).
+const REFETCHES: [&str; 7] = [
+    "refetch",
+    "reload",
+    "refresh",
+    "invalidate",
+    "invalidateQueries",
+    "refetchQueries",
+    "resetQueries",
+];
+
+/// SKYFL028, the SKYFE028 twin: in a ViewModel, an `onSuccess` callback whose whole body is refetch calls. A handler
+/// that does more (navigates, resets a form, hands off an id) is real behavior and never flagged.
+fn manual_refetch(report: &mut Report, facts: &Facts) {
+    let ritual = facts.bindings.iter().find(|binding| {
+        let mut calls = binding.calls(facts).peekable();
+        binding.name == "onSuccess"
+            && calls.peek().is_some()
+            && calls.all(|call| REFETCHES.contains(&call.name.as_str()))
     });
-    if let Some(call) = token_write {
+    if let Some(binding) = ritual {
         report.add(
-            "session-one-door",
-            Some(call.line),
-            "session token is written outside the session seam",
+            "no-manual-refetch",
+            Some(binding.line),
+            "success callback only repeats global invalidation",
         );
     }
-    let rotation = facts
-        .first_identifier(&["refreshSession", "bootstrapSession"])
-        .map(|id| id.line)
-        .or_else(|| facts.calls_named(&["refresh"]).next().map(|c| c.line));
-    if let Some(line) = rotation {
+}
+
+/// SKYFL032, the SKYFE032 twin: a validated field shows its error where the control is. A `TextFormField` renders
+/// its own validator's error, so a field without a validator has none to lose; the error is lost in the app's field
+/// primitive (`lib/ui/`, the `AppInput` every screen uses) when it builds the `TextFormField` without passing a
+/// `validator`, a `forceErrorText`, or a decoration `errorText` through. That primitive is the Flutter spelling of
+/// the web's `<Controller render>`, where a resolver's error reaches the field only through `fieldState`.
+fn field_error_surface(report: &mut Report, facts: &Facts) {
+    let blind = facts.calls_named(&["TextFormField"]).find(|field| {
+        field.named("validator").is_none()
+            && field.named("forceErrorText").is_none()
+            && field.named("errorText").is_none()
+            && !facts.within(field).any(|inner| inner.named("errorText").is_some())
+    });
+    if let Some(call) = blind {
         report.add(
-            "refresh-one-door",
-            Some(line),
-            "refresh rotation is consumed outside the session/client seam",
+            "field-error-surface",
+            Some(call.line),
+            "form field exposes no validation error surface",
         );
     }
 }
 
 /// Unfinished-work markers are a text property of comments, so this one is a regex over comment nodes only;
-/// `UnimplementedError(...)` is a real call.
+/// `UnimplementedError(...)` is a real call. The markers are the conventional uppercase ones, as SKYFE023 reads them: a
+/// lowercase "todo" is a word (Portuguese "all"), which calibrating the web twin on a real app found.
 fn placeholder(report: &mut Report, facts: &Facts) {
     static MARKER: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"(?i)\b(?:TODO|FIXME|HACK|XXX|wire later)\b").expect("static pattern"));
+        LazyLock::new(|| Regex::new(r"\b(?:TODO|FIXME|HACK|XXX|[Ww]ire later)\b").expect("static pattern"));
     let line = facts
         .comments
         .iter()
@@ -358,13 +350,7 @@ pub fn project(sources: &[Source]) -> Vec<Finding> {
         .any(|s| !s.role.test && s.facts.calls_named(&["MutationBoundary"]).next().is_some());
     if writes && !boundary {
         let message = "write features exist without one configured MutationBoundary".to_string();
-        return vec![Finding::new(
-            code("mutation-defaults"),
-            Severity::Error,
-            "<project>".into(),
-            None,
-            message,
-        )];
+        return vec![finding("mutation-defaults", "<project>".into(), None, message)];
     }
     Vec::new()
 }

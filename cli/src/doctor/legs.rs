@@ -12,11 +12,12 @@ use std::time::Instant;
 
 use regex::Regex;
 
-use super::{Finding, Leg, Severity, Status, Target};
+use super::{Finding, Leg, Severity, Status, Suppressed, Target};
 
 pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
     let started = Instant::now();
     let relative = |path: &Path| path.strip_prefix(root).unwrap_or(path).display().to_string();
+    let mut suppressed = Vec::new();
     let (name, (status, findings)) = match target {
         Target::Workspace(path, declared) => (
             "workspace".to_string(),
@@ -25,7 +26,7 @@ pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
         Target::Dotnet(path) => (format!("dotnet {}", relative(path)), dotnet(path, build_args)),
         Target::Eslint(path) => (format!("eslint {}", relative(path)), eslint(path)),
         Target::Typecheck(path) => (format!("tsc {}", relative(path)), typecheck(path)),
-        Target::Flutter(path) => (format!("flutter {}", relative(path)), flutter(path)),
+        Target::Flutter(path) => (format!("flutter {}", relative(path)), flutter(path, &mut suppressed)),
         Target::Unknown(path) => (
             format!("frontend {}", relative(path)),
             (
@@ -38,6 +39,7 @@ pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
         name,
         status,
         findings,
+        suppressed,
         duration: started.elapsed(),
     }
 }
@@ -169,9 +171,13 @@ fn npx() -> &'static str {
     if cfg!(windows) { "npx.cmd" } else { "npx" }
 }
 
-fn flutter(path: &Path) -> Outcome {
-    match crate::flutter::rules::diagnose(path) {
-        Ok(findings) => (Status::Ran, findings),
+/// The native SKYFL rules. Their suppressions travel beside the findings so the report can show each one.
+fn flutter(path: &Path, suppressed: &mut Vec<Suppressed>) -> Outcome {
+    match crate::flutter::rules::analyze(path) {
+        Ok(diagnosis) => {
+            *suppressed = diagnosis.suppressed;
+            (Status::Ran, diagnosis.findings)
+        }
         Err(error) => (Status::Failed(format!("{error:#}")), Vec::new()),
     }
 }

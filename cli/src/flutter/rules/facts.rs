@@ -96,6 +96,19 @@ pub struct Binding {
     /// Identifiers used inside the bound value.
     pub identifiers: BTreeSet<String>,
     pub line: usize,
+    /// The bound value's byte range, so a rule can ask which calls its body makes.
+    pub span: (usize, usize),
+}
+
+impl Binding {
+    /// The calls made inside the bound value (a callback's body), in source order.
+    pub fn calls<'a>(&self, facts: &'a Facts) -> impl Iterator<Item = &'a Call> {
+        let (start, end) = self.span;
+        facts
+            .calls
+            .iter()
+            .filter(move |call| start <= call.span.0 && call.span.1 <= end)
+    }
 }
 
 /// Everything the rules know about one Dart file.
@@ -103,6 +116,8 @@ pub struct Binding {
 pub struct Facts {
     pub imports: Vec<Located<String>>,
     pub identifiers: Vec<Located<String>>,
+    /// The identifiers read inside an `if` condition (`if (!auth.isAuthenticated)`).
+    pub condition_identifiers: Vec<Located<String>>,
     /// Type names written with type arguments (`AsyncState<int>`, `ResourceBuilder<List<X>>(...)`).
     pub generics: BTreeSet<String>,
     pub calls: Vec<Call>,

@@ -1,10 +1,11 @@
 //! The SKYFL architecture rules for Flutter packages, run natively by `skies doctor`.
 //!
-//! Rule ids keep their 4.x meaning: SKYFL001–035 mirror the SKYFE slots by position, so a code seen in an old
-//! report still names the same concern, and SKYFL036 mirrors SKYFE036 (tests live in a spec). Skies 5 keeps only the architecture rules. Proof rules (a test, a tag, a
-//! flow manifest must exist), endpoint coverage, and the design-token band are gone, and their ids stay unused
-//! rather than being reassigned. SKYFL037–040 are the accessibility floor (see `a11y`): Flutter-specific, with no
-//! SKYFE twin, because the web's floor is jsx-a11y.
+//! A number up to 036 is the SKYFE rule of the same number: the same intent and tier in Flutter's spelling (the
+//! twin contract `doctor::catalog_tests` pins), so a code names one concern in either ecosystem. Skies 5 keeps only
+//! the architecture rules. Proof rules (a test, a tag, a flow manifest must exist), endpoint coverage, and the
+//! design-token band are gone, and their ids stay unused rather than being reassigned. SKYFL037–040 are the
+//! accessibility floor (see `a11y`): Flutter-specific, with no SKYFE twin, because the web's floor is jsx-a11y. A
+//! finding can be silenced only by a reasoned `skies-ignore` directive, which the report shows (see `suppress`).
 
 mod a11y;
 #[cfg(test)]
@@ -14,9 +15,13 @@ mod calibration_tests;
 mod checks;
 mod facts;
 mod navigation;
+mod session;
+mod suppress;
 mod syntax;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod twin_tests;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -24,50 +29,79 @@ use std::path::{Path, PathBuf};
 use anyhow::{Result, bail};
 use rayon::prelude::*;
 
-use crate::doctor::{Finding, Severity};
+use crate::doctor::{Finding, Severity, Suppressed};
 use crate::flutter::{files_with_extension, i18n};
 use facts::Facts;
 
+/// One catalogued rule: its code, its name, and its tier. The tier lives here, not at the call that reports it, so
+/// the catalog (and the docs pinned to it by `catalog_tests`) is the one place a rule's loudness is decided: an
+/// architecture or security rule is an error; a taste, or a heuristic that cannot see everything, is a warning.
+pub struct Rule {
+    pub code: &'static str,
+    pub name: &'static str,
+    pub severity: Severity,
+}
+
+const fn error(code: &'static str, name: &'static str) -> Rule {
+    Rule {
+        code,
+        name,
+        severity: Severity::Error,
+    }
+}
+
+const fn warning(code: &'static str, name: &'static str) -> Rule {
+    Rule {
+        code,
+        name,
+        severity: Severity::Warning,
+    }
+}
+
 /// Every rule still enforced, by code. The gaps are the retired proof, coverage, and design rules.
-pub const RULES: [(&str, &str); 29] = [
-    ("SKYFL001", "view-purity"),
-    ("SKYFL002", "data-door"),
-    ("SKYFL003", "no-mock"),
-    ("SKYFL004", "viewmodel-render-agnostic"),
-    ("SKYFL007", "mandatory-state"),
-    ("SKYFL010", "state-completeness"),
-    ("SKYFL011", "i18n-parity"),
-    ("SKYFL013", "mutation-error-surface"),
-    ("SKYFL014", "no-hardcoded-copy"),
-    ("SKYFL015", "declarative-redirect"),
-    ("SKYFL016", "session-one-door"),
-    ("SKYFL017", "guard-tristate"),
-    ("SKYFL018", "route-param-guard"),
-    ("SKYFL019", "safe-back"),
-    ("SKYFL020", "configured-base-url"),
-    ("SKYFL021", "raw-html-one-door"),
-    ("SKYFL022", "no-open-redirect"),
-    ("SKYFL023", "no-placeholder"),
-    ("SKYFL027", "mutation-defaults"),
-    ("SKYFL028", "no-manual-refetch"),
-    ("SKYFL029", "refresh-one-door"),
-    ("SKYFL030", "typed-navigation"),
-    ("SKYFL031", "submit-invalid-path"),
-    ("SKYFL032", "field-error-surface"),
-    ("SKYFL036", "tests-live-in-specs"),
-    ("SKYFL037", "icon-button-label"),
-    ("SKYFL038", "image-semantics"),
-    ("SKYFL039", "tap-target-label"),
-    ("SKYFL040", "text-field-label"),
+pub const RULES: [Rule; 29] = [
+    error("SKYFL001", "view-purity"),
+    error("SKYFL002", "data-door"),
+    error("SKYFL003", "no-mock"),
+    error("SKYFL004", "viewmodel-render-agnostic"),
+    error("SKYFL007", "mandatory-state"),
+    error("SKYFL010", "state-completeness"),
+    error("SKYFL011", "i18n-parity"),
+    error("SKYFL013", "mutation-error-surface"),
+    error("SKYFL014", "no-hardcoded-copy"),
+    error("SKYFL015", "declarative-redirect"),
+    error("SKYFL016", "session-one-door"),
+    error("SKYFL017", "guard-tristate"),
+    error("SKYFL018", "route-param-guard"),
+    error("SKYFL019", "safe-back"),
+    error("SKYFL020", "configured-base-url"),
+    error("SKYFL021", "raw-html-one-door"),
+    error("SKYFL022", "no-open-redirect"),
+    warning("SKYFL023", "no-placeholder"),
+    error("SKYFL027", "mutation-defaults"),
+    warning("SKYFL028", "no-manual-refetch"),
+    error("SKYFL029", "refresh-one-door"),
+    error("SKYFL030", "typed-navigation"),
+    warning("SKYFL031", "submit-invalid-path"),
+    warning("SKYFL032", "field-error-surface"),
+    error("SKYFL036", "tests-live-in-specs"),
+    error("SKYFL037", "icon-button-label"),
+    error("SKYFL038", "image-semantics"),
+    warning("SKYFL039", "tap-target-label"),
+    warning("SKYFL040", "text-field-label"),
 ];
 
-/// The code for a rule name.
-pub fn code(name: &str) -> &'static str {
+fn rule(name: &str) -> &'static Rule {
     RULES
         .iter()
-        .find(|(_, rule)| *rule == name)
-        .map(|(code, _)| *code)
+        .find(|rule| rule.name == name)
         .expect("every rule name is catalogued")
+}
+
+/// A finding of the named rule, at the rule's catalogued tier.
+pub fn finding(name: &str, file: PathBuf, line: Option<usize>, message: String) -> Finding {
+    let rule = rule(name);
+    Finding::new(rule.code, rule.severity, file, line, message)
 }
 
 /// What a file is, by the conventions its path encodes.
@@ -84,7 +118,7 @@ pub struct Role {
     /// part may call the generated client).
     pub view_part: bool,
     pub model_part: bool,
-    /// Under `lib/ui/`: the app's design-system primitives.
+    /// Under `lib/ui/`: the app's design-system primitives (the `AppInput` field every form uses).
     pub ui: bool,
     /// `lib/session.dart`, `lib/skies_client.dart`, `lib/guard(s).dart`: the seams allowed to touch tokens.
     pub session_door: bool,
@@ -146,16 +180,29 @@ pub struct Source {
     pub facts: Facts,
 }
 
+/// The findings that stand, and the ones a reasoned `skies-ignore` directive suppressed (see [`suppress`]).
+#[derive(Debug, Default)]
+pub struct Diagnosis {
+    pub findings: Vec<Finding>,
+    pub suppressed: Vec<Suppressed>,
+}
+
+/// The findings that stand over a Flutter package; see [`analyze`].
+#[cfg(test)]
+pub fn diagnose(project: &Path) -> Result<Vec<Finding>> {
+    Ok(analyze(project)?.findings)
+}
+
 /// Runs every rule over a Flutter package (`lib/`, `test/`, `integration_test/`, and its ARB catalogs). Hidden
 /// folders are skipped, which is where a spec runner copies a spec's cases to run them inside the package.
-pub fn diagnose(project: &Path) -> Result<Vec<Finding>> {
+pub fn analyze(project: &Path) -> Result<Diagnosis> {
     let lib = project.join("lib");
     if !lib.is_dir() {
         bail!("Flutter lib directory not found: {}", lib.display());
     }
     // A generated client is the generator's output, not app code: its `*_view.dart` models are DTOs, not Views.
     if project.join(crate::flutter::client::MARKER).is_file() {
-        return Ok(Vec::new());
+        return Ok(Diagnosis::default());
     }
     let mut paths = files_with_extension(&lib, "dart");
     paths.extend(files_with_extension(&project.join("test"), "dart"));
@@ -186,8 +233,10 @@ pub fn diagnose(project: &Path) -> Result<Vec<Finding>> {
         .collect();
     findings.extend(checks::project(&sources));
     findings.extend(i18n_parity(project)?);
+    let (mut findings, mut suppressed) = suppress::apply(findings, &sources);
     findings.sort();
-    Ok(findings)
+    suppressed.sort_by(|a, b| a.finding.cmp(&b.finding));
+    Ok(Diagnosis { findings, suppressed })
 }
 
 fn i18n_parity(project: &Path) -> Result<Vec<Finding>> {
@@ -201,7 +250,7 @@ fn i18n_parity(project: &Path) -> Result<Vec<Finding>> {
         .into_iter()
         .map(|gap| {
             let message = format!("missing ARB keys: {}", gap.missing.join(", "));
-            Finding::new(code("i18n-parity"), Severity::Error, gap.path, None, message)
+            finding("i18n-parity", gap.path, None, message)
         })
         .collect())
 }
