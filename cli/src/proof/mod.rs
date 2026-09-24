@@ -5,7 +5,9 @@
 //! in a hook or blocks anything by default.
 
 mod avp;
+mod coverage;
 mod ctx;
+mod footprint;
 mod git;
 mod green;
 mod hash;
@@ -75,9 +77,18 @@ pub fn status() -> Result<u8> {
         return Ok(0);
     }
     let width = specs.iter().map(|spec| spec.name.len()).max().unwrap_or(0);
+    // Every receipt is read once, and every footprint file shared between them is hashed once, in parallel.
+    let receipts: Vec<Result<Option<receipt::Receipt>>> = specs.iter().map(receipt::Receipt::load).collect();
+    let shared: std::collections::BTreeSet<&String> = receipts
+        .iter()
+        .flat_map(|receipt| receipt.as_ref().ok().and_then(Option::as_ref))
+        .flat_map(|receipt| receipt.footprint.keys())
+        .collect();
+    let known = hash::hash_all(root, shared);
     let mut unreadable = false;
-    for spec in &specs {
-        let (line, readable) = freshness_line(root, spec);
+    for (spec, receipt) in specs.iter().zip(receipts) {
+        let (line, readable) =
+            describe(receipt.and_then(|receipt| receipt::freshness_with(root, spec, receipt, &known)));
         unreadable |= !readable;
         println!("{:<width$}  {line}", spec.name);
     }
@@ -86,7 +97,11 @@ pub fn status() -> Result<u8> {
 
 /// A receipt's standing in one phrase, and whether it could be read at all.
 fn freshness_line(root: &std::path::Path, spec: &spec::SpecDir) -> (String, bool) {
-    match receipt::freshness(root, spec) {
+    describe(receipt::freshness(root, spec))
+}
+
+fn describe(freshness: Result<Freshness>) -> (String, bool) {
+    match freshness {
         Ok(Freshness::Missing) => ("no receipt".to_string(), true),
         Ok(Freshness::Current) => ("current".to_string(), true),
         Ok(Freshness::Stale(changed)) => (changed_line("stale", "changed", &changed), true),

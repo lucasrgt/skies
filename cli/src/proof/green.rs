@@ -10,13 +10,13 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
-use super::avp;
 use super::hash::{self, Hashes};
 use super::receipt::{Entry, GreenCase};
 use super::report::{self, FmId};
 use super::runner::{Job, Session};
 use super::scrub::Scrub;
 use super::spec::{EVIDENCE_DIR, SpecDir, SpecDoc};
+use super::{avp, coverage};
 use crate::manifest::Project;
 
 pub struct ProvenGreen {
@@ -27,6 +27,12 @@ pub struct ProvenGreen {
     pub file: PathBuf,
     /// Artifacts the runner wrote to `{evidence}` / `$SKIES_EVIDENCE`, staged until the run is known to be good.
     pub staged: PathBuf,
+    /// The project files the run executed, or why there is no telling. Coverage never enters evidence: the
+    /// footprint hashes it produces are the record.
+    pub coverage: coverage::Outcome,
+    /// The coverage location as a project path when the runner writes it inside the project, so the report itself
+    /// never counts as a changed file.
+    pub coverage_artifact: Option<String>,
 }
 
 pub enum GreenOutcome {
@@ -95,11 +101,21 @@ pub fn run_green(
             (*id, Entry::new(GreenCase::Pass, doc.avp(*id), Some(verdict)))
         })
         .collect();
+    // An unreadable coverage file costs the footprint its precision, never the proof.
+    let covered = coverage::collect(&run.coverage, runner_name, root, &[root])
+        .unwrap_or_else(|error| coverage::Outcome::Missing(format!("could not read coverage: {error:#}")));
+    let coverage_artifact = run
+        .coverage
+        .path
+        .starts_with(root)
+        .then(|| hash::relative(root, &run.coverage.path));
     Ok(GreenOutcome::Proven(ProvenGreen {
         cases,
         report: format!("{EVIDENCE_DIR}/green.{}", run.report.format.extension()),
         file: run.file,
         staged,
+        coverage: covered,
+        coverage_artifact,
     }))
 }
 

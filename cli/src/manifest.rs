@@ -10,8 +10,10 @@
 //! frontend = ["clients/web", "clients/hosts"]
 //!
 //! [runners.api]
-//! command = "dotnet test tests/Hostpoint.Tests --filter FullyQualifiedName~Specs.S{id}. --logger trx;LogFileName={report}"
-//! report = "tests/Hostpoint.Tests/TestResults/{id}.trx"
+//! command = "dotnet test tests/Hostpoint.Tests --filter FullyQualifiedName~Specs.S{id}. --logger trx;LogFileName={report} --collect \"XPlat Code Coverage\" --results-directory {coverage} -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura"
+//!
+//! [runners.web]
+//! command = "npx vitest run {dir} --reporter=junit --outputFile={report} --coverage.enabled --coverage.reporter=lcov --coverage.reportsDirectory={coverage}"
 //! ```
 
 use std::collections::BTreeMap;
@@ -84,6 +86,10 @@ pub struct Runner {
     pub command: String,
     /// Where the report lands, relative to the root. Defaults to a file the engine chooses and passes as `{report}`.
     pub report: Option<String>,
+    /// Where the runner writes coverage (a Cobertura or LCOV file, or a folder holding them), relative to the root.
+    /// Defaults to a path the engine chooses and passes as `{coverage}` and `SKIES_COVERAGE`. Optional: a runner
+    /// without coverage gets a footprint of the files changed since red.
+    pub coverage: Option<String>,
     /// Run once before the first spec that uses this runner, e.g. to start a database.
     pub setup: Option<String>,
     #[serde(default)]

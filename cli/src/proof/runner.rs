@@ -11,6 +11,7 @@ use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result, bail};
 
+use super::coverage::Location;
 use super::report::{self, Report};
 use super::spec::{E2E_DIR, SpecDir};
 use crate::manifest::Runner;
@@ -47,10 +48,12 @@ impl std::fmt::Display for NoReport {
 
 impl std::error::Error for NoReport {}
 
-/// A finished run: the parsed report and the file it came from, which the caller copies into evidence verbatim.
+/// A finished run: the parsed report and the file it came from, which the caller copies into evidence verbatim, and
+/// where the run's coverage landed, if it wrote any.
 pub struct Run {
     pub report: Report,
     pub file: PathBuf,
+    pub coverage: Location,
 }
 
 /// Remembers which setups already ran, so `setup` runs once per runner and checkout in a single invocation even
@@ -94,6 +97,12 @@ impl Session {
         if let Some(parent) = report_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
+        // Coverage from an earlier run describes other code; a runner that writes none must find nothing there.
+        let coverage = Location {
+            path: PathBuf::from(&values["coverage"]),
+            configured: job.runner.coverage.is_some() || mentions_coverage(job.runner),
+        };
+        remove(&coverage.path)?;
         // A verdict or artifact left by an earlier run must never count as this run's evidence.
         if job.evidence.exists() {
             std::fs::remove_dir_all(job.evidence).with_context(|| format!("clearing {}", job.evidence.display()))?;
@@ -120,6 +129,7 @@ impl Session {
         Ok(Run {
             report,
             file: report_path,
+            coverage,
         })
     }
 }
@@ -136,16 +146,42 @@ fn placeholders(job: &Job) -> Result<BTreeMap<&'static str, String>> {
         None => job.scratch.join(format!("{}-report.xml", job.label)),
     };
     values.insert("report", path_text(&report)?);
+    let coverage = match &job.runner.coverage {
+        Some(configured) => job.root.join(expand(configured, &values)),
+        None => job.scratch.join(format!("{}-coverage", job.label)),
+    };
+    values.insert("coverage", path_text(&coverage)?);
     Ok(values)
 }
 
+/// Whether the runner passes `{coverage}` anywhere, which is how a runner without a fixed `coverage` path opts in.
+fn mentions_coverage(runner: &Runner) -> bool {
+    let placeholder = "{coverage}";
+    runner.command.contains(placeholder)
+        || runner.setup.as_deref().is_some_and(|setup| setup.contains(placeholder))
+        || runner.env.values().any(|value| value.contains(placeholder))
+}
+
+/// Deletes a file or a folder, if there is one.
+fn remove(path: &Path) -> Result<()> {
+    let result = if path.is_dir() {
+        std::fs::remove_dir_all(path)
+    } else if path.exists() {
+        std::fs::remove_file(path)
+    } else {
+        return Ok(());
+    };
+    result.with_context(|| format!("removing the previous coverage {}", path.display()))
+}
+
 /// Environment every runner gets without configuring it: tests find where to drop artifacts (an Assay verdict, a
-/// screenshot) and which spec they serve, whatever the test framework and however the command is written. A
-/// runner's own `env` still wins on a name clash.
+/// screenshot), which spec they serve, and where coverage goes, whatever the test framework and however the command
+/// is written. A runner's own `env` still wins on a name clash.
 fn automatic_env(values: &BTreeMap<&'static str, String>) -> BTreeMap<String, String> {
     BTreeMap::from([
         ("SKIES_EVIDENCE".to_string(), values["evidence"].clone()),
         ("SKIES_SPEC".to_string(), values["spec"].clone()),
+        ("SKIES_COVERAGE".to_string(), values["coverage"].clone()),
     ])
 }
 

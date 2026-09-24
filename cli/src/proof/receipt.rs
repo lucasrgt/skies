@@ -9,6 +9,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
+use super::footprint::Source;
 use super::hash::{self, Hashes};
 use super::report::FmId;
 use super::spec::{RECEIPT_FILE, SpecDir, SpecDoc};
@@ -19,8 +20,16 @@ pub struct Receipt {
     pub runner: String,
     pub red: Red,
     pub green: Green,
-    /// Source files the change covers, relative to the project root. If any changes, the receipt is stale.
+    /// Source files the receipt depends on, relative to the project root. If any changes, the receipt is stale.
     pub footprint: Hashes,
+    /// `coverage` when the footprint is the files the green run executed (plus the diff and `touches`), `diff` when
+    /// it is only the files changed since red plus `touches`. Receipts written before coverage read as `diff`.
+    #[serde(default)]
+    pub footprint_source: Source,
+    /// With a coverage footprint, the files changed between red and green. `verify` refreshes the executed files
+    /// from its own run and keeps these, since the change itself is what the receipt proves.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub footprint_changed: Vec<String>,
     /// What the receipt was recorded from: spec.md, the e2e files, and the root lockfiles.
     pub inputs: Hashes,
     /// Every committed file under evidence/, relative to the spec folder. The evidence is the frozen artifact a
@@ -156,7 +165,13 @@ pub enum Freshness {
 /// Rehashes the evidence, the recorded footprint, and today's inputs (spec.md, e2e files, lockfiles, and anything new
 /// that matches `touches`). Filesystem only, so it stays in milliseconds.
 pub fn freshness(root: &Path, spec: &SpecDir) -> Result<Freshness> {
-    let Some(receipt) = Receipt::load(spec)? else {
+    freshness_with(root, spec, Receipt::load(spec)?, &Hashes::new())
+}
+
+/// [`freshness`] for an already loaded receipt, reusing `known` hashes of today's files. Coverage footprints of
+/// sibling specs share most of their files (the host wiring, the entities), so `status` hashes each file once.
+pub fn freshness_with(root: &Path, spec: &SpecDir, receipt: Option<Receipt>, known: &Hashes) -> Result<Freshness> {
+    let Some(receipt) = receipt else {
         return Ok(Freshness::Missing);
     };
     if let Some(recorded) = &receipt.evidence {
@@ -171,7 +186,7 @@ pub fn freshness(root: &Path, spec: &SpecDir) -> Result<Freshness> {
     footprint_paths.extend(touched.iter().filter(|path| !receipt.footprint.contains_key(*path)));
     let inputs = hash::input_paths(root, spec)?;
 
-    let mut changed = hash::changed(&receipt.footprint, &hash::hash_all(root, footprint_paths));
+    let mut changed = hash::changed(&receipt.footprint, &hash::hash_known(root, footprint_paths, known));
     changed.extend(hash::changed(&receipt.inputs, &hash::hash_all(root, &inputs)));
     Ok(if changed.is_empty() {
         Freshness::Current
@@ -216,6 +231,8 @@ mod tests {
                 report: "evidence/green.xml".into(),
             },
             footprint: [("src/A.cs".into(), "blake3:00".into())].into(),
+            footprint_source: Source::Coverage,
+            footprint_changed: vec!["src/A.cs".into()],
             inputs: Hashes::new(),
             evidence: Some([("evidence/green.xml".into(), "blake3:01".into())].into()),
             ctx_revised: Vec::new(),
@@ -224,7 +241,7 @@ mod tests {
         let json = serde_json::to_string(&receipt).unwrap();
         assert_eq!(
             json,
-            r#"{"spec":"0001-a","runner":"api","red":{"commit":"abc","cases":{"FM-1":"fail","FM-2":"non-discriminating","FM-3":{"result":"fail","avp":["idempotency-key-honored"]}},"report":"evidence/red.xml"},"green":{"commit":"def","dirty":false,"cases":{"FM-1":"pass","FM-2":"pass","FM-3":{"result":"pass","avp":["idempotency-key-honored"],"verdict":"evidence/avp-FM-3.json"}},"report":"evidence/green.xml"},"footprint":{"src/A.cs":"blake3:00"},"inputs":{},"evidence":{"evidence/green.xml":"blake3:01"}}"#
+            r#"{"spec":"0001-a","runner":"api","red":{"commit":"abc","cases":{"FM-1":"fail","FM-2":"non-discriminating","FM-3":{"result":"fail","avp":["idempotency-key-honored"]}},"report":"evidence/red.xml"},"green":{"commit":"def","dirty":false,"cases":{"FM-1":"pass","FM-2":"pass","FM-3":{"result":"pass","avp":["idempotency-key-honored"],"verdict":"evidence/avp-FM-3.json"}},"report":"evidence/green.xml"},"footprint":{"src/A.cs":"blake3:00"},"footprint_source":"coverage","footprint_changed":["src/A.cs"],"inputs":{},"evidence":{"evidence/green.xml":"blake3:01"}}"#
         );
         let back: Receipt = serde_json::from_str(&json).unwrap();
         assert_eq!(back.red.cases[&FmId(2)].result(), RedCase::NonDiscriminating);
@@ -237,6 +254,8 @@ mod tests {
         let old = r#"{"spec":"0001-a","runner":"api","red":{"commit":"a","cases":{"FM-1":"fail"},"report":"r"},"green":{"commit":"b","dirty":false,"cases":{"FM-1":"pass"},"report":"g"},"footprint":{},"inputs":{}}"#;
         let receipt: Receipt = serde_json::from_str(old).unwrap();
         assert!(receipt.evidence.is_none());
+        assert_eq!(receipt.footprint_source, Source::Diff);
+        assert!(receipt.footprint_changed.is_empty());
         assert!(receipt.ctx_revised.is_empty());
         assert!(receipt.verified_with.is_empty());
     }
