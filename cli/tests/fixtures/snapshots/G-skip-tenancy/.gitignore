@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+TestResults/
+*.trx
+
+# IDE state
+.vs/
+.idea/
+*.user
+
+# Keep spec evidence reports; large runner artifacts (traces, videos) stay out of git.
+!.specs/**/evidence/*.trx
+.specs/**/evidence/*.zip
+.specs/**/evidence/*.webm
+.specs/**/evidence/*.mp4
+.specs/**/evidence/trace*

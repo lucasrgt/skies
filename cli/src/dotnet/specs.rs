@@ -33,16 +33,15 @@ pub fn emit(project: &ApiProject, slug: &str, flags: blueprint::Flags) -> Result
     Ok(folder)
 }
 
-/// The spec names `runner: api`; `skies proof record` needs that runner declared. The template ships it
-/// commented out, so point at it rather than editing the manifest behind the owner's back.
+/// The spec names `runner: api`; `skies proof record` needs that runner declared. New apps declare it; an older or
+/// hand-edited manifest may not, so point at it rather than editing the manifest behind the owner's back.
 fn note_missing_runner(project: &ApiProject) {
     let manifest = project.solution_root().join(crate::manifest::FILE_NAME);
     let declared =
         std::fs::read_to_string(&manifest).is_ok_and(|text| text.lines().any(|line| line.trim() == "[runners.api]"));
     if !declared {
         println!(
-            "note: declare [runners.api] in {} (the template has a commented example) so `skies proof record` \
-             can run this spec.",
+            "note: declare [runners.api] in {} so `skies proof record` can run this spec.",
             crate::manifest::FILE_NAME
         );
     }

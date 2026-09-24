@@ -103,23 +103,14 @@ mod tests {
     }
 
     #[test]
-    fn the_commented_runner_example_parses_once_uncommented() {
+    fn a_new_app_declares_the_api_runner_and_ignores_build_output() {
         let dir = tempfile::tempdir().unwrap();
         new_app(dir.path(), "Acme").unwrap();
         let manifest = std::fs::read_to_string(dir.path().join("Acme/Skies.toml")).unwrap();
-        let uncommented: String = manifest
-            .lines()
-            .map(|line| {
-                if line.starts_with("# [runners") || line.starts_with("# command") || line.starts_with("# report") {
-                    &line[2..]
-                } else {
-                    line
-                }
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-        let parsed: crate::manifest::Manifest = toml::from_str(&uncommented).unwrap();
+        let parsed: crate::manifest::Manifest = toml::from_str(&manifest).unwrap();
         assert!(parsed.runners["api"].command.contains("Specs.S{id}."));
+        let ignored = std::fs::read_to_string(dir.path().join("Acme/.gitignore")).unwrap();
+        assert!(ignored.lines().any(|line| line == "bin/") && ignored.lines().any(|line| line == "obj/"));
     }
 
     #[test]

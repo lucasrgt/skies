@@ -10,8 +10,7 @@ backend = "src/Skies.Framework.Starter.Api"   # .NET vertical slices; the SKY* a
 
 # A runner executes one spec's e2e/ folder and writes a JUnit or TRX report that `skies proof` reads back.
 # Placeholders: {id} (0001), {dir} (.specs/0001-auth/e2e), {spec} (0001-auth), {report} (the report path).
-# Specs name their runner in spec.md (`runner: api`). Uncomment to record proofs for the API specs:
-#
-# [runners.api]
-# command = "dotnet test tests/Skies.Framework.Starter.Tests --filter FullyQualifiedName~Specs.S{id}. --logger 'trx;LogFileName={id}.trx'"
-# report = "tests/Skies.Framework.Starter.Tests/TestResults/{id}.trx"
+# Specs name their runner in spec.md (`runner: api`).
+[runners.api]
+command = "dotnet test tests/Skies.Framework.Starter.Tests --filter FullyQualifiedName~Specs.S{id}. --logger 'trx;LogFileName={id}.trx'"
+report = "tests/Skies.Framework.Starter.Tests/TestResults/{id}.trx"
