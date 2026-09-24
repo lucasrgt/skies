@@ -9,6 +9,7 @@ mod eslint;
 mod imports;
 mod manifest;
 mod package_json;
+mod root;
 mod scripts;
 mod source;
 mod versions;
@@ -157,6 +158,8 @@ pub fn plan(root: &Path) -> Result<Plan> {
     for path in &files {
         source::migrate_file(root, path, &mut plan).with_context(|| format!("migrating {}", path.display()))?;
     }
+    // Last, so the declared root reflects what the other changes delete and create.
+    root::declare(root, &mut plan)?;
     Ok(plan)
 }
 
@@ -344,7 +347,17 @@ mod tests {
             "Skies.toml",
             "[workspace]\nname = \"demo\"\n\n[products.app]\nbackend = \"src/Demo.Api\"\n",
         );
-        let plan = plan(dir.path()).unwrap();
-        assert!(plan.changes.is_empty(), "{:?}", plan.changes);
+        write(dir.path(), "src/Demo.Api/Program.cs", "");
+        write(dir.path(), "VERIFICATION.md", "");
+        let first = plan(dir.path()).unwrap();
+        apply(&first).unwrap();
+
+        let manifest = crate::manifest::load(&dir.path().join("Skies.toml")).unwrap();
+        let declared = manifest.workspace.root.expect("migrate declares the root");
+        assert_eq!(declared, ["src/"]);
+        let (_, findings) = crate::doctor::workspace::check(dir.path(), Some(&declared));
+        assert!(findings.is_empty(), "a migrated root is doctor-clean: {findings:?}");
+        let second = plan(dir.path()).unwrap();
+        assert!(second.changes.is_empty(), "{:?}", second.changes);
     }
 }
