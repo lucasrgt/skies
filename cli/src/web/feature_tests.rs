@@ -346,14 +346,24 @@ fn a_form_takes_the_record_it_acts_on_as_its_target() {
 
     let update = read(&web, "src/update-product/UpdateProduct.viewModel.ts");
     assert!(update.contains("export interface UpdateProductTarget {\n  id: string;\n  version: string;\n}"));
-    assert!(update.contains("export function useUpdateProductModel(target: UpdateProductTarget): UpdateProductModel {"));
+    assert!(
+        update.contains("export function useUpdateProductModel(target: UpdateProductTarget): UpdateProductModel {")
+    );
     assert!(update.contains("export interface UpdateProductForm {\n  name: string;\n}"));
-    assert!(update.contains("mutation.mutate({ id: target.id, data: { name: values.name, version: target.version } })"));
+    assert!(
+        update.contains("mutation.mutate({ id: target.id, data: { name: values.name, version: target.version } })")
+    );
     let view = read(&web, "src/update-product/UpdateProduct.view.tsx");
     assert!(view.contains("export function UpdateProductView({ target }: { target: UpdateProductTarget }) {"));
     assert!(view.contains("useUpdateProductModel(target);") && !view.contains("name=\"version\""));
     assert!(!read(&web, "src/update-product/update-product.i18n.ts").contains("version"));
 
     let delete = read(&web, "src/delete-product/DeleteProduct.viewModel.ts");
-    assert!(delete.contains("mutation.mutate({ id: target.id, params: { version: target.version } })"));
+    assert!(
+        delete.contains("    submit: () => mutation.mutate({ id: target.id, params: { version: target.version } }),")
+    );
+    assert!(!delete.contains("useForm") && !delete.contains("zod") && !delete.contains("Control<"));
+    let view = read(&web, "src/delete-product/DeleteProduct.view.tsx");
+    assert!(!view.contains("Controller") && !view.contains("control"));
+    assert!(view.contains("import { Button, Card, Screen, Stack, Text } from \"@/ui\";"));
 }

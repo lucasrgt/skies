@@ -303,7 +303,10 @@ mod tests {
         .unwrap();
         let op = doc.operation("UpdateProduct").unwrap();
         let fields = from_operation(&doc, &op, "UpdateProduct").unwrap();
-        let names: Vec<(&str, &str, bool)> = fields.iter().map(|f| (f.name.as_str(), f.location, f.context)).collect();
+        let names: Vec<(&str, &str, bool)> = fields
+            .iter()
+            .map(|f| (f.name.as_str(), f.location, f.context))
+            .collect();
         assert_eq!(
             names,
             [
@@ -326,7 +329,10 @@ mod tests {
 
         let delete = doc.operation("DeleteProduct").unwrap();
         let fields = from_operation(&doc, &delete, "DeleteProduct").unwrap();
-        let names: Vec<(&str, &str, bool)> = fields.iter().map(|f| (f.name.as_str(), f.location, f.context)).collect();
+        let names: Vec<(&str, &str, bool)> = fields
+            .iter()
+            .map(|f| (f.name.as_str(), f.location, f.context))
+            .collect();
         assert_eq!(names, [("id", "path", true), ("version", "query", true)]);
 
         let toggle = doc.operation("Toggle").unwrap();

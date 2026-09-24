@@ -124,14 +124,20 @@ echo "==> npm install (the @skiesjs packages from their tarballs)"
   "devDependencies.@skiesjs/eslint-plugin=file:$PLUGIN_TGZ" \
   && npm install --no-audit --no-fund --loglevel=error >/dev/null) || fail "npm install"
 
-echo "==> g client, g feature Products --kind list, g feature CreateProduct --kind form, i18n"
+echo "==> g client, g feature Products (list), CreateProduct, UpdateProduct, DeleteProduct (form), i18n"
 (cd "$WEB" && "$SKIES" g client >/dev/null) || fail "g client"
 (cd "$WEB" && "$SKIES" g feature Products --kind list >/dev/null) || fail "g feature Products"
 (cd "$WEB" && "$SKIES" g feature CreateProduct --kind form >/dev/null) || fail "g feature CreateProduct"
+(cd "$WEB" && "$SKIES" g feature UpdateProduct --kind form >/dev/null) || fail "g feature UpdateProduct"
+(cd "$WEB" && "$SKIES" g feature DeleteProduct --kind form >/dev/null) || fail "g feature DeleteProduct"
 (cd "$WEB" && "$SKIES" i18n >/dev/null) || fail "skies i18n"
 grep -q "use$LIST" "$WEB/src/products/Products.viewModel.ts" || fail "the list screen does not read use$LIST"
 grep -q 'name: z.string()' "$WEB/src/create-product/CreateProduct.viewModel.ts" \
   || fail "the form did not read CreateProduct's name field from the contract"
+grep -q "version: target.version" "$WEB/src/update-product/UpdateProduct.viewModel.ts" \
+  && grep -q "params: { version: target.version }" "$WEB/src/delete-product/DeleteProduct.viewModel.ts" \
+  || fail "the update and delete forms do not send the version they were given"
+grep -q "npm ci --prefix clients/web" "$APP/.github/workflows/ci.yml" || fail "g web-app did not add clients/web to the CI"
 
 ROUTER="$WEB/src/routes/router.ts"
 sed -i 's#^import { ShellView } from "@/shell/Shell.view";#&\nimport { ProductsView } from "@/products/Products.view";\nimport { CreateProductView } from "@/create-product/CreateProduct.view";#' "$ROUTER"

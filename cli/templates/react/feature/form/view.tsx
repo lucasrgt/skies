@@ -1,6 +1,10 @@
 import { useTranslation } from "react-i18next";
+{%- if fields %}
 import { Controller } from "react-hook-form";
 import { Button, Card, Field, Input, Screen, Stack, Text } from "@/ui";
+{%- else %}
+import { Button, Card, Screen, Stack, Text } from "@/ui";
+{%- endif %}
 import { use{{ name }}Model } from "./{{ name }}.viewModel";
 {%- if targets %}
 import type { {{ name }}Target } from "./{{ name }}.viewModel";
@@ -12,7 +16,7 @@ export function {{ name }}View({ target }: { target: {{ name }}Target }) {
 export function {{ name }}View() {
 {%- endif %}
   const { t } = useTranslation("{{ lower }}");
-  const { control, submit, submitting, submitError, completed } = use{{ name }}Model({% if targets %}target{% endif %});
+  const { {% if fields %}control, {% endif %}submit, submitting, submitError, completed } = use{{ name }}Model({% if targets %}target{% endif %});
 
   // A routed app returns a declarative <Navigate> here instead.
   if (completed) {
