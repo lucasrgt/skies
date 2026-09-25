@@ -224,7 +224,9 @@ pub enum Proof {
     /// Run the spec's E2E on the red revision (every failure mode must fail) and on the working tree (every one
     /// must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards. Cases that
     /// never ran on red count as failing only when the spec's own e2e files are why (a compile error or unresolved
-    /// import in them); any other red failure (restore, missing tool, runner command) exits 2 with no receipt.
+    /// import in them); any other red failure (restore, missing tool, runner command) exits 2 with no receipt. A
+    /// skipped case, a red.patch touching .specs/ or the test setup, and uncommitted changes are refused. The
+    /// receipt proves the cases failed on red and passed on green, not that their assertions are meaningful.
     Record {
         /// The spec id or folder name.
         spec: String,
@@ -236,6 +238,9 @@ pub enum Proof {
         /// A patch applied to HEAD for red, for specs written after the code; kept as the spec's red.patch.
         #[arg(long)]
         red_patch: Option<PathBuf>,
+        /// Record although the working tree differs from HEAD; the receipt then says `"dirty": true` under green.
+        #[arg(long)]
+        allow_dirty: bool,
     },
     /// Show which specs a change reaches: the specs cited by the ctx.md of every module the paths sit in
     /// (`**/Modules/<M>/` -> `<M>.ctx.md`), and the specs whose `touches:` globs match them, with their failure
@@ -255,9 +260,12 @@ fn main() -> ExitCode {
         Command::Doctor { package, build_args } => doctor::run(&build_args, package.as_deref()),
         Command::Spec(Spec::New { slug, runner }) => proof::spec_new(&slug, runner.as_deref()),
         Command::Proof(Proof::Run { spec }) => proof::run(&spec),
-        Command::Proof(Proof::Record { spec, red, red_patch }) => {
-            proof::record(&spec, red.as_deref(), red_patch.as_deref())
-        }
+        Command::Proof(Proof::Record {
+            spec,
+            red,
+            red_patch,
+            allow_dirty,
+        }) => proof::record(&spec, red.as_deref(), red_patch.as_deref(), allow_dirty),
         Command::Proof(Proof::Impact { paths }) => proof::impact(&paths),
         Command::Migrate { version, dry_run } => migrate::run(version, dry_run),
     };

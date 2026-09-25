@@ -219,9 +219,50 @@ pub fn evaluate(spec_fms: &[FmId], cases: &[Case]) -> Result<Evaluation, Inconsi
     Ok(Evaluation { passed, cases: by_fm })
 }
 
+/// Why a run of `label` (red or green) cannot be recorded because a case naming a failure mode was skipped, if one
+/// was. A skip is neither a failure nor a pass: on red a skipped case would count as biting although it never ran
+/// (an `it.skipIf(cond)` or `test.skip(cond)` that holds only on red forges red), and on green it proves nothing.
+pub fn skipped(cases: &BTreeMap<FmId, Vec<Case>>, label: &str) -> Option<String> {
+    let lines: Vec<String> = cases
+        .iter()
+        .flat_map(|(id, cases)| cases.iter().map(move |case| (id, case)))
+        .filter(|(_, case)| case.outcome == Outcome::Skipped)
+        .map(|(id, case)| format!("{id}: case \"{}\" was skipped on {label}", case.name))
+        .collect();
+    (!lines.is_empty()).then(|| {
+        format!(
+            "{}\nA skipped case proves nothing, so {label} does not count it: every case naming a failure mode must \
+             run and {}. Remove the skip (`it.skip`, `it.skipIf`, `test.skip(cond)`, `[Fact(Skip = …)]`, `skip:`).",
+            lines.join("\n"),
+            if label == "red" { "fail on red" } else { "pass on green" }
+        )
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_skipped_case_is_named_with_its_mode() {
+        let cases = BTreeMap::from([
+            (FmId(1), vec![case("FM-1: a", Outcome::Failed)]),
+            (FmId(2), vec![case("FM-2: b", Outcome::Skipped)]),
+        ]);
+        let message = skipped(&cases, "red").unwrap();
+        assert!(
+            message.starts_with("FM-2: case \"FM-2: b\" was skipped on red\n"),
+            "{message}"
+        );
+        assert!(message.contains("must run and fail on red"), "{message}");
+        assert!(
+            skipped(
+                &BTreeMap::from([(FmId(1), vec![case("FM-1: a", Outcome::Failed)])]),
+                "red"
+            )
+            .is_none()
+        );
+    }
 
     #[test]
     fn fm_ids_serialize_in_numeric_order() {

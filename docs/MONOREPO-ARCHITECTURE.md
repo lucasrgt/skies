@@ -42,11 +42,14 @@ Three sections exist, and unknown keys fail to parse:
   may appear in several products. `skies doctor` builds every backend and checks every frontend package listed here.
 - `[runners.*]` are the commands that run one spec's E2E. Placeholders: `{id}` (the spec id), `{spec}` (its folder
   name), `{dir}` (its `e2e/` folder), `{report}` (where the JUnit or TRX report goes), and `{evidence}` (where a case
-  saves artifacts to commit; also `SKIES_EVIDENCE`, with the spec folder name in `SKIES_SPEC`). Environment a tool
-  needs goes in the command itself (`NAME={report} npx …`). Every command runs through `sh -c` (`cmd /C` on
-  Windows), so shell syntax applies: quote an argument that holds a `;`, as the TRX logger's
-  `'trx;LogFileName={report}'` does, or the shell ends the command there and no report is written. Keys, and unknown
-  ones fail to parse:
+  saves artifacts to commit; also `SKIES_EVIDENCE`, with the spec folder name in `SKIES_SPEC`). Each value is quoted
+  for where it lands (bare, inside `'…'`, or inside `"…"`), so a path with a space reaches the tool as one argument.
+  Environment a tool needs goes in the command itself (`NAME={report} npx …`). Every command runs through `sh -c` on
+  every platform (on Windows, Git for Windows' `sh`, found on `PATH` or in Git's install folder, or the shell
+  `SKIES_SHELL` names; the engine refuses rather than fall back to `cmd`), so shell syntax applies: quote an argument
+  that holds a `;`, as the TRX logger's `'trx;LogFileName={report}'` does, or the shell ends the command there and
+  no report is written. The receipt records the runner's `setup`, `build`, and `command` as written here, with a
+  hash of the three. Keys, and unknown ones fail to parse:
   - `command` (required) runs from the checkout's project root; its exit code decides nothing, the report does.
   - `setup` runs first in each checkout (start a database, install packages). Red's checkout is a fresh git worktree
     inside the repository (`.skies-red/` at its top, excluded locally), so configuration found by walking up from
@@ -55,6 +58,9 @@ Three sections exist, and unknown keys fail to parse:
   - `build` runs once per checkout after `setup`, so `command` can skip compiling (`dotnet test --no-build`). A build
     that fails on red counts as `did-not-build` only when its errors sit in the spec's own `e2e/`; any other failure
     stops `skies proof record` without a receipt.
+
+  A runner's files (the product's `tests` project, a file its commands name, a setup file that file's config
+  names) are what a spec's `red.patch` may not touch, since red must differ from green in the feature alone.
 
 ## The root allowlist
 

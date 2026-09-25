@@ -16,6 +16,8 @@ pub const E2E_DIR: &str = "e2e";
 pub const RECEIPT_FILE: &str = "receipt.json";
 pub const EVIDENCE_DIR: &str = "evidence";
 pub const RED_PATCH_FILE: &str = "red.patch";
+/// How the failure mode `spec new` writes starts; `run` and `record` refuse a spec that still holds it.
+pub const PLACEHOLDER: &str = "<replace with";
 
 /// A spec folder on disk, identified by its numeric prefix.
 #[derive(Debug, Clone)]
@@ -63,9 +65,35 @@ pub fn discover(root: &Path) -> Result<Vec<SpecDir>> {
     Ok(specs)
 }
 
+/// Every spec, as [`discover`] finds them, refused when two folders share an id (`0001-auth` and `0001-home`, or
+/// `0001-a` and `1-b`): an id names one spec, and a command that silently picked the first would run, record, or
+/// report on a spec the author did not mean.
+pub fn discover_unique(root: &Path) -> Result<Vec<SpecDir>> {
+    let specs = discover(root)?;
+    let mut clashes: Vec<String> = Vec::new();
+    for pair in specs.windows(2) {
+        if id_number(&pair[0].id) == id_number(&pair[1].id) {
+            let (a, b) = (&pair[0], &pair[1]);
+            clashes.push(format!(
+                "{SPECS_DIR}/{} and {SPECS_DIR}/{} share id {}",
+                a.name, b.name, a.id
+            ));
+        }
+    }
+    if !clashes.is_empty() {
+        bail!(
+            "spec ids must be unique: {}. Renumber the newer folder to the next free id ({}; `skies spec new` always \
+             picks it) and update what cites it.",
+            clashes.join("; "),
+            next_id(root)?
+        );
+    }
+    Ok(specs)
+}
+
 /// Finds a spec by folder name, id as written (`0012`), or id as a number (`12`).
 pub fn find(root: &Path, key: &str) -> Result<SpecDir> {
-    let specs = discover(root)?;
+    let specs = discover_unique(root)?;
     let wanted = key.trim_end_matches('/').rsplit('/').next().unwrap_or(key);
     let number = wanted.parse::<u64>().ok();
     specs
@@ -139,14 +167,29 @@ impl SpecDoc {
         self.modes.get(&id).map(|mode| mode.avp.as_slice()).unwrap_or_default()
     }
 
-    /// Why the spec cannot be run or recorded because it lists no failure mode, if it lists none: a receipt of zero
-    /// modes would prove nothing, and a run of zero modes would pass vacuously.
-    pub fn empty(&self, spec: &SpecDir) -> Option<String> {
-        self.failure_modes.is_empty().then(|| {
-            format!(
+    /// Why the spec cannot be run or recorded, if it cannot: it lists no failure mode (a receipt of zero modes would
+    /// prove nothing, and a run of zero modes would pass vacuously), or a mode still reads as `spec new`'s
+    /// placeholder (a receipt for "<replace with …>" would claim a behavior nobody wrote down).
+    pub fn unprovable(&self, spec: &SpecDir) -> Option<String> {
+        if self.failure_modes.is_empty() {
+            return Some(format!(
                 "{}/{SPEC_FILE} lists no failure mode, so there is nothing to prove. Under `## Failure modes`, write \
                  one line per way the feature can fail, as `- FM-1 <what goes wrong>` ({GRAMMAR_DOC}).",
                 spec.rel()
+            ));
+        }
+        let placeholders: Vec<String> = self
+            .modes
+            .iter()
+            .filter(|(_, mode)| mode.text.starts_with(PLACEHOLDER))
+            .map(|(id, _)| id.to_string())
+            .collect();
+        (!placeholders.is_empty()).then(|| {
+            format!(
+                "{}/{SPEC_FILE}: {} still reads as the template's placeholder (`{PLACEHOLDER} …>`). Replace it with \
+                 what goes wrong, observable from outside, e.g. `- FM-1 a second cancel refunds twice`.",
+                spec.rel(),
+                placeholders.join(", ")
             )
         })
     }
@@ -372,7 +415,7 @@ pub fn template(id: &str, slug: &str, runner: &str) -> String {
          <!-- One `- FM-<n> <what goes wrong>` line per way the feature can fail, observable from outside. Each gets\n\
          e2e cases titled \"FM-<n>: ...\" that fail before the implementation and pass after it. -->\n\
          \n\
-         - FM-1 <replace with what goes wrong, e.g. a second cancel refunds twice>\n\
+         - FM-1 {PLACEHOLDER} what goes wrong, e.g. a second cancel refunds twice>\n\
          \n\
          ## Out of scope\n\
          \n\

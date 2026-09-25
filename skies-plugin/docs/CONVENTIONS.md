@@ -283,14 +283,17 @@ CI cannot produce, so that is all the receipt records.
   - a case proves `FM-<n>` when its title starts with `FM-<n>:` or `FM-<n> `
     (`[Fact(DisplayName = "FM-2: double cancel refunds once")]`, `test("FM-2: …")`, `testWidgets('FM-2: …')`; the
     title is what follows the last ` > ` or ` › ` a runner prefixes for describe blocks), or when its method name
-    starts with `FM<n>_` (`FM2_double_cancel`, a .NET case without a DisplayName). Keep Dart cases outside `group()`,
+    starts with `FM<n>_` (`FM2_double_cancel`, a .NET case without a DisplayName). Only the title is read: a describe
+    block named `FM-2: …` neither names a mode nor makes its cases look-alikes. Keep Dart cases outside `group()`,
     whose name Flutter prefixes to the title.
   - a ctx.md cites a mode as `` `0002-withdraw#FM-2` `` (`SKY0005`).
 
   `FM` is upper case and the hyphen is required. A line or title that starts like an id but is not one (`FM 3`,
   `fm_3`, `FM3:`, `FM-[name]`) is an error, never silently a mode or silently nothing. Every failure mode needs a
-  case and every case must name a mode `spec.md` lists; otherwise the run is refused. A spec with no failure mode is
-  refused too (`proof run` and `record` exit 1): it would prove nothing.
+  case and every case must name a mode `spec.md` lists; otherwise the run is refused. A spec with no failure mode, or
+  one still holding the `- FM-1 <replace with …>` placeholder `spec new` writes, is refused too (`proof run` and
+  `record` exit 1): it would prove nothing. A spec id names one spec: two folders with the same id (`0001-auth` and
+  `0001-home`) make `run`, `record`, and `impact` refuse, and `spec new` always takes the next free id.
 - **`skies proof run <spec>` is the loop while writing.** It runs the spec's E2E once on the working tree and prints
   each failure mode's pass or fail with what the failing cases reported. It writes only the spec's local
   `evidence/raw/` (the report, `run.log`, and what the cases saved under `$SKIES_EVIDENCE/raw/`): no receipt, no
@@ -303,23 +306,43 @@ CI cannot produce, so that is all the receipt records.
   and warns past 50 commits. Red runs in a temporary git worktree inside the repository (`.skies-red/` at its top,
   listed in the local `.git/info/exclude` and removed afterwards), so configuration above the project
   (`NuGet.config`, `.npmrc`, `global.json`) applies to it. A mode already passing on red is non-discriminating and
-  needs a written justification under `## Non-discriminating` in `spec.md`.
+  needs a written justification under `## Non-discriminating` in `spec.md`. A case naming a mode that is skipped
+  (`it.skipIf`, `test.skip(cond)`, `[Fact(Skip = …)]`) on red or on green stops `record`: a skip is neither a
+  failure nor a pass.
+- **Red differs from green in the feature alone, and green is a commit.** Red's `spec.md` and `e2e/` are copied
+  from the working tree byte for byte. A `red.patch` that touches `.specs/` or the files that run the tests (the
+  product's `tests` project, a file a runner command names and the setup files its config names, `vitest.config.*`,
+  `playwright.config.*`, `*.Tests.csproj`, …) is refused, and so is a `--red <rev>` whose diff to green touches
+  them or the shared files of `.specs/` (a stand-in backend such as `web.setup.ts`); the default red only warns,
+  since that diff is the branch's own and review reads it. `record` refuses a working tree that differs from `HEAD`
+  in anything but the specs' receipts, `evidence/`, and `red.patch` files: commit the spec, its E2E, and the code
+  first, or pass `--allow-dirty`, which the receipt records as `"dirty": true` under green.
 - **Cases that never ran on red count as failing (`did-not-build`) only when the spec's own cases are why**: compiler
   errors located in its `e2e/` files (`error CS…` for .NET, `error TS…`, Dart `Error:` and analyzer errors, also in a
   runner's copy of them under `.skies_spec/`), or a report whose only failures are file-level failures of its `e2e/`
   files (vitest's case for an import that does not resolve yet, Flutter's `loading …`). That is the expected red of a
-  new feature: its E2E reference code that does not exist yet. The receipt's `red.output` keeps those lines. Any
+  new feature: its E2E reference code that does not exist yet. The receipt's `red.output` keeps those lines. When
+  every mode is `did-not-build`, `record` still writes the receipt but warns that red proves only that the types or
+  modules are new, not that an assertion fails without the behavior; a `red.patch` that keeps the types and stubs
+  the behavior proves that too. Any
   other reason red could not run its cases (a restore that failed, a missing tool, a runner command the shell could
   not run, an error in a file outside the spec, no output) is not evidence: `record` exits 2 with the tail of red's
   output and writes no receipt. When red does not match `spec.md`, `record` prints the tail of red's output: the
   usual cause is a red revision that is not the one intended. In both cases red's output stays in
   `evidence/raw/red.log`.
-- **The receipt is the summary a reviewer reads.** It names the runner, red's commit (and `red.patch`), green's
-  commit, and per failure mode: the red result (`fail`, `did-not-build`, `non-discriminating`), the green result,
-  the cases that proved it, the start of what red's first failing case said (the assertion, not the stack; checkout
-  paths become `{root}`), and for a tagged mode its criteria and verdict files. No durations, no hashes, no
-  footprint: keys are sorted, so recording an unchanged spec again leaves git clean. Re-record when the failure
-  modes change; nothing else asks you to.
+- **The receipt is the summary a reviewer reads.** It names the runner and its `commands` as `Skies.toml` declares
+  them (`setup`, `build`, `command`, placeholders unexpanded, and a `blake3:` hash of the three), red's commit (and
+  `red.patch`), green's commit (and `"dirty": true` when `--allow-dirty` recorded it), and per failure mode: the red
+  result (`fail`, `did-not-build`, `non-discriminating`), the green result, the cases that proved it, the start of
+  what red's first failing case said (the assertion, not the stack; checkout paths become `{root}`), and for a
+  tagged mode its criteria and verdict files. No durations, no report hashes, no footprint: keys are sorted, so
+  recording an unchanged spec again leaves git clean. Re-record when the failure modes change; nothing else asks you
+  to.
+- **What a receipt proves, and what it does not.** It proves that the named cases failed on red and passed on green
+  under the recorded runner. It does not prove that their assertions are meaningful: a case that asserts nothing
+  useful fails and passes just as well. Meaning is checked by the human review of the failure modes and the cases,
+  and, for a mode tagged `[avp: …]`, by the Assay verdict. A case that tells red from green by where it runs
+  (`$PWD`, a path, the git state) cannot be caught by the engine either; review is what rules it out.
 - **Evidence has one committed home and one local one.** Runners get `SKIES_EVIDENCE` (an absolute folder) and
   `SKIES_SPEC` (the spec folder name) in their environment, besides the `{evidence}` placeholder.
   `$SKIES_EVIDENCE/<file>` becomes the spec's `evidence/<file>`, committed and written only by `record` from green
@@ -347,8 +370,11 @@ CI cannot produce, so that is all the receipt records.
   command = "dotnet test tests/App.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger 'trx;LogFileName={report}'"
   ```
 
-  Placeholders: `{id}`, `{spec}`, `{dir}` (the spec's `e2e/`), `{report}`, and `{evidence}`. Commands run through
-  `sh -c`, so the TRX logger argument is quoted: unquoted, its `;` ends the command and no report is written.
+  Placeholders: `{id}`, `{spec}`, `{dir}` (the spec's `e2e/`), `{report}`, and `{evidence}`; each value is quoted
+  for where it sits (bare, inside `'…'`, or inside `"…"`), so a path with a space stays one argument. Commands run
+  through `sh -c` on every platform, so the TRX logger argument is quoted: unquoted, its `;` ends the command and no
+  report is written. On Windows that `sh` is Git for Windows' (Git Bash, found on `PATH` or in Git's install folder);
+  set `SKIES_SHELL` to another POSIX shell, and without one the engine says so instead of running `cmd`.
   `setup` (optional) runs first in each checkout (start a database, install packages in red's fresh worktree);
   `build` (optional) compiles once per checkout so `command` can skip it. The exit code decides nothing; the report
   does.

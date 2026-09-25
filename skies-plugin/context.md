@@ -14,7 +14,7 @@ Hard rules:
 - Views never touch data; only ViewModels consume the generated client.
 - Every test lives in a spec (`.specs/<id>-<slug>/e2e/`, titled `FM-n: …`), nowhere else. Never write tests after
   the code to cover it. An isolated system gets its own spec with isolated cases, failure modes written first.
-- `skies doctor` findings are fixed in the code, never suppressed.
+- `skies doctor` findings are fixed in the code; a suppression carries a written reason and shows in the doctor output.
 
 Nothing runs automatically: there is no gate and no required hook. CI runs every spec's cases; the receipt proves
 red→green once. `skies proof run <id>` runs one spec's E2E while you write it, `skies proof record <id>` writes the

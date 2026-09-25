@@ -89,3 +89,47 @@ fn every_documented_trx_logger_is_quoted() {
         }
     }
 }
+
+/// Placeholders are quoted for where they sit, so a project, a spec folder, and a temporary folder with spaces in
+/// their paths reach the runner as one argument each.
+#[test]
+fn paths_with_spaces_reach_the_runner_whole() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("my app");
+    let tmp = dir.path().join("tmp dir");
+    std::fs::create_dir_all(&tmp).unwrap();
+    let spec = root.join(".specs/0001-my toggle");
+    std::fs::create_dir_all(spec.join("e2e")).unwrap();
+    std::fs::write(
+        root.join("Skies.toml"),
+        "[workspace]\nname = \"x\"\n[runners.fake]\ncommand = \"sh 'run it.sh' {dir} --out={report} \\\"{evidence}\\\"\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("run it.sh"),
+        "#!/bin/sh\n[ $# -eq 3 ] || { echo \"expected 3 arguments, got $#: $*\"; exit 1; }\n\
+         [ -d \"$3\" ] || { echo \"no evidence folder $3\"; exit 1; }\n\
+         name=$(cat \"$1/case.txt\")\nreport=\"${2#--out=}\"\n\
+         printf '<testsuite><testcase name=\"%s\"/></testsuite>' \"$name\" > \"$report\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        spec.join("spec.md"),
+        "---\nid: \"0001\"\nrunner: fake\n---\n# Toggle\n\n## Failure modes\n\n- FM-1 a path with a space breaks\n",
+    )
+    .unwrap();
+    std::fs::write(spec.join("e2e/case.txt"), "FM-1: spaces survive").unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_skies"))
+        .args(["proof", "run", "1"])
+        .current_dir(&root)
+        .env("TMPDIR", &tmp)
+        .output()
+        .unwrap();
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.status.success(), "{text}");
+    assert!(text.contains("1/1 FMs pass"), "{text}");
+}

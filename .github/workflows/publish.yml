@@ -2,7 +2,8 @@ name: publish
 
 # Publishes every Skies package from one version tag (e.g. `v5.0.0`): NuGet, npm (the React packages and the
 # `skies` binary wrappers), pub.dev, crates.io, and the binaries as GitHub release assets. All packages share one
-# version; the `versions` job fails the release if any manifest disagrees with the tag.
+# version; the `versions` job fails the release if any manifest or template pin disagrees with the tag
+# (tools/check-versions.sh).
 # Auth: NuGet prefers Trusted Publishing and falls back to NUGET_API_KEY; npm uses NPM_TOKEN; crates.io uses
 # CARGO_REGISTRY_TOKEN; pub.dev uses automated publishing.
 on:
@@ -18,17 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: compare manifests with the tag
-        run: |
-          want="${GITHUB_REF_NAME#v}"
-          fail=0
-          check() { if [ "$2" != "$want" ]; then echo "$1 is $2, tag is $want"; fail=1; fi; }
-          check build/Skies.Framework.Library.props "$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' build/Skies.Framework.Library.props)"
-          check Cargo.toml "$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
-          check cli/npm/package.json "$(node -p "require('./cli/npm/package.json').version")"
-          for pkg in frontend-sdk/packages/*/package.json; do check "$pkg" "$(node -p "require('./$pkg').version")"; done
-          check flutter-sdk/packages/skies_flutter/pubspec.yaml "$(sed -n 's/^version:[[:space:]]*//p' flutter-sdk/packages/skies_flutter/pubspec.yaml)"
-          exit $fail
+      - name: compare every version pin with the tag
+        run: tools/check-versions.sh "${GITHUB_REF_NAME#v}"
 
   binaries:
     name: build skies (${{ matrix.target }})
@@ -68,6 +60,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd dist
+          # upload-artifact stores files without their mode, so the executable bit is restored before archiving.
+          chmod +x skies-*/*
           for dir in skies-*; do tar -czf "$dir.tar.gz" -C "$dir" .; done
           pre=; case "$GITHUB_REF_NAME" in *-*) pre=--prerelease ;; esac
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes $pre *.tar.gz || \

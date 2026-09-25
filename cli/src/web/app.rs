@@ -44,27 +44,41 @@ pub fn create(name: &str, path: Option<&Path>) -> Result<u8> {
     i18n::assemble(&dir)?;
 
     let relative = project.as_ref().map(|p| relative_path(&p.root, &dir));
-    if let (Some(project), Some(relative)) = (&project, &relative) {
-        let relative = relative.trim_start_matches("./");
-        register::frontend(&project.root, relative)?;
-        ci::add_package(&project.root, relative)?;
-    }
     let package_path = relative
         .as_deref()
         .map_or_else(|| dir.display().to_string(), |r| r.trim_start_matches("./").to_string());
+    let (setup, command) = web_runner(&package_path);
+    if let Some(project) = &project {
+        register::frontend(&project.root, &package_path)?;
+        register::runner(&project.root, "web", &setup, &command)?;
+        ci::add_package(&project.root, &package_path)?;
+    }
     println!("\ncreated React web app {package} in {}", dir.display());
     println!(
         "next: `npm install --prefix {package_path}`, then `npm run dev` there. Once the backend has built its \
          contract: `skies g client --package {package_path}` and `skies g feature <Name> --package {package_path}`."
     );
-    println!(
-        "\nTo run web specs (.specs/<id>/e2e/*.test.tsx) with `skies proof`, declare a runner in Skies.toml:\n\n\
-         [runners.web]\n\
-         setup = \"test -d {package_path}/node_modules || npm --prefix {package_path} ci\"\n\
-         command = \"node {package_path}/node_modules/vitest/vitest.mjs run --config {package_path}/vitest.config.ts \
-         --reporter=junit --outputFile={{report}} {{dir}}\""
-    );
+    if project.is_none() {
+        println!(
+            "\nTo run web specs (.specs/<id>/e2e/*.test.tsx) with `skies proof`, declare a runner in Skies.toml:\n\n\
+             [runners.web]\nsetup = {}\ncommand = {}",
+            toml::Value::String(setup),
+            toml::Value::String(command)
+        );
+    }
     Ok(0)
+}
+
+/// The `[runners.web]` that runs one spec's web cases with the package's own vitest (its config roots the run at the
+/// application, where `.specs/` lives): `setup` installs the package once per checkout, `command` writes JUnit.
+fn web_runner(package: &str) -> (String, String) {
+    (
+        format!("test -d {package}/node_modules || npm --prefix {package} ci"),
+        format!(
+            "node {package}/node_modules/vitest/vitest.mjs run --config {package}/vitest.config.ts \
+             --reporter=junit --outputFile={{report}} {{dir}}"
+        ),
+    )
 }
 
 /// Every file of the package, rendered for `package` (the npm name) under `dir`. `app_root` is where `.specs/`

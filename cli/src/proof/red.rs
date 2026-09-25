@@ -122,6 +122,10 @@ pub fn run(
             return Ok(None);
         }
     };
+    if let Some(problem) = report::skipped(&evaluation.cases, "red") {
+        mismatch(spec, &problem, &run.log)?;
+        return Ok(None);
+    }
     let mut messages = BTreeMap::new();
     let mut results = BTreeMap::new();
     for (id, passed) in &evaluation.passed {
@@ -130,7 +134,8 @@ pub fn run(
             messages.insert(*id, message);
         }
         // A mode passes red, and so bites nothing, only as green would count it passing: every case passed and, for
-        // a tagged mode, the verdict passed too. A missing verdict on red is simply a failure.
+        // a tagged mode, the verdict passed too. A missing verdict on red is simply a failure. No case was skipped
+        // (refused above), so a case that did not pass failed.
         let bites = !*passed || avp::check(doc, *id, &evidence).is_err();
         let result = if bites {
             RedResult::Fail

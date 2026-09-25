@@ -37,8 +37,8 @@ TypeScript package on this stack, runnable before any backend exists: TanStack R
 `@skiesjs/react`, an app-owned `src/ui/` kit with web DOM props (`onClick`, `onChange` with the change event), the
 `@/` alias for `src/`, and `@skiesjs/eslint-plugin`'s recommended config. Its scripts are `dev`, `build` (`vite
 build`), `typecheck`, `lint`, and `test` (Vitest over the app's `.specs/*/e2e/`). Inside a Skies app it is declared in
-`Skies.toml` (the product's `frontend` and its folder in `[workspace] root`), its `npm ci` joins the CI before
-`skies doctor`, and a job builds and tests it. The router is TanStack Router because its code-based tree types routes
+`Skies.toml` (the product's `frontend`, its folder in `[workspace] root`, and a `[runners.web]` for its specs when
+the app has none), its `npm ci` joins the CI before `skies doctor`, and a job builds and tests it. The router is TanStack Router because its code-based tree types routes
 with no code generation step; an app that prefers React Router swaps it in the one route file.
 
 ## The MVVM convention — one feature, one shape
@@ -319,7 +319,12 @@ one `dotnet build` writes and `skies g client` generates from) so it binds to wh
   contract, in its order (every input holds a string; numbers convert at the submit). What names the record the
   command acts on, its path and query parameters and a body `version` (the concurrency token `g crud` sends back), is
   the screen's `target`, passed in by the route and sent as given: `useUpdateProductModel({ id, version })` submits
-  `mutate({ id, data: { name, price, version } })`. A command with nothing to type (a delete) scaffolds as a
+  `mutate({ id, data: { name, price, version } })`. An `Update<Entity>` form whose contract also has
+  `Lookup<Entity>` (what `g crud` generates beside it) opens on the record it edits: it reads it through
+  `useLookup<Entity>(target.id)` and fills its inputs with react-hook-form's `values` (`keepDirtyValues`, so a refetch
+  never overwrites what the user changed). A form that sends a `version` maps a `409` to its own copy,
+  `errors.conflict` ("someone else changed this, reload"), apart from the generic `errors.submit`: the same submit
+  would fail again, so the user is told to reload, not to retry. A command with nothing to type (a delete) scaffolds as a
   confirmation with no form. Without a contract, name the inputs with `--fields name:string,price:number` (`string`,
   `number`, `integer`, `uuid`) or the scaffold stops; a field it cannot render as a text box (a boolean, an enum, a
   list) stops it too, by name.
@@ -405,7 +410,7 @@ boundary (MSW), whose handlers answer the backend's real routes (`POST /wallets/
 wired through the Vitest config's `setupFiles`; the sample's is `examples/sample-app/.specs/web.setup.ts`, loaded by
 the config its web runner uses. Never in `src/` (MSW there is production code, `SKYFE003`), and never in a framework
 file: a feature that needs a new route adds its handler to the app's setup. An app's web runner points at its package
-(`skies g web-app` prints this one):
+(`skies g web-app` declares this one when `Skies.toml` has no `[runners.web]` yet):
 
 ```toml
 [runners.web]

@@ -1,12 +1,17 @@
 {
   "spec": "0001-deposit",
   "runner": "api",
+  "commands": {
+    "build": "dotnet build backend/Sample.Tests",
+    "command": "dotnet test backend/Sample.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\"",
+    "hash": "blake3:b4e9f2688d43e752d4c430cc96edcd3e7d6208d4dad356efa6de2a0f027848e8"
+  },
   "red": {
-    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91",
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f",
     "patch": "red.patch"
   },
   "green": {
-    "commit": "0855e20bbc59df7e807315a8b8b76d84135a6c91"
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f"
   },
   "failure_modes": {
     "FM-1": {

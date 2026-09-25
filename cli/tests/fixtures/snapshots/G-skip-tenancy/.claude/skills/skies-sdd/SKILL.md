@@ -21,9 +21,9 @@ Three commands: `skies proof impact` (what a change reaches), `skies proof run` 
 `skies proof record` (red then green, once, into the receipt).
 
 **Write first, commit together.** The spec and its E2E are written before the code, but they are committed with
-the code that makes them pass: one change holds the spec, its E2E, the feature, and the receipt, so every commit
-stays green. Never commit a failing spec on its own. Red is proven by `skies proof record` against the merge-base,
-not by a red commit.
+the code that makes them pass, so every commit stays green. Never commit a failing spec on its own. Red is proven
+by `skies proof record` against the merge-base, not by a red commit. `record` runs green on that commit (it
+refuses uncommitted changes), so commit the spec, its E2E, and the feature, record, then commit the receipt.
 
 ## 1. Understand
 
@@ -101,7 +101,10 @@ cases import `package:<app>/...` and the spec's runner copies them into the pack
 
 - One or more cases per failure mode; each case title starts with its id and a colon or space:
   `[Fact(DisplayName = "FM-2: …")]`, `test("FM-2: …")` (inside a `describe` too), `testWidgets('FM-2: …')` (outside
-  a `group`). A title that starts like an id but is not one (`FM 2`, `fm-2`) is refused.
+  a `group`). A title that starts like an id but is not one (`FM 2`, `fm-2`) is refused. Only the case's own title
+  counts, never its `describe`.
+- Never skip a case (`it.skip`, `it.skipIf`, `test.skip(cond)`, `[Fact(Skip = …)]`): a skipped case is neither a
+  failure nor a pass, and `record` refuses it on red and on green.
 - .NET spec tests live in namespace `Specs.S<id>` so the runner filter selects exactly this spec.
 - Assert the observable outcome and, for rejections, that state did not change.
 - Assert the error **code**, not only the status. A route that does not exist also answers 404, so a not-found
@@ -148,15 +151,23 @@ and a receipt like any other spec.
 skies proof record <id>
 ```
 
-It runs the E2E against the merge-base (every FM must fail) and against the working tree (every FM must pass),
-then writes `receipt.json`: per FM, red and green, the cases that proved it, and what red's first failing case
-said. That is what a receipt proves: these cases fail on a revision without your change and pass with it, so they
-test the change and not something that was already true; CI keeps them passing from then on. What the tests saved
-to `$SKIES_EVIDENCE` is committed under `evidence/` (256 KB each at most); what they saved to
-`$SKIES_EVIDENCE/raw/` and the full reports stay in the gitignored `evidence/raw/`.
+Commit the spec, its E2E, and the feature first: `record` runs green on `HEAD` and refuses a working tree with
+other changes (`--allow-dirty` records anyway and marks the receipt `"dirty": true`). It runs the E2E against the
+merge-base (every FM must fail) and against the working tree (every FM must pass), then writes `receipt.json`: the
+runner's commands, per FM red and green, the cases that proved it, and what red's first failing case said. Commit
+the receipt right after.
+
+Be exact about what that proves: the named cases failed on red and passed on green under the recorded runner. It
+does not prove the assertions are meaningful; a case that checks nothing useful fails and passes just as well. That
+is what the human review of the failure modes and the cases is for, and, for a mode tagged `[avp: …]`, the Assay
+verdict. CI keeps the cases passing from then on. What the tests saved to `$SKIES_EVIDENCE` is committed under
+`evidence/` (256 KB each at most); what they saved to `$SKIES_EVIDENCE/raw/` and the full reports stay in the
+gitignored `evidence/raw/`.
 
 If the E2E cannot build on the merge-base because of their own files (they use code the feature adds), every FM
-counts as failing (`did-not-build`) and the receipt's `red.output` quotes the compiler. If red fails for any other
+counts as failing (`did-not-build`) and the receipt's `red.output` quotes the compiler; `record` warns that such a
+red proves only that the types are new, and a `red.patch` that keeps the types but stubs the behavior proves the
+assertions bite too. If red fails for any other
 reason (a restore that needs something the checkout lacks, a missing tool, a broken runner command, an error
 outside the spec), `record` exits 2 with red's output and writes no receipt: fix the cause (often a runner `setup`)
 and record again. If a failure mode already passes on the merge-base, either the test does not discriminate (fix
@@ -165,7 +176,9 @@ the test) or the behavior already existed (add a `## Non-discriminating` section
 The merge-base is taken with the default branch. If red resolves to the wrong revision (the app branches from
 `develop`, not `main`), set `[workspace] default_branch = "develop"` in `Skies.toml` once, or pass `--red <rev>`.
 For a spec written after the code, pass `--red-patch <file>` with a patch that removes the behavior (for example,
-a stubbed handler); it is kept as the spec's `red.patch`.
+a stubbed handler); it is kept as the spec's `red.patch`. The patch touches the feature's code only: one that edits
+`.specs/` or the files that run the tests (the tests project, the vitest config and its setup files) is refused,
+because red must differ from green in the feature alone.
 
 ## 6. Revise the module context
 
@@ -179,4 +192,4 @@ failure mode does not exist, and the citations are what `skies proof impact` fol
 
 Report the spec path, the failure modes (with their `[avp: …]` tags), the receipt summary (red/green per FM), the
 specs `impact` named and whether their cases still pass, the ctx.md files you revised, and `skies doctor` status.
-Then commit the spec, its E2E, the code, and the receipt together.
+The spec, its E2E, and the code are one commit, and the receipt the commit after it.

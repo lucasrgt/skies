@@ -117,7 +117,9 @@ command = "node clients/web/node_modules/vitest/vitest.mjs run {dir} --reporter=
 
 Chaves: `command`, `setup` (uma vez por checkout), `build` (uma vez por checkout, para `--no-build`). Placeholders:
 `{id}`, `{spec}`, `{dir}`, `{report}`, `{evidence}` (também `SKIES_EVIDENCE`, e `SKIES_SPEC`). O exit code não
-decide nada; o relatório decide. O argumento do logger TRX vai entre aspas: sem elas o `;` termina o comando.
+decide nada; o relatório decide. O argumento do logger TRX vai entre aspas: sem elas o `;` termina o comando. Cada
+placeholder entra citado conforme onde está (solto, entre `'…'` ou `"…"`), e o comando roda por `sh -c` também no
+Windows (o `sh` do Git for Windows, ou `SKIES_SHELL`; sem ele o motor recusa em vez de usar `cmd`).
 
 ### 3.4 Recibo
 
@@ -125,6 +127,7 @@ decide nada; o relatório decide. O argumento do logger TRX vai entre aspas: sem
 {
   "spec": "0012-cancel-reservation",
   "runner": "api",
+  "commands": { "build": "dotnet build …", "command": "dotnet test … --logger '…{report}'", "hash": "blake3:…" },
   "red":   { "commit": "<base>", "patch": "red.patch" },
   "green": { "commit": "<head>" },
   "failure_modes": {
@@ -144,8 +147,14 @@ decide nada; o relatório decide. O argumento do logger TRX vai entre aspas: sem
   arquivos do próprio `e2e/` (erro de compilação CS/TS/Dart localizado neles, ou falha de arquivo do relatório,
   como o import não resolvido do vitest); `red.output` cita as linhas. Qualquer outra causa (restore, ferramenta
   ausente, comando quebrado, erro fora do spec, saída vazia) aborta o `record` com exit 2 e sem recibo.
-- **Consistência:** todo FM do spec tem caso; todo caso com id está no spec; spec sem FM é recusado.
-- Sem durações, hashes, footprint: regravar um spec sem mudança dá diff zero.
+- **Consistência:** todo FM do spec tem caso; todo caso com id está no spec; caso pulado no red ou no green é
+  recusado; spec sem FM, ou com o FM placeholder do `spec new`, é recusado; ids de spec duplicados são recusados.
+- **Red difere do green só na feature:** o `e2e/` do red é o da working tree, byte a byte; `red.patch` que toca
+  `.specs/` ou os arquivos que rodam os testes é recusado, assim como `--red` cujo diff os toca (o red padrão só
+  avisa). **Green é um commit:** working tree sujo é recusado, salvo `--allow-dirty`, que grava `"dirty": true`.
+- **O que o recibo prova:** os casos nomeados falharam no red e passaram no green sob o runner registrado
+  (`commands`); não que as asserções signifiquem algo, o que é papel da revisão e do Assay.
+- Sem durações, hashes de relatório nem footprint: regravar um spec sem mudança dá diff zero.
 
 ### 3.5 Comandos
 
@@ -215,9 +224,15 @@ Nenhum deles é plugado em hook pelo template. O CI roda os casos de todo spec a
 
 ## 10. O que mudou durante a implementação
 
+Esta seção descreve o que foi entregue. Histórico: o motor de prova chegou a ter `proof status`, `verify`,
+footprint por coverage, impressão por linha, `--with-impacted`, red rot e `--red-only`; tudo isso saiu antes do
+release (ver "Motor de prova enxuto").
+
 - **node-sdk removido** e **Rust para todo o tooling** (decisões D1/D2); sem gate, sem hooks, sem noturno (D4).
-- **Red que não compila conta como falha.** E2E .NET que referenciam tipos novos não compilam no merge-base; o
-  recibo registra `did-not-build` para todos os FMs e guarda o log do build em `evidence/red.log`.
+- **Red que não compila conta como falha, quando é do spec.** E2E que referenciam tipos novos não compilam no
+  merge-base; o recibo registra `did-not-build` para todos os FMs e `red.output` cita o compilador, e o log fica em
+  `evidence/raw/red.log` (local). Quando todo FM é `did-not-build`, o `record` avisa que o red prova só que os tipos
+  são novos.
 - **`migrate` preserva `csm.toml` e `.skies/csm`**: são registros do time; só o Skies deixa de rodar as ferramentas.
 - **`migrate` copia os helpers de E2E removidos** (fixtures Playwright, ledger de backend, adapter Assay, ledger Dio)
   para dentro da app, para que nenhum teste existente quebre. Provas Assay mantêm suas tags `@avp`.
@@ -227,10 +242,6 @@ Nenhum deles é plugado em hook pelo template. O CI roda os casos de todo spec a
 - **Assay volta acoplado ao spec, opcional por FM.** Uma linha `- FM-n … [avp: <criterion>]` exige, além dos casos,
   o veredito salvo em `$SKIES_EVIDENCE/avp-FM-n.json` com todos os critérios em pass (formato Assay.Net ou TS). Todo
   runner recebe `SKIES_EVIDENCE`/`SKIES_SPEC`; o .NET tem `SpecEvidence.Save` em `Skies.Framework.Testing`.
-- **Evidência é artefato congelado.** O recibo guarda `evidence` (blake3 de cada arquivo não ignorado em
-  `evidence/`); `proof status` distingue `tampered` de `stale`, e `verify` preserva os hashes do red.
-- **Os recibos são o índice de impacto.** `proof impact [paths] [--diff [rev]]` inverte footprints + `touches`;
-  `proof record --with-impacted` reprova em green os specs sobrepostos e grava `verified_with`.
 - **React Native / Expo removido.** React fica só para a web; Flutter é o corpo mobile e também um corpo web
   suportado. O sample junta `core/` + `web/` + `mobile/` num único pacote React web (`frontend/web`); a SKYFE009
   (`viewmodel-platform-agnostic`, que só mantinha ViewModels livres de react-native/expo) sai do plugin e o
@@ -246,54 +257,16 @@ Nenhum deles é plugado em hook pelo template. O CI roda os casos de todo spec a
   do hostpoint sem falso positivo visível.
 - **O `.ctx.md` continua obrigatório (SKY0004) e fica vivo por citar os specs.** Uma nota de design cita o spec que
   prova o invariante (`` `0002-withdraw#FM-2` ``); a SKY0005 lê `.specs/*/spec.md` como AdditionalFiles e acusa spec
-  ou FM inexistente. `proof impact` lista o ctx de cada módulo tocado, `proof record` avisa (sem falhar) quando o
-  ctx não foi revisado e grava `ctx_revised`; o ctx fica fora do footprint salvo via `touches`.
-- **Footprint por coverage (entregue).** Um runner opta por `{coverage}` (caminho que o motor escolhe; também
-  `SKIES_COVERAGE`) ou por `coverage = "<caminho>"` no `[runners.*]`; o motor lê Cobertura (coverlet) e LCOV
-  (vitest, `flutter test --coverage`) pelo conteúdo, arquivo ou pasta (o coverlet aninha em `<guid>/`). O footprint
-  vira: arquivos do projeto com ao menos uma linha executada no green (sem `obj/`, `bin/`, `*.g.cs`, `client.gen/`,
-  `.specs/`, nem nada fora da raiz) ∪ diff red..green ∪ `touches`, com `footprint_source: "coverage"` e o diff em
-  `footprint_changed`. Sem coverage, o `record` diz por quê e cai para o diff. O `verify` troca a parte executada
-  pela do seu próprio green e mantém `footprint_changed`; um recibo `diff` vira `coverage` no primeiro verify com
-  coverage. Coverage nunca entra em `evidence/` (o bloco `CollectorDataEntries` do TRX também sai); `proof status`
-  hasheia uma vez cada arquivo compartilhado entre recibos. No sample, os specs da API passaram de 4/4/3/1/3 para
-  12/12/12/1/13 arquivos; editar `Platform.Idempotency.cs` deixa stale 0001, 0002, 0003 e 0005 (o `AddIdempotency`
-  roda no boot de todo host), não 0004 nem os specs web.
-- **Impressão por linha executada.** Para cada arquivo que vem do coverage, o recibo guarda as linhas executadas no
-  green, em faixas, e um blake3 do texto delas (fim de linha normalizado, espaço dentro da linha mantido):
-  `"Deposit.cs": { "lines": "17,19,23,26-31,…", "hash": "blake3:…" }`. Arquivo só do diff, de `touches` (sempre
-  inteiro: listá-lo diz que toda linha importa) ou sem dado de linha (LCOV só com `LH:`), `inputs` e `evidence`
-  seguem com hash do arquivo inteiro; recibo antigo com hash inteiro para arquivo coberto continua lendo igual.
-  Stale = o texto de alguma linha registrada mudou ou o arquivo tem menos linhas que a maior delas; editar só
-  linhas que o spec nunca executou deixa o recibo current; inserir/apagar linhas acima desloca e dá stale
-  (conservador). `status` lê cada arquivo uma vez para todos os recibos (~12 ms no sample, release). `verify`
-  refaz linhas e arquivos a partir do seu coverage; sem coverage, fixa os arquivos inteiros. No sample: editar
-  `idem.Save` (linha 49) ou o `return Error.NotFound` (linha 40) de `Deposit.Handle` deixa stale só 0001;
-  `wallet.Deposit` (linha 44) deixa 0001 e 0002 (o setup do withdraw deposita); um comentário dentro do `Handle`
-  não deixa nenhum; `AddSingleton` em `Platform.Idempotency.cs` ou o `MapGroup` em `WalletsModule.Map` deixam
-  stale 0001, 0002, 0003 e 0005 (todo spec que sobe o host).
+  ou FM inexistente. `proof impact` lista o ctx de cada módulo tocado e os specs que ele cita.
 - **Atritos do dogfood (transferência no sample), corrigidos.** (1) O red padrão escolhia o merge-base com
   `origin/HEAD` = `main`, 116 commits atrás do `v5`, e falhava sem mostrar nada. Agora a ordem é `--red`, `red.patch`
-  do spec, `[workspace] default_branch` do Skies.toml, upstream do branch atual (quando é outro branch), `origin/HEAD`;
-  o `record` imprime a escolha e a distância (`red 5e2f092 (merge-base with main, default branch from origin/HEAD;
-  116 commits before HEAD)`) e avisa acima de 50 commits; `proof impact` sem caminhos diz o mesmo da sua base. (2) Red
-  que não bate com o spec.md imprime o fim da saída do runner (e guarda `evidence/red.log` enquanto não há recibo).
-  (3) `did-not-build` vale para qualquer runner: sem relatório, ou relatório sem caso com FM e com falha/exit ≠ 0
-  (o caso único de arquivo do vitest quando o import não existe); nunca no green. (4) `verify` é somente leitura
-  para recibo current que ainda passa (`verified (current, unchanged)`), escreve para stale, e `--refresh` força
-  (e é o único jeito de reescrever o green de um recibo `tampered`); `skies proof run <spec>` roda o green uma vez,
-  imprime pass/fail por FM com a mensagem dos casos que falharam, e não escreve nada. (5) Spec sem recibo é
-  `unrecorded`: nunca conta como quebra no `--with-impacted`. (6) `scope = [...]` no runner limita diff, `touches`,
-  coverage e notas de ctx aos caminhos da superfície (sample: `api` → `backend/`, `web` → `frontend/`; template:
-  `src/`): o recibo do 0009 caiu de 20 para 14 arquivos (sem os 6 do frontend) e o do 0010 não fixa mais
-  `Transfer.cs`. (7) `proof impact` imprime o FM inteiro, com as linhas de continuação. (8) Impressão por linha
-  tolerante a deslocamento: um hash (64 bits de blake3) por faixa contígua executada, `"ranges": "…,…"`; uma faixa
-  fora do lugar é procurada adiante, em ordem e sem sobreposição; stale só se o texto de alguma faixa mudou ou não é
-  mais encontrado em ordem. Inserir linhas acima ou entre faixas deixa current; editar dentro de uma faixa ou trocar
-  duas de lugar deixa stale; recibo antigo (`"hash"` único) continua lendo por posição. (9) Runner ganhou `build`
-  (uma vez por checkout e invocação; falha no red = `did-not-build`), o sample compila uma vez e roda
-  `dotnet test --no-build`, e o `--with-impacted` reaproveita a sessão do green. `record 0009 --with-impacted`: 29,8 s
-  → 18,8 s (red 4,1 s, green 3,2 s, seis impactados 11,4 s; cada spec da API 3,2 s → 2,1 s sem o build).
+  do spec, `[workspace] default_branch` do Skies.toml, `origin/HEAD`, `main`/`master`; o `record` imprime a escolha e a
+  distância (`red 5e2f092 (merge-base with main, default branch from origin/HEAD; 116 commits before HEAD)`) e avisa
+  acima de 50 commits; `proof impact` sem caminhos diz o mesmo da sua base. (2) Red que não bate com o spec.md
+  imprime o fim da saída do runner e a guarda em `evidence/raw/red.log`. (3) `skies proof run <spec>` roda o green
+  uma vez e imprime pass/fail por FM com a mensagem dos casos que falharam. (4) Runner ganhou `build` (uma vez por
+  checkout), e o sample compila uma vez e roda `dotnet test --no-build`. (5) `proof impact` imprime o FM inteiro,
+  com as linhas de continuação.
 - **Raiz declarada (`[workspace] root`, SKYWS001/002).** Decisão do dono: repositório acumula lixo na raiz (logs,
   imagens, docs soltos, pastas avulsas). O `Skies.toml` agora lista tudo o que pode ficar na raiz: globs sobre o nome
   de uma entrada, `/` no fim só casa diretório e sem `/` só casa arquivo; `.git` e `Skies.toml` são implícitos; o que
@@ -304,28 +277,13 @@ Nenhum deles é plugado em hook pelo template. O CI roda os casos de todo spec a
   próprio `skies doctor`), e `skies migrate 5` declara as entradas atuais e pede para podar. No Hostpoint
   (`hostpoint-skies5`, clone raso): 41 entradas declaradas, entre elas `doctor-rollout.log`, `favicon.png`,
   `.aerofortress/`, `.cursor/`, `.jevd/`, `jevd*.json`, `taskfleet.toml` e `lefthook.yml` para o dono decidir.
-- **Evidência compacta, sem churn, red rot.** Medido no sample e projetado para ~250 specs: cada spec commitava os
-  relatórios TRX/JUnit de red e green (~30 KB por spec, ~9 MB), todo record/refresh os reescrevia (136 edições de
-  evidência em 45 commits num dia) e o `red.patch` de spec retroativo apodrecia sem ninguém ver, porque o `verify`
-  nunca reroda o red. Agora o recibo é o resumo: por FM, em red e green, o resultado, os nomes dos casos que o
-  decidiram e, no red, o começo da mensagem do primeiro caso que falhou (a asserção, sem stack), mais o caminho e o
-  hash do relatório (`"report": {"file": "evidence/raw/red.trx", "hash": "blake3:…"}`); `red.output` diz por que o
-  red não compilou. O hash é sobre o que o relatório diz (nome, resultado e mensagem de cada caso, ordenados), não
-  sobre os bytes: o xUnit termina casos paralelos em qualquer ordem e o TRX muda a cada execução mesmo sem timings.
-  Relatórios e logs vão para `evidence/raw/`, que o próprio motor mantém fora do git (acrescenta `/*/evidence/raw/`
-  ao `.specs/.gitignore`); commitado fica só o que o caso salvou em `$SKIES_EVIDENCE` (vereditos Assay, screenshot,
-  log HTTP), até 256 KB por arquivo (acima disso `record`/`verify` recusam, salvo se o git ignora, e dizem como). O
-  hash de adulteração cobre só a evidência commitada. Sem duração nem timestamp no recibo (o tempo é impresso e fica
-  no relatório local); veredito que só muda em `durationMs` mantém os bytes. No sample: `.specs` commitado de 385 624
-  para 136 160 bytes (evidência de 28 arquivos/275 612 bytes para 8/5 329; recibos de 37 para 58 KB); `verify --all`
-  duas vezes deixa `git diff --stat` vazio, e dois `verify --refresh --all` seguidos são idênticos byte a byte.
-  Recibo antigo continua lendo (`status` avisa) e `verify --refresh`/`record` o migram, resumindo o relatório de red
-  commitado. `proof status` marca `red-rotted (red.patch no longer applies)` com `git apply --check` na working tree,
-  com cache em `.git/skies/red-rot.json` chaveado pelo blake3 do patch e dos arquivos que ele toca (status sem
-  mudança não roda git; sample: 30 ms frio, 14 ms com cache); `skies proof record <id> --red-only` reroda só o red
-  e reescreve só a metade red do recibo, mantendo green, footprint e evidência de green. A migração revelou que o
-  red do 0010 foi `did-not-build` só porque o worktree de red não tinha `@vitest/coverage-v8`; antes isso estava
-  enterrado num `red.log` commitado.
+- **Evidência compacta, sem churn.** Cada spec commitava os relatórios TRX/JUnit de red e green (~30 KB por spec) e
+  todo record os reescrevia. Agora o recibo é o resumo: por FM, em red e green, o resultado, os nomes dos casos e,
+  no red, o começo da mensagem do primeiro caso que falhou (a asserção, sem stack); `red.output` diz por que o red
+  não compilou. Relatórios e logs vão para `evidence/raw/`, que o motor mantém fora do git (acrescenta
+  `/*/evidence/raw/` ao `.specs/.gitignore`); commitado fica só o que o caso salvou em `$SKIES_EVIDENCE` (vereditos
+  Assay, screenshot, log HTTP), até 256 KB por arquivo. Sem duração nem timestamp no recibo; veredito que só muda em
+  `durationMs` mantém os bytes, e regravar um spec sem mudança deixa o git limpo.
 - **A mecânica de auth vira pacote.** O `g auth` (e `auth:otp`/`auth:oauth`/`auth:email`) copiava para cada app o
   hash de senha, a rotação do refresh com queima da família no reuso, a revogação, a entrega por cookie, o timing do
   login, a emissão/verificação de tokens de email e códigos de SMS; uma correção no template nunca chegava a um app
@@ -350,8 +308,8 @@ Nenhum deles é plugado em hook pelo template. O CI roda os casos de todo spec a
   `did-not-build` para qualquer runner; green passa todo FM; `## Non-discriminating`; checagem de consistência; Assay
   `[avp: …]`) e `proof impact` derivado das citações do ctx.md (`**/Modules/<M>/` → `<M>.ctx.md` → specs citados) mais
   `touches:`. O recibo é por FM: red e green, os casos, a primeira mensagem do red, critérios e veredito Assay; commits
-  de red (+ `red.patch`) e green; o runner. Sem durações, hashes, footprint nem `ctx_revised`; regravar um spec sem
-  mudança dá diff zero (verificado nos 10 do sample). Runner: `command`, `setup`, `build`; saem `report`, `env`,
+  de red (+ `red.patch`) e green; o runner. Sem durações, hashes de relatório, footprint nem `ctx_revised`; regravar
+  um spec sem mudança dá diff zero (verificado nos 10 do sample). Runner: `command`, `setup`, `build`; saem `report`, `env`,
   `coverage`, `scope` e `SKIES_COVERAGE`, coverlet e `@vitest/coverage-v8`. `status` e `verify` saem da CLI. Motor:
   5 273 → ~2 500 linhas não-teste, 29 → 16 arquivos.
 - **Recibo que prova algo (auditoria independente).** Um recibo podia não provar nada: (1) qualquer falha de red
@@ -362,13 +320,28 @@ Nenhum deles é plugado em hook pelo template. O CI roda os casos de todo spec a
   exit 2, a saída e sem recibo. (2) O red roda em `.skies-red/<id>` no topo do repositório (no `info/exclude` local,
   sempre removido). A primeira tentativa, dentro de `.git/`, quebrou o vitest (o Vite nega `**/.git/**`) e o
   classificador ainda aceitava o `Cannot find module '/frontend-sdk/vitest.setup.ts'` como culpa do spec; os dois
-  foram corrigidos e o `record` do 0010 voltou a dar `fail` real em todo FM. (3) Spec sem FM é recusado por
-  `run` e `record`; o modelo do `spec new` traz um FM-1 placeholder que parseia. (4) Uma gramática de FM (§3.2)
+  foram corrigidos e o `record` do 0010 voltou a dar `fail` real em todo FM. (3) Spec sem FM, ou ainda com o
+  FM-1 placeholder do `spec new`, é recusado por `run` e `record`. (4) Uma gramática de FM (§3.2)
   igual à da SKY0005; parecidos são erro. O `auth-smoke` escrevia `FM-[rejected-update]` (zero FMs para o motor) e só
   contava DisplayNames; agora usa FMs numéricos e roda `skies proof run` em cada spec conferindo `N/N FMs pass`
   contra as linhas do spec.md. (5) `--logger trx;LogFileName={report}` sem aspas terminava o `sh -c` no `;` em docs e
   mensagens; tudo entre aspas, com teste que roda o runner do template e do sample num `dotnet` falso. (6) `touches`
   que não casa nada vira aviso em `impact`/`record`; `$SKIES_EVIDENCE/raw/` é `evidence/raw/` também no `run`, que
   não escreve mais nada fora dali (o `.specs/.gitignore` passou para `spec new`/`record`); a cadeia do red perdeu o
-  upstream do branch (`--red`, `red.patch`, `default_branch`, `origin/HEAD`, `main`/`master`). O formato do recibo
-  não mudou; os recibos do sample continuam valendo.
+  upstream do branch (`--red`, `red.patch`, `default_branch`, `origin/HEAD`, `main`/`master`).
+- **Recibo que não se forja (segunda auditoria independente).** (1) Caso pulado no red contava como falha, então um
+  `it.skipIf`/`test.skip(cond)` que só vale no red forjava o red; agora caso pulado no red ou no green aborta o
+  `record`. (2) O `red.patch` era aplicado depois de copiar o `e2e/` e podia reescrever os casos do próprio spec;
+  agora um patch que toca `.specs/` ou os arquivos que rodam os testes (o projeto `tests`, arquivo citado no comando
+  do runner e os setup files da config dele, `vitest.config.*`, `*.Tests.csproj`…) é recusado, e um `--red` cujo
+  diff para o green toca esses arquivos ou os compartilhados de `.specs/` também; o red padrão só avisa. (3) O
+  recibo passa a fixar o que o produziu: `commands` (o `setup`/`build`/`command` do runner como escritos, mais um
+  hash blake3) e um green que é commit: `record` recusa working tree sujo, salvo `--allow-dirty`, que grava
+  `"dirty": true`. Um caso que distingue red de green por onde roda (`$PWD`) continua fora do alcance do motor; a
+  revisão é quem pega. (4) CONVENTIONS e a skill dizem o que o recibo prova (os casos falharam no red e passaram no
+  green sob o runner registrado) e o que não prova (que as asserções significam algo: revisão e Assay). (5) Ids de
+  spec duplicados são recusados em `run`/`record`/`impact` (o `web-smoke` criava `0001-home` ao lado de `0001-auth`
+  e rodava o runner da API; agora usa `spec new` e confere na saída que o runner web rodou). (6) Runner roda por
+  `sh -c` em toda plataforma (Git Bash ou `SKIES_SHELL` no Windows, nunca `cmd /C`) e cada placeholder entra citado
+  conforme o contexto, então caminho com espaço funciona. (7) O FM placeholder do `spec new` é recusado. (8) A
+  gramática lê só o título do caso, então um `describe` chamado `FM-2: …` não transforma os casos em parecidos.

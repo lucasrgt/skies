@@ -14,7 +14,8 @@ use super::report::FmId;
 /// - a failure mode is a `- FM-<n> <text>` (or `* FM-<n>: <text>`) bullet under `## Failure modes` in spec.md;
 /// - a case proves it when its title starts with `FM-<n>:` or `FM-<n> `, the title being the name after the last
 ///   ` > ` or ` › ` (vitest and Playwright prefix the describe blocks), or when its method name starts with `FM<n>_`
-///   (a .NET test without a DisplayName, reported as `Specs.S0001.DepositSpec.FM2_double_cancel`).
+///   (a .NET test without a DisplayName, reported as `Specs.S0001.DepositSpec.FM2_double_cancel`). Only the title is
+///   read, look-alikes included: a describe block's name never names a mode nor makes its cases look-alikes.
 ///
 /// `FM` is upper case and the hyphen is required. Anything that starts like an id but is not one (`FM 3`, `fm_3`,
 /// `FM3:`, `FM-[x]`) is a look-alike and an error: never silently a mode, never silently nothing.
@@ -67,7 +68,9 @@ pub fn case_mode(name: &str) -> Named {
         .filter_map(|separator| name.rfind(separator).map(|at| at + separator.len()))
         .max()
         .map_or(name, |at| &name[at..]);
-    let signature = name.split('(').next().unwrap_or(name);
+    // The method comes from the title too, so a describe block that starts like an id (`FM-2: deposit > helper`)
+    // neither names a mode nor makes its helper cases look-alikes: only the case's own title is read.
+    let signature = title.split('(').next().unwrap_or(title);
     let method = signature.rsplit('.').next().unwrap_or(signature);
     let id = |capture: regex::Captures| capture[1].parse().ok().map(FmId);
     if let Some(id) = TITLE.captures(title).and_then(id) {
@@ -144,6 +147,19 @@ mod tests {
         ] {
             assert_eq!(case_mode(name), Named::Nothing, "{name}");
         }
+    }
+
+    #[test]
+    fn a_describe_block_that_starts_like_an_id_is_not_read() {
+        for name in [
+            "FM-2: deposit > seeds the wallet",
+            "FM 2 spaced describe › helper",
+            "fm-2 > Deposit > setup.step",
+        ] {
+            assert_eq!(case_mode(name), Named::Nothing, "{name}");
+        }
+        assert_eq!(case_mode("FM-2: deposit > FM-3: refused twice"), Named::Mode(FmId(3)));
+        assert_eq!(case_mode("FM-2: deposit > fm_2 helper"), Named::LookAlike);
     }
 
     #[test]

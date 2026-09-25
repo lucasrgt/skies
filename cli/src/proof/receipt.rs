@@ -1,8 +1,14 @@
 //! `receipt.json`: the record that a spec's failure modes failed before the change and passed after it.
 //!
-//! It proves red→green once; CI keeps green passing from then on, so nothing here pins files or detects drift. Keys
-//! are written in a fixed order (struct order, then sorted maps) and nothing in it varies between two runs of the
-//! same code (no timestamps, durations, or report hashes), so re-recording an unchanged spec rewrites nothing.
+//! It proves red→green once; CI keeps green passing from then on, so nothing here pins files or detects drift. It
+//! pins what produced it instead: red's and green's commits (and whether green had uncommitted changes) and the
+//! runner's commands. Keys are written in a fixed order (struct order, then sorted maps) and nothing in it varies
+//! between two runs of the same code (no timestamps, durations, or report hashes), so re-recording an unchanged spec
+//! rewrites nothing.
+//!
+//! What a receipt proves is narrow and worth saying plainly: the named cases failed on red and passed on green under
+//! the recorded runner. It does not prove their assertions are meaningful; review of the cases, and an Assay verdict
+//! for a mode tagged `[avp: …]`, is the layer that checks meaning.
 
 use std::collections::BTreeMap;
 
@@ -11,11 +17,14 @@ use serde::Serialize;
 
 use super::report::FmId;
 use super::spec::{RECEIPT_FILE, SpecDir};
+use crate::manifest::Runner;
 
 #[derive(Debug, Serialize)]
 pub struct Receipt {
     pub spec: String,
     pub runner: String,
+    /// What the runner ran, so a receipt names the commands that produced it and a changed runner is visible.
+    pub commands: Commands,
     pub red: Red,
     pub green: Green,
     pub failure_modes: BTreeMap<FmId, Mode>,
@@ -35,6 +44,42 @@ pub struct Red {
 #[derive(Debug, Serialize)]
 pub struct Green {
     pub commit: String,
+    /// Set when `--allow-dirty` recorded green from a working tree that differs from `commit`.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub dirty: bool,
+}
+
+/// The runner's commands as declared in Skies.toml (placeholders unexpanded, since their values are paths that
+/// change every run), and a hash of the three that tells two receipts' runners apart at a glance.
+#[derive(Debug, Serialize)]
+pub struct Commands {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub setup: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build: Option<String>,
+    pub command: String,
+    /// `blake3:<hex>` of `setup`, `build`, and `command` (an absent one empty), each followed by a NUL.
+    pub hash: String,
+}
+
+impl Commands {
+    pub fn of(runner: &Runner) -> Commands {
+        let mut hasher = blake3::Hasher::new();
+        for part in [
+            runner.setup.as_deref(),
+            runner.build.as_deref(),
+            Some(runner.command.as_str()),
+        ] {
+            hasher.update(part.unwrap_or_default().as_bytes());
+            hasher.update(b"\0");
+        }
+        Commands {
+            setup: runner.setup.clone(),
+            build: runner.build.clone(),
+            command: runner.command.clone(),
+            hash: format!("blake3:{}", hasher.finalize().to_hex()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

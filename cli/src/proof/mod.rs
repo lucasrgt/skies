@@ -11,6 +11,7 @@ mod evidence;
 mod git;
 mod grammar;
 mod green;
+mod guard;
 mod impact;
 mod receipt;
 mod record;
@@ -19,6 +20,7 @@ mod red_cause;
 mod report;
 mod run;
 mod runner;
+mod shell;
 mod spec;
 mod summary;
 

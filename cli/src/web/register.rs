@@ -162,6 +162,45 @@ pub fn with_root_entry(text: &str, pattern: &str) -> Option<String> {
     reread.workspace.root?.iter().any(|p| p == pattern).then_some(out)
 }
 
+/// Declares `[runners.<name>]` with the `setup` and `command` keys when the manifest has no runner of that name, so
+/// the package's specs run through `skies proof` from the first one. An existing runner is the owner's and is kept.
+pub fn runner(root: &Path, name: &str, setup: &str, command: &str) -> Result<()> {
+    let path = root.join(FILE_NAME);
+    let text = std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
+    match with_runner(&text, name, setup, command) {
+        Some(updated) if updated != text => {
+            std::fs::write(&path, updated).with_context(|| format!("writing {}", path.display()))?;
+            println!("declared [runners.{name}] in {FILE_NAME}: specs naming `runner: {name}` run through it");
+        }
+        Some(_) => println!("kept [runners.{name}] in {FILE_NAME} (already declared)"),
+        None => println!(
+            "note: {FILE_NAME}: declare the runner by hand:\n\n[runners.{name}]\nsetup = {}\ncommand = {}",
+            toml::Value::String(setup.into()),
+            toml::Value::String(command.into())
+        ),
+    }
+    Ok(())
+}
+
+/// The manifest with `[runners.<name>]` appended; unchanged when a runner of that name exists, `None` when the text
+/// does not parse or the result would not read back as that runner.
+pub fn with_runner(text: &str, name: &str, setup: &str, command: &str) -> Option<String> {
+    let manifest: Manifest = toml::from_str(text).ok()?;
+    if manifest.runners.contains_key(name) {
+        return Some(text.to_string());
+    }
+    let quote = |value: &str| toml::Value::String(value.to_string()).to_string();
+    let out = format!(
+        "{}\n\n[runners.{name}]\nsetup = {}\ncommand = {}\n",
+        text.trim_end(),
+        quote(setup),
+        quote(command)
+    );
+    let reread: Manifest = toml::from_str(&out).ok()?;
+    let runner = reread.runners.get(name)?;
+    (runner.command == command && runner.setup.as_deref() == Some(setup)).then_some(out)
+}
+
 fn is_header(line: &str, name: &str) -> bool {
     let line = line.trim();
     line.strip_prefix('[')
@@ -204,6 +243,18 @@ mod tests {
         assert!(out.contains("  \"src/\",\n  \"clients/\",\n  \"README.md\",\n]"));
         let inline = with_root_entry("[workspace]\nname = \"x\"\nroot = [\"src/\"]\n", "web/").unwrap();
         assert!(inline.contains("root = [\"src/\", \"web/\"]\n"));
+    }
+
+    #[test]
+    fn a_runner_is_appended_once_and_an_existing_one_is_kept() {
+        let out = with_runner(TEMPLATE, "web", "npm ci", "vitest run {dir} --outputFile={report}").unwrap();
+        assert!(out.starts_with(TEMPLATE.trim_end()));
+        assert!(out.ends_with(
+            "\n\n[runners.web]\nsetup = \"npm ci\"\ncommand = \"vitest run {dir} --outputFile={report}\"\n"
+        ));
+        assert_eq!(with_runner(&out, "web", "other", "other").unwrap(), out);
+        assert_eq!(with_runner(TEMPLATE, "api", "x", "y").unwrap(), TEMPLATE);
+        assert!(with_runner("not toml [", "web", "x", "y").is_none());
     }
 
     #[test]
