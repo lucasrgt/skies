@@ -102,6 +102,9 @@ pub fn refutation(checked: &Checked) -> Option<String> {
             ));
         }
     };
+    if let Some(problem) = report::skipped(&checked.cases, "green") {
+        return Some(problem);
+    }
     let failing: Vec<FmId> = modes
         .iter()
         .filter(|(_, mode)| **mode == Mode::CasesFailed)

@@ -1,6 +1,8 @@
 //! The proof harness shared by the proof integration tests: a throwaway git repository with a shell-script runner
 //! that writes JUnit. The runner passes a case only when `src/feature.txt` says `on`, so the base commit is a genuine
-//! red and the working tree a genuine green. Cases titled `always` pass everywhere and `broken` fail everywhere.
+//! red and the working tree a genuine green. Cases titled `always` pass everywhere, `broken` fail everywhere,
+//! `skip-on-red` are skipped without the feature and pass with it, and `skip-on-green` fail without it and are
+//! skipped with it.
 //!
 //! For Assay-tagged failure modes, `<e2e>/verdicts.txt` lists `<fm number> <criterion> [always|never]`; the runner
 //! writes each as a PascalCase, System.Text.Json-shaped verdict to `$SKIES_EVIDENCE/avp-FM-<n>.json`, passing with
@@ -22,6 +24,8 @@ state=$(head -n 1 src/feature.txt)
     case "$name" in
       *always*) echo "<testcase name=\"$name\"/>" ;;
       *broken*) echo "<testcase name=\"$name\"><failure/></testcase>" ;;
+      *skip-on-green*) if [ "$state" = on ]; then echo "<testcase name=\"$name\"><skipped/></testcase>"; else echo "<testcase name=\"$name\"><failure/></testcase>"; fi ;;
+      *skip-on-red*) if [ "$state" = on ]; then echo "<testcase name=\"$name\"/>"; else echo "<testcase name=\"$name\"><skipped/></testcase>"; fi ;;
       *) if [ "$state" = on ]; then echo "<testcase name=\"$name\"/>"; else echo "<testcase name=\"$name\"><failure/></testcase>"; fi ;;
     esac
   done < "$1/cases.txt"

@@ -6,10 +6,49 @@ mod support;
 use support::{Repo, SPEC, new_spec, spec_md, text};
 
 #[test]
+fn a_case_skipped_on_red_or_green_is_not_a_failure_or_a_pass() {
+    // `it.skipIf(!featureExists)`: the case never runs on red, and a skip used to count as red failing.
+    let repo = Repo::new();
+    new_spec(&repo, "FM-1: toggles\nFM-2: skip-on-red toggles twice\n");
+    repo.implement();
+    let refused = repo.skies(&["proof", "record", "1"]);
+    assert_eq!(refused.status.code(), Some(1), "{}", text(&refused));
+    assert!(
+        text(&refused).contains("FM-2: case \"FM-2: skip-on-red toggles twice\" was skipped on red"),
+        "{}",
+        text(&refused)
+    );
+    assert!(
+        text(&refused).contains("must run and fail on red"),
+        "{}",
+        text(&refused)
+    );
+    assert!(!repo.path(&format!("{SPEC}/receipt.json")).exists());
+
+    repo.write(
+        &format!("{SPEC}/e2e/cases.txt"),
+        "FM-1: toggles\nFM-2: toggles twice\nFM-2: skip-on-green later\n",
+    );
+    repo.git(&["add", ".specs"]);
+    repo.git(&["commit", "--quiet", "-m", "a case skipped with the feature"]);
+    let skipped_green = repo.skies(&["proof", "record", "1"]);
+    assert_eq!(skipped_green.status.code(), Some(1), "{}", text(&skipped_green));
+    assert!(
+        text(&skipped_green).contains("FM-2: case \"FM-2: skip-on-green later\" was skipped on green"),
+        "{}",
+        text(&skipped_green)
+    );
+    assert!(!repo.path(&format!("{SPEC}/receipt.json")).exists());
+}
+
+#[test]
 fn two_specs_sharing_an_id_are_refused_everywhere_and_spec_new_takes_the_next() {
     let repo = Repo::new();
     new_spec(&repo, "FM-1: toggles\nFM-2: toggles twice\n");
-    repo.write(".specs/0001-home/spec.md", &spec_md("0001", &["FM-1 the home is empty"]));
+    repo.write(
+        ".specs/0001-home/spec.md",
+        &spec_md("0001", &["FM-1 the home is empty"]),
+    );
     repo.write(".specs/0001-home/e2e/cases.txt", "FM-1: greets\n");
     repo.implement();
     for args in [
