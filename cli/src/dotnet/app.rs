@@ -40,11 +40,47 @@ pub fn new_app(cwd: &Path, name: &str) -> Result<u8> {
     }
 
     println!("created {} ({written} files)", target.display());
+    start_repository(&target, name);
     println!(
         "next: `cd {name} && dotnet build`, then describe your first feature with `skies spec new <slug>` \
          and scaffold it with `skies g module|slice|entity` from src/{name}.Api."
     );
     Ok(0)
+}
+
+/// Makes the new app a git repository with the scaffold as its first commit, on `main`: `skies proof record` finds
+/// red by its git history, so the first feature's branch has a revision to fork from. Skipped inside an existing
+/// repository (a monorepo adding an app) and when git is missing; a commit git refuses (no `user.email` yet) leaves
+/// the repository initialized with the files staged, and says what to run.
+fn start_repository(target: &Path, name: &str) {
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .args(args)
+            .current_dir(target)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .is_ok_and(|status| status.success())
+    };
+    if git(&["rev-parse", "--is-inside-work-tree"]) {
+        println!(
+            "note: {} is inside a git repository already; commit the new app there.",
+            target.display()
+        );
+        return;
+    }
+    if !git(&["init", "--quiet", "--initial-branch=main"]) {
+        println!("note: git is not available; run `git init` in {name} before `skies proof record`.");
+        return;
+    }
+    if git(&["add", "--all"]) && git(&["commit", "--quiet", "-m", &format!("skies new {name}")]) {
+        println!("initialized a git repository with the scaffold as its first commit (branch main)");
+    } else {
+        println!(
+            "initialized a git repository with the scaffold staged; git refused the first commit (set user.name and \
+             user.email), so run `git commit -m \"skies new {name}\"` in {name}."
+        );
+    }
 }
 
 /// The template's `sourceName`: the placeholder `dotnet new` replaces, read from the template's own config so
