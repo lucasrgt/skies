@@ -17,6 +17,8 @@ public static class ResendPhoneCode
 
     public static async Task<Result<Output>> Handle(Input input, VerificationTokens verification, ISmsSender sms, ICurrentUser current, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(input.Phone))   // missing from the body: no number to send the code to
+            return Error.Validation(AccountErrorCodes.PhoneRequired, "phone is required");
         var code = await verification.IssueCodeAsync(current.UserId, VerificationPurpose.Phone, input.Phone, CodeLifetime, ct);
         await sms.SendAsync(input.Phone, $"Your MyApp code is {code}", ct);
         return new Output();

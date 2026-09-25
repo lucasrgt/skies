@@ -176,6 +176,29 @@ public class EmailTokens
         await Login(client, Password);
     }
 
+    [Fact(DisplayName = "FM-[missing-fields]: reset and verification requests missing a field are refused as client errors")]
+    public async Task Missing_fields_are_client_errors()
+    {
+        var mail = new CapturingEmailSender();
+        await using var app = new TestApp();
+        using var factory = WithMail(app, mail);
+        var client = factory.CreateClient();
+        await Authenticate(client);
+        var sentBefore = mail.Sent;
+
+        var requestNoEmail = await client.PostAsJsonAsync("/account/password-reset/request", new { });
+        var resetNoPassword = await client.PostAsJsonAsync("/account/password-reset", new { token = "anything" });
+        var resetNoToken = await client.PostAsJsonAsync("/account/password-reset", new { newPassword = "new-password1" });
+        var verifyNoToken = await client.PostAsJsonAsync("/account/verify-email", new { });
+
+        Assert.True(requestNoEmail.IsSuccessStatusCode, $"reset request answered {requestNoEmail.StatusCode}");
+        Assert.Equal(sentBefore, mail.Sent);
+        Assert.Equal(HttpStatusCode.BadRequest, resetNoPassword.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, resetNoToken.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, verifyNoToken.StatusCode);
+        await Login(client, Password);
+    }
+
     private static WebApplicationFactory<Program> WithMail(TestApp app, IEmailSender mail) =>
         app.WithWebHostBuilder(builder => builder.ConfigureServices(services => services.AddSingleton(mail)));
 

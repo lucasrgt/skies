@@ -35,7 +35,9 @@ together.
 //<lz:tenancy>
 ### Tenancy is invisible to slices
 `AppDb` calls `model.ApplyTenantFilters(this)`, a query filter on every `ITenantScoped` entity, and registers the
-`TenantStamping` interceptor, which stamps `OrgId` on insert for every save, synchronous or not. So a normal slice
+`TenantStamping` interceptor, which stamps `OrgId` on insert for every save, synchronous or not, and refuses a
+write to another org's row: an insert naming another org, or an update or delete of a row stored under one
+(`__SPEC_FOLDER__#FM-[tenant-writes]`). So a normal slice
 writes `db.Things.Where(...)` with no org plumbing — it is already scoped to the caller's org. Forgetting the filter
 would be a cross-tenant leak, so it is applied to *all* marked entities, not per-entity
 (`__SPEC_FOLDER__#FM-[tenant-isolation]`). The one exception is auth-bootstrap — see below.
@@ -59,7 +61,9 @@ org (`__SPEC_FOLDER__#FM-[anonymous-tenant]`). The identity itself — the email
   bypass. The tell: an entity you would *always* `IgnoreQueryFilters()` should not be scoped.
 
 Outside auth-bootstrap, never reach for `IgnoreQueryFilters()` on a scoped entity; it is a tenant-safety
-bypass and every use is a deliberate, documented exception, not a convenience.
+bypass and every use is a deliberate, documented exception, not a convenience. The doctor flags each one in module
+code, and the auth-bootstrap lookups carry their reason on the suppression beside the call. Work that must span orgs
+(a cleanup job) runs in a context of its own over `FixedTenant.System`, never in the request's.
 //</lz:tenancy>
 
 ### Access token = stateless JWT

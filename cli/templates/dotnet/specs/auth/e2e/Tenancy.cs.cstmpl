@@ -63,6 +63,34 @@ public class TenancyAndGlobalIdentity
         Assert.Equal(orgA, user.OrgId);
     }
 
+    // The filter keeps other orgs out of reads; the stamping keeps them out of writes, however the row was obtained:
+    // named on insert, attached by hand, or loaded across the filter.
+    [Fact(DisplayName = "FM-[tenant-writes]: a request in one org cannot insert, update, or delete another org's rows")]
+    public async Task Writes_never_cross_the_current_org()
+    {
+        var (orgA, orgB) = (Guid.NewGuid(), Guid.NewGuid());
+        var store = Guid.NewGuid().ToString();
+        var theirs = await Seed(store, orgB, "b@org-b.com", PasswordHash.FromStored("x.y"));
+
+        await using var planting = NewDb(store, new FixedTenant(orgA));
+        planting.Users.Add(User.Register(orgB, Email.FromStored("planted@org-b.com"), PasswordHash.FromStored("x.y"), DateTime.UtcNow).Value);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => planting.SaveChangesAsync());
+
+        await using var deleting = NewDb(store, new FixedTenant(orgA));
+        deleting.Users.Remove(theirs);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => deleting.SaveChangesAsync());
+
+        await using var updating = NewDb(store, new FixedTenant(orgA));
+        var loaded = await updating.Users.IgnoreQueryFilters().SingleAsync();
+        updating.Entry(loaded).Property(u => u.Role).CurrentValue = Role.Admin;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => updating.SaveChangesAsync());
+
+        await using var asB = NewDb(store, new FixedTenant(orgB));
+        var survivor = Assert.Single(await asB.Users.ToListAsync());
+        Assert.Equal("b@org-b.com", survivor.Email.Value);
+        Assert.Null(survivor.Role);
+    }
+
     // The request tenant as the app resolves it, for a caller with no access token: no org, so no org's rows.
     [Fact(DisplayName = "FM-[anonymous-tenant]: an anonymous request resolves no org and reads no org's rows")]
     public async Task An_anonymous_request_has_no_org()
@@ -77,11 +105,14 @@ public class TenancyAndGlobalIdentity
         Assert.Empty(await db.Users.ToListAsync());
     }
 
-    private static async Task Seed(string store, Guid org, string email, PasswordHash hash)
+    // Returns the stored user, detached: the context that wrote it is gone.
+    private static async Task<User> Seed(string store, Guid org, string email, PasswordHash hash)
     {
         await using var db = NewDb(store, new FixedTenant(org));
-        db.Users.Add(User.Register(org, Email.FromStored(email), hash, DateTime.UtcNow).Value);
+        var user = User.Register(org, Email.FromStored(email), hash, DateTime.UtcNow).Value;
+        db.Users.Add(user);
         await db.SaveChangesAsync();
+        return user;
     }
 
     private static Guid OrgOf(string accessToken) =>

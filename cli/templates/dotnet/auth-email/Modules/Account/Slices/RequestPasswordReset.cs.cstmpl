@@ -23,7 +23,9 @@ public static class RequestPasswordReset
         if (address.IsFailure)
             return new Output();   // never reveal that the email was malformed
 
+#pragma warning disable SKY0030 // a signed-out reset request has no org: the email finds the user in any org
         var user = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == address.Value, ct);
+#pragma warning restore SKY0030
         if (user is null)
             return new Output();   // never reveal that no account exists
 

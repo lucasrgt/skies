@@ -100,6 +100,21 @@ public class GoogleSignIn
         Assert.Contains(AccountErrorCodes.NoAccount, await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
     }
 
+    [Fact(DisplayName = "FM-[missing-fields]: a request with no id token is denied like a forged one, never a server error")]
+    public async Task A_missing_id_token_is_denied()
+    {
+        await using var app = new TestApp();
+        var client = app.CreateClient();
+
+        var register = await client.PostAsJsonAsync("/account/register/google", new { });
+        var login = await client.PostAsJsonAsync("/account/login/google", new { });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, register.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
+        await using var scope = app.Services.CreateAsyncScope();
+        Assert.False(await scope.ServiceProvider.GetRequiredService<AppDb>().Users.IgnoreQueryFilters().AnyAsync());
+    }
+
     private static async Task<Me.Output> Profile(HttpClient client, string accessToken)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, "/account/me");

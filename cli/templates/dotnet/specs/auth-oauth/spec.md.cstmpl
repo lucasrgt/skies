@@ -22,6 +22,7 @@ same bypass guard a real verifier sits behind.
 - FM-[login] A Google identity with an account cannot sign in
 - FM-[login-forged] An unverifiable token signs in
 - FM-[login-unknown] A verified Google identity without an account signs in
+- FM-[missing-fields] A request with no id token fails as a server error instead of being denied like a forged token
 
 ## Out of scope
 
