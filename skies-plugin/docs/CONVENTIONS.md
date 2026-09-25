@@ -56,10 +56,11 @@ public static class Deposit
 - **A module owns both halves of its wiring**: `[Module]` with `AddServices(IServiceCollection, IConfiguration)`
   and `Map(IEndpointRouteBuilder)` (`SKY0015`). The explicit registry `Modules.cs` (`AddModules` / `MapModules`)
   lists every module (`SKY0016`). No reflection, no discovery.
-- **The composition root is three named layers.** `Program.cs` is a thin index: `AddSkies()` + `AddPlatform(config)`
+- **The composition root is three named layers.** `Program.cs` is a thin index: `AddSkies()` + `AddPlatform(config, env)`
   + `AddModules(config)`, then `UseSkies()` / `UsePlatform()` / `MapModules()` (`SKY0017` flags anything else).
-  `AddSkies` is the framework's conventions (OpenAPI, enum-as-name JSON). `AddPlatform` / `UsePlatform` is the
-  app's cross-cutting infrastructure (`DbContext`, auth, CORS, shared ports), absent when there is none, split by
+  `AddSkies`/`UseSkies` is the framework's conventions (OpenAPI, enum-as-name JSON, CORS from `Cors:Origins`).
+  `AddPlatform` / `UsePlatform` is the app's cross-cutting infrastructure (`DbContext`, auth, rate limits, shared
+  ports), absent when there is none, split by
   concern into `Platform/<Concern>.cs` partials (Persistence, Security, Observability, Web). A vendor or domain
   service belongs in its module's `AddServices`. Why: the index cannot rot into a dumping ground.
 - **Authorization is a decision, never an omission.** Every slice endpoint carries `.RequireAuthorization(…)` or

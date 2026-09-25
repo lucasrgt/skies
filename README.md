@@ -57,7 +57,7 @@ composition root stays a short index:
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSkies();
-builder.Services.AddPlatform(builder.Configuration);
+builder.Services.AddPlatform(builder.Configuration, builder.Environment);
 builder.Services.AddModules(builder.Configuration);
 
 var app = builder.Build();
