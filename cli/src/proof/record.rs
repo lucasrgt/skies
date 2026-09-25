@@ -161,12 +161,28 @@ pub fn record(key: &str, red_rev: Option<&str>, red_patch: Option<&Path>, allow_
         green: receipt::Green { commit: head, dirty },
         failure_modes: modes,
     };
-    receipt.save(&spec)?;
-    println!(
-        "wrote {}/receipt.json (full reports in {EVIDENCE_DIR}/{}/, not committed)",
-        spec.rel(),
-        evidence::RAW_DIR
-    );
+    // Stored only now: a record that fails leaves the spec's red.patch as it was, never a patch no receipt used.
+    if let Some(given) = red_patch {
+        let stored = spec.file(RED_PATCH_FILE);
+        if std::fs::canonicalize(given).ok() != std::fs::canonicalize(&stored).ok() {
+            std::fs::copy(given, &stored)
+                .with_context(|| format!("copying {} to {}", given.display(), stored.display()))?;
+        }
+    }
+    if receipt.save(&spec)? {
+        println!(
+            "wrote {}/receipt.json (full reports in {EVIDENCE_DIR}/{}/, not committed)",
+            spec.rel(),
+            evidence::RAW_DIR
+        );
+    } else {
+        println!(
+            "kept {}/receipt.json: it records this same proof (only the commits moved); full reports in \
+             {EVIDENCE_DIR}/{}/",
+            spec.rel(),
+            evidence::RAW_DIR
+        );
+    }
     Ok(0)
 }
 
@@ -204,8 +220,8 @@ fn justified(spec: &SpecDir, doc: &SpecDoc, red: &red::Red, base: &Base, patched
 }
 
 /// Picks the patch that turns the red revision into "feature not implemented": `--red-patch` (stored as the spec's
-/// red.patch so the receipt is reproducible), else the spec's own red.patch when `--red` does not override it. The
-/// patch is vetted before it is stored, so a refused one never replaces the spec's red.patch.
+/// red.patch once the record succeeds, so the receipt is reproducible), else the spec's own red.patch when `--red`
+/// does not override it. The patch is vetted before red runs.
 fn choose_patch(
     spec: &SpecDir,
     red_rev: Option<&str>,
@@ -219,11 +235,9 @@ fn choose_patch(
                 bail!("--red-patch {}: no such file", given.display());
             }
             vet(given)?;
-            if std::fs::canonicalize(given).ok() != std::fs::canonicalize(&stored).ok() {
-                std::fs::copy(given, &stored)
-                    .with_context(|| format!("copying {} to {}", given.display(), stored.display()))?;
-            }
-            Ok(Some(stored))
+            // Absolute: red applies it from inside its own checkout.
+            let given = std::fs::canonicalize(given).with_context(|| format!("reading {}", given.display()))?;
+            Ok(Some(given))
         }
         None if red_rev.is_none() && stored.is_file() => {
             vet(&stored)?;

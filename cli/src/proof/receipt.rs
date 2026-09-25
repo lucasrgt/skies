@@ -120,14 +120,48 @@ pub struct Mode {
 }
 
 impl Receipt {
-    /// Writes the receipt, leaving the file alone when its bytes would not change.
-    pub fn save(&self, spec: &SpecDir) -> Result<()> {
+    /// Writes the receipt, unless the one on disk records the same proof: then it is kept as it is, so recording an
+    /// unchanged spec again leaves git clean even after HEAD moved. Only the commits may differ for that; any other
+    /// field (a result, a case, the runner's commands, the patch) is a new proof and is written. Returns whether it
+    /// wrote.
+    pub fn save(&self, spec: &SpecDir) -> Result<bool> {
         let path = spec.file(RECEIPT_FILE);
         let mut text = serde_json::to_string_pretty(self)?;
         text.push('\n');
-        if std::fs::read_to_string(&path).is_ok_and(|current| current == text) {
-            return Ok(());
+        let current = std::fs::read_to_string(&path).ok();
+        if current.as_deref().is_some_and(|current| same_proof(current, &text)) {
+            return Ok(false);
         }
-        std::fs::write(&path, text).with_context(|| format!("writing {}", path.display()))
+        std::fs::write(&path, text).with_context(|| format!("writing {}", path.display()))?;
+        Ok(true)
+    }
+}
+
+/// Whether two receipts record the same proof, apart from the commits red and green ran at.
+fn same_proof(current: &str, new: &str) -> bool {
+    let without_commits = |text: &str| {
+        let mut value: serde_json::Value = serde_json::from_str(text).ok()?;
+        for side in ["red", "green"] {
+            value.get_mut(side)?.as_object_mut()?.remove("commit");
+        }
+        Some(value)
+    };
+    matches!((without_commits(current), without_commits(new)), (Some(a), Some(b)) if a == b)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::same_proof;
+
+    const RECEIPT: &str = r#"{ "spec": "0001-a", "red": { "commit": "aaa", "output": "fail" },
+        "green": { "commit": "bbb" }, "failure_modes": { "FM-1": { "red": "fail", "green": "pass" } } }"#;
+
+    #[test]
+    fn only_the_commits_may_move_for_the_same_proof() {
+        let moved = RECEIPT.replace("\"aaa\"", "\"ccc\"").replace("\"bbb\"", "\"ddd\"");
+        assert!(same_proof(RECEIPT, &moved));
+        let changed = RECEIPT.replace("\"red\": \"fail\"", "\"red\": \"did-not-build\"");
+        assert!(!same_proof(RECEIPT, &changed));
+        assert!(!same_proof("not json", RECEIPT));
     }
 }
