@@ -30,6 +30,18 @@ jobs:
       - name: release plumbing (npm pack, launcher, set-version)
         run: cargo build --locked && tools/release-check.sh target/debug/skies
 
+  proof-windows:
+    name: proof engine on Windows (runner through Git's sh)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: tools/proof-smoke.sh
+
   dotnet:
     name: .NET libraries, doctor, and sample
     runs-on: ubuntu-latest
