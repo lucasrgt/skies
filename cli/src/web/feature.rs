@@ -161,6 +161,15 @@ fn humanize(pascal: &str) -> String {
         .map_or_else(String::new, |c| c.to_ascii_uppercase().to_string() + chars.as_str())
 }
 
+/// A field the loaded record carries (its `version`) is sent as the record has it now, falling back to the target the
+/// route gave while the record loads: after a save the lookup reloads, and the next save carries the new version.
+fn read_carried_from_record(fields: &mut [Field], prefill: Option<&Prefill>) {
+    let Some(prefill) = prefill else { return };
+    for field in fields.iter_mut().filter(|f| prefill.carried.contains(&f.name)) {
+        field.value = format!("record?.{} ?? {}", field.name, field.value);
+    }
+}
+
 /// The mutation's variables in the shape orval generates: path parameters by name, query parameters as `params`,
 /// and the body as `data`.
 pub fn variables(fields: &[Field], has_body: bool) -> String {
@@ -264,9 +273,10 @@ fn form_shape(
             .and_then(|(doc, _)| prefill::for_form(doc, slice, fields))
     };
     if let Some(spec) = fields {
-        let fields = form_fields::parse(spec)?;
-        let variables = variables(&fields, true);
+        let mut fields = form_fields::parse(spec)?;
         let prefill = prefill_from(&fields);
+        read_carried_from_record(&mut fields, prefill.as_ref());
+        let variables = variables(&fields, true);
         return Ok(Shape::Form {
             fields,
             variables,
@@ -289,9 +299,10 @@ fn form_shape(
             doc.operation_ids().join(", ")
         );
     };
-    let fields = form_fields::from_operation(doc, &operation, slice)?;
-    let variables = variables(&fields, operation.body().is_some());
+    let mut fields = form_fields::from_operation(doc, &operation, slice)?;
     let prefill = prefill_from(&fields);
+    read_carried_from_record(&mut fields, prefill.as_ref());
+    let variables = variables(&fields, operation.body().is_some());
     Ok(Shape::Form {
         fields,
         variables,

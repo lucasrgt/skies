@@ -23,6 +23,9 @@ pub struct Prefill {
     pub record: String,
     /// Every input with the string the form holds for it, read off `record`.
     pub values: Vec<PrefillValue>,
+    /// The sent-as-given fields (not typed, not in the path) the record carries, such as its concurrency `version`:
+    /// a save sends the record's current value, so a second save after a first one does not replay a stale version.
+    pub carried: Vec<String>,
 }
 
 /// One input's starting value.
@@ -74,11 +77,17 @@ pub fn for_form(doc: &Document, form: &str, fields: &[Field]) -> Option<Prefill>
             },
         })
         .collect();
+    let carried = fields
+        .iter()
+        .filter(|f| f.context && f.location != "path" && props.contains(&f.name))
+        .map(|f| f.name.clone())
+        .collect();
     Some(Prefill {
         hook,
         args: args.join(", "),
         record,
         values,
+        carried,
     })
 }
 

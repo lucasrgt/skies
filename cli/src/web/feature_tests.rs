@@ -402,6 +402,10 @@ fn an_update_form_opens_on_its_record_and_names_a_conflict() {
         "    values: record\n      ? { name: record.name == null ? \"\" : String(record.name) }\n      : undefined,\n    \
          resetOptions: { keepDirtyValues: true },\n"
     ));
+    // The save sends the version the record has now, so a second save after a first one is not a stale write.
+    assert!(update.contains(
+        "mutation.mutate({ id: target.id, data: { name: values.name, version: record?.version ?? target.version } })"
+    ));
     assert!(update.contains("?.response?.status === 409;"));
     assert!(
         update.contains("i18n.t(conflict ? \"update-product:errors.conflict\" : \"update-product:errors.submit\")")
