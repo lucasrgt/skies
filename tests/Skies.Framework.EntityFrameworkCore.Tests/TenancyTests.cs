@@ -93,6 +93,102 @@ public class TenancyTests
     }
 
     [Fact]
+    public async Task A_request_in_one_org_cannot_insert_into_another()
+    {
+        var store = Guid.NewGuid().ToString();
+        await using var asA = new NotesDb(store, new FixedTenant(OrgA));
+
+        asA.Notes.Add(Note.WriteIn(OrgB, "planted"));
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => asA.SaveChangesAsync());
+        Assert.Contains("FixedTenant.System", refused.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => asA.SaveChanges());
+        Assert.Equal(0, await CountAll(store));
+    }
+
+    [Fact]
+    public async Task A_request_may_name_its_own_org_on_insert()
+    {
+        var store = Guid.NewGuid().ToString();
+        await using var asA = new NotesDb(store, new FixedTenant(OrgA));
+
+        asA.Notes.Add(Note.WriteIn(OrgA, "mine"));
+        await asA.SaveChangesAsync();
+
+        Assert.Equal(1, await CountAll(store));
+    }
+
+    [Fact]
+    public async Task A_request_in_one_org_cannot_delete_another_orgs_detached_row()
+    {
+        var store = Guid.NewGuid().ToString();
+        var theirs = await Seed(store, OrgB, "b");
+        await using var asA = new NotesDb(store, new FixedTenant(OrgA));
+
+        asA.Notes.Remove(theirs);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => asA.SaveChangesAsync());
+        Assert.Throws<InvalidOperationException>(() => asA.SaveChanges());
+        Assert.Equal(1, await CountAll(store));
+    }
+
+    [Fact]
+    public async Task A_request_in_one_org_cannot_update_another_orgs_row_however_it_got_it()
+    {
+        var store = Guid.NewGuid().ToString();
+        var theirs = await Seed(store, OrgB, "b");
+
+        await using var attached = new NotesDb(store, new FixedTenant(OrgA));
+        theirs.Edit("defaced");
+        attached.Notes.Update(theirs);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => attached.SaveChangesAsync());
+
+        await using var queried = new NotesDb(store, new FixedTenant(OrgA));
+        var acrossTheFilter = await queried.Notes.IgnoreQueryFilters().SingleAsync();
+        acrossTheFilter.Edit("defaced");
+        await Assert.ThrowsAsync<InvalidOperationException>(() => queried.SaveChangesAsync());
+
+        await using var asB = new NotesDb(store, new FixedTenant(OrgB));
+        Assert.Equal("b", (await asB.Notes.SingleAsync()).Text);
+    }
+
+    [Fact]
+    public async Task A_request_changes_and_deletes_its_own_orgs_rows()
+    {
+        var store = Guid.NewGuid().ToString();
+        await Seed(store, OrgA, "a");
+        await using var asA = new NotesDb(store, new FixedTenant(OrgA));
+        var note = await asA.Notes.SingleAsync();
+
+        note.Edit("edited");
+        await asA.SaveChangesAsync();
+        asA.Notes.Remove(note);
+        await asA.SaveChangesAsync();
+
+        Assert.Equal(0, await CountAll(store));
+    }
+
+    [Fact]
+    public async Task The_system_scope_changes_rows_it_loaded_across_the_filter_and_inserts_only_named_ones()
+    {
+        var store = Guid.NewGuid().ToString();
+        await Seed(store, OrgA, "a");
+        await Seed(store, OrgB, "b");
+        await using var system = new NotesDb(store, FixedTenant.System);
+
+        Assert.Empty(await system.Notes.ToListAsync());
+        foreach (var note in await system.Notes.IgnoreQueryFilters().ToListAsync())
+            note.Edit(note.Text + "!");
+        system.Notes.Add(Note.WriteIn(OrgB, "named"));
+        await system.SaveChangesAsync();
+
+        await using var asB = new NotesDb(store, new FixedTenant(OrgB));
+        Assert.Equal(["b!", "named"], (await asB.Notes.Select(n => n.Text).ToListAsync()).Order());
+        system.Notes.Add(Note.Write("unnamed"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => system.SaveChangesAsync());
+    }
+
+    [Fact]
     public void The_filter_must_be_rooted_at_the_context_itself()
     {
         var model = new ModelBuilder();
@@ -100,11 +196,20 @@ public class TenancyTests
         Assert.Throws<ArgumentException>(() => model.ApplyTenantFilters(new NotAContext()));
     }
 
-    private static async Task Seed(string store, Guid org, string text)
+    // Returns the stored row, detached: the context that wrote it is gone.
+    private static async Task<Note> Seed(string store, Guid org, string text)
     {
         await using var db = new NotesDb(store, new FixedTenant(org));
-        db.Notes.Add(Note.Write(text));
+        var note = Note.Write(text);
+        db.Notes.Add(note);
         await db.SaveChangesAsync();
+        return note;
+    }
+
+    private static async Task<int> CountAll(string store)
+    {
+        await using var db = new NotesDb(store, FixedTenant.System);
+        return await db.Notes.IgnoreQueryFilters().CountAsync();
     }
 
     private sealed class NotAContext : ITenantDbContext
@@ -126,6 +231,8 @@ public sealed class Note : ITenantScoped
     public static Note Write(string text) => new() { Id = Guid.NewGuid(), Text = text };
 
     public static Note WriteIn(Guid org, string text) => new() { Id = Guid.NewGuid(), OrgId = org, Text = text };
+
+    public void Edit(string text) => Text = text;
 }
 
 public sealed class NotesDb(string store, ITenant tenant) : DbContext, ITenantDbContext

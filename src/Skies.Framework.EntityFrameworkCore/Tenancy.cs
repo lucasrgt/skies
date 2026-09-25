@@ -15,7 +15,14 @@ public interface ITenant
 /// <summary>An <see cref="ITenant"/> fixed to one org: for work that runs outside a request (a background job acting
 /// for a known org) and for tests that drive a DbContext as a given org.</summary>
 /// <param name="OrgId">The org every read is scoped to and every insert is stamped with.</param>
-public sealed record FixedTenant(Guid OrgId) : ITenant;
+public sealed record FixedTenant(Guid OrgId) : ITenant
+{
+    /// <summary>The system scope: a unit of work that acts in no org, the documented escape for work that spans orgs (a
+    /// cleanup job, a data migration). It reads no tenant-scoped row through the filter, so it changes only rows it
+    /// loaded on purpose across the filter, and every row it inserts must name its org (see
+    /// <see cref="TenantStamping"/>). Give it a context of its own (its own DI scope), never the request's.</summary>
+    public static FixedTenant System { get; } = new(Guid.Empty);
+}
 
 /// <summary>Marks an entity as belonging to one org. A context that calls
 /// <see cref="TenantModelBuilderExtensions.ApplyTenantFilters"/> reads only the current org's rows of every marked
