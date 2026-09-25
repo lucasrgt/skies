@@ -3,8 +3,9 @@
 # backend with `g module` + `g entity` + `g crud`, builds it (the build writes the OpenAPI contract), adds a web
 # package with `g web-app`, generates the typed client with `g client`, scaffolds a list and a form screen with
 # `g feature`, routes them, and then proves the package builds (`vite build`), typechecks, and lints clean under
-# `@skiesjs/eslint-plugin`'s recommended config, that a web spec runs through the `[runners.web]` `g web-app`
-# suggests, and that `skies doctor` is clean on the whole app.
+# `@skiesjs/eslint-plugin`'s recommended config, that a web spec made by `skies spec new` runs through the
+# `[runners.web]` `g web-app` suggests (the engine's output and report say which spec and runner ran), and that
+# `skies doctor` is clean on the whole app.
 #
 # Packages come from this working tree: Skies.Framework.* is `dotnet pack`ed into a local feed (as in auth-smoke), and
 # @skiesjs/react and @skiesjs/eslint-plugin are `npm pack`ed and installed from their tarballs. Everything else comes
@@ -151,10 +152,14 @@ cat >> "$APP/Skies.toml" <<'EOF'
 setup = "test -d clients/web/node_modules || npm --prefix clients/web ci"
 command = "node clients/web/node_modules/vitest/vitest.mjs run --config clients/web/vitest.config.ts --reporter=junit --outputFile={report} {dir}"
 EOF
-mkdir -p "$APP/.specs/0001-home/e2e"
-cat > "$APP/.specs/0001-home/spec.md" <<'EOF'
+# `spec new` picks the next free id (g auth already wrote 0001-auth); a hand-made 0001-home would share its id.
+HOME_SPEC="$(cd "$APP" && "$SKIES" spec new home --runner web | sed -nE 's#^created \.specs/([^/]+)/.*#\1#p')"
+[ -n "$HOME_SPEC" ] || fail "skies spec new home did not say which folder it created"
+HOME_ID="${HOME_SPEC%%-*}"
+[ -d "$APP/.specs/$HOME_SPEC/e2e" ] || fail "skies spec new did not create .specs/$HOME_SPEC/e2e"
+cat > "$APP/.specs/$HOME_SPEC/spec.md" <<EOF
 ---
-id: "0001"
+id: "$HOME_ID"
 runner: web
 ---
 # Home
@@ -163,7 +168,7 @@ runner: web
 
 - FM-1 The start screen does not greet the visitor.
 EOF
-cat > "$APP/.specs/0001-home/e2e/Home.test.tsx" <<'EOF'
+cat > "$APP/.specs/$HOME_SPEC/e2e/Home.test.tsx" <<'EOF'
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import "@/i18n";
@@ -183,8 +188,16 @@ for script in build typecheck lint test; do
   echo "ok: npm run $script"
 done
 grep -qE '1 passed' "$WORK/test.log" || { cat "$WORK/test.log"; fail "the web spec did not run from the package"; }
-(cd "$APP" && "$SKIES" proof run 0001 >"$WORK/proof.log" 2>&1) || { cat "$WORK/proof.log"; fail "skies proof run 0001"; }
-echo "ok: skies proof run 0001 through [runners.web]"
+(cd "$APP" && "$SKIES" proof run "$HOME_ID" >"$WORK/proof.log" 2>&1) \
+  || { cat "$WORK/proof.log"; fail "skies proof run $HOME_ID"; }
+# The engine names the spec and runner it ran, so a run that went to another spec or runner cannot pass as this one.
+grep -qF "run $HOME_SPEC (runner web," "$WORK/proof.log" && grep -qxF "1/1 FMs pass" "$WORK/proof.log" \
+  || { cat "$WORK/proof.log"; fail "skies proof run $HOME_ID did not run $HOME_SPEC through [runners.web]"; }
+# vitest's JUnit report (the api runner would leave a TRX), holding the home spec's case.
+RAW="$APP/.specs/$HOME_SPEC/evidence/raw"
+[ ! -e "$RAW/run.trx" ] && grep -qF 'FM-1: the start screen greets the visitor' "$RAW/run.xml" \
+  || { ls "$RAW"; fail "the web run's report is not vitest's JUnit report of the home spec"; }
+echo "ok: skies proof run $HOME_ID ran $HOME_SPEC through [runners.web]"
 
 echo "==> skies doctor on the whole app"
 out="$(cd "$APP" && "$SKIES" doctor 2>&1)" || { echo "$out"; fail "skies doctor"; }
