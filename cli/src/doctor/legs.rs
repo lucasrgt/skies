@@ -46,12 +46,22 @@ pub fn run(root: &Path, target: &Target, build_args: &[String]) -> Leg {
 
 type Outcome = (Status, Vec<Finding>);
 
+/// Forces the compiler (and so every analyzer) to run in each project of the build, even when its outputs are up to
+/// date. Analyzer diagnostics are emitted only by a compile: an incremental `dotnet build` that finds nothing
+/// changed skips `CoreCompile` and reports no warnings at all, so a doctor run after any other build (the app's CI
+/// builds first) would print a clean table over code that still has warning-level SKY findings. `CoreCompile` lists
+/// `$(NonExistentFile)` among its outputs (MSBuild's own "always compile" switch, which the IDE sets); naming a
+/// path that never exists makes the output check fail and the compiler run. Unlike `--no-incremental` (a full
+/// `Rebuild`), nothing is cleaned and restore, resource, and copy targets stay incremental, so a warm doctor run
+/// costs one compile per project.
+const ALWAYS_COMPILE: &str = "-p:NonExistentFile=__skies_doctor__/__always_compile__";
+
 fn dotnet(path: &Path, build_args: &[String]) -> Outcome {
     let mut command = Command::new("dotnet");
     command
         .arg("build")
         .arg(path)
-        .args(["-nologo", "-tl:off", "-clp:NoSummary"])
+        .args(["-nologo", "-tl:off", "-clp:NoSummary", ALWAYS_COMPILE])
         .args(build_args);
     command.env("DOTNET_CLI_UI_LANGUAGE", "en");
     let Some((success, output)) = capture(command) else {
@@ -432,5 +442,39 @@ apps/web/src/a.ts(9,1): error TS2554: Expected 1 arguments, but got 0.
         );
         let (status, _) = verdict(true, String::new(), Vec::new());
         assert_eq!(status, Status::Ran);
+    }
+
+    /// Needs the .NET SDK; skipped (and says so) where `dotnet` is not on PATH, as in the Rust-only CI job.
+    #[test]
+    fn an_up_to_date_build_still_reports_its_analyzer_warnings() {
+        if Command::new("dotnet").arg("--version").output().is_err() {
+            eprintln!("skipped: `dotnet` is not on PATH");
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let files = [
+            (
+                "Probe.csproj",
+                "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework>\
+                 </PropertyGroup></Project>",
+            ),
+            (".globalconfig", "is_global = true\ndotnet_diagnostic.CA2016.severity = warning\n"),
+            (
+                "Probe.cs",
+                "using System.Threading;\nusing System.Threading.Tasks;\npublic static class Probe\n{\n    \
+                 public static Task Wait(CancellationToken token) => Task.Delay(1);\n}\n",
+            ),
+        ];
+        for (name, text) in files {
+            std::fs::write(dir.path().join(name), text).unwrap();
+        }
+        for run in ["first", "up-to-date"] {
+            let (status, findings) = dotnet(dir.path(), &[]);
+            assert_eq!(status, Status::Ran, "{run} build");
+            assert!(
+                findings.iter().any(|f| f.code == "CA2016" && f.severity == Severity::Warning),
+                "the {run} build lost the warning: {findings:?}"
+            );
+        }
     }
 }
