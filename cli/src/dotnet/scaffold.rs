@@ -200,7 +200,11 @@ pub fn entity(root: &Path, module: &str, name: &str) -> Result<u8> {
     // edit compiles.
     let tenancy = text::read(&project.csproj)?.contains("\"Skies.Framework.EntityFrameworkCore\"");
     let body = if tenancy {
-        format!("using Skies.Framework.EntityFrameworkCore;{}{}{body}", text::newline_of(&body), text::newline_of(&body))
+        format!(
+            "using Skies.Framework.EntityFrameworkCore;{}{}{body}",
+            text::newline_of(&body),
+            text::newline_of(&body)
+        )
     } else {
         body
     };
