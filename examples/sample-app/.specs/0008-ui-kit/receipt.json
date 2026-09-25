@@ -1,12 +1,17 @@
 {
   "spec": "0008-ui-kit",
   "runner": "web",
+  "commands": {
+    "setup": "test -d ../../frontend-sdk/node_modules || npm --prefix ../../frontend-sdk ci --no-audit --no-fund --prefer-offline",
+    "command": "node ../../frontend-sdk/node_modules/vitest/vitest.mjs run --config ../../frontend-sdk/vitest.config.ts --reporter=junit --outputFile={report} {dir}",
+    "hash": "blake3:b7dac0f4c66ec64c41a0a072cf05d8a99bbdfb79b1ad5472c841e77b603923ea"
+  },
   "red": {
-    "commit": "4b0df7a19e07f400b169b80c9055a33780f08974",
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f",
     "patch": "red.patch"
   },
   "green": {
-    "commit": "4b0df7a19e07f400b169b80c9055a33780f08974"
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f"
   },
   "failure_modes": {
     "FM-1": {
