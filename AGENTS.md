@@ -57,6 +57,9 @@ dotnet build Skies.Framework.slnx && dotnet test Skies.Framework.slnx
 npm --prefix frontend-sdk run check                       # typecheck, lint, tests
 (cd flutter-sdk/packages/skies_flutter && flutter analyze && flutter test)
 tools/auth-smoke.sh                                       # generated apps on the packed packages: doctor-clean, specs green
+tools/web-smoke.sh && tools/flutter-smoke.sh              # the React and Flutter paths end to end (Node; Flutter + Java)
+tools/proof-smoke.sh                                      # proof run + record through the binary (CI runs it on Windows)
+tools/release-check.sh target/debug/skies                 # npm pack, the launcher, and set-version on a copy
 tools/sync-plugin-docs.sh                                 # after editing docs/*CONVENTIONS.md, docs/AUTH.md, or the CLI help
 ```
 
