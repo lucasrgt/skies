@@ -5,7 +5,7 @@
 //! policies and find their backend contract through the same `Skies.toml` lookup.
 
 mod app;
-mod ci;
+pub(crate) mod ci;
 mod client;
 pub mod contract;
 mod feature;
@@ -13,7 +13,8 @@ mod form_fields;
 mod i18n;
 pub mod names;
 mod openapi;
-mod register;
+mod prefill;
+pub(crate) mod register;
 pub mod scaffold;
 
 use std::path::Path;

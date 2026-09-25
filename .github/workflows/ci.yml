@@ -5,7 +5,7 @@ name: CI
 on:
   workflow_call:
   push:
-    branches: [main]
+    branches: [main, v5]
   pull_request:
   workflow_dispatch:
 
@@ -22,6 +22,13 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      # The npm wrapper's tarball carries bin/skies.js, the launcher runs a platform package's binary, and
+      # tools/set-version.sh moves every version pin (on a copy of the checkout).
+      - name: release plumbing (npm pack, launcher, set-version)
+        run: cargo build --locked && tools/release-check.sh target/debug/skies
 
   dotnet:
     name: .NET libraries, doctor, and sample
@@ -60,6 +67,22 @@ jobs:
         with:
           node-version: "24"
       - run: tools/web-smoke.sh
+
+  flutter-smoke:
+    name: generated Flutter app (pinned spine, analyze, spec, doctor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: tools/flutter-smoke.sh
 
   frontend:
     name: React packages (typecheck, lint, test)

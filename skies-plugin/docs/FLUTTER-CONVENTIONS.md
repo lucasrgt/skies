@@ -28,13 +28,17 @@ paired, UI state and commands in the ViewModel, dependencies through constructor
 
 ## One feature, one shape
 
-Initialize from Flutter itself, then add the Skies spine (the scaffold adds `l10n.yaml` and the client/session seams):
+Start a package with `skies g flutter-app <Name> [--path clients/mobile]`. It runs Flutter's own `flutter create
+--empty`, then adds what the conventions assume: `skies_flutter` pinned to the binary's version (every Skies package
+is released at one version, as `g web-app` pins `@skiesjs/*`), `intl` and `flutter_localizations`, gen_l10n
+(`l10n.yaml`, `generate: true`) over a first shared ARB catalog, and `.skies_spec/` in `.gitignore`. Inside a Skies
+app it is declared in `Skies.toml` (the product's `frontend` and its folder in `[workspace] root`, so `skies doctor`
+checks it and the root stays clean under `SKYWS001`), the CI gains a job that runs `flutter analyze` and the spec
+cases importing the package, and the scaffold prints the `[runners.flutter]` below for its specs.
 
 ```bash
-flutter create my_app
-skies g flutter-app my_app --path my_app
-cd my_app && flutter pub add skies_flutter
-skies g feature Profile
+skies g flutter-app Mobile --path clients/mobile
+skies g feature Profile --package clients/mobile
 ```
 
 ```text
@@ -148,7 +152,8 @@ the runner **copies** the spec's `e2e/` into a hidden folder of the package per 
 `.skies_spec/` to `.gitignore`, and the doctor never walks hidden folders.
 
 `flutter test` has no JUnit reporter, so the runner writes Dart's JSON report and converts it with
-[`junitreport`](https://pub.dev/packages/junitreport). For a package at `app/`, headless cases:
+[`junitreport`](https://pub.dev/packages/junitreport). For a package at `app/`, headless cases (`skies g
+flutter-app` prints this one for its package):
 
 ```toml
 [runners.flutter]

@@ -19,6 +19,7 @@ fn form(name: &str, spec: &str) -> Vec<(String, String)> {
     let shape = Shape::Form {
         variables: variables(&fields, true),
         fields,
+        prefill: None,
     };
     render_feature(&names, &shape, "shop", &locales(&["ptBR", "esES", "enUS"])).unwrap()
 }
@@ -366,4 +367,49 @@ fn a_form_takes_the_record_it_acts_on_as_its_target() {
     let view = read(&web, "src/delete-product/DeleteProduct.view.tsx");
     assert!(!view.contains("Controller") && !view.contains("control"));
     assert!(view.contains("import { Button, Card, Screen, Stack, Text } from \"@/ui\";"));
+}
+
+#[test]
+fn an_update_form_opens_on_its_record_and_names_a_conflict() {
+    let id = serde_json::json!([{ "name": "id", "in": "path", "schema": { "type": "string", "format": "uuid" } }]);
+    let (_dir, web) = package_with_contract(
+        serde_json::json!({ "/catalog/products/{id}": {
+            "put": {
+                "operationId": "UpdateProduct",
+                "parameters": id,
+                "requestBody": { "content": { "application/json": { "schema": {
+                    "$ref": "#/components/schemas/UpdateProductChanges" } } } } },
+            "get": {
+                "operationId": "LookupProduct",
+                "parameters": id,
+                "responses": { "200": { "content": { "application/json": { "schema": {
+                    "$ref": "#/components/schemas/LookupProductOutput" } } } } } } } }),
+        serde_json::json!({
+            "UpdateProductChanges": { "type": "object", "required": ["name", "version"], "properties": {
+                "name": { "type": "string" }, "version": { "type": "string", "format": "uuid" } } },
+            "LookupProductOutput": { "type": "object", "properties": {
+                "product": { "$ref": "#/components/schemas/ProductView" } } },
+            "ProductView": { "type": "object", "properties": {
+                "id": { "type": "string" }, "name": { "type": "string" }, "version": { "type": "string" } } } }),
+    );
+
+    scaffold(&web, "UpdateProduct", FeatureKind::Form, None).unwrap();
+
+    let update = read(&web, "src/update-product/UpdateProduct.viewModel.ts");
+    assert!(update.contains("import { useUpdateProduct, useLookupProduct } from \"@/client.gen/"));
+    assert!(update.contains("  const lookup = useLookupProduct(target.id);\n  const record = lookup.data?.product;\n"));
+    assert!(update.contains(
+        "    values: record\n      ? { name: record.name == null ? \"\" : String(record.name) }\n      : undefined,\n    \
+         resetOptions: { keepDirtyValues: true },\n"
+    ));
+    assert!(update.contains("?.response?.status === 409;"));
+    assert!(
+        update.contains("i18n.t(conflict ? \"update-product:errors.conflict\" : \"update-product:errors.submit\")")
+    );
+    let copy = read(&web, "src/update-product/update-product.i18n.ts");
+    assert!(copy.contains("\"errors.conflict\": \"Someone else changed this after you opened it. Reload"));
+
+    let create = form("CreateProduct", "name:string");
+    assert!(!create[0].1.contains("lookup") && !create[0].1.contains("409"));
+    assert!(!create[2].1.contains("errors.conflict"));
 }

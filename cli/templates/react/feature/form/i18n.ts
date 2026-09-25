@@ -4,6 +4,9 @@
   title: "{{ title }}",
   submit: "{{ title }}",
   "errors.submit": "We couldn't complete it. Try again.",
+{%- if conflict %}
+  "errors.conflict": "Someone else changed this after you opened it. Reload to see their changes.",
+{%- endif %}
 {%- for field in fields %}
   "errors.{{ field.name }}": "{{ field.error }}",
 {%- endfor %}
