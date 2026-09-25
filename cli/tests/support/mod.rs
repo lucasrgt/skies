@@ -78,10 +78,16 @@ impl Repo {
         repo
     }
 
-    /// Commits the feature on the branch, as an author would before recording.
+    /// Commits the feature on the branch with the spec written so far, as an author would before recording.
     pub fn implement(&self) {
         self.write("src/feature.txt", "on\n");
-        self.git(&["commit", "--quiet", "-am", "implement the feature"]);
+        self.commit("implement the feature");
+    }
+
+    /// Commits everything in the working tree (what gitignore keeps out aside), so green is HEAD.
+    pub fn commit(&self, message: &str) {
+        self.git(&["add", "."]);
+        self.git(&["commit", "--quiet", "--allow-empty", "-m", message]);
     }
 
     pub fn path(&self, rel: &str) -> PathBuf {

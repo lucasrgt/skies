@@ -49,11 +49,12 @@ fn red_names_its_revision_and_how_it_was_chosen() {
         .read("Skies.toml")
         .replace("name = \"demo\"", "name = \"demo\"\ndefault_branch = \"develop\"");
     repo.write("Skies.toml", &manifest);
+    repo.commit("default_branch");
     let configured = repo.skies(&["proof", "record", "1"]);
     assert!(configured.status.success(), "{}", text(&configured));
     assert!(
         text(&configured).contains(&format!(
-            "  red    {develop} (merge-base with develop, default_branch in Skies.toml; 1 commit before HEAD)"
+            "  red    {develop} (merge-base with develop, default_branch in Skies.toml; 2 commits before HEAD)"
         )),
         "{}",
         text(&configured)
@@ -70,7 +71,7 @@ fn red_names_its_revision_and_how_it_was_chosen() {
 
     let explicit = repo.skies(&["proof", "record", "1", "--red", "main"]);
     assert!(
-        text(&explicit).contains(&format!("  red    {main} (--red main; 2 commits before HEAD)")),
+        text(&explicit).contains(&format!("  red    {main} (--red main; 3 commits before HEAD)")),
         "{}",
         text(&explicit)
     );
@@ -79,7 +80,7 @@ fn red_names_its_revision_and_how_it_was_chosen() {
     let impact = repo.skies(&["proof", "impact"]);
     assert!(
         text(&impact).starts_with(&format!(
-            "changes since {develop} (merge-base with develop, default_branch in Skies.toml; 1 commit before HEAD)\n"
+            "changes since {develop} (merge-base with develop, default_branch in Skies.toml; 2 commits before HEAD)\n"
         )),
         "{}",
         text(&impact)

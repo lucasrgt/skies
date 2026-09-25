@@ -101,6 +101,7 @@ fn a_case_that_passes_on_red_needs_a_justification() {
         &format!("{SPEC}/spec.md"),
         &format!("{spec}\n## Non-discriminating\n\n- FM-2 the flag is read-only.\n"),
     );
+    repo.commit("justify FM-2");
     let recorded = repo.skies(&["proof", "record", "1"]);
     assert!(recorded.status.success(), "{}", text(&recorded));
     let receipt = repo.json(&format!("{SPEC}/receipt.json"));
@@ -146,7 +147,9 @@ fn a_red_patch_turns_head_into_red() {
     assert_eq!(receipt["red"]["patch"], "red.patch");
     assert_eq!(receipt["red"]["commit"], receipt["green"]["commit"]);
 
-    // Without flags the stored red.patch is used again.
+    // Without flags the stored red.patch is used again (the patch given before is no longer exempt from the clean
+    // tree `record` asks for).
+    std::fs::remove_file(repo.path("off.patch")).unwrap();
     let again = repo.skies(&["proof", "record", "1"]);
     assert!(again.status.success(), "{}", text(&again));
     assert!(text(&again).contains("+ red.patch"));

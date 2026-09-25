@@ -340,7 +340,7 @@ Usage: skies proof <COMMAND>
 
 Commands:
   run     Run the spec's E2E once on the working tree and print each failure mode's pass or fail, with what the failing cases reported. Writes only the spec's local evidence/raw/ (the report, run.log, and what the cases saved under $SKIES_EVIDENCE/raw/); never a receipt or committed evidence. Exits 1 unless every mode passes, and for a spec.md that lists no `- FM-<n>` line
-  record  Run the spec's E2E on the red revision (every failure mode must fail) and on the working tree (every one must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards. Cases that never ran on red count as failing only when the spec's own e2e files are why (a compile error or unresolved import in them); any other red failure (restore, missing tool, runner command) exits 2 with no receipt
+  record  Run the spec's E2E on the red revision (every failure mode must fail) and on the working tree (every one must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards. Cases that never ran on red count as failing only when the spec's own e2e files are why (a compile error or unresolved import in them); any other red failure (restore, missing tool, runner command) exits 2 with no receipt. A skipped case, a red.patch touching .specs/ or the test setup, and uncommitted changes are refused. The receipt proves the cases failed on red and passed on green, not that their assertions are meaningful
   impact  Show which specs a change reaches: the specs cited by the ctx.md of every module the paths sit in (`**/Modules/<M>/` -> `<M>.ctx.md`), and the specs whose `touches:` globs match them, with their failure modes. With no paths, uses the files changed on this branch
   help    Print this message or the help of the given subcommand(s)
 
@@ -365,7 +365,7 @@ Options:
 ## skies proof record
 
 ```text
-Run the spec's E2E on the red revision (every failure mode must fail) and on the working tree (every one must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards. Cases that never ran on red count as failing only when the spec's own e2e files are why (a compile error or unresolved import in them); any other red failure (restore, missing tool, runner command) exits 2 with no receipt
+Run the spec's E2E on the red revision (every failure mode must fail) and on the working tree (every one must pass), then write receipt.json. Proves red->green once; CI keeps green passing afterwards. Cases that never ran on red count as failing only when the spec's own e2e files are why (a compile error or unresolved import in them); any other red failure (restore, missing tool, runner command) exits 2 with no receipt. A skipped case, a red.patch touching .specs/ or the test setup, and uncommitted changes are refused. The receipt proves the cases failed on red and passed on green, not that their assertions are meaningful
 
 Usage: skies proof record [OPTIONS] <SPEC>
 
@@ -375,6 +375,7 @@ Arguments:
 Options:
       --red <RED>              The revision the failure modes must fail on. Defaults to HEAD plus the spec's red.patch when it has one, else the merge-base of HEAD with `[workspace] default_branch` from Skies.toml, origin/HEAD, main, or master, whichever exists first. The choice is printed
       --red-patch <RED_PATCH>  A patch applied to HEAD for red, for specs written after the code; kept as the spec's red.patch
+      --allow-dirty            Record although the working tree differs from HEAD; the receipt then says `"dirty": true` under green
   -h, --help                   Print help
 ```
 

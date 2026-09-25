@@ -11,6 +11,7 @@ mod evidence;
 mod git;
 mod grammar;
 mod green;
+mod guard;
 mod impact;
 mod receipt;
 mod record;

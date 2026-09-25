@@ -38,16 +38,19 @@ fn a_tagged_failure_mode_passes_only_with_a_passing_verdict() {
     assert!(!repo.path(&format!("{SPEC}/receipt.json")).exists());
 
     repo.write(&format!("{SPEC}/e2e/verdicts.txt"), "2 key-honored never\n");
+    repo.commit("verdicts");
     let failing = repo.skies(&["proof", "record", "1"]);
     assert_eq!(failing.status.code(), Some(1), "{}", text(&failing));
     assert!(text(&failing).contains("key-honored is fail"), "{}", text(&failing));
 
     repo.write(&format!("{SPEC}/e2e/verdicts.txt"), "2 other-criterion\n");
+    repo.commit("verdicts");
     let wrong = repo.skies(&["proof", "record", "1"]);
     assert_eq!(wrong.status.code(), Some(1), "{}", text(&wrong));
     assert!(text(&wrong).contains("key-honored is not in the verdict"));
 
     repo.write(&format!("{SPEC}/e2e/verdicts.txt"), "2 key-honored\n");
+    repo.commit("verdicts");
     let recorded = repo.skies(&["proof", "record", "1"]);
     assert!(recorded.status.success(), "{}", text(&recorded));
     assert!(text(&recorded).contains("[avp: key-honored]"));
@@ -79,6 +82,7 @@ fn a_tagged_failure_mode_passes_only_with_a_passing_verdict() {
 
     // `proof run` holds a tagged mode to the same rule.
     repo.write(&format!("{SPEC}/e2e/verdicts.txt"), "2 key-honored never\n");
+    repo.commit("verdicts");
     let broken = repo.skies(&["proof", "run", "1"]);
     assert_eq!(broken.status.code(), Some(1), "{}", text(&broken));
     assert!(text(&broken).contains("key-honored is fail"), "{}", text(&broken));

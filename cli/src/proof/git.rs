@@ -69,6 +69,47 @@ impl Repo {
         Ok(paths)
     }
 
+    /// Every path of the repository that differs from HEAD or is untracked (ignored files left out), relative to the
+    /// repository top: what makes the working tree something other than the commit a receipt names as green.
+    pub fn dirty(&self) -> Result<Vec<String>> {
+        let text = git_raw(&self.top, &["status", "--porcelain=v1", "-z", "--untracked-files=all"])?;
+        let mut paths = Vec::new();
+        let mut entries = text.split('\0').filter(|entry| !entry.is_empty());
+        while let Some(entry) = entries.next() {
+            let (status, path) = entry.split_at(entry.len().min(3));
+            paths.push(path.to_string());
+            // A rename or copy is followed by its source path, which changed too.
+            if status.starts_with(['R', 'C']) || status[1..].starts_with(['R', 'C']) {
+                paths.extend(entries.next().map(String::from));
+            }
+        }
+        Ok(paths)
+    }
+
+    /// The files that differ between `rev` and the working tree, relative to the repository top.
+    pub fn diff_top(&self, rev: &str) -> Result<Vec<String>> {
+        let text = git_raw(&self.top, &["diff", "--name-only", "--no-renames", "-z", rev])?;
+        Ok(text
+            .split('\0')
+            .filter(|path| !path.is_empty())
+            .map(String::from)
+            .collect())
+    }
+
+    /// The paths a patch touches, as written in it (after the `a/` or `b/` prefix), both sides of a rename.
+    pub fn patch_paths(&self, patch: &Path) -> Result<Vec<String>> {
+        let patch_text = patch.to_str().context("the patch path is not UTF-8")?;
+        let text = git_raw(&self.top, &["apply", "--numstat", "-z", patch_text])
+            .with_context(|| format!("{} is not a patch git can read", patch.display()))?;
+        // `added\tdeleted\tpath\0`, or for a rename `added\tdeleted\t\0from\0to\0`.
+        Ok(text
+            .split('\0')
+            .map(|field| field.rsplit('\t').next().unwrap_or(field))
+            .filter(|path| !path.is_empty())
+            .map(String::from)
+            .collect())
+    }
+
     /// Checks out `commit` in a fresh detached worktree inside the repository, at `<top>/.skies-red/<random>/checkout`.
     /// Inside, not under the system temp directory, so every configuration a tool looks up in the parent directories
     /// (a NuGet.config, .npmrc, global.json, or tool manifest at or above the repository) applies to red exactly as it
@@ -168,6 +209,11 @@ impl Drop for TempWorktree {
 }
 
 fn git(dir: &Path, args: &[&str]) -> Result<String> {
+    git_raw(dir, args).map(|text| text.trim().to_string())
+}
+
+/// Git's output as printed, for `-z` output whose fields may end in spaces.
+fn git_raw(dir: &Path, args: &[&str]) -> Result<String> {
     // quotepath=off keeps non-ASCII paths literal, so they match `touches` and module folders like any other path.
     let output = Command::new("git")
         .args(["-c", "core.quotepath=off"])
@@ -182,7 +228,7 @@ fn git(dir: &Path, args: &[&str]) -> Result<String> {
             String::from_utf8_lossy(&output.stderr).trim()
         );
     }
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
 fn lines(text: &str) -> Vec<String> {
