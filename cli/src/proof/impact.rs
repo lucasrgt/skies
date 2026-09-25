@@ -48,7 +48,7 @@ pub fn impact(paths: &[PathBuf]) -> Result<u8> {
         return Ok(0);
     }
 
-    let specs = spec::discover(root)?;
+    let specs = spec::discover_unique(root)?;
     let mut hits: BTreeMap<String, Hit> = BTreeMap::new();
     let ctxs: BTreeSet<String> = changed.iter().filter_map(|path| module_ctx(path)).collect();
     for ctx in ctxs.iter().filter(|ctx| root.join(ctx).is_file()) {

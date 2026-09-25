@@ -109,10 +109,41 @@ fn a_spec_without_failure_modes_says_how_to_write_one() {
         id: "0001".into(),
         path: PathBuf::from("/nowhere"),
     };
-    let message = parse("## Failure modes\n\nNone yet.\n").unwrap().empty(&spec).unwrap();
+    let message = parse("## Failure modes\n\nNone yet.\n")
+        .unwrap()
+        .unprovable(&spec)
+        .unwrap();
     assert!(message.contains("lists no failure mode"), "{message}");
     assert!(message.contains("`- FM-1 <what goes wrong>`"), "{message}");
-    assert!(parse("## Failure modes\n- FM-1 a\n").unwrap().empty(&spec).is_none());
+    assert!(
+        parse("## Failure modes\n- FM-1 a\n")
+            .unwrap()
+            .unprovable(&spec)
+            .is_none()
+    );
+
+    let placeholder = parse(&template("0001", "x", "api")).unwrap().unprovable(&spec).unwrap();
+    assert!(
+        placeholder.contains("FM-1 still reads as the template's placeholder"),
+        "{placeholder}"
+    );
+}
+
+#[test]
+fn two_spec_folders_with_one_id_are_refused() {
+    let root = tempfile::tempdir().unwrap();
+    for name in ["0001-auth", "0001-home", "2-b", "0002-c"] {
+        let dir = root.path().join(SPECS_DIR).join(name);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(SPEC_FILE), "").unwrap();
+    }
+    let error = format!("{:#}", find(root.path(), "0001-home").unwrap_err());
+    assert!(
+        error.contains(".specs/0001-auth and .specs/0001-home share id 0001"),
+        "{error}"
+    );
+    assert!(error.contains(".specs/0002-c and .specs/2-b"), "{error}");
+    assert!(error.contains("next free id (0003"), "{error}");
 }
 
 /// Every spec.md this repository ships (the sample's, the generator snapshots') follows the grammar and lists modes.
@@ -137,6 +168,11 @@ fn every_shipped_spec_follows_the_grammar() {
         assert!(
             !doc.failure_modes.is_empty(),
             "{} lists no failure mode",
+            path.display()
+        );
+        assert!(
+            doc.modes.values().all(|mode| !mode.text.starts_with(PLACEHOLDER)),
+            "{} still holds the template's placeholder",
             path.display()
         );
         found += 1;

@@ -20,7 +20,7 @@ pub fn run(key: &str) -> Result<u8> {
     let root = project.root.as_path();
     let spec = spec::find(root, key)?;
     let doc = SpecDoc::load(&spec)?;
-    if let Some(why) = doc.empty(&spec) {
+    if let Some(why) = doc.unprovable(&spec) {
         eprintln!("{why}");
         return Ok(1);
     }
