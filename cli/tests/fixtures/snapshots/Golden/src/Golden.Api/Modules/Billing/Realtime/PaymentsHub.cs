@@ -46,13 +46,17 @@ public sealed class PaymentsHub : Hub
     }
 
     /// <summary>Broadcast to the rest of a room this connection joined. For a durable message, call the matching slice
-    /// first to persist it (passing <c>Caller</c> as the ICurrentUser), then broadcast the saved result here.</summary>
-    public Task Broadcast(string room, object payload)
+    /// first to persist it (passing <c>Caller</c> as the ICurrentUser), then broadcast the saved result here. The
+    /// message is a typed, bounded record: the hub relays only what the room's clients are written to read.</summary>
+    public Task Broadcast(string room, PaymentsMessage message)
     {
         var group = GroupOf(room);
         if (!Joined.Contains(group))
             throw new HubException("Join the room before broadcasting to it.");
-        return Clients.OthersInGroup(group).SendAsync("Receive", payload);
+        if (message is null || !message.IsWithinBounds)
+            throw new HubException(
+                $"A message needs a kind of at most {PaymentsMessage.MaxKindLength} characters and a text of at most {PaymentsMessage.MaxTextLength}.");
+        return Clients.OthersInGroup(group).SendAsync("Receive", message);
     }
 
     /// <summary>The participation rule: whether <paramref name="caller"/> may enter <paramref name="room"/> of their
@@ -67,4 +71,17 @@ public sealed class PaymentsHub : Hub
             throw new HubException("A room key is required, at most 128 characters.");
         return $"org:{Caller.OrgId:N}/room:{room}";
     }
+}
+
+/// <summary>What a room's clients send and receive: a kind the clients switch on ("typing", "paid") and its text.
+/// Bounded, so one connection cannot fan an arbitrarily large payload out to a whole room; widen the shape (not to
+/// <c>object</c>) when the module's messages need more.</summary>
+public sealed record PaymentsMessage(string Kind, string Text)
+{
+    public const int MaxKindLength = 64;
+
+    public const int MaxTextLength = 4000;
+
+    public bool IsWithinBounds =>
+        !string.IsNullOrWhiteSpace(Kind) && Kind.Length <= MaxKindLength && Text is not null && Text.Length <= MaxTextLength;
 }

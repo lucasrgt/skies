@@ -227,7 +227,7 @@ ctx Status "the public uptime probe status pages poll." "health of dependencies,
 # stays the registry), and the SignalR client in the tests so a spec can connect over the test server.
 BILLING="$API/Modules/Billing/BillingModule.cs"
 sed -i 's#^        services;$#        services.AddSignalR().Services;#' "$BILLING"
-sed -i 's#^        var billing = app.MapGroup("/billing").RequireAuthorization();$#&\n        app.MapHub<Realtime.PaymentsHub>("/hubs/payments");#' "$BILLING"
+sed -i 's#^        var billing = app.MapGroup("/billing").RequireAuthorization();$#&\n        app.MapHub<Realtime.PaymentsHub>("/hubs/payments", options => options.CloseOnAuthenticationExpiration = true);#' "$BILLING"
 grep -q 'services.AddSignalR().Services;' "$BILLING" && grep -q 'app.MapHub<Realtime.PaymentsHub>' "$BILLING" \
   || { echo "FAIL: the g module scaffold changed shape; the smoke could not wire the hub" >&2; exit 1; }
 sed -i 's#^    <PackageReference Include="Skies.Framework.Testing.InMemory"#    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.8" />\n&#' \

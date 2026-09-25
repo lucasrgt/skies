@@ -90,8 +90,10 @@ group a room key names is derived on the server from the org claim of the caller
 another org's group. `JoinRoom` checks the key and the hub's participation rule (`MayEnter`: any signed-in member of
 the org by default; narrow it to the module's rule, such as "is in the conversation", before shipping a room that is
 not org-wide). `Broadcast` sends only to a room the connection has joined, and only to the caller's org's group. A
-single-tenant app's tokens carry no org, so every signed-in user shares one room per key. The hub is wired in its
-module (`services.AddSignalR()` in `AddServices`, `app.MapHub<…>` in `Map`), as the generator prints.
+single-tenant app's tokens carry no org, so every signed-in user shares one room per key. A message is a typed,
+bounded record (`<Name>Message`: a kind of at most 64 characters, a text of at most 4000), never a relayed `object`.
+The hub is wired in its module (`services.AddSignalR()` in `AddServices`, `app.MapHub<…>` in `Map` with
+`CloseOnAuthenticationExpiration`, so a connection ends when its access token expires), as the generator prints.
 
 ## App-wide data and the admin policy
 

@@ -11,6 +11,8 @@ public class Rooms
 {
     private sealed record Tokens(string AccessToken);
 
+    private sealed record Message(string Kind, string Text);
+
     [Fact(DisplayName = "FM-1: another org never hears a room's broadcast, even under the same room key")]
     public async Task Another_org_never_hears_the_room()
     {
@@ -24,9 +26,9 @@ public class Rooms
         foreach (var connection in new[] { sender, colleague, outsider })
             await connection.InvokeAsync("JoinRoom", "general");
 
-        await sender.InvokeAsync("Broadcast", "general", "invoice paid");
+        await sender.InvokeAsync("Broadcast", "general", new Message("paid", "invoice paid"));
 
-        Assert.Equal("invoice paid", await heard.Task.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal("invoice paid", (await heard.Task.WaitAsync(TimeSpan.FromSeconds(10))).Text);
         await Task.Delay(TimeSpan.FromMilliseconds(500));
         Assert.False(overheard.Task.IsCompleted);
     }
@@ -41,7 +43,25 @@ public class Rooms
         var heard = Listen(member);
         await member.InvokeAsync("JoinRoom", "general");
 
-        await Assert.ThrowsAsync<HubException>(() => stranger.InvokeAsync("Broadcast", "general", "spam"));
+        await Assert.ThrowsAsync<HubException>(() => stranger.InvokeAsync("Broadcast", "general", new Message("note", "spam")));
+
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
+        Assert.False(heard.Task.IsCompleted);
+    }
+
+    [Fact(DisplayName = "FM-4: an oversized or kindless message is refused and never reaches the room")]
+    public async Task Messages_are_bounded()
+    {
+        await using var app = new TestApp();
+        var alice = await SignIn(app, "alice@example.com");
+        await using var sender = await Connect(app, alice);
+        await using var colleague = await Connect(app, alice);
+        var heard = Listen(colleague);
+        await sender.InvokeAsync("JoinRoom", "general");
+        await colleague.InvokeAsync("JoinRoom", "general");
+
+        await Assert.ThrowsAsync<HubException>(() => sender.InvokeAsync("Broadcast", "general", new Message("note", new string('x', 4001))));
+        await Assert.ThrowsAsync<HubException>(() => sender.InvokeAsync("Broadcast", "general", new Message("", "hi")));
 
         await Task.Delay(TimeSpan.FromMilliseconds(500));
         Assert.False(heard.Task.IsCompleted);
@@ -56,10 +76,10 @@ public class Rooms
         await Assert.ThrowsAnyAsync<Exception>(() => Connect(app, null));
     }
 
-    private static TaskCompletionSource<string> Listen(HubConnection connection)
+    private static TaskCompletionSource<Message> Listen(HubConnection connection)
     {
-        var received = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.On<string>("Receive", message => received.TrySetResult(message));
+        var received = new TaskCompletionSource<Message>(TaskCreationOptions.RunContinuationsAsynchronously);
+        connection.On<Message>("Receive", message => received.TrySetResult(message));
         return received;
     }
 
