@@ -171,7 +171,9 @@ fn an_app_wide_entity_gets_registered_projected_slices_under_the_group() {
     for slice in ["CreateProduct", "UpdateProduct"] {
         let body = read(&dir, &format!("Modules/Catalog/Slices/{slice}.cs"));
         assert!(
-            body.contains(".Check(input.Name is not null, \"name\", CatalogErrorCodes.ProductFieldRequired, \"is required\");"),
+            body.contains(
+                ".Check(input.Name is not null, \"name\", CatalogErrorCodes.ProductFieldRequired, \"is required\");"
+            ),
             "{slice} must refuse a missing name before the entity sees it"
         );
     }

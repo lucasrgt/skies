@@ -222,8 +222,25 @@ impl Crud {
 
 /// The C# value types a crud field is commonly declared as: they never bind as null.
 const VALUE_TYPES: &[&str] = &[
-    "bool", "byte", "sbyte", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "decimal", "char",
-    "Guid", "DateTime", "DateTimeOffset", "DateOnly", "TimeOnly", "TimeSpan",
+    "bool",
+    "byte",
+    "sbyte",
+    "short",
+    "ushort",
+    "int",
+    "uint",
+    "long",
+    "ulong",
+    "float",
+    "double",
+    "decimal",
+    "char",
+    "Guid",
+    "DateTime",
+    "DateTimeOffset",
+    "DateOnly",
+    "TimeOnly",
+    "TimeSpan",
 ];
 
 /// The JSON name ASP.NET Core binds a property from: `Name` → `name`.
