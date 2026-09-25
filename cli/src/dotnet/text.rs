@@ -99,6 +99,46 @@ pub fn fill(template: &str, pairs: &[(&str, &str)]) -> String {
         .fold(template.to_string(), |text, (token, value)| text.replace(token, value))
 }
 
+/// C# source with its `//` and `/* */` comments blanked out (string and char literals kept, verbatim and raw strings
+/// read as plain ones), so a declaration can be read without a word in a comment passing for code.
+pub fn strip_comments(source: &str) -> String {
+    let mut out = String::with_capacity(source.len());
+    let mut chars = source.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '/' if chars.peek() == Some(&'/') => {
+                while chars.peek().is_some_and(|&n| n != '\n') {
+                    chars.next();
+                }
+            }
+            '/' if chars.peek() == Some(&'*') => {
+                chars.next();
+                let mut previous = ' ';
+                for n in chars.by_ref() {
+                    if previous == '*' && n == '/' {
+                        break;
+                    }
+                    previous = n;
+                }
+                out.push(' ');
+            }
+            '"' | '\'' => {
+                out.push(c);
+                let mut escaped = false;
+                for n in chars.by_ref() {
+                    out.push(n);
+                    if n == c && !escaped {
+                        break;
+                    }
+                    escaped = n == '\\' && !escaped;
+                }
+            }
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 pub fn read(path: &Path) -> Result<String> {
     std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))
 }
@@ -149,6 +189,12 @@ mod tests {
         assert_eq!(plural("Address"), "Addresses");
         assert_eq!(plural("Box"), "Boxes");
         assert_eq!(plural("Batch"), "Batches");
+    }
+
+    #[test]
+    fn strips_comments_but_keeps_literals() {
+        let source = "class A // ITenantScoped\n{ /* ITenantScoped */ var s = \"// kept\"; }";
+        assert_eq!(strip_comments(source), "class A \n{   var s = \"// kept\"; }");
     }
 
     #[test]

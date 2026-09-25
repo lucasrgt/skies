@@ -310,11 +310,50 @@ fn view_fields(source: &str) -> Vec<ViewField> {
         .collect()
 }
 
-/// Whether the entity's own declaration carries the tenant marker, so the DbContext's filter scopes it.
+/// Whether the entity's own declaration lists the tenant marker among its base types, so the DbContext's filter
+/// scopes it. Comments are stripped first and only the declaration's base list is read, so the word in a comment, a
+/// doc line, or another type's declaration never turns tenancy on (or off) by accident.
 fn is_tenant_scoped(source: &str, entity: &str) -> bool {
-    Regex::new(&format!(r"class\s+{}\b[^{{]*\bITenantScoped\b", regex::escape(entity)))
-        .expect("tenant marker regex")
-        .is_match(source)
+    let code = text::strip_comments(source);
+    let declaration = Regex::new(&format!(
+        r"\b(?:class|record)\s+{}\b(?:\s*<[^>{{]*>)?(?:\s*\([^)]*\))?\s*:(?P<bases>[^{{;]*)",
+        regex::escape(entity)
+    ))
+    .expect("entity declaration regex");
+    let Some(bases) = declaration.captures(&code).map(|c| c["bases"].to_string()) else {
+        return false;
+    };
+    // A generic constraint clause follows the bases (`: Entity<T>, ITenantScoped where T : new()`).
+    let bases = Regex::new(r"\bwhere\b")
+        .expect("where regex")
+        .split(&bases)
+        .next()
+        .unwrap_or_default()
+        .to_string();
+    base_list(&bases).any(|base| {
+        let name = base.split('<').next().unwrap_or_default().trim();
+        name == "ITenantScoped" || name.ends_with(".ITenantScoped") || name.ends_with("::ITenantScoped")
+    })
+}
+
+/// The entries of a base list split at its top-level commas: `Entity<Id, Name>, ITenantScoped` has two.
+fn base_list(bases: &str) -> impl Iterator<Item = &str> {
+    let mut depth = 0usize;
+    let mut start = 0;
+    let mut entries = Vec::new();
+    for (i, c) in bases.char_indices() {
+        match c {
+            '<' | '(' => depth += 1,
+            '>' | ')' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                entries.push(&bases[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    entries.push(&bases[start..]);
+    entries.into_iter().map(str::trim)
 }
 
 fn has_date_property(source: &str, name: &str) -> bool {

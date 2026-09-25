@@ -37,6 +37,35 @@ fn tenancy_is_read_off_the_entity_declaration() {
     ));
 }
 
+#[test]
+fn the_marker_in_a_comment_never_makes_an_entity_tenant_scoped() {
+    for source in [
+        "[Entity]\npublic class Product // not ITenantScoped: every org shares it\n{",
+        "[Entity]\npublic class Product : IAuditable /* ITenantScoped later */\n{",
+        "/// <summary>Unlike class Product : ITenantScoped in v1, app-wide.</summary>\n[Entity]\npublic class Product\n{",
+        "[Entity]\npublic class Product\n{\n    // class Product : ITenantScoped\n}",
+        "public class Other : ITenantScoped { }\n[Entity]\npublic class Product\n{",
+    ] {
+        assert!(!is_tenant_scoped(source, "Product"), "{source}");
+    }
+}
+
+#[test]
+fn the_marker_is_read_from_the_base_list_in_any_position_or_spelling() {
+    for source in [
+        "public class Product : Entity<Guid, string>, ITenantScoped\n{",
+        "public sealed class Product : IAuditable,\n    Skies.Framework.EntityFrameworkCore.ITenantScoped // scoped\n{",
+        "public class Product<T> : global::Skies.Framework.EntityFrameworkCore.ITenantScoped where T : new()\n{",
+        "public record Product(Guid Id) : ITenantScoped;",
+    ] {
+        assert!(is_tenant_scoped(source, "Product"), "{source}");
+    }
+    assert!(!is_tenant_scoped(
+        "public class ProductLine : ITenantScoped\n{",
+        "Product"
+    ));
+}
+
 const APP_DB: &str = concat!(
     "using Microsoft.EntityFrameworkCore;\n\nnamespace Acme.Api;\n\n",
     "public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n{\n",
