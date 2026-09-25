@@ -68,6 +68,22 @@ jobs:
           node-version: "24"
       - run: tools/web-smoke.sh
 
+  flutter-smoke:
+    name: generated Flutter app (pinned spine, analyze, spec, doctor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: tools/flutter-smoke.sh
+
   frontend:
     name: React packages (typecheck, lint, test)
     runs-on: ubuntu-latest

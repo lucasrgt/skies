@@ -154,7 +154,7 @@ defaults, localized errors, and paging. `skies g client` wraps stock OpenAPI Gen
 runs the `SKYFL###` rules natively.
 
 ```bash
-skies g flutter-app App --path clients/app   # flutter create, plus the spine and i18n wiring
+skies g flutter-app App --path clients/app   # flutter create, plus the pinned spine, i18n, Skies.toml, and CI
 cd clients/app && skies g feature Wallets
 ```
 
