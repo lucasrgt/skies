@@ -345,3 +345,23 @@ release (ver "Motor de prova enxuto").
   `sh -c` em toda plataforma (Git Bash ou `SKIES_SHELL` no Windows, nunca `cmd /C`) e cada placeholder entra citado
   conforme o contexto, então caminho com espaço funciona. (7) O FM placeholder do `spec new` é recusado. (8) A
   gramática lê só o título do caso, então um `describe` chamado `FM-2: …` não transforma os casos em parecidos.
+- **Quarta auditoria (nota B), fechada.** (1) O crud gerado devolvia 500 com campo ausente (o JSON liga `null` num
+  `string`); Create/Update agora recusam com 400 `<módulo>.<entidade>_field_required` antes da entidade (FM-6 do
+  crud no smoke). (2) O app React não alcançava a API pelo navegador: CORS entrou no pacote (`UseSkies` lê
+  `Cors:Origins`; em Development libera `http://localhost:5173`, a porta que o `vite.config.ts` fixa; curinga ou
+  origem malformada recusa subir) e o `UsePlatform` passou para depois do `UseSkies`, para um 429 cross-origin
+  manter os headers. (3) O cliente Flutter gerado reprovava o `flutter analyze` (import duplicado do dart-dio): o
+  pacote gerado é verificado uma vez e excluído da análise do app; o `flutter-smoke` agora roda `g client` e
+  `g feature` sobre um backend crud. (4) O guard do red cobre a config de build que alcança o app
+  (`.editorconfig`, `Directory.Build.*`, `global.json`, `NuGet.config`, `*.globalconfig`), escopa as configs de
+  teste às pastas do runner (a config web não bloqueia spec da API) e trata red padrão e `--red` igual: ambos
+  recusam, com o `red.patch` como saída. (5) O `red.patch` só é gravado depois de um `record` bem-sucedido, e um
+  recibo cuja prova não mudou (só os commits) é mantido, então regravar deixa o git limpo. (6) SKY0030 cobre todo o
+  código do app e `FixedTenant`, e acusa hatch sem motivo (`#pragma` nu, `[SuppressMessage]` sem `Justification`).
+  (7) Nomes de tipos que o código gerado usa sem qualificar (`Validation`, `Result`, `Task`…) são recusados; a
+  entidade de um app multi-tenant já importa `ITenantScoped`. (8) Hub com mensagem tipada e limitada e
+  `CloseOnAuthenticationExpiration`. (9) `g flutter-app` declara `[runners.flutter]`, fixa `intl` e desfaz a pasta
+  se um passo falha; o form de edição React envia a versão do registro carregado. (10) `skies new` inicia um
+  repositório git com o scaffold como primeiro commit. (11) O publish verifica tudo antes (credenciais e dry-run em
+  cada registro) e publica em sequência, com o GitHub release por último. (12) Um job Windows prova `proof run` e
+  `record` pelo `sh` do Git.
