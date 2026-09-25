@@ -119,23 +119,28 @@ fn wire_program(project: &ApiProject) -> Result<()> {
     Ok(())
 }
 
-/// `app.UsePlatform()` right after the app is built, where the routed endpoint (and so its throttle policy) is
-/// already known. Returns the updated source; an unfamiliar Program.cs gets the line to add instead.
+/// `app.UsePlatform()` right after `app.UseSkies()`, so a cross-origin request the platform's rate limiter refuses
+/// still carries its CORS headers (the browser shows the 429, not a CORS failure), and before the modules map, where
+/// the routed endpoint's throttle policy applies. Returns the updated source; an unfamiliar Program.cs gets the line
+/// to add instead.
 fn wire_use_platform(program: &Path, source: String) -> Result<String> {
     const LINE: &str = "app.UsePlatform();";
     if source.contains(LINE) {
         return Ok(source);
     }
-    let anchor = "var app = builder.Build();";
-    if !source.contains(anchor) {
-        println!("note: call app.UsePlatform() after builder.Build() so the credential throttle applies.");
-        return Ok(source);
-    }
     let nl = text::newline_of(&source);
-    let updated = text::replace_first(
-        &source,
-        anchor,
-        &format!("{anchor}{nl}{nl}{LINE}  // the platform's middleware: the rate limiter the modules' throttles need"),
+    let Some(at) = source
+        .find("app.UseSkies();")
+        .or_else(|| source.find("var app = builder.Build();"))
+    else {
+        println!("note: call app.UsePlatform() after app.UseSkies() so the credential throttle applies.");
+        return Ok(source);
+    };
+    let end = source[at..].find(nl).map_or(source.len(), |offset| at + offset);
+    let updated = format!(
+        "{}{nl}{LINE}  // the platform's middleware: the rate limiter the modules' throttles need{}",
+        &source[..end],
+        &source[end..]
     );
     std::fs::write(program, &updated)?;
     Ok(updated)

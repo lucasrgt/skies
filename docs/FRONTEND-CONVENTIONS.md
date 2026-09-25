@@ -92,6 +92,11 @@ orval.config.ts          # the shipped convention config
   instead of being overwritten or deleted.
 - **Endpoint name = slice name.** `MapPost("/deposit", …).WithName("Deposit")` → `operationId` → `useDeposit`
   (`SKY0012`).
+- **Cross-origin is the API's configuration.** The web app calls the API at `VITE_API_URL` (default
+  `http://localhost:8080`) with credentials. In Development the API allows the Vite dev server's origin
+  (`http://localhost:5173`, the port `vite.config.ts` pins with `strictPort`); a deployed web app's origin goes in the
+  API's `Cors:Origins` list (`Cors__Origins__0=https://app.example.com`). Exact origins only: a wildcard refuses to
+  start, because the refresh cookie rides these calls. Served from the API's own origin, nothing is configured.
 - **The audience filter is generator config.** orval includes only `app` endpoints; `Asset`, `Webhook`, and
   `Internal` kinds (below) never enter `client.gen/`.
 

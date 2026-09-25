@@ -6,7 +6,7 @@ builder.Services.AddModules(builder.Configuration);  // each module's own servic
 
 var app = builder.Build();
 
-app.UseSkies();    // serve the OpenAPI contract at /openapi/v1.json
+app.UseSkies();    // allow the web origins in Cors:Origins, serve the OpenAPI contract at /openapi/v1.json
 app.MapModules();   // each module's routes (the explicit registry)
 
 app.Run();

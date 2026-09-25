@@ -146,6 +146,8 @@ The generated platform refuses to start outside Development until these are the 
   authority and client id.
 - Forwarded headers (`UseForwardedHeaders` with the proxy's address, first in `Platform.UsePlatform`) when the app
   runs behind a proxy or load balancer, or the rate limiter sees one client address and throttles everyone together.
+- `Cors:Origins`, the exact origins of any web app served from another origin than the API (Development allows only
+  the Vite dev server, `http://localhost:5173`). The refresh cookie rides those calls, so a wildcard refuses to start.
 - The rate limit, if 10 a minute per address and endpoint does not fit the traffic (`Account:RateLimit`).
 - At least one `Admin`, assigned out of band, if the app has app-wide data to change.
 - Each hub's participation rule (`MayEnter`), if a room is narrower than the whole org.
