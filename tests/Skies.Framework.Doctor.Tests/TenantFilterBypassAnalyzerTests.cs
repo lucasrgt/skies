@@ -25,6 +25,11 @@ public class TenantFilterBypassAnalyzerTests
         class Q<T> { }
         class SliceAttribute : System.Attribute { }
         static class Filters { public const string Tenant = "tenant"; }
+        class FixedTenant
+        {
+            public FixedTenant(global::System.Guid org) { }
+            public static FixedTenant System => new(global::System.Guid.Empty);
+        }
         """;
 
     [Fact]
@@ -63,13 +68,79 @@ public class TenantFilterBypassAnalyzerTests
             """);
 
     [Fact]
-    public Task Code_outside_modules_reports_nothing() =>
+    public Task Platform_code_outside_the_modules_is_flagged_too() =>
+        Verify(Ef + """
+            namespace App.Api.Reporting
+            {
+                static class Totals
+                {
+                    static Q<int> All(Q<int> q) => q.{|SKY0030:IgnoreQueryFilters|}();
+                }
+            }
+            """);
+
+    [Fact]
+    public Task A_tenant_the_code_picks_is_flagged() =>
+        Verify(Ef + """
+            namespace App.Api.Modules.Billing
+            {
+                static class Close
+                {
+                    static FixedTenant Other(global::System.Guid org) => new {|SKY0030:FixedTenant|}(org);
+                    static FixedTenant Everyone() => {|SKY0030:FixedTenant.System|};
+                }
+            }
+            """);
+
+    [Fact]
+    public Task A_bare_pragma_before_a_crossing_is_flagged() =>
+        Verify(Ef + """
+            namespace App.Api.Modules.Account
+            {
+                static class Login
+                {
+            {|SKY0030:#pragma warning disable|}
+                    static Q<int> Handle(Q<int> users) => users.IgnoreQueryFilters();
+            #pragma warning restore
+                }
+            }
+            """);
+
+    [Fact]
+    public Task A_suppress_message_without_a_justification_is_flagged() =>
+        Verify(Ef + """
+            namespace {|SKY0030:App.Api.Modules.Account|}
+            {
+                static class Login
+                {
+                    [System.Diagnostics.CodeAnalysis.SuppressMessage("Skies", "SKY0030")]
+                    static Q<int> Handle(Q<int> users) => users.IgnoreQueryFilters();
+                }
+            }
+            """);
+
+    [Fact]
+    public Task A_justified_suppress_message_silences_the_crossing() =>
+        Verify(Ef + """
+            namespace App.Api.Modules.Account
+            {
+                static class Login
+                {
+                    [System.Diagnostics.CodeAnalysis.SuppressMessage("Skies", "SKY0030", Justification = "sign-in precedes the org")]
+                    static Q<int> Handle(Q<int> users) => users.IgnoreQueryFilters();
+                }
+            }
+            """);
+
+    [Fact]
+    public Task Spec_code_reports_nothing() =>
         Verify(Ef + """
             namespace Specs.S0001
             {
                 static class Seed
                 {
                     static Q<int> All(Q<int> q) => q.IgnoreQueryFilters();
+                    static FixedTenant Other() => new FixedTenant(global::System.Guid.Empty);
                 }
             }
             """);

@@ -133,7 +133,7 @@ analyzer run, so the numbers are call sites before the literal-name exemption, w
 
 | Rule | Hostpoint | Marombas | Class | Action |
 |---|---|---|---|---|
-| SKY0030 cross-org read in a module | 105 (46 files) | 20 | true to the contract: every hit reads across orgs. Most are deliberate (public discovery and map search, sign-in and registration lookups, account erasure, cross-member team aggregates) and take the reasoned pragma; the rest are the reads the rule exists to surface | co-located `*.Tests.cs` and `.specs/` are exempt (their `IgnoreQueryFilters` asserts on stored rows); lifting only a named non-tenant filter stays legal. Marombas' erasure in `AppDb.cs` is platform code and out of scope |
+| SKY0030 cross-org read in a module | 105 (46 files) | 20 | true to the contract: every hit reads across orgs. Most are deliberate (public discovery and map search, sign-in and registration lookups, account erasure, cross-member team aggregates) and take the reasoned pragma; the rest are the reads the rule exists to surface | co-located `*.Tests.cs` and `.specs/` are exempt (their `IgnoreQueryFilters` asserts on stored rows); lifting only a named non-tenant filter stays legal. The rule now covers all app code, not only modules, and `FixedTenant` too: a text search adds 2 Hostpoint files and 1 Marombas file (its erasure in `AppDb.cs`) outside `Modules/`, and finds no `FixedTenant` in either app |
 
 9. A crossing of the tenant filter is a reviewed exception written where it happens. The generated Account module
    ships its auth-bootstrap crossings with their reasons, so a fresh app is clean and shows the spelling.

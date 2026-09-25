@@ -65,10 +65,13 @@ adds the `TenantStamping` interceptor in `OnConfiguring`.
   user in the org it has just opened, how the anonymous auth-bootstrap slices (reset, verification) change a user,
   and how a job that spans orgs (a cleanup, a data migration) runs: in a context of its own, created over
   `FixedTenant.System` in its own DI scope, never by lifting the filter inside a request.
-- **Cross-org reads are announced.** `IgnoreQueryFilters()` in module code lifts the tenant filter, so the doctor
-  flags it (`SKY0030`) unless it lifts only a named non-tenant filter. A deliberate crossing takes
-  `#pragma warning disable SKY0030 // <reason>` beside the call, and the reason is required. The generated Account
-  module's auth-bootstrap lookups carry theirs.
+- **Crossings are announced.** `IgnoreQueryFilters()` lifts the tenant filter and a `FixedTenant` picks the org in
+  code, so the doctor flags both anywhere in the app's code (`SKY0030`), unless the call lifts only a named non-tenant
+  filter. A deliberate crossing takes `#pragma warning disable SKY0030 // <reason>` beside the call (or a
+  `[SuppressMessage]` with its `Justification`), and the reason is required. The generated Account module's
+  auth-bootstrap lookups carry theirs. That is also what keeps the system scope's escape narrow: an anonymous
+  endpoint can change another org's row only by loading it across the filter or attaching one by hand, and the first
+  is flagged where it happens.
 - **Resolution.** `RequestTenant`: a signed-in request acts in its access token's `org`; an anonymous request
   resolves **no org** (`Guid.Empty`), so it reads no tenant-scoped row and cannot store one without naming its org.
   There is no default org. A signed-out page that must show one org's data (a storefront on its own subdomain)
