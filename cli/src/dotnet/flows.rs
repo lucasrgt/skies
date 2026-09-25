@@ -291,18 +291,24 @@ fn augment_platform(path: &Path, spec: &FlowSpec) -> Result<()> {
     if source.contains(spec.provider_line) {
         return Ok(());
     }
-    let anchor = "        return services;";
+    let nl = text::newline_of(&source);
+    // The end of the generated Development branch: providers join the in-memory store and the development key there,
+    // so replacing that branch for a deployment takes every local stand-in with it.
+    let anchor = format!("{nl}        }}{nl}        else{nl}");
     // Only edit the generated development-only shape; custom platforms own provider selection.
-    if !source.contains("if (!environment.IsDevelopment())") || !source.contains(anchor) {
+    if !source.contains("if (environment.IsDevelopment()") || !source.contains(&anchor) {
         println!(
             "note: configure {} in Platform.AddPlatform; register development providers only in Development.",
             spec.provider_namespace
         );
         return Ok(());
     }
-    let nl = text::newline_of(&source);
     source = format!("using {};{nl}{source}", spec.provider_namespace);
-    source = text::replace_first(&source, anchor, &format!("        {}{nl}{anchor}", spec.provider_line));
+    source = text::replace_first(
+        &source,
+        &anchor,
+        &format!("{nl}            {}{anchor}", spec.provider_line),
+    );
     text::write(path, source)
 }
 
