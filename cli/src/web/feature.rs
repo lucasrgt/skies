@@ -21,6 +21,7 @@ use minijinja::context;
 use super::form_fields::{self, Field, ListShape};
 use super::names::{camel, kebab, pascal, singular};
 use super::openapi::Document;
+use super::prefill::{self, Prefill};
 use super::scaffold::{render, write_new};
 use super::{contract, i18n};
 
@@ -85,8 +86,16 @@ pub fn list_slice(names: &FeatureNames, doc: Option<&Document>) -> String {
 
 /// What the templates need beyond the names.
 pub enum Shape {
-    List { slice: String, rows: Option<ListShape> },
-    Form { fields: Vec<Field>, variables: String },
+    List {
+        slice: String,
+        rows: Option<ListShape>,
+    },
+    Form {
+        fields: Vec<Field>,
+        variables: String,
+        /// How an edit form opens on its record, when the contract pairs it with a lookup slice.
+        prefill: Option<Prefill>,
+    },
 }
 
 /// Renders the unit as `(file name, contents)` pairs, in the order they are reported. `client` is the
@@ -110,7 +119,11 @@ pub fn render_feature(
             };
             (LIST_VIEW_MODEL, LIST_VIEW, LIST_I18N, ctx)
         }
-        Shape::Form { fields, variables } => {
+        Shape::Form {
+            fields,
+            variables,
+            prefill,
+        } => {
             let fields: Vec<Field> = fields
                 .iter()
                 .map(|field| Field {
@@ -122,9 +135,12 @@ pub fn render_feature(
                 .collect();
             let inputs: Vec<&Field> = fields.iter().filter(|f| !f.context).collect();
             let targets: Vec<&Field> = fields.iter().filter(|f| f.context).collect();
+            // A form that sends the version it read is refused with a 409 once someone else saved first: that
+            // failure gets its own copy (reload), since retrying the same submit fails the same way.
+            let conflict = targets.iter().any(|f| f.name == "version");
             let ctx = context! {
                 name => names.plural, lower => names.lower, client, locales, fields => inputs, targets, variables,
-                title,
+                title, prefill, conflict,
             };
             (FORM_VIEW_MODEL, FORM_VIEW, FORM_I18N, ctx)
         }
@@ -241,10 +257,21 @@ fn form_shape(
     contract: &Result<(Document, PathBuf), String>,
 ) -> Result<Shape> {
     let slice = &names.plural;
+    let prefill_from = |fields: &[Field]| {
+        contract
+            .as_ref()
+            .ok()
+            .and_then(|(doc, _)| prefill::for_form(doc, slice, fields))
+    };
     if let Some(spec) = fields {
         let fields = form_fields::parse(spec)?;
         let variables = variables(&fields, true);
-        return Ok(Shape::Form { fields, variables });
+        let prefill = prefill_from(&fields);
+        return Ok(Shape::Form {
+            fields,
+            variables,
+            prefill,
+        });
     }
     let (doc, path) = match contract {
         Ok(found) => found,
@@ -264,7 +291,12 @@ fn form_shape(
     };
     let fields = form_fields::from_operation(doc, &operation, slice)?;
     let variables = variables(&fields, operation.body().is_some());
-    Ok(Shape::Form { fields, variables })
+    let prefill = prefill_from(&fields);
+    Ok(Shape::Form {
+        fields,
+        variables,
+        prefill,
+    })
 }
 
 pub fn scaffold(package: &Path, name: &str, kind: FeatureKind, fields: Option<&str>) -> Result<u8> {

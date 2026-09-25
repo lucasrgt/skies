@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { submitOrReveal } from "@skiesjs/react";
 {% endif -%}
-import { use{{ name }} } from "@/client.gen/{{ client }}";
+import { use{{ name }}{% if prefill %}, use{{ prefill.hook }}{% endif %} } from "@/client.gen/{{ client }}";
 import i18n from "@/i18n";
 {% if fields %}
 // The form lives in the ViewModel so a spec drives its rules through this hook. Every input holds a string; the
@@ -41,6 +41,16 @@ export interface {{ name }}Model {
 
 export function use{{ name }}Model({% if targets %}target: {{ name }}Target{% endif %}): {{ name }}Model {
   const mutation = use{{ name }}();
+{%- if prefill %}
+  // The form opens on the record it edits, read through its lookup slice.
+  const lookup = use{{ prefill.hook }}({{ prefill.args }});
+  const record = {{ prefill.record }};
+{%- endif %}
+{%- if conflict %}
+  // A 409 means someone else saved the record after this screen read it: the same submit would fail again, so the
+  // copy asks for a reload instead of a retry.
+  const conflict = (mutation.error as { response?: { status?: number } } | null)?.response?.status === 409;
+{%- endif %}
 {% if fields %}
   const schema = z.object({
 {%- for field in fields %}
@@ -51,6 +61,13 @@ export function use{{ name }}Model({% if targets %}target: {{ name }}Target{% en
   const form = useForm<{{ name }}Form>({
     resolver: zodResolver(schema),
     defaultValues: { {% for field in fields %}{{ field.name }}: ""{% if not loop.last %}, {% endif %}{% endfor %} },
+{%- if prefill %}
+    // Filled when the record loads (and again when it reloads); keepDirtyValues keeps what the user already changed.
+    values: record
+      ? { {% for value in prefill.values %}{{ value.name }}: {{ value.value }}{% if not loop.last %}, {% endif %}{% endfor %} }
+      : undefined,
+    resetOptions: { keepDirtyValues: true },
+{%- endif %}
   });
 
   // An invalid submit focuses the first invalid field instead of doing nothing.
@@ -68,7 +85,11 @@ export function use{{ name }}Model({% if targets %}target: {{ name }}Target{% en
     submit: () => mutation.mutate({{ variables }}),
 {%- endif %}
     submitting: mutation.isPending,
+{%- if conflict %}
+    submitError: mutation.isError ? i18n.t(conflict ? "{{ lower }}:errors.conflict" : "{{ lower }}:errors.submit") : null,
+{%- else %}
     submitError: mutation.isError ? i18n.t("{{ lower }}:errors.submit") : null,
+{%- endif %}
     completed: mutation.isSuccess,
   };
 }
