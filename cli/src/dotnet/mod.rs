@@ -20,6 +20,7 @@ mod error_codes;
 mod flow_specs;
 mod flows;
 mod locate;
+mod names;
 mod scaffold;
 mod specs;
 mod text;
@@ -55,6 +56,10 @@ pub fn generate(command: Generate) -> Result<u8> {
             bail!("not a .NET generator")
         }
     };
+    if let Some(problem) = name_problem(&command) {
+        eprintln!("skies: {problem}");
+        return Ok(1);
+    }
     let root = match locate::project_dir(&cwd, project, module) {
         Ok(root) => root,
         Err(message) => {
@@ -84,6 +89,23 @@ pub fn generate(command: Generate) -> Result<u8> {
             bail!("not a .NET generator")
         }
     }
+}
+
+/// The first name a generator was given that C# cannot spell as an identifier: each becomes a namespace segment or a
+/// type, so a keyword (`class`) or a malformed name (`2fa`) is refused before any file is written.
+fn name_problem(command: &Generate) -> Option<String> {
+    let checks: Vec<(&str, &str)> = match command {
+        Generate::Module { name, .. } => vec![("module", name)],
+        Generate::Slice { module, name, .. } => vec![("module", module), ("slice", name)],
+        Generate::Entity { module, name, .. } => vec![("module", module), ("entity", name)],
+        Generate::Crud { module, entity, .. } => vec![("module", module), ("entity", entity)],
+        Generate::Hub { module, name, .. } => vec![("module", module), ("hub", name)],
+        Generate::Vo { name, .. } => vec![("value object", name)],
+        _ => vec![],
+    };
+    checks
+        .into_iter()
+        .find_map(|(kind, name)| names::identifier_problem(kind, name))
 }
 
 /// The application project a generator runs in: the directory, its csproj, and the root namespace.

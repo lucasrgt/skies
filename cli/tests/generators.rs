@@ -222,7 +222,7 @@ fn backend_generators_run_from_the_app_root_and_the_manual_names_the_app() {
 }
 
 /// Rule ids belong to the doctor's output and the docs, never to the code a generator writes: comments there explain
-/// the domain to a reader, not the linter.
+/// the domain to a reader, not the linter. The one exception is a reviewed `#pragma` hatch, which names its rule.
 fn cites_no_rule(tree: &Path) {
     let hits = rule_citations(tree);
     assert!(hits.is_empty(), "generated files cite rule ids:\n{}", hits.join("\n"));
@@ -240,6 +240,10 @@ fn rule_citations(tree: &Path) -> Vec<String> {
         }
         let text = String::from_utf8_lossy(&bytes);
         for (number, line) in text.lines().enumerate() {
+            // The suppression hatch has to name its rule; its reason, not the id, is what explains the code.
+            if line.trim_start().starts_with("#pragma warning ") {
+                continue;
+            }
             let cites = line.match_indices("SKY").any(|(at, _)| {
                 let digits = line[at + 3..].trim_start_matches(|c: char| c.is_ascii_uppercase());
                 digits.len() >= 3 && digits[..3].chars().all(|c| c.is_ascii_digit())
@@ -314,6 +318,38 @@ fn crud_serves_an_app_wide_entity() {
         "        DeleteCategory.Map(catalogAdmin);\n",
     )));
     cites_no_rule(&work.path().join("Golden"));
+}
+
+#[test]
+fn keyword_and_malformed_names_are_refused_before_anything_is_written() {
+    let work = tempfile::tempdir().unwrap();
+    let refused = |dir: &Path, args: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_skies"))
+            .args(args)
+            .current_dir(dir)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1), "{args:?}");
+        String::from_utf8_lossy(&output.stderr).into_owned()
+    };
+    assert!(refused(work.path(), &["new", "class"]).contains("C# keyword"));
+    assert!(!work.path().join("class").exists());
+
+    skies(work.path(), &["new", "Golden"]);
+    let root = work.path().join("Golden");
+    let before = files(&root);
+    for args in [
+        &["g", "module", "namespace"][..],
+        &["g", "slice", "Billing", "class"],
+        &["g", "entity", "event", "Invoice"],
+        &["g", "crud", "Billing", "2fa"],
+        &["g", "hub", "Billing", "my-hub"],
+        &["g", "vo", "record"],
+    ] {
+        let stderr = refused(&root, args);
+        assert!(stderr.contains("is not a valid"), "{args:?}: {stderr}");
+    }
+    assert_eq!(files(&root), before);
 }
 
 #[test]

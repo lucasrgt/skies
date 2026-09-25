@@ -9,16 +9,13 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 
-use super::{embedded, text};
+use super::{embedded, names, text};
 
 const CONFIG_DIR: &str = ".template.config/";
 
 pub fn new_app(cwd: &Path, name: &str) -> Result<u8> {
-    if !is_dotted_identifier(name) {
-        eprintln!(
-            "skies: '{name}' is not a valid application name — use a C# namespace such as Acme or Acme.Billing \
-             (letters, digits, and underscores; dots between parts)."
-        );
+    if let Some(problem) = names::namespace_problem(name) {
+        eprintln!("skies: {problem}");
         return Ok(1);
     }
     let target = cwd.join(name);
@@ -62,17 +59,6 @@ fn source_name(files: &[(String, &[u8])]) -> Result<String> {
         .as_str()
         .map(str::to_string)
         .context("template.json has no sourceName")
-}
-
-/// `Acme` or `Acme.Billing`: the name becomes the solution file, project names, and root namespace, so it has
-/// to be a namespace. `dotnet new` would silently rewrite `my-app` to `my_app` in some places and not others.
-fn is_dotted_identifier(name: &str) -> bool {
-    !name.is_empty()
-        && name.split('.').all(|part| {
-            let mut chars = part.chars();
-            chars.next().is_some_and(|c| c.is_alphabetic() || c == '_')
-                && chars.all(|c| c.is_alphanumeric() || c == '_')
-        })
 }
 
 #[cfg(test)]
@@ -159,7 +145,7 @@ mod tests {
     #[test]
     fn rejects_names_that_are_not_namespaces() {
         let dir = tempfile::tempdir().unwrap();
-        for bad in ["", "my-app", "1app", "a..b", "a/b"] {
+        for bad in ["", "my-app", "1app", "a..b", "a/b", "class", "Acme.namespace"] {
             assert_eq!(new_app(dir.path(), bad).unwrap(), 1, "{bad}");
         }
     }
