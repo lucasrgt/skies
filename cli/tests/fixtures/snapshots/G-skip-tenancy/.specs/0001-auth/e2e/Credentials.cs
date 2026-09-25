@@ -73,7 +73,7 @@ public class Credentials
         await AuthApi.Login(client, Email, longest);
     }
 
-    [Fact(DisplayName = "FM-6: valid credentials yield a token pair whose access token reads the caller's profile")]
+    [Fact(DisplayName = "FM-7: valid credentials yield a token pair whose access token reads the caller's profile")]
     public async Task Valid_credentials_yield_a_usable_token_pair()
     {
         await using var app = new TestApp();
@@ -88,7 +88,7 @@ public class Credentials
         Assert.Equal(RegistrationStep.EmailPending, profile.Step);
     }
 
-    [Fact(DisplayName = "FM-7: a wrong password is denied and issues no token")]
+    [Fact(DisplayName = "FM-8: a wrong password is denied and issues no token")]
     public async Task Wrong_password_is_denied_and_issues_no_token()
     {
         await using var app = new TestApp();
@@ -104,7 +104,7 @@ public class Credentials
     // A missing account and a wrong password must be the same response, so login cannot be used to find out who has
     // an account. Timing is equalized in Handle by verifying against a dummy hash; a wall-clock assertion would be
     // flaky, so the structural pin is response equality.
-    [Fact(DisplayName = "FM-8: an unknown email and a wrong password get the same response")]
+    [Fact(DisplayName = "FM-9: an unknown email and a wrong password get the same response")]
     public async Task Unknown_email_and_wrong_password_are_indistinguishable()
     {
         await using var app = new TestApp();
@@ -143,7 +143,23 @@ public class Credentials
         Assert.True(logoutNoToken.IsSuccessStatusCode, $"logout answered {logoutNoToken.StatusCode}");   // as for an unknown token
     }
 
-    [Fact(DisplayName = "FM-10: the profile endpoint requires an access token")]
+    [Fact(DisplayName = "FM-6: a signed-in caller is told to sign out before registering, and nothing is created")]
+    public async Task Registering_while_signed_in_is_refused()
+    {
+        await using var app = new TestApp();
+        var client = app.CreateClient();
+        var alice = await AuthApi.SignUp(client, Email);
+
+        var response = await client.SendAsync(AuthApi.As(alice.AccessToken, HttpMethod.Post, "/account/register",
+            new { email = "second@example.com", password = AuthApi.Password }));
+        var login = await client.PostAsJsonAsync("/account/login", new { email = "second@example.com", password = AuthApi.Password });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Contains(AccountErrorCodes.AlreadySignedIn, await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
+    }
+
+    [Fact(DisplayName = "FM-11: the profile endpoint requires an access token")]
     public async Task Profile_requires_a_token()
     {
         await using var app = new TestApp();

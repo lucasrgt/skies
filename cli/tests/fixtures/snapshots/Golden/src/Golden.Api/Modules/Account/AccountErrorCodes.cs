@@ -31,6 +31,11 @@ public static class AccountErrorCodes
     /// <summary>The password is longer than the maximum length the hasher accepts.</summary>
     public const string PasswordTooLong = "password.too_long";
 
+    /// <summary>A registration arrived with a valid access token. Registering opens a new account (and, with tenancy,
+    /// a new org), which a caller signed in to another account must not do in that account's name: they sign out
+    /// first.</summary>
+    public const string AlreadySignedIn = "account.already_signed_in";
+
     /// <summary>An entity's invariant funnel (EnsureValid) rejected the state — a present id, a non-blank
     /// name, and so on. Construction and mutation both return through that funnel, so a broken instance can
     /// never be observed or persisted.</summary>

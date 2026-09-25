@@ -43,6 +43,7 @@ the module, and add a failure mode here before changing behavior.
 - FM-[duplicate] A taken email registers a second account, damages the first one, or answers differently from a new registration
 - FM-[password-length] A password outside 8 to 128 characters is accepted at registration, or an over-long one is hashed at login
 - FM-[missing-fields] A request that leaves a field out of its body fails as a server error instead of a client error
+- FM-[register-signed-in] A registration sent with a valid access token fails as a server error or opens an account in the caller's name
 //<lz:tenancy>
 - FM-[register-org] A new account does not get an org of its own: two registrations share an org, or an account has none
 //</lz:tenancy>

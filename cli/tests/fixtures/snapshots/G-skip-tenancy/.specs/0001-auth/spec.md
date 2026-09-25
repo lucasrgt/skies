@@ -32,27 +32,28 @@ the module, and add a failure mode here before changing behavior.
 - FM-3 A taken email registers a second account, damages the first one, or answers differently from a new registration
 - FM-4 A password outside 8 to 128 characters is accepted at registration, or an over-long one is hashed at login
 - FM-5 A request that leaves a field out of its body fails as a server error instead of a client error
-- FM-6 Valid credentials do not yield a token pair whose access token reads the caller's own profile
-- FM-7 A wrong password signs in or leaks a token
-- FM-8 Login reveals whether an email is registered: an unknown email and a wrong password answer differently
-- FM-9 One client can try passwords without limit: login is not throttled after the permitted attempts
-- FM-10 The profile endpoint answers without an access token
-- FM-11 A self-registered account satisfies the app-admin policy, and so may change app-wide data
-- FM-12 Refresh does not rotate: it returns the same refresh token or no usable access token
-- FM-13 Replaying a rotated refresh token is accepted, or leaves the rest of its family alive
-- FM-14 An unknown refresh token is exchanged for tokens
-- FM-15 A session family older than the absolute maximum age still refreshes
-- FM-16 After logout the session's refresh token still refreshes
-- FM-17 Logout with an unknown token fails, revealing which tokens are valid
-- FM-18 The session list shows expired or rotated slots, misses a live session, or does not flag the current one
-- FM-19 Revoking one of my sessions leaves it alive or ends my other sessions
-- FM-20 A user can revoke another user's session, or learn that it exists
-- FM-21 Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
-- FM-22 A web login returns the refresh token in the body, or without an httpOnly cookie
-- FM-23 A web refresh ignores the refresh cookie or does not reissue it
+- FM-6 A registration sent with a valid access token fails as a server error or opens an account in the caller's name
+- FM-7 Valid credentials do not yield a token pair whose access token reads the caller's own profile
+- FM-8 A wrong password signs in or leaks a token
+- FM-9 Login reveals whether an email is registered: an unknown email and a wrong password answer differently
+- FM-10 One client can try passwords without limit: login is not throttled after the permitted attempts
+- FM-11 The profile endpoint answers without an access token
+- FM-12 A self-registered account satisfies the app-admin policy, and so may change app-wide data
+- FM-13 Refresh does not rotate: it returns the same refresh token or no usable access token
+- FM-14 Replaying a rotated refresh token is accepted, or leaves the rest of its family alive
+- FM-15 An unknown refresh token is exchanged for tokens
+- FM-16 A session family older than the absolute maximum age still refreshes
+- FM-17 After logout the session's refresh token still refreshes
+- FM-18 Logout with an unknown token fails, revealing which tokens are valid
+- FM-19 The session list shows expired or rotated slots, misses a live session, or does not flag the current one
+- FM-20 Revoking one of my sessions leaves it alive or ends my other sessions
+- FM-21 A user can revoke another user's session, or learn that it exists
+- FM-22 Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
+- FM-23 A web login returns the refresh token in the body, or without an httpOnly cookie
+- FM-24 A web refresh ignores the refresh cookie or does not reissue it
 
-- FM-24 The development database and providers can start outside Development
-- FM-25 The app starts outside Development with a missing, short, or public development signing secret
+- FM-25 The development database and providers can start outside Development
+- FM-26 The app starts outside Development with a missing, short, or public development signing secret
 
 ## Out of scope
 

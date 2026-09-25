@@ -53,8 +53,10 @@ public static class RegisterWithGoogle
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/register/google", async (Input input, AppDb db, IExternalIdentityVerifier google, RefreshSessions sessions, IAccessTokens tokens, TimeProvider clock, CancellationToken ct) =>
-            (await Handle(input, db, google, sessions, tokens, clock, ct)).ToHttp())
+        app.MapPost("/register/google", async (Input input, HttpContext http, AppDb db, IExternalIdentityVerifier google, RefreshSessions sessions, IAccessTokens tokens, TimeProvider clock, CancellationToken ct) =>
+            http.User.Identity?.IsAuthenticated == true
+                ? ((Result<Output>)Error.Conflict(AccountErrorCodes.AlreadySignedIn, "sign out before registering a new account")).ToHttp()
+                : (await Handle(input, db, google, sessions, tokens, clock, ct)).ToHttp())
             .WithName(nameof(RegisterWithGoogle))
             .AllowAnonymous();   // public: registering with Google is pre-identity
 }

@@ -60,8 +60,10 @@ public static class Register
     }
 
     public static void Map(IEndpointRouteBuilder app) =>
-        app.MapPost("/register", async (Input input, AppDb db, IPasswordHasher hasher, IAccountNotices notices, TimeProvider clock, CancellationToken ct) =>
-            (await Handle(input, db, hasher, notices, clock, ct)).ToHttp())
+        app.MapPost("/register", async (Input input, HttpContext http, AppDb db, IPasswordHasher hasher, IAccountNotices notices, TimeProvider clock, CancellationToken ct) =>
+            http.User.Identity?.IsAuthenticated == true
+                ? ((Result<Output>)Error.Conflict(AccountErrorCodes.AlreadySignedIn, "sign out before registering a new account")).ToHttp()
+                : (await Handle(input, db, hasher, notices, clock, ct)).ToHttp())
             .WithName(nameof(Register))
             .AllowAnonymous();   // public: registering is pre-identity
 }

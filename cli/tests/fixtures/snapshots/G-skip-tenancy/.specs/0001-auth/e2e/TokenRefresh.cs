@@ -15,7 +15,7 @@ public class TokenRefresh
 {
     private const string Email = "user@example.com";
 
-    [Fact(DisplayName = "FM-12: refresh rotates to a new token pair")]
+    [Fact(DisplayName = "FM-13: refresh rotates to a new token pair")]
     public async Task Refresh_rotates_to_a_new_token_pair()
     {
         await using var app = new TestApp();
@@ -32,7 +32,7 @@ public class TokenRefresh
 
     // A spent token presented again has leaked (the legitimate client holds its replacement), so the whole family
     // burns: the thief's copy and the victim's live token alike.
-    [Fact(DisplayName = "FM-13: a replayed refresh token is rejected and burns the live one")]
+    [Fact(DisplayName = "FM-14: a replayed refresh token is rejected and burns the live one")]
     public async Task Replayed_refresh_token_is_rejected_and_burns_the_family()
     {
         await using var app = new TestApp();
@@ -49,7 +49,7 @@ public class TokenRefresh
         Assert.Equal(HttpStatusCode.Unauthorized, live.StatusCode);
     }
 
-    [Fact(DisplayName = "FM-14: an unknown refresh token is rejected")]
+    [Fact(DisplayName = "FM-15: an unknown refresh token is rejected")]
     public async Task Unknown_refresh_token_is_rejected()
     {
         await using var app = new TestApp();
@@ -62,7 +62,7 @@ public class TokenRefresh
 
     // The family is aged past the ceiling without expiring the token itself (its first-seen time is backdated through
     // EF metadata, since CreatedAt is encapsulated), so it is the absolute-age rule that must retire it.
-    [Fact(DisplayName = "FM-15: a family past the absolute maximum age no longer refreshes")]
+    [Fact(DisplayName = "FM-16: a family past the absolute maximum age no longer refreshes")]
     public async Task Family_past_the_maximum_age_no_longer_refreshes()
     {
         await using var app = new TestApp();
@@ -82,7 +82,7 @@ public class TokenRefresh
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact(DisplayName = "FM-16: logout revokes the session so its refresh token is dead")]
+    [Fact(DisplayName = "FM-17: logout revokes the session so its refresh token is dead")]
     public async Task Logout_revokes_the_session()
     {
         await using var app = new TestApp();
@@ -95,7 +95,7 @@ public class TokenRefresh
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact(DisplayName = "FM-17: logout with an unknown token succeeds like any other")]
+    [Fact(DisplayName = "FM-18: logout with an unknown token succeeds like any other")]
     public async Task Logout_with_an_unknown_token_succeeds()
     {
         await using var app = new TestApp();

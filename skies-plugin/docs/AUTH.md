@@ -76,7 +76,8 @@ adds the `TenantStamping` interceptor in `OnConfiguring`.
 - **Registration opens the org.** `Register` (and `RegisterWithGoogle`) opens an `Org` and creates the user in it by
   name, so every sign-up starts alone. Joining an existing org is an invitation flow the app adds; the blueprint
   ships none. Sign-in, uniqueness, and the auth-bootstrap lookups cross the filter (`IgnoreQueryFilters`) because
-  identity is global and precedes the org.
+  identity is global and precedes the org. A registration that carries a valid access token is refused with `409
+  account.already_signed_in`: the new account's org is not the caller's, so the client signs out first.
 
 ## Real-time hubs: rooms are the org's
 

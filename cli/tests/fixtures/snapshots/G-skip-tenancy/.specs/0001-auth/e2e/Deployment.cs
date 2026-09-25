@@ -12,15 +12,15 @@ namespace Specs.S0001;
 
 public class Deployment
 {
-    [Fact(DisplayName = "FM-24: local providers cannot start in Production")]
+    [Fact(DisplayName = "FM-25: local providers cannot start in Production")]
     public void Production_requires_configuration() => CannotStart("Production");
 
-    [Fact(DisplayName = "FM-24: local providers cannot start in Staging")]
+    [Fact(DisplayName = "FM-25: local providers cannot start in Staging")]
     public void Staging_requires_configuration() => CannotStart("Staging");
 
     // The app as deployed once the owner has replaced Platform's development branch with a real store: nothing local
     // is left to supply a key, so the signing secret must come from configuration and be one of the app's own.
-    [Fact(DisplayName = "FM-25: outside Development the app refuses to start without a signing secret of its own")]
+    [Fact(DisplayName = "FM-26: outside Development the app refuses to start without a signing secret of its own")]
     public async Task Production_refuses_a_missing_short_or_public_secret()
     {
         foreach (var secret in new[] { null, "too-short-to-sign", SkiesAuthOptions.DevelopmentSecret })
