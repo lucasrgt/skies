@@ -4,11 +4,20 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Skies.Framework.Auth;
 
 /// <summary>The auth mechanism's settings for <see cref="SkiesAuthExtensions.AddSkiesAuth{TSessionStore}"/>.</summary>
-/// <param name="JwtSecret">The HMAC key access tokens are signed and validated with (at least 32 bytes).</param>
+/// <param name="JwtSecret">The HMAC key access tokens are signed and validated with. The host refuses to start without
+/// one, and outside Development unless it is at least <see cref="MinSecretBytes"/> bytes and not a development key
+/// (<see cref="DevelopmentSecret"/>).</param>
 /// <param name="Issuer">The access tokens' issuer, minted and required.</param>
 /// <param name="Audience">The access tokens' audience, minted and required.</param>
 public sealed record SkiesAuthOptions(string JwtSecret, string Issuer, string Audience)
 {
+    /// <summary>The signing key a generated app uses in Development, so a fresh clone runs with no setup. It is
+    /// public (it ships in every app's source), so the host refuses to start with it anywhere else.</summary>
+    public const string DevelopmentSecret = "skies-local-development-key-not-for-deployment";
+
+    /// <summary>The shortest signing secret accepted outside Development: 32 bytes, the HMAC-SHA256 key size.</summary>
+    public const int MinSecretBytes = 32;
+
     /// <summary>Web refresh-cookie delivery: the cookie's name and path (and, for a multi-subdomain app, its domain
     /// and SameSite). <see langword="null"/> means body-only delivery and no <see cref="RefreshCookie"/> service.
     /// Its <see cref="RefreshCookieOptions.Lifetime"/> is overridden with <see cref="Sessions"/>' lifetime.</summary>

@@ -2,6 +2,8 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Skies.Framework.Auth;
@@ -21,8 +23,15 @@ public static class JwtAccessTokenExtensions
     /// </code>
     /// Then the usual <c>app.UseAuthentication(); app.UseAuthorization();</c> in the pipeline.
     /// </example>
+    /// <remarks>The host refuses to start when <paramref name="secret"/> is missing, and, outside Development, when it
+    /// is shorter than <see cref="SkiesAuthOptions.MinSecretBytes"/> bytes or a development key
+    /// (<see cref="SkiesAuthOptions.DevelopmentSecret"/>). The check runs at host start, and its message names what to
+    /// configure.</remarks>
     public static IServiceCollection AddJwtAccessTokens(this IServiceCollection services, string secret, string issuer, string audience)
     {
+        services.AddSingleton<IValidateOptions<JwtBearerOptions>>(sp =>
+            new JwtSecretPolicy(secret, sp.GetService<IHostEnvironment>()));
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme).ValidateOnStart();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, HttpCurrentUser>();
         services.AddSingleton<IAccessTokens>(sp => new AccessTokens(secret, issuer, audience, sp.GetRequiredService<TimeProvider>()));
@@ -32,7 +41,9 @@ public static class JwtAccessTokenExtensions
             .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;   // else "sub" is remapped to NameIdentifier and the claims break
-                options.TokenValidationParameters = BuildValidationParameters(secret, issuer, audience);
+                // A missing secret has no key to build; JwtSecretPolicy then refuses the start with what to configure.
+                if (!string.IsNullOrEmpty(secret))
+                    options.TokenValidationParameters = BuildValidationParameters(secret, issuer, audience);
             });
 
         return services;
