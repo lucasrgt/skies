@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # flutter-smoke — the Flutter path end to end, on what adopters install. It renders an app with `skies new`, adds a
 # Flutter package with `g flutter-app`, and proves that the package is pinned to this version of `skies_flutter`, is
-# declared in Skies.toml (a product's `frontend`, the root allowlist) and in the CI, analyzes clean, runs a spec case
-# through the `[runners.flutter]` the scaffold prints, and that `skies doctor` is clean on the whole app (SKYWS001
-# included).
+# declared in Skies.toml (a product's `frontend`, the root allowlist, `[runners.flutter]`) and in the CI, analyzes
+# clean, runs a spec case through that runner, still analyzes clean once `g client` has generated the typed client from
+# a crud backend's contract and `g feature` has scaffolded a list screen on it, and that `skies doctor` is clean on the
+# whole app (SKYWS001 included). The client generator runs through npx and needs Java.
 #
 # Packages come from this working tree: Skies.Framework.* is `dotnet pack`ed into a local feed (as in auth-smoke), and
 # `skies_flutter` resolves to flutter-sdk/packages/skies_flutter through a pubspec_overrides.yaml the smoke drops in
@@ -87,19 +88,18 @@ grep -qE "^  skies_flutter: \"?\^?$VERSION\"?$" "$MOBILE/pubspec.yaml" && ! grep
 grep -q 'frontend = "clients/mobile"' "$APP/Skies.toml" && grep -q '"clients/"' "$APP/Skies.toml" \
   || fail "g flutter-app did not declare clients/mobile in Skies.toml"
 grep -q '^  flutter-clients-mobile:$' "$APP/.github/workflows/ci.yml" || fail "g flutter-app did not add a CI job"
-grep -q '^\[runners.flutter\]$' "$WORK/g.log" || { cat "$WORK/g.log"; fail "g flutter-app printed no [runners.flutter]"; }
+grep -q '^\[runners.flutter\]$' "$APP/Skies.toml" || fail "g flutter-app did not declare [runners.flutter]"
+grep -qE '^  intl: \^[0-9]' "$MOBILE/pubspec.yaml" || { grep -n 'intl' "$MOBILE/pubspec.yaml"; fail "intl is not pinned"; }
 if command -v actionlint >/dev/null; then
   actionlint "$APP/.github/workflows/ci.yml" || fail "the generated CI does not lint"
 fi
-echo "ok: pinned to $VERSION, declared in Skies.toml, a CI job"
+echo "ok: pinned to $VERSION, declared in Skies.toml (frontend, root, runner), a CI job"
 
 echo "==> flutter analyze"
 (cd "$MOBILE" && "$FLUTTER" analyze >"$WORK/analyze.log" 2>&1) || { cat "$WORK/analyze.log"; fail "flutter analyze"; }
 echo "ok: flutter analyze"
 
-echo "==> a Flutter spec through the printed runner"
-sed -n '/^\[runners.flutter\]$/,/^command = /p' "$WORK/g.log" > "$WORK/runner.toml"
-printf '\n' >> "$APP/Skies.toml" && cat "$WORK/runner.toml" >> "$APP/Skies.toml"
+echo "==> a Flutter spec through the declared runner"
 mkdir -p "$APP/.specs/0001-app/e2e"
 cat > "$APP/.specs/0001-app/spec.md" <<'EOF'
 ---
@@ -126,6 +126,44 @@ EOF
 (cd "$APP" && PATH="$(dirname "$FLUTTER"):$PATH" "$SKIES" proof run 0001 >"$WORK/proof.log" 2>&1) \
   || { cat "$WORK/proof.log"; fail "skies proof run 0001"; }
 echo "ok: skies proof run 0001 through [runners.flutter]"
+
+echo "==> a crud backend, its contract, then g client + g feature Products in clients/mobile"
+API="$APP/src/Shop.Api"
+g() { (cd "$API" && "$SKIES" g "$@" >/dev/null); }
+g auth --skip-tenancy
+g module Catalog
+g entity Catalog Product
+cat > "$WORK/product-fields.cs" <<'EOF'
+
+    /// <summary>The product name shown in the catalog.</summary>
+    public string Name { get; private set; } = "";
+EOF
+sed -i "/^    public Guid Id { get; private set; }\$/r $WORK/product-fields.cs" "$API/Modules/Catalog/Product.cs"
+grep -q 'public string Name' "$API/Modules/Catalog/Product.cs" || fail "the g entity scaffold changed shape"
+g crud Catalog Product
+cat > "$API/Modules/Catalog/Catalog.ctx.md" <<'EOF'
+# catalog
+
+The products the shop sells.
+
+## Boundaries
+
+- **Inside**: products and their names, which only this module writes.
+- **Outside**: stock and orders, which belong to their own modules.
+
+## Design notes
+
+A product's name is what the catalog shows; nothing else reads it.
+EOF
+dotnet build "$API" --nologo -v quiet >/dev/null || fail "the backend did not build"
+[ -f "$API/contract/Shop.Api.json" ] || fail "dotnet build wrote no contract"
+(cd "$MOBILE" && PATH="$(dirname "$FLUTTER"):$PATH" "$SKIES" g client >"$WORK/client.log" 2>&1) \
+  || { cat "$WORK/client.log"; fail "g client"; }
+(cd "$MOBILE" && PATH="$(dirname "$FLUTTER"):$PATH" "$SKIES" g feature Products --kind list >"$WORK/feature.log" 2>&1) \
+  || { cat "$WORK/feature.log"; fail "g feature Products"; }
+(cd "$MOBILE" && "$FLUTTER" pub get >/dev/null && "$FLUTTER" analyze >"$WORK/analyze.log" 2>&1) \
+  || { cat "$WORK/analyze.log"; fail "flutter analyze after g client + g feature"; }
+echo "ok: g client + g feature Products, flutter analyze clean"
 
 echo "==> skies doctor on the whole app"
 out="$(cd "$APP" && "$SKIES" doctor 2>&1)" || { echo "$out"; fail "skies doctor"; }

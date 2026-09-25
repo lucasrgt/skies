@@ -40,11 +40,43 @@ pub fn create(name: &str, path: Option<&Path>) -> Result<u8> {
     let parent = parent.as_path();
     let project = Project::discover(&dir).ok();
 
+    // A failed step (Flutter missing, the pinned spine not on pub.dev yet, no network) leaves no half-made package:
+    // the folder was absent or empty, and the manifest is only touched once the package exists.
+    if let Err(error) = scaffold(&dir, parent, &package) {
+        let _ = std::fs::remove_dir_all(&dir);
+        return Err(error.context(format!("g flutter-app failed; removed {}", dir.display())));
+    }
+
+    let package_path = project.as_ref().map_or_else(
+        || dir.display().to_string(),
+        |p| relative_path(&p.root, &dir).trim_start_matches("./").to_string(),
+    );
+    let (setup, command) = flutter_runner(&package_path);
+    if let Some(project) = &project {
+        register::frontend(&project.root, &package_path)?;
+        register::runner(&project.root, "flutter", &setup, &command)?;
+        ci::add_flutter_package(&project.root, &package_path, &package)?;
+    }
+    println!("\ncreated Flutter app {package} in {}", dir.display());
+    println!("next: `skies g feature <Name> --package {package_path}`");
+    if project.is_none() {
+        println!(
+            "\nTo run Flutter specs (.specs/<id>/e2e/*_test.dart) with `skies proof`, declare a runner in Skies.toml:\n\n\
+             [runners.flutter]\nsetup = {}\ncommand = {}",
+            toml::Value::String(setup),
+            toml::Value::String(command)
+        );
+    }
+    Ok(0)
+}
+
+/// `flutter create`, the spine and localization dependencies, and the harness files, in `dir`.
+fn scaffold(dir: &Path, parent: &Path, package: &str) -> Result<()> {
     let flutter = flutter_bin();
     let target = dir.to_string_lossy().into_owned();
     run(
         &flutter,
-        &["create", "--project-name", &package, "--empty", &target],
+        &["create", "--project-name", package, "--empty", &target],
         parent,
     )?;
     let spine = spine_dependency();
@@ -57,32 +89,46 @@ pub fn create(name: &str, path: Option<&Path>) -> Result<u8> {
             "intl:any",
             "flutter_localizations:{\"sdk\":\"flutter\"}",
         ],
-        &dir,
+        dir,
     )?;
+    // `intl` must be the version flutter_localizations pins, so pub picks it; the pubspec then records that choice
+    // as a caret constraint instead of leaving `any`.
+    pin_resolved(dir, "intl")?;
     enable_generate(&dir.join("pubspec.yaml"))?;
     ignore_spec_copies(&dir.join(".gitignore"))?;
-    write_new(&harness_files(&dir))?;
-    i18n::assemble(&dir)?;
-    run(&flutter, &["pub", "get"], &dir)?;
+    write_new(&harness_files(dir))?;
+    i18n::assemble(dir)?;
+    run(&flutter, &["pub", "get"], dir)?;
+    Ok(())
+}
 
-    let package_path = project.as_ref().map_or_else(
-        || dir.display().to_string(),
-        |p| relative_path(&p.root, &dir).trim_start_matches("./").to_string(),
-    );
-    if let Some(project) = &project {
-        register::frontend(&project.root, &package_path)?;
-        ci::add_flutter_package(&project.root, &package_path, &package)?;
+/// Replaces `<dependency>: any` in the pubspec with `^<version>`, the version pubspec.lock resolved.
+fn pin_resolved(dir: &Path, dependency: &str) -> Result<()> {
+    let lock = std::fs::read_to_string(dir.join("pubspec.lock"))?;
+    let Some(version) = locked_version(&lock, dependency) else {
+        bail!("pubspec.lock resolved no {dependency}");
+    };
+    let pubspec = dir.join("pubspec.yaml");
+    let text = std::fs::read_to_string(&pubspec)?;
+    let loose = format!("\n  {dependency}: any\n");
+    if text.contains(&loose) {
+        std::fs::write(
+            &pubspec,
+            text.replacen(&loose, &format!("\n  {dependency}: ^{version}\n"), 1),
+        )?;
     }
-    println!("\ncreated Flutter app {package} in {}", dir.display());
-    println!("next: `skies g feature <Name> --package {package_path}`");
-    let (setup, command) = flutter_runner(&package_path);
-    println!(
-        "\nTo run Flutter specs (.specs/<id>/e2e/*_test.dart) with `skies proof`, declare a runner in Skies.toml:\n\n\
-         [runners.flutter]\nsetup = {}\ncommand = {}",
-        toml::Value::String(setup),
-        toml::Value::String(command)
-    );
-    Ok(0)
+    Ok(())
+}
+
+/// The version pubspec.lock records for a package (`packages: > intl: > version: "0.20.2"`).
+fn locked_version(lock: &str, dependency: &str) -> Option<String> {
+    let entry = lock.find(&format!("\n  {dependency}:\n"))?;
+    lock[entry..]
+        .lines()
+        .skip(2)
+        .take_while(|line| line.starts_with("    ") || line.is_empty())
+        .find_map(|line| line.trim().strip_prefix("version: "))
+        .map(|version| version.trim_matches('"').to_string())
 }
 
 /// `skies_flutter` at exactly this binary's version: the Dart spine, the Roslyn doctor, and the `@skiesjs/*`
@@ -193,6 +239,16 @@ mod tests {
             pubspec.contains(&format!("\nversion: {}\n", env!("CARGO_PKG_VERSION"))),
             "the pin names a version the spine is released at"
         );
+    }
+
+    #[test]
+    fn the_locked_version_is_read_from_its_own_entry() {
+        let lock = "packages:\n  http:\n    dependency: transitive\n    description:\n      name: http\n    \
+                    version: \"1.2.0\"\n  intl:\n    dependency: \"direct main\"\n    description:\n      name: intl\n      \
+                    url: \"https://pub.dev\"\n    source: hosted\n    version: \"0.20.2\"\nsdks:\n  dart: \">=3.0.0\"\n";
+        assert_eq!(locked_version(lock, "intl").as_deref(), Some("0.20.2"));
+        assert_eq!(locked_version(lock, "http").as_deref(), Some("1.2.0"));
+        assert_eq!(locked_version(lock, "missing"), None);
     }
 
     #[test]
