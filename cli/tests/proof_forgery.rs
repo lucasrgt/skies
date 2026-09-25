@@ -63,14 +63,53 @@ fn an_explicit_red_whose_diff_changes_what_runs_the_tests_is_refused() {
         "{}",
         text(&refused)
     );
-    // The default red takes the same diff as the branch's own, which review reads: a warning, not a refusal.
-    let warned = repo.skies(&["proof", "record", "1"]);
-    assert!(warned.status.success(), "{}", text(&warned));
+    // The default red (the merge-base) is held to the same rule, and both point at the way out: a red.patch on HEAD.
+    let default = repo.skies(&["proof", "record", "1"]);
+    assert_eq!(default.status.code(), Some(2), "{}", text(&default));
     assert!(
-        text(&warned)
-            .contains("warning: since red, this branch also changed what runs the tests (.specs/web.setup.ts)"),
+        text(&default).contains("red (the merge-base)") && text(&default).contains("--red-patch <file>"),
         "{}",
-        text(&warned)
+        text(&default)
+    );
+    assert!(!repo.path(&format!("{SPEC}/receipt.json")).exists());
+}
+
+#[test]
+fn a_record_that_fails_stores_no_red_patch() {
+    let repo = Repo::new();
+    new_spec(&repo, "FM-1: toggles\nFM-2: toggles twice\n");
+    repo.implement();
+    // Vetted and accepted, but it does not apply: red never runs, and the next record must not find it stored.
+    repo.write(
+        "stale.patch",
+        "--- a/src/feature.txt\n+++ b/src/feature.txt\n@@ -1 +1 @@\n-absent\n+off\n",
+    );
+    let failed = repo.skies(&["proof", "record", "1", "--red-patch", "stale.patch"]);
+    assert!(!failed.status.success(), "{}", text(&failed));
+    assert!(!repo.path(&format!("{SPEC}/red.patch")).exists(), "{}", text(&failed));
+    assert!(!repo.path(&format!("{SPEC}/receipt.json")).exists());
+}
+
+#[test]
+fn a_red_patch_may_not_change_the_build_configuration() {
+    let repo = Repo::new();
+    new_spec(
+        &repo,
+        "FM-1: toggles
+FM-2: toggles twice
+",
+    );
+    repo.implement();
+    // An .editorconfig can turn a spec's own case into a compile error: a red that only looks like "the types are new".
+    let editorconfig =
+        "--- /dev/null\n+++ b/.editorconfig\n@@ -0,0 +1,2 @@\n+[*.cs]\n+dotnet_diagnostic.CA1707.severity = error\n";
+    repo.write("off.patch", &off_patch(editorconfig));
+    let refused = repo.skies(&["proof", "record", "1", "--red-patch", "off.patch"]);
+    assert_eq!(refused.status.code(), Some(2), "{}", text(&refused));
+    assert!(
+        text(&refused).contains("off.patch touches .editorconfig."),
+        "{}",
+        text(&refused)
     );
 }
 
