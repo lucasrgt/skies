@@ -1,14 +1,20 @@
 
-Real-time is opt-in. Wire __NAME__Hub in Program.cs:
+Real-time is opt-in. Wire __NAME__Hub in its module (Program.cs stays the registry):
 
-  builder.Services.AddSignalR();
-  // ... after app is built and authentication/authorization are mapped:
+  // AddServices
+  services.AddSignalR();
+  // Map (after the module's other routes)
   app.MapHub<__NAME__Hub>("/hubs/__NAME_LOWER__");
 
-A WebSocket can't send an Authorization header, so for hub paths the access token must
-ride the query string. With Skies.Framework.Auth's JWT, add (using Microsoft.AspNetCore.Authentication.JwtBearer):
+Rooms are scoped to the caller's org: a room key names a group of the caller's own org, so no client can join or
+broadcast into another org's room. Narrow MayEnter to the module's participation rule before shipping a room that
+is not org-wide.
 
-  builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o =>
+A WebSocket can't send an Authorization header, so for hub paths the access token must
+ride the query string. With Skies.Framework.Auth's JWT, add to AddServices
+(using Microsoft.AspNetCore.Authentication.JwtBearer):
+
+  services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o =>
       o.Events = new JwtBearerEvents
       {
           OnMessageReceived = ctx =>
@@ -21,4 +27,4 @@ ride the query string. With Skies.Framework.Auth's JWT, add (using Microsoft.Asp
       });
 
 Requires Skies.Framework.Auth (run `skies g auth` if you haven't). Scaling past one instance?
-Add a backplane: builder.Services.AddSignalR().AddStackExchangeRedis(connection).
+Add a backplane: services.AddSignalR().AddStackExchangeRedis(connection).

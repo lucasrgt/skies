@@ -249,7 +249,7 @@ pub fn value_object(root: &Path, name: &str) -> Result<u8> {
 }
 
 /// Real-time is opt-in: a fresh app carries no hub until one is generated, and the generator prints the
-/// one-time `Program.cs` wiring rather than editing the composition root for a transport it cannot see.
+/// one-time wiring for the module rather than editing its composition for a transport it cannot see.
 pub fn hub(root: &Path, module: &str, name: &str) -> Result<u8> {
     let Some(project) = ApiProject::open(root)? else {
         return Ok(1);

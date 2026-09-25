@@ -11,7 +11,8 @@
 #
 # Three apps, each rendered with `skies new`:
 #   Full   — g auth + auth:otp + auth:oauth + auth:email, plus module/slice/entity/vo/hub and a slice under an
-#            anonymous module group.
+#            anonymous module group. Its hub is wired as `g hub` prints, and its spec connects over
+#            SignalR: a room is scoped to the caller's org, and only a member broadcasts into it.
 #   Single — g auth --skip-tenancy --skip-cookies.
 #   Crud   — g auth + module + g entity (given tenancy and fields) + g crud, and an app-wide entity with its own crud,
 #            with no edit to the generated code after crud. Its spec drives the crud over HTTP: another org's row is
@@ -222,6 +223,17 @@ grep -q '        Uptime.Map(status);' "$API/Modules/Status/StatusModule.cs" \
   || { echo "FAIL: g slice did not map Uptime under the anonymous group without a posture of its own" >&2; exit 1; }
 ctx Status "the public uptime probe status pages poll." "health of dependencies, which belongs to real monitoring." \
   "Status is anonymous as a whole because a status page must answer for signed-out visitors."
+# The owner's hub wiring, as `g hub` prints it: SignalR registered and the hub mapped in the Billing module (Program.cs
+# stays the registry), and the SignalR client in the tests so a spec can connect over the test server.
+BILLING="$API/Modules/Billing/BillingModule.cs"
+sed -i 's#^        services;$#        services.AddSignalR().Services;#' "$BILLING"
+sed -i 's#^        var billing = app.MapGroup("/billing").RequireAuthorization();$#&\n        app.MapHub<Realtime.PaymentsHub>("/hubs/payments");#' "$BILLING"
+grep -q 'services.AddSignalR().Services;' "$BILLING" && grep -q 'app.MapHub<Realtime.PaymentsHub>' "$BILLING" \
+  || { echo "FAIL: the g module scaffold changed shape; the smoke could not wire the hub" >&2; exit 1; }
+sed -i 's#^    <PackageReference Include="Skies.Framework.Testing.InMemory"#    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.8" />\n&#' \
+  "$WORK/Full/tests/Full.Tests/Full.Tests.csproj"
+# The hub spec lives beside this script (tools/auth-smoke-specs/), as the owner would write it in the app.
+cp -R "$REPO/tools/auth-smoke-specs/9998-hub-rooms" "$WORK/Full/.specs/"
 
 echo "==> rendering Single: auth --skip-tenancy --skip-cookies"
 API="$(new_app Single)"
