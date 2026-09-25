@@ -196,6 +196,14 @@ pub fn entity(root: &Path, module: &str, name: &str) -> Result<u8> {
             ("__NAME__", name),
         ],
     );
+    // A multi-tenant app scopes an entity by adding `ITenantScoped` to it: the import is already there, so that one
+    // edit compiles.
+    let tenancy = text::read(&project.csproj)?.contains("\"Skies.Framework.EntityFrameworkCore\"");
+    let body = if tenancy {
+        format!("using Skies.Framework.EntityFrameworkCore;{}{}{body}", text::newline_of(&body), text::newline_of(&body))
+    } else {
+        body
+    };
     text::write(&path, body)?;
     println!("created {}", path.display());
 

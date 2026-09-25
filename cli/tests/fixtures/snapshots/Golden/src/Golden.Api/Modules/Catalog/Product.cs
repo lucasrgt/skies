@@ -1,3 +1,5 @@
+using Skies.Framework.EntityFrameworkCore;
+
 namespace Golden.Api.Modules.Catalog;
 
 [Entity]

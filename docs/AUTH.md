@@ -95,7 +95,8 @@ module (`services.AddSignalR()` in `AddServices`, `app.MapHub<…>` in `Map`), a
 
 ## App-wide data and the admin policy
 
-An entity that is not `ITenantScoped` is app-wide: every org reads the same rows. `g auth` defines
+An entity joins the tenancy by implementing `ITenantScoped` (namespace `Skies.Framework.EntityFrameworkCore`, which
+`g entity` imports in a multi-tenant app). An entity that is not `ITenantScoped` is app-wide: every org reads the same rows. `g auth` defines
 `AppPolicies.AppAdmin` (`AppPolicies.cs` at the API root), registered in `AccountModule` as "has the `Admin` role".
 Registration never grants a role and no generated endpoint sets one: the operator assigns `Admin` out of band. `g
 crud` maps an app-wide entity's reads under the module group and its Create/Update/Delete under a second group of the
