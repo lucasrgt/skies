@@ -107,10 +107,14 @@ impl TestFiles {
         }
     }
 
-    /// Whether a path relative to the repository top runs the tests.
+    /// Whether a path relative to the repository top runs the tests. A test config found by its name counts only inside
+    /// this project: in a monorepo, another project's `*.Tests.csproj` does not run these cases (the files outside the
+    /// project that do are the ones the runner names, which `files` holds).
     fn holds(&self, path: &str) -> bool {
         let name = path.rsplit('/').next().unwrap_or(path);
-        self.files.contains(path) || self.dirs.iter().any(|dir| path.starts_with(dir)) || TEST_CONFIG.is_match(name)
+        self.files.contains(path)
+            || self.dirs.iter().any(|dir| path.starts_with(dir))
+            || (path.starts_with(&self.prefix) && TEST_CONFIG.is_match(name))
     }
 
     /// The paths of a red.patch that it may not touch: anything under `.specs/`, or a file that runs the tests. A
@@ -319,6 +323,17 @@ mod tests {
                 "app/tests/App.Tests/Setup.cs"
             ]
         );
+    }
+
+    #[test]
+    fn another_projects_test_configs_are_not_this_runners() {
+        let refused = files().refused_in_diff(&[
+            "cli/templates/app/tests/Starter.Tests/Starter.Tests.csproj".into(),
+            "other/web/vite.config.ts".into(),
+            "frontend-sdk/vitest.config.ts".into(),
+            "app/web/vite.config.ts".into(),
+        ]);
+        assert_eq!(refused, ["frontend-sdk/vitest.config.ts", "app/web/vite.config.ts"]);
     }
 
     #[test]
