@@ -19,6 +19,7 @@ mod red_cause;
 mod report;
 mod run;
 mod runner;
+mod shell;
 mod spec;
 mod summary;
 

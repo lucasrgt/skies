@@ -89,8 +89,9 @@ impl Paths {
 ///
 /// Placeholders: `{id}` (the spec id, e.g. `0012`), `{dir}` (the spec's e2e folder, relative to the root),
 /// `{spec}` (the spec folder name), `{report}` (the absolute report path the engine reads back), and `{evidence}`
-/// (an absolute folder for artifacts that end up in the spec's evidence/, also `$SKIES_EVIDENCE`). The command runs
-/// through the platform shell (`sh -c`) with the checkout's project root as its working directory, so shell syntax
+/// (an absolute folder for artifacts that end up in the spec's evidence/, also `$SKIES_EVIDENCE`), each value quoted
+/// for where it sits. The command runs through `sh -c` on every platform (Git Bash's `sh` on Windows, or
+/// `$SKIES_SHELL`) with the checkout's project root as its working directory, so shell syntax
 /// applies: quote an argument holding `;` (`--logger 'trx;LogFileName={report}'`), or the shell ends the command
 /// there. Its exit code is not interpreted, only the report is.
 #[derive(Debug, Clone, Default, Deserialize)]

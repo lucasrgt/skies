@@ -1,6 +1,6 @@
 //! Running a spec's E2E through the runner declared in `Skies.toml`.
 //!
-//! A runner is just a shell command. The engine fills in placeholders, runs it with the checkout as the working
+//! A runner is just a shell command. The engine fills in placeholders (quoted: see `shell`), runs it with the checkout as the working
 //! directory, and reads back the report; it never interprets the command's exit code, because on the red revision
 //! failing tests are the expected outcome. Only a missing or unreadable report is an error.
 
@@ -13,6 +13,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, bail};
 
 use super::report::{self, Report};
+use super::shell::{self, expand};
 use super::spec::{E2E_DIR, SpecDir};
 use crate::manifest::Runner;
 
@@ -73,7 +74,7 @@ pub fn run(job: &Job) -> Result<Run> {
     std::fs::create_dir_all(job.evidence)?;
     if let Some(setup) = &job.runner.setup {
         let log = job.scratch.join(format!("{}-setup.log", job.label));
-        if !shell(&expand(setup, &values), job.root, &env, &log)? {
+        if !execute(&expand(setup, &values), job.root, &env, &log)? {
             bail!(
                 "runner '{}' setup failed on {}:\n{}",
                 job.runner_name,
@@ -84,11 +85,11 @@ pub fn run(job: &Job) -> Result<Run> {
     }
     let log = job.scratch.join(format!("{}.log", job.label));
     if let Some(build) = &job.runner.build
-        && !shell(&expand(build, &values), job.root, &env, &log)?
+        && !execute(&expand(build, &values), job.root, &env, &log)?
     {
         return Err(no_report(job, "build failed", log));
     }
-    let success = shell(&expand(&job.runner.command, &values), job.root, &env, &log)?;
+    let success = execute(&expand(&job.runner.command, &values), job.root, &env, &log)?;
     let report_path = PathBuf::from(&values["report"]);
     let Ok(text) = std::fs::read_to_string(&report_path) else {
         return Err(no_report(job, "wrote no report (did the tests build?)", log));
@@ -132,21 +133,13 @@ fn placeholders(job: &Job) -> Result<BTreeMap<&'static str, String>> {
     ]))
 }
 
-/// Replaces `{name}` for every known placeholder; unknown braces are left alone so shell syntax like `${VAR}` or
-/// JSON in a command survives.
-pub fn expand(template: &str, values: &BTreeMap<&'static str, String>) -> String {
-    values.iter().fold(template.to_string(), |text, (key, value)| {
-        text.replace(&format!("{{{key}}}"), value)
-    })
-}
-
-/// Runs `command` through the platform shell, output captured to `log`. Returns whether it exited successfully.
-fn shell(command: &str, cwd: &Path, env: &BTreeMap<&str, String>, log: &Path) -> Result<bool> {
+/// Runs `command` through `sh -c` (see [`shell`](super::shell)), output captured to `log`. Returns whether it
+/// exited successfully.
+fn execute(command: &str, cwd: &Path, env: &BTreeMap<&str, String>, log: &Path) -> Result<bool> {
     let out = File::create(log).with_context(|| format!("creating {}", log.display()))?;
     let err = out.try_clone()?;
-    let (shell, flag) = if cfg!(windows) { ("cmd", "/C") } else { ("sh", "-c") };
-    let status = Command::new(shell)
-        .arg(flag)
+    let status = Command::new(shell::program()?)
+        .arg("-c")
         .arg(command)
         .current_dir(cwd)
         .envs(env)
@@ -173,21 +166,4 @@ pub fn tail(log: &Path) -> String {
         .map(|line| format!("  | {line}"))
         .collect::<Vec<_>>()
         .join("\n")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn expands_known_placeholders_only() {
-        let values = BTreeMap::from([("id", "0012".to_string()), ("report", "/tmp/r.xml".to_string())]);
-        assert_eq!(
-            expand(
-                "test --filter S{id}. --out {report} ${HOME} {\"a\":1} {unknown}",
-                &values
-            ),
-            "test --filter S0012. --out /tmp/r.xml ${HOME} {\"a\":1} {unknown}"
-        );
-    }
 }
