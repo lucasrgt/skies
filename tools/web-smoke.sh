@@ -4,7 +4,7 @@
 # package with `g web-app`, generates the typed client with `g client`, scaffolds a list and a form screen with
 # `g feature`, routes them, and then proves the package builds (`vite build`), typechecks, and lints clean under
 # `@skiesjs/eslint-plugin`'s recommended config, that a web spec made by `skies spec new` runs through the
-# `[runners.web]` `g web-app` suggests (the engine's output and report say which spec and runner ran), and that
+# `[runners.web]` `g web-app` declares (the engine's output and report say which spec and runner ran), and that
 # `skies doctor` is clean on the whole app.
 #
 # Packages come from this working tree: Skies.Framework.* is `dotnet pack`ed into a local feed (as in auth-smoke), and
@@ -145,13 +145,8 @@ sed -i 's#^import { ShellView } from "@/shell/Shell.view";#&\nimport { ProductsV
 sed -i 's#^const routeTree = rootRoute.addChildren(\[homeRoute\]);#const productsRoute = createRoute({ getParentRoute: () => rootRoute, path: "/products", component: ProductsView });\nconst createProductRoute = createRoute({\n  getParentRoute: () => rootRoute,\n  path: "/products/new",\n  component: CreateProductView,\n});\n\nconst routeTree = rootRoute.addChildren([homeRoute, productsRoute, createProductRoute]);#' "$ROUTER"
 grep -q 'productsRoute, createProductRoute' "$ROUTER" || fail "the router scaffold changed shape"
 
-echo "==> a web spec through the suggested runner"
-cat >> "$APP/Skies.toml" <<'EOF'
-
-[runners.web]
-setup = "test -d clients/web/node_modules || npm --prefix clients/web ci"
-command = "node clients/web/node_modules/vitest/vitest.mjs run --config clients/web/vitest.config.ts --reporter=junit --outputFile={report} {dir}"
-EOF
+echo "==> a web spec through the runner g web-app declared"
+grep -q '^\[runners.web\]$' "$APP/Skies.toml" || { cat "$APP/Skies.toml"; fail "g web-app did not declare [runners.web]"; }
 # `spec new` picks the next free id (g auth already wrote 0001-auth); a hand-made 0001-home would share its id.
 HOME_SPEC="$(cd "$APP" && "$SKIES" spec new home --runner web | sed -nE 's#^created \.specs/([^/]+)/.*#\1#p')"
 [ -n "$HOME_SPEC" ] || fail "skies spec new home did not say which folder it created"
