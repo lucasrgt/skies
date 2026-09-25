@@ -18,7 +18,7 @@ public static class Update__ENTITY__
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, __CLOCK_PARAM__CancellationToken ct)
     {
-        var item = await db.__PLURAL__.FirstOrDefaultAsync(e => e.Id == input.Id, ct);
+__REQUIRED_CHECKS__        var item = await db.__PLURAL__.FirstOrDefaultAsync(e => e.Id == input.Id, ct);
         if (item is null)
             return Error.NotFound(__MODULE__ErrorCodes.__ENTITY__NotFound, "__ENTITY_LOWER__ not found");
 

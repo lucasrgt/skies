@@ -302,6 +302,7 @@ runner: api
 - FM-3 a signed-in user reads or changes another org's product.
 - FM-4 an update or delete made against a version someone else changed since overwrites their change.
 - FM-5 a signed-in member creates or deletes a tag every org shares.
+- FM-6 a create or update that leaves a field out fails as a server error instead of a client error.
 EOF
 cat > "$WORK/Crud/.specs/9999-crud/e2e/Mutation.cs" <<'EOF'
 using Crud.Api.Modules.Catalog;
@@ -408,6 +409,25 @@ public class CatalogOverHttp
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, deniedDelete.StatusCode);
         Assert.Contains("sale", await member.GetStringAsync("/catalog/tags"), StringComparison.Ordinal);
+    }
+
+    [Fact(DisplayName = "FM-6: a create or update missing a field is a 400 naming the field, never a 500")]
+    public async Task A_missing_field_is_a_client_error()
+    {
+        await using var app = new TestApp();
+        var alice = await SignedIn(app, "alice@example.com");
+        var lamp = await Write(await alice.PostAsJsonAsync("/catalog/products", new { name = "Lamp", price = 10m }));
+
+        var emptyCreate = await alice.PostAsJsonAsync("/catalog/products", new { });
+        var noName = await alice.PostAsJsonAsync("/catalog/products", new { price = 1m });
+        var noNameUpdate = await alice.PutAsJsonAsync($"/catalog/products/{lamp.Id}", new { price = 2m, version = lamp.Version });
+
+        foreach (var response in new[] { emptyCreate, noName, noNameUpdate })
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains("catalog.product_field_required", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        }
+        Assert.Contains("Lamp", await alice.GetStringAsync($"/catalog/products/{lamp.Id}"), StringComparison.Ordinal);
     }
 
     private static async Task<Written> Write(HttpResponseMessage response)

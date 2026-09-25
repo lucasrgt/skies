@@ -241,6 +241,11 @@ pub fn generate(root: &Path, module: &str, entity: &str) -> Result<u8> {
             format!("No {entity} exists for the given id."),
         ),
         (
+            format!("{entity}FieldRequired"),
+            format!("{prefix}.{snake}_field_required"),
+            format!("A request to create or change a {entity} left out a field it requires."),
+        ),
+        (
             format!("{entity}Changed"),
             format!("{prefix}.{snake}_changed"),
             format!("The {entity} changed since the client read it; reload it and apply the change again."),

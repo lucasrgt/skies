@@ -79,6 +79,7 @@ impl Crud {
                 ("__INPUT_FIELDS__", &self.input_fields()),
                 ("__CHANGES_ARGS__", &self.changes_args()),
                 ("__OPEN_ARGS__", &self.open_args()),
+                ("__REQUIRED_CHECKS__", &self.required_checks()),
                 ("__UPDATE_ARGS__", &self.update_args()),
                 ("__VIEW_FIELDS__", &self.view_fields()),
                 ("__VIEW_ARGS__", &self.view_args()),
@@ -146,6 +147,37 @@ impl Crud {
             .join(", ")
     }
 
+    /// A body that leaves a field out binds it as null whatever the record declares, so every field that cannot
+    /// hold null is checked before the entity sees it: a missing field is the caller's `400`, never a `500` from the
+    /// save. Value types bind their default instead, which the entity's own invariants judge.
+    fn required_checks(&self) -> String {
+        let checks: Vec<String> = self
+            .scalars
+            .iter()
+            .filter(|f| !f.ty.ends_with('?') && !VALUE_TYPES.contains(&f.ty.as_str()))
+            .map(|f| {
+                let value = if f.ty == "string" {
+                    format!("input.{}", f.name)
+                } else {
+                    format!("(object?)input.{}", f.name)
+                };
+                format!(
+                    "\n            .Check({value} is not null, \"{}\", {}ErrorCodes.{}FieldRequired, \"is required\")",
+                    camel(&f.name),
+                    self.module,
+                    self.entity
+                )
+            })
+            .collect();
+        if checks.is_empty() {
+            return String::new();
+        }
+        format!(
+            "        var missing = new Validation(){};\n        if (missing.Failed)\n            return missing.ToError();\n\n",
+            checks.concat()
+        )
+    }
+
     fn field_args(&self) -> Vec<String> {
         self.scalars.iter().map(|f| format!("input.{}", f.name)).collect()
     }
@@ -185,6 +217,21 @@ impl Crud {
             .map(|f| format!("e.{}", f.name))
             .collect::<Vec<_>>()
             .join(", ")
+    }
+}
+
+/// The C# value types a crud field is commonly declared as: they never bind as null.
+const VALUE_TYPES: &[&str] = &[
+    "bool", "byte", "sbyte", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "decimal", "char",
+    "Guid", "DateTime", "DateTimeOffset", "DateOnly", "TimeOnly", "TimeSpan",
+];
+
+/// The JSON name ASP.NET Core binds a property from: `Name` → `name`.
+fn camel(name: &str) -> String {
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(first) => first.to_lowercase().chain(chars).collect(),
+        None => String::new(),
     }
 }
 

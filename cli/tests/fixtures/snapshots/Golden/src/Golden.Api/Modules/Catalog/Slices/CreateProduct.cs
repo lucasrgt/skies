@@ -13,6 +13,11 @@ public static class CreateProduct
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct)
     {
+        var missing = new Validation()
+            .Check(input.Name is not null, "name", CatalogErrorCodes.ProductFieldRequired, "is required");
+        if (missing.Failed)
+            return missing.ToError();
+
         var opened = Product.Open(Guid.NewGuid(), input.Name);
         if (opened.IsFailure)
             return opened.Error;

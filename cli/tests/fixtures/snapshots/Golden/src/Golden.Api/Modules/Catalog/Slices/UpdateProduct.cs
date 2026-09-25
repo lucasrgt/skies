@@ -19,6 +19,11 @@ public static class UpdateProduct
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct)
     {
+        var missing = new Validation()
+            .Check(input.Name is not null, "name", CatalogErrorCodes.ProductFieldRequired, "is required");
+        if (missing.Failed)
+            return missing.ToError();
+
         var item = await db.Products.FirstOrDefaultAsync(e => e.Id == input.Id, ct);
         if (item is null)
             return Error.NotFound(CatalogErrorCodes.ProductNotFound, "product not found");

@@ -12,7 +12,7 @@ public static class Create__ENTITY__
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, __CREATE_PARAMS__CancellationToken ct)
     {
-        var opened = __ENTITY__.Open(__OPEN_ARGS__);
+__REQUIRED_CHECKS__        var opened = __ENTITY__.Open(__OPEN_ARGS__);
         if (opened.IsFailure)
             return opened.Error;
 

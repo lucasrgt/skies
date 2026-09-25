@@ -10,6 +10,9 @@ public static class CatalogErrorCodes
     /// <summary>No Product exists for the given id.</summary>
     public const string ProductNotFound = "catalog.product_not_found";
 
+    /// <summary>A request to create or change a Product left out a field it requires.</summary>
+    public const string ProductFieldRequired = "catalog.product_field_required";
+
     /// <summary>The Product changed since the client read it; reload it and apply the change again.</summary>
     public const string ProductChanged = "catalog.product_changed";
 }
