@@ -4,8 +4,16 @@ name: publish
 # `skies` binary wrappers), pub.dev, crates.io, and the binaries as GitHub release assets. All packages share one
 # version; the `versions` job fails the release if any manifest or template pin disagrees with the tag
 # (tools/check-versions.sh).
+#
+# Nothing is published until everything could be: `preflight` fails the release when a registry credential is
+# missing and dry-runs every package (npm, crates.io, pub.dev, the NuGet packs), and the binaries build for every
+# target. Then the registries publish one after another (NuGet, npm React, pub.dev, crates.io, the npm binary
+# wrappers) and the GitHub release comes last, so a failure stops the chain instead of leaving it half done in
+# parallel. Every step skips a version its registry already has, so recovering from a failure mid-chain is: fix the
+# cause, then re-run the failed jobs of this workflow run (or push the same tag again).
+#
 # Auth: NuGet prefers Trusted Publishing and falls back to NUGET_API_KEY; npm uses NPM_TOKEN; crates.io uses
-# CARGO_REGISTRY_TOKEN; pub.dev uses automated publishing.
+# CARGO_REGISTRY_TOKEN; pub.dev uses automated publishing (GitHub OIDC, enabled on the package's admin page).
 on:
   push:
     tags: ["v*"]
@@ -21,6 +29,56 @@ jobs:
       - uses: actions/checkout@v7
       - name: compare every version pin with the tag
         run: tools/check-versions.sh "${GITHUB_REF_NAME#v}"
+
+  preflight:
+    name: every registry is reachable and every package would publish
+    needs: [ci, versions]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: nuget login (OIDC → temp key)
+        uses: NuGet/login@v1
+        id: login
+        continue-on-error: true
+        with:
+          user: lucasrgt
+      - name: the credentials every publish step needs
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY || secrets.NUGET_API_KEY }}
+        run: |
+          missing=
+          [ -n "$NPM_TOKEN" ] || missing="$missing NPM_TOKEN"
+          [ -n "$CARGO_REGISTRY_TOKEN" ] || missing="$missing CARGO_REGISTRY_TOKEN"
+          [ -n "$NUGET_API_KEY" ] || missing="$missing NuGet(Trusted Publishing or NUGET_API_KEY)"
+          if [ -n "$missing" ]; then echo "missing:$missing — nothing was published"; exit 1; fi
+      - uses: dtolnay/rust-toolchain@stable
+      - name: crates.io dry run
+        run: cargo publish -p skies-cli --locked --dry-run
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+      - name: npm dry run (React packages and the binary wrapper)
+        run: |
+          (cd frontend-sdk && npm ci --no-audit --no-fund && npm publish --workspaces --dry-run --access public --tag next)
+          npm publish ./cli/npm --dry-run --access public --tag next
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: NuGet packs
+        run: for proj in src/*/*.csproj analyzers/Skies.Framework.Doctor/Skies.Framework.Doctor.csproj; do dotnet pack "$proj" -c Release -o nupkgs; done
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: pub.dev dry run
+        working-directory: flutter-sdk/packages/skies_flutter
+        run: flutter pub publish --dry-run
 
   binaries:
     name: build skies (${{ matrix.target }})
@@ -47,7 +105,7 @@ jobs:
 
   github-release:
     name: attach binaries to the GitHub release
-    needs: binaries
+    needs: npm-cli
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -69,7 +127,7 @@ jobs:
 
   npm-cli:
     name: publish the skies binary to npm
-    needs: binaries
+    needs: [crates, binaries]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -101,7 +159,7 @@ jobs:
 
   crates:
     name: publish skies-cli to crates.io
-    needs: [ci, versions]
+    needs: pub
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -109,12 +167,16 @@ jobs:
       - env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
-          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then echo "CARGO_REGISTRY_TOKEN not set — skip"; exit 0; fi
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if curl --fail --silent -A "skies-release (github.com/lucasrgt/skies)" \
+            "https://crates.io/api/v1/crates/skies-cli/$version" >/dev/null; then
+            echo "skies-cli@$version already on crates.io"; exit 0
+          fi
           cargo publish -p skies-cli --locked
 
   nuget:
     name: pack + push to nuget.org
-    needs: [ci, versions]
+    needs: [preflight, binaries]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -157,7 +219,7 @@ jobs:
 
   npm-react:
     name: publish React packages to npm
-    needs: [ci, versions]
+    needs: nuget
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -182,7 +244,7 @@ jobs:
 
   pub:
     name: publish skies_flutter to pub.dev
-    needs: [ci, versions]
+    needs: npm-react
     runs-on: ubuntu-latest
     permissions:
       contents: read
