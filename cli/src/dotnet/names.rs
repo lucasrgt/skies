@@ -100,6 +100,35 @@ const NOT_A_TYPE_NAME: &[&str] = &[
     "var",
 ];
 
+/// Names the generated code writes unqualified (`Result<T>`, `Validation`, `Task`, `Guid`, `AppDb`, …) or that
+/// open a namespace every file resolves through (`System`, `Microsoft`, `Skies`). A module, entity, slice, value
+/// object, or hub with one of these names shadows it, and the module stops compiling far from the command.
+const TAKEN_BY_THE_FRAMEWORK: &[&str] = &[
+    "AppDb",
+    "AppJson",
+    "CancellationToken",
+    "DateTime",
+    "DateTimeOffset",
+    "Error",
+    "Exception",
+    "Guid",
+    "HttpContext",
+    "IResult",
+    "Microsoft",
+    "Module",
+    "Page",
+    "Platform",
+    "Program",
+    "Result",
+    "Results",
+    "Skies",
+    "Slice",
+    "System",
+    "Task",
+    "TimeProvider",
+    "Validation",
+];
+
 /// Why `name` cannot be a C# identifier for a `kind` ("module", "slice", ...), or `None` when it can.
 pub fn identifier_problem(kind: &str, name: &str) -> Option<String> {
     let mut chars = name.chars();
@@ -115,6 +144,11 @@ pub fn identifier_problem(kind: &str, name: &str) -> Option<String> {
             "'{name}' is not a valid {kind} name: it is a C# keyword, so the generated code would not compile. \
              Pick another name, such as {}.",
             suggestion(name)
+        ));
+    }
+    if kind != "application" && TAKEN_BY_THE_FRAMEWORK.contains(&name) {
+        return Some(format!(
+            "'{name}' is not a valid {kind} name: generated code already uses `{name}` (a framework or runtime type              it names unqualified), so the module would not compile. Pick a domain name, such as {name}Record."
         ));
     }
     None
@@ -182,6 +216,16 @@ mod tests {
             "{app}"
         );
         assert!(namespace_problem("Acme.event").expect("Acme.event").contains("'event'"));
+    }
+
+    #[test]
+    fn framework_type_names_are_refused_for_generated_types() {
+        for name in ["Validation", "Result", "Error", "Task", "Guid", "System", "AppDb"] {
+            let problem = identifier_problem("entity", name).expect(name);
+            assert!(problem.contains("generated code already uses"), "{problem}");
+        }
+        assert_eq!(identifier_problem("entity", "Validations"), None);
+        assert_eq!(namespace_problem("Result"), None, "an app may be called Result");
     }
 
     #[test]
