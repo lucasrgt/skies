@@ -22,7 +22,9 @@ public static class VerifyEmail
         if (!check.Verified)
             return Error.Unauthorized(AccountErrorCodes.InvalidToken, "invalid or expired token");
 
+#pragma warning disable SKY0030 // the single-use verification link names the user; the request may be signed out and have no org
         var user = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == check.UserId, ct);
+#pragma warning restore SKY0030
         if (user is null)
             return Error.NotFound(AccountErrorCodes.UserNotFound, "user not found");
 

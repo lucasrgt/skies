@@ -10,22 +10,61 @@ namespace Golden.Api.Modules.Billing.Realtime;
 /// connection is JWT-authenticated, so the caller comes from <c>Context.User</c> via
 /// <see cref="ClaimsCurrentUser"/> — the request-scoped <c>ICurrentUser</c> reads the HTTP context, which
 /// a hub method does not have.</summary>
+/// <remarks>Rooms are scoped to the caller's org: the group a room key names is derived from the org claim of the
+/// caller's access token plus the key, so two orgs using the same key ("general") never share a room, and no client
+/// can name another org's group. A connection broadcasts only to a room it has joined, and joining asks
+/// <see cref="MayEnter"/>, the place for the module's own participation rule.</remarks>
 [Authorize]
 public sealed class PaymentsHub : Hub
 {
+    private const int MaxRoomKeyLength = 128;
+
     private ICurrentUser Caller => new ClaimsCurrentUser(Context.User);
 
-    /// <summary>Subscribe this connection to a room's live feed. Gate membership on your own
-    /// participation rule (e.g. the caller is in the conversation) before adding the connection.</summary>
-    public Task JoinRoom(string room) =>
-        Groups.AddToGroupAsync(Context.ConnectionId, room);
+    /// <summary>The groups this connection joined, kept per connection so a broadcast can check membership.</summary>
+    private HashSet<string> Joined =>
+        (HashSet<string>)(Context.Items.TryGetValue(nameof(Joined), out var joined)
+            ? joined!
+            : Context.Items[nameof(Joined)] = new HashSet<string>(StringComparer.Ordinal));
 
-    /// <summary>Unsubscribe this connection from a room.</summary>
-    public Task LeaveRoom(string room) =>
-        Groups.RemoveFromGroupAsync(Context.ConnectionId, room);
+    /// <summary>Subscribe this connection to a room of the caller's org.</summary>
+    public async Task JoinRoom(string room)
+    {
+        var group = GroupOf(room);
+        if (!MayEnter(Caller, room))
+            throw new HubException("You may not join this room.");
+        await Groups.AddToGroupAsync(Context.ConnectionId, group);
+        Joined.Add(group);
+    }
 
-    /// <summary>Broadcast to the rest of a room. For a durable message, call the matching slice first to
-    /// persist it (passing <c>Caller</c> as the ICurrentUser), then broadcast the saved result here.</summary>
-    public Task Broadcast(string room, object payload) =>
-        Clients.OthersInGroup(room).SendAsync("Receive", payload);
+    /// <summary>Unsubscribe this connection from a room of the caller's org.</summary>
+    public async Task LeaveRoom(string room)
+    {
+        var group = GroupOf(room);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, group);
+        Joined.Remove(group);
+    }
+
+    /// <summary>Broadcast to the rest of a room this connection joined. For a durable message, call the matching slice
+    /// first to persist it (passing <c>Caller</c> as the ICurrentUser), then broadcast the saved result here.</summary>
+    public Task Broadcast(string room, object payload)
+    {
+        var group = GroupOf(room);
+        if (!Joined.Contains(group))
+            throw new HubException("Join the room before broadcasting to it.");
+        return Clients.OthersInGroup(group).SendAsync("Receive", payload);
+    }
+
+    /// <summary>The participation rule: whether <paramref name="caller"/> may enter <paramref name="room"/> of their
+    /// own org. Every signed-in member of the org may, by default; narrow it to the module's rule (the caller is in
+    /// the conversation, owns the order) before shipping a room that is not org-wide.</summary>
+    private static bool MayEnter(ICurrentUser caller, string room) => caller.IsAuthenticated;
+
+    /// <summary>The SignalR group for a room key, derived from the caller's org claim, never from the client alone.</summary>
+    private string GroupOf(string room)
+    {
+        if (string.IsNullOrWhiteSpace(room) || room.Length > MaxRoomKeyLength)
+            throw new HubException("A room key is required, at most 128 characters.");
+        return $"org:{Caller.OrgId:N}/room:{room}";
+    }
 }

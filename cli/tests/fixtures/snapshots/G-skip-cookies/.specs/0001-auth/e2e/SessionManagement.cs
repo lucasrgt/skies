@@ -12,7 +12,7 @@ public class SessionManagement
 {
     private const string Email = "user@example.com";
 
-    [Fact(DisplayName = "FM-19: the list shows each live family once, flags the current one, and hides expired slots")]
+    [Fact(DisplayName = "FM-20: the list shows each live family once, flags the current one, and hides expired slots")]
     public async Task Lists_live_families_and_flags_the_current_one()
     {
         await using var app = new TestApp();
@@ -35,7 +35,7 @@ public class SessionManagement
         Assert.Single(sessions, s => s.IsCurrent);
     }
 
-    [Fact(DisplayName = "FM-20: revoking one of my sessions ends it and leaves the current one")]
+    [Fact(DisplayName = "FM-21: revoking one of my sessions ends it and leaves the current one")]
     public async Task Revoking_a_session_ends_only_that_session()
     {
         await using var app = new TestApp();
@@ -52,7 +52,7 @@ public class SessionManagement
         Assert.Equal(HttpStatusCode.OK, (await AuthApi.RefreshWith(client, current.RefreshToken)).StatusCode);
     }
 
-    [Fact(DisplayName = "FM-21: another user's session is not found and stays alive")]
+    [Fact(DisplayName = "FM-22: another user's session is not found and stays alive")]
     public async Task Another_users_session_cannot_be_revoked()
     {
         await using var app = new TestApp();
@@ -69,7 +69,7 @@ public class SessionManagement
         Assert.Equal(HttpStatusCode.OK, (await AuthApi.RefreshWith(client, victim.RefreshToken)).StatusCode);
     }
 
-    [Fact(DisplayName = "FM-22: signing out everywhere else keeps the current session and nobody else's")]
+    [Fact(DisplayName = "FM-23: signing out everywhere else keeps the current session and nobody else's")]
     public async Task Revoking_other_sessions_keeps_the_current_one()
     {
         await using var app = new TestApp();

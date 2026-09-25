@@ -18,9 +18,11 @@ public static class ResetPassword
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, VerificationTokens verification, IPasswordHasher hasher, RefreshSessions sessions, CancellationToken ct)
     {
+        // A field missing from the JSON body binds as null: it fails validation like any other bad value.
+        var newPassword = input.NewPassword ?? "";
         var validation = new Validation()
-            .Check(input.NewPassword.Length >= 8, "new_password", AccountErrorCodes.PasswordTooShort, "must be at least 8 characters")
-            .Check(input.NewPassword.Length <= IPasswordHasher.MaxPasswordLength, "new_password", AccountErrorCodes.PasswordTooLong, "must be at most 128 characters");
+            .Check(newPassword.Length >= 8, "new_password", AccountErrorCodes.PasswordTooShort, "must be at least 8 characters")
+            .Check(newPassword.Length <= IPasswordHasher.MaxPasswordLength, "new_password", AccountErrorCodes.PasswordTooLong, "must be at most 128 characters");
         if (validation.Failed)
             return validation.ToError();
 
@@ -28,11 +30,13 @@ public static class ResetPassword
         if (!check.Verified)
             return Error.Unauthorized(AccountErrorCodes.ResetTokenInvalid, "invalid or expired token");
 
+#pragma warning disable SKY0030 // the single-use reset link names the user; the request itself is signed out and has no org
         var user = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == check.UserId, ct);
+#pragma warning restore SKY0030
         if (user is null)
             return Error.NotFound(AccountErrorCodes.UserNotFound, "user not found");
 
-        user.ResetPassword(hasher.Hash(input.NewPassword));
+        user.ResetPassword(hasher.Hash(newPassword));
         await db.SaveChangesAsync(ct);
 
         // A password change ends every existing session: after a takeover recovery, the attacker's refresh

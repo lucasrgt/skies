@@ -22,6 +22,7 @@ same bypass guard a real verifier sits behind.
 - FM-4 A Google identity with an account cannot sign in
 - FM-5 An unverifiable token signs in
 - FM-6 A verified Google identity without an account signs in
+- FM-7 A request with no id token fails as a server error instead of being denied like a forged token
 
 ## Out of scope
 

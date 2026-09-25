@@ -15,7 +15,7 @@ namespace Specs.S0001;
 public class AbuseGuards
 {
     // The window is a minute by default and the cases run in well under one, so the count is deterministic.
-    [Fact(DisplayName = "FM-8: past the permitted attempts, login answers 429 with the platform error and a retry window")]
+    [Fact(DisplayName = "FM-9: past the permitted attempts, login answers 429 with the platform error and a retry window")]
     public async Task Login_is_throttled_per_client()
     {
         await using var app = new TestApp();
@@ -33,7 +33,7 @@ public class AbuseGuards
         Assert.Equal(HttpStatusCode.Unauthorized, profile.StatusCode);
     }
 
-    [Fact(DisplayName = "FM-10: a registered account's token does not satisfy the app-admin policy; an Admin's does")]
+    [Fact(DisplayName = "FM-11: a registered account's token does not satisfy the app-admin policy; an Admin's does")]
     public async Task Registration_never_grants_app_admin()
     {
         await using var app = new TestApp();

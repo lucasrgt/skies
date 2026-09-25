@@ -18,6 +18,7 @@ layered over the real one, because the code is stored hashed and only ever leave
 - FM-1 The code sent by SMS does not verify the caller's phone or complete their registration
 - FM-2 A wrong code verifies the phone, or burns the real code
 - FM-3 The code can be guessed without limit: after five wrong codes the real one still verifies
+- FM-4 A request missing its phone or code fails as a server error, or a missing code spends one of the attempts
 
 ## Out of scope
 

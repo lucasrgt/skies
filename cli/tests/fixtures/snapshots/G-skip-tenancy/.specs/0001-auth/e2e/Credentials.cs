@@ -73,7 +73,7 @@ public class Credentials
         await AuthApi.Login(client, Email, longest);
     }
 
-    [Fact(DisplayName = "FM-5: valid credentials yield a token pair whose access token reads the caller's profile")]
+    [Fact(DisplayName = "FM-6: valid credentials yield a token pair whose access token reads the caller's profile")]
     public async Task Valid_credentials_yield_a_usable_token_pair()
     {
         await using var app = new TestApp();
@@ -88,7 +88,7 @@ public class Credentials
         Assert.Equal(RegistrationStep.EmailPending, profile.Step);
     }
 
-    [Fact(DisplayName = "FM-6: a wrong password is denied and issues no token")]
+    [Fact(DisplayName = "FM-7: a wrong password is denied and issues no token")]
     public async Task Wrong_password_is_denied_and_issues_no_token()
     {
         await using var app = new TestApp();
@@ -104,7 +104,7 @@ public class Credentials
     // A missing account and a wrong password must be the same response, so login cannot be used to find out who has
     // an account. Timing is equalized in Handle by verifying against a dummy hash; a wall-clock assertion would be
     // flaky, so the structural pin is response equality.
-    [Fact(DisplayName = "FM-7: an unknown email and a wrong password get the same response")]
+    [Fact(DisplayName = "FM-8: an unknown email and a wrong password get the same response")]
     public async Task Unknown_email_and_wrong_password_are_indistinguishable()
     {
         await using var app = new TestApp();
@@ -119,7 +119,31 @@ public class Credentials
         Assert.Equal(await wrongPassword.Content.ReadAsStringAsync(), await unknownEmail.Content.ReadAsStringAsync());
     }
 
-    [Fact(DisplayName = "FM-9: the profile endpoint requires an access token")]
+    // A field left out of the JSON body binds as null. Each endpoint must answer it as the client's mistake it is.
+    [Fact(DisplayName = "FM-5: a request missing a field is refused as a client error, never a server error")]
+    public async Task Missing_fields_are_client_errors()
+    {
+        await using var app = new TestApp();
+        var client = app.CreateClient();
+
+        var noPassword = await client.PostAsJsonAsync("/account/register", new { email = Email });
+        var noEmail = await client.PostAsJsonAsync("/account/register", new { password = AuthApi.Password });
+        var emptyLogin = await client.PostAsJsonAsync("/account/login", new { });
+        await AuthApi.Register(client, Email);
+        var loginNoPassword = await client.PostAsJsonAsync("/account/login", new { email = Email });
+        var refreshNoToken = await client.PostAsJsonAsync("/account/refresh", new { });
+        var logoutNoToken = await client.PostAsJsonAsync("/account/logout", new { });
+
+        Assert.Equal(HttpStatusCode.BadRequest, noPassword.StatusCode);
+        Assert.Contains(AccountErrorCodes.PasswordTooShort, await noPassword.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.BadRequest, noEmail.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, emptyLogin.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, loginNoPassword.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, refreshNoToken.StatusCode);
+        Assert.True(logoutNoToken.IsSuccessStatusCode, $"logout answered {logoutNoToken.StatusCode}");   // as for an unknown token
+    }
+
+    [Fact(DisplayName = "FM-10: the profile endpoint requires an access token")]
     public async Task Profile_requires_a_token()
     {
         await using var app = new TestApp();

@@ -23,16 +23,18 @@ public static class Register
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, IPasswordHasher hasher, IAccountNotices notices, TimeProvider clock, CancellationToken ct)
     {
+        // A field missing from the JSON body binds as null: it fails validation like any other bad value.
+        var password = input.Password ?? "";
         var email = Email.From(input.Email);
         var validation = new Validation()
             .Collect("email", email)
-            .Check(input.Password.Length >= MinPasswordLength, "password", AccountErrorCodes.PasswordTooShort, "must be at least 8 characters")
-            .Check(input.Password.Length <= IPasswordHasher.MaxPasswordLength, "password", AccountErrorCodes.PasswordTooLong, "must be at most 128 characters");
+            .Check(password.Length >= MinPasswordLength, "password", AccountErrorCodes.PasswordTooShort, "must be at least 8 characters")
+            .Check(password.Length <= IPasswordHasher.MaxPasswordLength, "password", AccountErrorCodes.PasswordTooLong, "must be at most 128 characters");
         if (validation.Failed)
             return validation.ToError();
 
         // Hashed before the lookup, so a taken email costs the same work as a new one.
-        var passwordHash = hasher.Hash(input.Password);
+        var passwordHash = hasher.Hash(password);
         if (await db.Users
             .AnyAsync(u => u.Email == email.Value, ct))
         {

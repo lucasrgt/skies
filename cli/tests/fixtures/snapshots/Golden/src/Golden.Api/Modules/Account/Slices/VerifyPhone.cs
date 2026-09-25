@@ -18,6 +18,9 @@ public static class VerifyPhone
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, VerificationTokens verification, ICurrentUser current, CancellationToken ct)
     {
+        // A missing code is a malformed request, not a guess: it must not spend one of the code's attempts.
+        if (string.IsNullOrWhiteSpace(input.Code))
+            return Error.Validation(AccountErrorCodes.InvalidCode, "code is required");
         var check = await verification.VerifyCodeAsync(current.UserId, VerificationPurpose.Phone, input.Code, ct);
         if (!check.Verified)
             return check.Outcome switch

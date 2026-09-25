@@ -84,6 +84,26 @@ public class PhoneVerification
         Assert.NotEqual(RegistrationStep.Complete, (await Profile(client)).Step);
     }
 
+    [Fact(DisplayName = "FM-4: a request missing its phone or code is a validation error and spends no attempt")]
+    public async Task Missing_fields_are_validation_errors()
+    {
+        var sms = new CapturingSmsSender();
+        await using var app = new TestApp();
+        using var factory = WithSms(app, sms);
+        var client = factory.CreateClient();
+        await SignIn(client, "phone@example.com");
+
+        var noPhone = await client.PostAsJsonAsync("/account/phone-code", new { });
+        (await client.PostAsJsonAsync("/account/phone-code", new { phone = Phone })).EnsureSuccessStatusCode();
+        var noCodes = new List<HttpResponseMessage>();
+        for (var attempt = 0; attempt < 5; attempt++)
+            noCodes.Add(await client.PostAsJsonAsync("/account/verify-phone", new { }));
+
+        Assert.Equal(HttpStatusCode.BadRequest, noPhone.StatusCode);
+        Assert.All(noCodes, response => Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode));
+        (await client.PostAsJsonAsync("/account/verify-phone", new { code = sms.LastCode })).EnsureSuccessStatusCode();
+    }
+
     private static WebApplicationFactory<Program> WithSms(TestApp app, ISmsSender sms) =>
         app.WithWebHostBuilder(builder => builder.ConfigureServices(services => services.AddSingleton(sms)));
 

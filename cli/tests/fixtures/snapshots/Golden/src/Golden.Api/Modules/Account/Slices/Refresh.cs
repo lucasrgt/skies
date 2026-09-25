@@ -31,8 +31,9 @@ public static class Refresh
             };
 
         var user = await db.Users
-            // The access token is expired by now, so the request carries no org; look up across the filter.
+#pragma warning disable SKY0030 // the access token has expired, so the request carries no org; the session names the user
             .IgnoreQueryFilters()
+#pragma warning restore SKY0030
             .FirstOrDefaultAsync(u => u.Id == rotation.UserId, ct);
         if (user is null)
             return Error.Unauthorized(AccountErrorCodes.InvalidSession, "invalid or expired session");

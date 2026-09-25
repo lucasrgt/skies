@@ -26,7 +26,8 @@ public static class Login
             .FirstOrDefaultAsync(u => u.Email == email.Value, ct);
         // Verify even when no account matched: the hasher then spends the same work on a dummy, so a missing email is
         // not observable by response timing (user enumeration), and both failures return the same error.
-        if (!hasher.Verify(input.Password, user?.PasswordHash) || user is null)
+        // A missing password (null from the body) is a wrong one: the same work, the same answer.
+        if (!hasher.Verify(input.Password ?? "", user?.PasswordHash) || user is null)
             return Error.Unauthorized(AccountErrorCodes.InvalidCredentials, "invalid email or password");
 
         var session = await sessions.StartAsync(user.Id, ct);   // a new family: the session id (sid) the token carries

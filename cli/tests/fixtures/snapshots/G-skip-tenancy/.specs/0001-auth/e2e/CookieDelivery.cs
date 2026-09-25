@@ -12,7 +12,7 @@ public class CookieDelivery
     private const string Cookie = "golden_refresh";
     private const string Email = "web@example.com";
 
-    [Fact(DisplayName = "FM-21: a web login sets an httpOnly refresh cookie and keeps the token out of the body")]
+    [Fact(DisplayName = "FM-22: a web login sets an httpOnly refresh cookie and keeps the token out of the body")]
     public async Task Web_login_sets_an_httponly_cookie_and_omits_the_token_from_the_body()
     {
         await using var app = new TestApp();
@@ -30,7 +30,7 @@ public class CookieDelivery
         Assert.DoesNotContain("refreshToken", body, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact(DisplayName = "FM-22: a web refresh reads the cookie with no body and reissues it")]
+    [Fact(DisplayName = "FM-23: a web refresh reads the cookie with no body and reissues it")]
     public async Task Web_refresh_reads_the_cookie_and_reissues_it()
     {
         await using var app = new TestApp();

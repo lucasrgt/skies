@@ -18,6 +18,8 @@ public static class LoginWithGoogle
 
     public static async Task<Result<Output>> Handle(Input input, AppDb db, IExternalIdentityVerifier google, RefreshSessions sessions, IAccessTokens tokens, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(input.IdToken))   // missing from the body: nothing to verify, like a forged token
+            return Error.Unauthorized(AccountErrorCodes.InvalidToken, "invalid google token");
         var identity = await google.VerifyAsync(input.IdToken, ct);
         if (identity.IsFailure)
             return identity.Error;
@@ -26,7 +28,9 @@ public static class LoginWithGoogle
         if (email.IsFailure)
             return Error.Unauthorized(AccountErrorCodes.InvalidToken, "invalid google token");
 
+#pragma warning disable SKY0030 // sign-in has no org yet: the verified Google email finds the user in any org
         var user = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == email.Value, ct);
+#pragma warning restore SKY0030
         if (user is null)
             return Error.Unauthorized(AccountErrorCodes.NoAccount, "no account for this google identity");
 

@@ -22,9 +22,13 @@ the module, and add a failure mode here before changing behavior.
   revoke the caller's live session families.
 - Users are tenant-scoped rows, but identity is global: email uniqueness and sign-in cross the org filter. A
   signed-in request acts in its token's org; an anonymous one resolves no org at all.
+- A request acting in an org writes only that org's rows: inserting into another org, or updating or deleting
+  another org's row, is refused before the save reaches the database.
 - A web client (`X-Client: web`) gets the refresh token in an httpOnly cookie instead of the body.
 - Register, login, refresh, and logout are throttled per client address and endpoint (`CredentialRateLimit`).
 - The app-admin policy (writes to app-wide data) needs the `Admin` role, which registration never grants.
+- Outside Development the app refuses to start unless `Jwt:Secret` is configured with at least 32 bytes that are
+  not the development key.
 
 ## Failure modes
 
@@ -32,30 +36,33 @@ the module, and add a failure mode here before changing behavior.
 - FM-2 A malformed email is accepted at registration
 - FM-3 A taken email registers a second account, damages the first one, or answers differently from a new registration
 - FM-4 A password outside 8 to 128 characters is accepted at registration, or an over-long one is hashed at login
-- FM-5 A new account does not get an org of its own: two registrations share an org, or an account has none
-- FM-6 Valid credentials do not yield a token pair whose access token reads the caller's own profile
-- FM-7 A wrong password signs in or leaks a token
-- FM-8 Login reveals whether an email is registered: an unknown email and a wrong password answer differently
-- FM-9 One client can try passwords without limit: login is not throttled after the permitted attempts
-- FM-10 A user cannot sign in when the request resolves to an org other than their own
-- FM-11 The profile endpoint answers without an access token
-- FM-12 A self-registered account satisfies the app-admin policy, and so may change app-wide data
-- FM-13 Refresh does not rotate: it returns the same refresh token or no usable access token
-- FM-14 Replaying a rotated refresh token is accepted, or leaves the rest of its family alive
-- FM-15 An unknown refresh token is exchanged for tokens
-- FM-16 A session family older than the absolute maximum age still refreshes
-- FM-17 After logout the session's refresh token still refreshes
-- FM-18 Logout with an unknown token fails, revealing which tokens are valid
-- FM-19 The session list shows expired or rotated slots, misses a live session, or does not flag the current one
-- FM-20 Revoking one of my sessions leaves it alive or ends my other sessions
-- FM-21 A user can revoke another user's session, or learn that it exists
-- FM-22 Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
-- FM-23 A read scoped to one org sees another org's rows
-- FM-24 An anonymous request resolves to an org (a hidden default) and reads its rows
-- FM-25 A web login returns the refresh token in the body, or without an httpOnly cookie
-- FM-26 A web refresh ignores the refresh cookie or does not reissue it
+- FM-5 A request that leaves a field out of its body fails as a server error instead of a client error
+- FM-6 A new account does not get an org of its own: two registrations share an org, or an account has none
+- FM-7 Valid credentials do not yield a token pair whose access token reads the caller's own profile
+- FM-8 A wrong password signs in or leaks a token
+- FM-9 Login reveals whether an email is registered: an unknown email and a wrong password answer differently
+- FM-10 One client can try passwords without limit: login is not throttled after the permitted attempts
+- FM-11 A user cannot sign in when the request resolves to an org other than their own
+- FM-12 The profile endpoint answers without an access token
+- FM-13 A self-registered account satisfies the app-admin policy, and so may change app-wide data
+- FM-14 Refresh does not rotate: it returns the same refresh token or no usable access token
+- FM-15 Replaying a rotated refresh token is accepted, or leaves the rest of its family alive
+- FM-16 An unknown refresh token is exchanged for tokens
+- FM-17 A session family older than the absolute maximum age still refreshes
+- FM-18 After logout the session's refresh token still refreshes
+- FM-19 Logout with an unknown token fails, revealing which tokens are valid
+- FM-20 The session list shows expired or rotated slots, misses a live session, or does not flag the current one
+- FM-21 Revoking one of my sessions leaves it alive or ends my other sessions
+- FM-22 A user can revoke another user's session, or learn that it exists
+- FM-23 Signing out everywhere else leaves other sessions alive, ends the current one, or touches another user's sessions
+- FM-24 A read scoped to one org sees another org's rows
+- FM-25 An anonymous request resolves to an org (a hidden default) and reads its rows
+- FM-26 A request acting in one org inserts a row into another org, or updates or deletes another org's row
+- FM-27 A web login returns the refresh token in the body, or without an httpOnly cookie
+- FM-28 A web refresh ignores the refresh cookie or does not reissue it
 
-- FM-27 The development database and providers can start outside Development
+- FM-29 The development database and providers can start outside Development
+- FM-30 The app starts outside Development with a missing, short, or public development signing secret
 
 ## Out of scope
 

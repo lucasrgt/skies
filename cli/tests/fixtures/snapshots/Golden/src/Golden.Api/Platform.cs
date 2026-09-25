@@ -2,6 +2,7 @@ using Skies.Framework.Mail;
 using Skies.Framework.Identity;
 using Skies.Framework.Sms;
 using Microsoft.EntityFrameworkCore;
+using Skies.Framework.Auth;
 
 namespace Golden.Api;
 
@@ -13,19 +14,24 @@ public static class Platform
         IHostEnvironment environment)
     {
         // `dotnet build` also boots the app, only to write the OpenAPI contract; that boot never opens the database.
-        if (!environment.IsDevelopment())
+        if (environment.IsDevelopment() || SkiesExtensions.IsGeneratingOpenApiDocument)
         {
-            if (!SkiesExtensions.IsGeneratingOpenApiDocument)
-                throw new InvalidOperationException(
-                    "Configure a persistent AppDb provider in Platform.AddPlatform before running outside Development.");
+            // Local only: a signing key every copy of this source shares, a store that forgets on restart, and
+            // providers that print instead of sending. Outside Development, Jwt:Secret comes from configuration, and
+            // the auth package refuses to start on a missing, short, or development key.
+            configuration["Jwt:Secret"] ??= SkiesAuthOptions.DevelopmentSecret;
+            services.AddDbContext<AppDb>(options => options.UseInMemoryDatabase("golden"));
+            services.AddSingleton<ISmsSender, ConsoleSmsSender>();
+            services.AddSingleton<IExternalIdentityVerifier, FakeExternalIdentity>();
+            services.AddSingleton<IEmailSender, ConsoleEmailSender>();
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                "Configure a persistent AppDb provider in Platform.AddPlatform before running outside Development.");
         }
 
-        configuration["Jwt:Secret"] ??= "golden-local-development-key-not-for-deployment";
-        services.AddDbContext<AppDb>(options => options.UseInMemoryDatabase("golden"));
         services.ConfigureHttpJsonOptions(options => AppJson.Configure(options.SerializerOptions));
-        services.AddSingleton<ISmsSender, ConsoleSmsSender>();
-        services.AddSingleton<IExternalIdentityVerifier, FakeExternalIdentity>();
-        services.AddSingleton<IEmailSender, ConsoleEmailSender>();
         return services;
     }
 

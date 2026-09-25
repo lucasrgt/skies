@@ -16,7 +16,7 @@ public class TenancyAndGlobalIdentity
 {
     private static readonly Argon2idPasswordHasher Hasher = new();
 
-    [Fact(DisplayName = "FM-5: each registration opens an org of its own, carried in its access token")]
+    [Fact(DisplayName = "FM-6: each registration opens an org of its own, carried in its access token")]
     public async Task Each_registration_opens_its_own_org()
     {
         await using var app = new TestApp();
@@ -31,7 +31,7 @@ public class TenancyAndGlobalIdentity
         Assert.NotEqual(aliceOrg, bobOrg);
     }
 
-    [Fact(DisplayName = "FM-10: a user signs in whatever org the request resolves to")]
+    [Fact(DisplayName = "FM-11: a user signs in whatever org the request resolves to")]
     public async Task Sign_in_is_global()
     {
         var store = Guid.NewGuid().ToString();
@@ -47,7 +47,7 @@ public class TenancyAndGlobalIdentity
     }
 
     // Two orgs share a store, but a read as org A never sees org B's rows.
-    [Fact(DisplayName = "FM-23: reads never cross the current org")]
+    [Fact(DisplayName = "FM-24: reads never cross the current org")]
     public async Task Reads_never_cross_the_current_org()
     {
         var (orgA, orgB) = (Guid.NewGuid(), Guid.NewGuid());
@@ -63,8 +63,36 @@ public class TenancyAndGlobalIdentity
         Assert.Equal(orgA, user.OrgId);
     }
 
+    // The filter keeps other orgs out of reads; the stamping keeps them out of writes, however the row was obtained:
+    // named on insert, attached by hand, or loaded across the filter.
+    [Fact(DisplayName = "FM-26: a request in one org cannot insert, update, or delete another org's rows")]
+    public async Task Writes_never_cross_the_current_org()
+    {
+        var (orgA, orgB) = (Guid.NewGuid(), Guid.NewGuid());
+        var store = Guid.NewGuid().ToString();
+        var theirs = await Seed(store, orgB, "b@org-b.com", PasswordHash.FromStored("x.y"));
+
+        await using var planting = NewDb(store, new FixedTenant(orgA));
+        planting.Users.Add(User.Register(orgB, Email.FromStored("planted@org-b.com"), PasswordHash.FromStored("x.y"), DateTime.UtcNow).Value);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => planting.SaveChangesAsync());
+
+        await using var deleting = NewDb(store, new FixedTenant(orgA));
+        deleting.Users.Remove(theirs);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => deleting.SaveChangesAsync());
+
+        await using var updating = NewDb(store, new FixedTenant(orgA));
+        var loaded = await updating.Users.IgnoreQueryFilters().SingleAsync();
+        updating.Entry(loaded).Property(u => u.Role).CurrentValue = Role.Admin;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => updating.SaveChangesAsync());
+
+        await using var asB = NewDb(store, new FixedTenant(orgB));
+        var survivor = Assert.Single(await asB.Users.ToListAsync());
+        Assert.Equal("b@org-b.com", survivor.Email.Value);
+        Assert.Null(survivor.Role);
+    }
+
     // The request tenant as the app resolves it, for a caller with no access token: no org, so no org's rows.
-    [Fact(DisplayName = "FM-24: an anonymous request resolves no org and reads no org's rows")]
+    [Fact(DisplayName = "FM-25: an anonymous request resolves no org and reads no org's rows")]
     public async Task An_anonymous_request_has_no_org()
     {
         var store = Guid.NewGuid().ToString();
@@ -77,11 +105,14 @@ public class TenancyAndGlobalIdentity
         Assert.Empty(await db.Users.ToListAsync());
     }
 
-    private static async Task Seed(string store, Guid org, string email, PasswordHash hash)
+    // Returns the stored user, detached: the context that wrote it is gone.
+    private static async Task<User> Seed(string store, Guid org, string email, PasswordHash hash)
     {
         await using var db = NewDb(store, new FixedTenant(org));
-        db.Users.Add(User.Register(org, Email.FromStored(email), hash, DateTime.UtcNow).Value);
+        var user = User.Register(org, Email.FromStored(email), hash, DateTime.UtcNow).Value;
+        db.Users.Add(user);
         await db.SaveChangesAsync();
+        return user;
     }
 
     private static Guid OrgOf(string accessToken) =>

@@ -39,11 +39,14 @@ public static class AccountErrorCodes
     /// <summary>The phone has no active OTP code.</summary>
     public const string NoActiveCode = "auth.no_active_code";
 
-    /// <summary>The submitted OTP code is wrong.</summary>
+    /// <summary>The submitted OTP code is wrong or missing.</summary>
     public const string InvalidCode = "auth.invalid_code";
 
     /// <summary>The OTP code was guessed wrong too many times and is now locked.</summary>
     public const string TooManyAttempts = "auth.too_many_attempts";
+
+    /// <summary>No phone number was given to send the code to.</summary>
+    public const string PhoneRequired = "account.phone_required";
 
     /// <summary>The external identity token is invalid.</summary>
     public const string InvalidToken = "auth.invalid_token";
