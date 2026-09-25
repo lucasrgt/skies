@@ -151,11 +151,14 @@ and a receipt like any other spec.
 skies proof record <id>
 ```
 
-Commit the spec, its E2E, and the feature first: `record` runs green on `HEAD` and refuses a working tree with
-other changes (`--allow-dirty` records anyway and marks the receipt `"dirty": true`). It runs the E2E against the
-merge-base (every FM must fail) and against the working tree (every FM must pass), then writes `receipt.json`: the
-runner's commands, per FM red and green, the cases that proved it, and what red's first failing case said. Commit
-the receipt right after.
+Work on a branch, and commit the spec, its E2E, and the feature first: `record` runs green on `HEAD` and refuses a
+working tree with other changes (`--allow-dirty` records anyway and marks the receipt `"dirty": true`). It runs the
+E2E against the merge-base with the default branch (every FM must fail) and against `HEAD` (every FM must pass),
+then writes `receipt.json`: the runner's commands, per FM red and green, the cases that proved it, and what red's
+first failing case said. Commit the receipt right after. On the default branch itself, or when the branch also
+changed what runs the tests (a test config, `.editorconfig`, `Directory.Build.props`), there is no clean red
+revision: pass `--red-patch <file>` with a patch that removes the feature and nothing else, kept as the spec's
+`red.patch` once the record succeeds.
 
 Be exact about what that proves: the named cases failed on red and passed on green under the recorded runner. It
 does not prove the assertions are meaningful; a case that checks nothing useful fails and passes just as well. That

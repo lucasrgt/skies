@@ -300,8 +300,10 @@ CI cannot produce, so that is all the receipt records.
   committed evidence, nothing else.
 - **`skies proof record <spec>` proves red→green.** It runs the E2E on the red revision, where every mode must fail,
   then on the working tree, where every mode must pass, and writes `receipt.json`. Red is `--red <rev>`, else `HEAD`
-  with the spec's `red.patch` (`--red-patch <file>` stores one), else the merge-base of `HEAD` with `[workspace]
-  default_branch`, `origin/HEAD`, `main`, or `master`, whichever exists first. `record` prints the choice and how far
+  with the spec's `red.patch` (`--red-patch <file>` stores one once the record succeeds), else the merge-base of
+  `HEAD` with `[workspace] default_branch`, `origin/HEAD`, `main`, or `master`, whichever exists first. So work on a
+  branch: on the default branch itself the merge-base is `HEAD`, where the feature already exists, and `record`
+  refuses with the two ways out (a branch, or a `red.patch`). `record` prints the choice and how far
   back it is (`red 5e2f092 (merge-base with origin/main, default branch from origin/HEAD; 116 commits before HEAD)`)
   and warns past 50 commits. Red runs in a temporary git worktree inside the repository (`.skies-red/` at its top,
   listed in the local `.git/info/exclude` and removed afterwards), so configuration above the project
@@ -310,11 +312,15 @@ CI cannot produce, so that is all the receipt records.
   (`it.skipIf`, `test.skip(cond)`, `[Fact(Skip = …)]`) on red or on green stops `record`: a skip is neither a
   failure nor a pass.
 - **Red differs from green in the feature alone, and green is a commit.** Red's `spec.md` and `e2e/` are copied
-  from the working tree byte for byte. A `red.patch` that touches `.specs/` or the files that run the tests (the
-  product's `tests` project, a file a runner command names and the setup files its config names, `vitest.config.*`,
-  `playwright.config.*`, `*.Tests.csproj`, …) is refused, and so is a `--red <rev>` whose diff to green touches
-  them or the shared files of `.specs/` (a stand-in backend such as `web.setup.ts`); the default red only warns,
-  since that diff is the branch's own and review reads it. `record` refuses a working tree that differs from `HEAD`
+  from the working tree byte for byte. A `red.patch` may not touch `.specs/` nor the files that run the tests: the
+  build configuration that reaches the app (`.editorconfig`, `Directory.Build.*`, `Directory.Packages.props`,
+  `global.json`, `NuGet.config`, `*.globalconfig`, in the app or above it), a file the runner's commands name and the
+  setup files its config names, and, inside the folders those commands name, the product's `tests` project, the
+  usual test configs (`vitest.config.*`, `playwright.config.*`, `*.Tests.csproj`, …) and the dependency manifests
+  (`package.json`, lockfiles, `tsconfig*.json`, `pubspec.yaml`). A web package's configs never block an API spec. A
+  red revision (`--red <rev>` or the default merge-base) whose diff to green touches the same files (manifests
+  aside) or the shared files of `.specs/` (a stand-in backend such as `web.setup.ts`) is refused alike: record
+  against `HEAD` with a `red.patch` instead. `record` refuses a working tree that differs from `HEAD`
   in anything but the specs' receipts, `evidence/`, and `red.patch` files: commit the spec, its E2E, and the code
   first, or pass `--allow-dirty`, which the receipt records as `"dirty": true` under green.
 - **Cases that never ran on red count as failing (`did-not-build`) only when the spec's own cases are why**: compiler
@@ -335,9 +341,10 @@ CI cannot produce, so that is all the receipt records.
   `red.patch`), green's commit (and `"dirty": true` when `--allow-dirty` recorded it), and per failure mode: the red
   result (`fail`, `did-not-build`, `non-discriminating`), the green result, the cases that proved it, the start of
   what red's first failing case said (the assertion, not the stack; checkout paths become `{root}`), and for a
-  tagged mode its criteria and verdict files. No durations, no report hashes, no footprint: keys are sorted, so
-  recording an unchanged spec again leaves git clean. Re-record when the failure modes change; nothing else asks you
-  to.
+  tagged mode its criteria and verdict files. No durations, no report hashes, no footprint: keys are sorted, and a
+  record whose proof matches the receipt on disk in everything but the commits keeps that receipt, so recording an
+  unchanged spec again leaves git clean even after `HEAD` moved. Re-record when the failure modes change; nothing
+  else asks you to.
 - **What a receipt proves, and what it does not.** It proves that the named cases failed on red and passed on green
   under the recorded runner. It does not prove that their assertions are meaningful: a case that asserts nothing
   useful fails and passes just as well. Meaning is checked by the human review of the failure modes and the cases,

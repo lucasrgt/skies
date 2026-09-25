@@ -173,11 +173,17 @@ A feature is accepted by evidence in its spec folder:
 ```
 
 ```bash
-skies spec new cancel-reservation      # write the failure modes, then the E2E, then the code
-skies proof run 0012                   # run the spec's E2E once, per failure mode; writes nothing
-skies proof record 0012                # red on the merge-base, green on the working tree, write the receipt
+git switch -c cancel-reservation       # on a branch: red is where it forks from the default branch
+skies spec new cancel-reservation      # write the failure modes (--runner web when Skies.toml has several)
+skies proof run 0012                   # run the spec's E2E once, per failure mode; only evidence/raw/ is written
+git commit -am "cancel a reservation"  # the spec, its E2E, and the code: green is a commit
+skies proof record 0012                # red on the merge-base, green on HEAD, write the receipt
 skies proof impact <paths>             # the specs a change reaches, before you make it
 ```
+
+`skies new` starts the app as a git repository with a first commit, so this works from the first feature. On the
+default branch itself there is no earlier revision without the feature; record with a `red.patch` that removes it
+(`--red-patch <file>`) instead.
 
 CI owns green: it runs every spec's cases on every push. The receipt records only what CI cannot, that the cases
 failed before the feature and passed with it.
