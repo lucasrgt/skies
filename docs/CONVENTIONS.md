@@ -315,8 +315,8 @@ CI cannot produce, so that is all the receipt records.
   `playwright.config.*`, `*.Tests.csproj`, …) is refused, and so is a `--red <rev>` whose diff to green touches
   them or the shared files of `.specs/` (a stand-in backend such as `web.setup.ts`); the default red only warns,
   since that diff is the branch's own and review reads it. `record` refuses a working tree that differs from `HEAD`
-  in anything but the spec's receipt, `evidence/`, and `red.patch`: commit the spec, its E2E, and the code first,
-  or pass `--allow-dirty`, which the receipt records as `"dirty": true` under green.
+  in anything but the specs' receipts, `evidence/`, and `red.patch` files: commit the spec, its E2E, and the code
+  first, or pass `--allow-dirty`, which the receipt records as `"dirty": true` under green.
 - **Cases that never ran on red count as failing (`did-not-build`) only when the spec's own cases are why**: compiler
   errors located in its `e2e/` files (`error CS…` for .NET, `error TS…`, Dart `Error:` and analyzer errors, also in a
   runner's copy of them under `.skies_spec/`), or a report whose only failures are file-level failures of its `e2e/`

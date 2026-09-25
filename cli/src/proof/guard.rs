@@ -8,7 +8,7 @@
 //! explicit `--red <rev>` whose diff to green touches those, or the shared files of `.specs/` (a stand-in backend,
 //! a tsconfig), is refused the same way; the default red (the merge-base) only earns a warning, since the branch's
 //! own diff is what review reads. Green must be HEAD: `record` refuses a working tree with other changes than the
-//! spec's own receipt, evidence, and red.patch, unless `--allow-dirty` records `green.dirty: true`.
+//! specs' receipts, evidence, and red.patch files, unless `--allow-dirty` records `green.dirty: true`.
 //!
 //! What no check can see is a test that tells red from green by where it runs (`$PWD`, a path, the git state): the
 //! receipt proves the cases failed there and passed here, and review of the cases is what rules that out.
@@ -206,8 +206,8 @@ pub fn check_red_diff(tests: &TestFiles, repo: &Repo, commit: &str, explicit: bo
 }
 
 /// Whether green is a dirty working tree, refusing one unless `allow_dirty`: the receipt names green by its commit.
-pub fn check_green(repo: &Repo, spec: &SpecDir, given_patch: Option<&Path>, allow_dirty: bool) -> Result<bool> {
-    let dirty = dirty(repo, spec, given_patch)?;
+pub fn check_green(repo: &Repo, given_patch: Option<&Path>, allow_dirty: bool) -> Result<bool> {
+    let dirty = dirty(repo, given_patch)?;
     if dirty.is_empty() {
         return Ok(false);
     }
@@ -232,10 +232,21 @@ pub fn check_green(repo: &Repo, spec: &SpecDir, given_patch: Option<&Path>, allo
 }
 
 /// The paths that make the working tree differ from HEAD, relative to the repository top, other than what `record`
-/// itself writes for this spec (its receipt, evidence, and red.patch, and `.specs/.gitignore`) and the patch it was
-/// given.
-fn dirty(repo: &Repo, spec: &SpecDir, given_patch: Option<&Path>) -> Result<Vec<String>> {
-    let own = format!("{}{}/", repo.prefix, spec.rel());
+/// itself writes (any spec's receipt, evidence, and red.patch, so specs can be recorded one after another, and
+/// `.specs/.gitignore`) and the patch it was given. None of those is an input to a green run.
+fn dirty(repo: &Repo, given_patch: Option<&Path>) -> Result<Vec<String>> {
+    let specs = format!("{}{SPECS_DIR}/", repo.prefix);
+    let written = |path: &str| {
+        path.strip_prefix(&specs)
+            .is_some_and(|rest| match rest.split_once('/') {
+                Some((_, inside)) => {
+                    inside == RECEIPT_FILE
+                        || inside == RED_PATCH_FILE
+                        || inside.starts_with(&format!("{EVIDENCE_DIR}/"))
+                }
+                None => rest == ".gitignore",
+            })
+    };
     let top = std::fs::canonicalize(&repo.top).unwrap_or_else(|_| repo.top.clone());
     let given = given_patch
         .and_then(|patch| std::fs::canonicalize(patch).ok())
@@ -246,19 +257,10 @@ fn dirty(repo: &Repo, spec: &SpecDir, given_patch: Option<&Path>) -> Result<Vec<
                 .collect::<Vec<_>>()
                 .join("/")
         });
-    let written = [
-        format!("{own}{RECEIPT_FILE}"),
-        format!("{own}{RED_PATCH_FILE}"),
-        format!("{}{SPECS_DIR}/.gitignore", repo.prefix),
-    ];
     Ok(repo
         .dirty()?
         .into_iter()
-        .filter(|path| {
-            !written.contains(path)
-                && !path.starts_with(&format!("{own}{EVIDENCE_DIR}/"))
-                && given.as_deref() != Some(path.as_str())
-        })
+        .filter(|path| !written(path) && given.as_deref() != Some(path.as_str()))
         .collect())
 }
 

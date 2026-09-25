@@ -35,7 +35,7 @@ pub fn record(key: &str, red_rev: Option<&str>, red_patch: Option<&Path>, allow_
     let runner_name = doc.runner(&spec)?;
     let runner = project.runner(runner_name)?;
     let repo = Repo::open(root)?;
-    let dirty = guard::check_green(&repo, &spec, red_patch, allow_dirty)?;
+    let dirty = guard::check_green(&repo, red_patch, allow_dirty)?;
     evidence::ensure_ignored(root)?;
     if !doc.touches.is_empty() {
         impact::warn_unmatched_touches(&spec, &doc, &impact::project_files(root))?;

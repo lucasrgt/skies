@@ -102,6 +102,8 @@ fn green_must_be_the_commit_the_receipt_names() {
     assert!(clean.status.success(), "{}", text(&clean));
     let receipt = repo.json(&format!("{SPEC}/receipt.json"));
     assert!(receipt["green"].get("dirty").is_none(), "{receipt}");
+    // Nor does another spec's fresh receipt: specs are recorded one after another before one commit.
+    repo.write(".specs/0002-other/receipt.json", "{}\n");
     let again = repo.skies(&["proof", "record", "1"]);
     assert!(again.status.success(), "{}", text(&again));
 }
