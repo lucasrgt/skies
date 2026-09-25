@@ -458,7 +458,10 @@ apps/web/src/a.ts(9,1): error TS2554: Expected 1 arguments, but got 0.
                 "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework>\
                  </PropertyGroup></Project>",
             ),
-            (".globalconfig", "is_global = true\ndotnet_diagnostic.CA2016.severity = warning\n"),
+            (
+                ".globalconfig",
+                "is_global = true\ndotnet_diagnostic.CA2016.severity = warning\n",
+            ),
             (
                 "Probe.cs",
                 "using System.Threading;\nusing System.Threading.Tasks;\npublic static class Probe\n{\n    \
@@ -472,7 +475,9 @@ apps/web/src/a.ts(9,1): error TS2554: Expected 1 arguments, but got 0.
             let (status, findings) = dotnet(dir.path(), &[]);
             assert_eq!(status, Status::Ran, "{run} build");
             assert!(
-                findings.iter().any(|f| f.code == "CA2016" && f.severity == Severity::Warning),
+                findings
+                    .iter()
+                    .any(|f| f.code == "CA2016" && f.severity == Severity::Warning),
                 "the {run} build lost the warning: {findings:?}"
             );
         }
