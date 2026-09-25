@@ -1,8 +1,9 @@
 //! Running a spec's E2E through the runner declared in `Skies.toml`.
 //!
-//! A runner is just a shell command. The engine fills in placeholders (quoted: see `shell`), runs it with the checkout as the working
-//! directory, and reads back the report; it never interprets the command's exit code, because on the red revision
-//! failing tests are the expected outcome. Only a missing or unreadable report is an error.
+//! A runner is just a shell command. The engine fills in placeholders (quoted for their spot, see `shell`), runs it
+//! with the checkout as the working directory, and reads back the report; it never interprets the command's exit
+//! code, because on the red revision failing tests are the expected outcome. Only a missing or unreadable report is
+//! an error.
 
 use std::collections::BTreeMap;
 use std::fs::File;

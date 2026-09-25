@@ -158,10 +158,7 @@ mod tests {
         ] {
             assert_eq!(case_mode(name), Named::Nothing, "{name}");
         }
-        assert_eq!(
-            case_mode("FM-2: deposit > FM-3: refused twice"),
-            Named::Mode(FmId(3))
-        );
+        assert_eq!(case_mode("FM-2: deposit > FM-3: refused twice"), Named::Mode(FmId(3)));
         assert_eq!(case_mode("FM-2: deposit > fm_2 helper"), Named::LookAlike);
     }
 
