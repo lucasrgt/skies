@@ -50,6 +50,20 @@ public class AuthRegistrationTests
     }
 
     [Fact]
+    public void The_access_token_lifetime_is_the_apps_to_shorten()
+    {
+        using var provider = Build(services => services.AddSkiesAuth<ListRefreshStore>(
+            new SkiesAuthOptions(Secret, "myapp", "myapp") { AccessTokenLifetime = TimeSpan.FromMinutes(2) }));
+
+        var token = provider.GetRequiredService<IAccessTokens>().Issue(Guid.NewGuid(), Guid.NewGuid(), null, Guid.NewGuid(), null);
+
+        var jwt = new Microsoft.IdentityModel.JsonWebTokens.JsonWebToken(token);
+        Assert.InRange(jwt.ValidTo - DateTime.UtcNow, TimeSpan.FromSeconds(100), TimeSpan.FromMinutes(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ServiceCollection().AddSkiesAuth<ListRefreshStore>(
+            new SkiesAuthOptions(Secret, "myapp", "myapp") { AccessTokenLifetime = TimeSpan.Zero }));
+    }
+
+    [Fact]
     public void An_app_hasher_registered_first_is_kept()
     {
         var mine = new Argon2idPasswordHasher();

@@ -23,6 +23,10 @@ public sealed record SkiesAuthOptions(string JwtSecret, string Issuer, string Au
     /// Its <see cref="RefreshCookieOptions.Lifetime"/> is overridden with <see cref="Sessions"/>' lifetime.</summary>
     public RefreshCookieOptions? RefreshCookie { get; init; }
 
+    /// <summary>How long an access token lives (15 minutes by default). Signing out ends the refresh family, but an
+    /// access token already issued stays valid until it expires: shorten this to shrink that window.</summary>
+    public TimeSpan AccessTokenLifetime { get; init; } = AccessTokens.DefaultLifetime;
+
     /// <summary>How long a login lasts (token lifetime and absolute family ceiling).</summary>
     public RefreshSessionOptions Sessions { get; init; } = RefreshSessionOptions.Default;
 }
@@ -49,11 +53,12 @@ public static class SkiesAuthExtensions
         where TSessionStore : class, IRefreshSessionStore
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.AccessTokenLifetime, TimeSpan.Zero, nameof(options));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.Sessions.Lifetime, TimeSpan.Zero, nameof(options));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(options.Sessions.FamilyMaxAge, TimeSpan.Zero, nameof(options));
 
         services.TryAddSingleton(TimeProvider.System);
-        services.AddJwtAccessTokens(options.JwtSecret, options.Issuer, options.Audience);
+        services.AddJwtAccessTokens(options.JwtSecret, options.Issuer, options.Audience, options.AccessTokenLifetime);
         services.TryAddSingleton<IPasswordHasher, Argon2idPasswordHasher>();
         services.AddSingleton(options.Sessions);
         services.AddScoped<IRefreshSessionStore, TSessionStore>();

@@ -27,14 +27,21 @@ public static class JwtAccessTokenExtensions
     /// is shorter than <see cref="SkiesAuthOptions.MinSecretBytes"/> bytes or a development key
     /// (<see cref="SkiesAuthOptions.DevelopmentSecret"/>). The check runs at host start, and its message names what to
     /// configure.</remarks>
-    public static IServiceCollection AddJwtAccessTokens(this IServiceCollection services, string secret, string issuer, string audience)
+    /// <param name="services">The service collection.</param>
+    /// <param name="secret">The HMAC signing key, shared by the minter and the validator.</param>
+    /// <param name="issuer">The issuer minted and required.</param>
+    /// <param name="audience">The audience minted and required.</param>
+    /// <param name="accessTokenLifetime">How long a minted token lives; <see cref="AccessTokens.DefaultLifetime"/>
+    /// when omitted.</param>
+    public static IServiceCollection AddJwtAccessTokens(this IServiceCollection services, string secret, string issuer, string audience,
+        TimeSpan? accessTokenLifetime = null)
     {
         services.AddSingleton<IValidateOptions<JwtBearerOptions>>(sp =>
             new JwtSecretPolicy(secret, sp.GetService<IHostEnvironment>()));
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme).ValidateOnStart();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, HttpCurrentUser>();
-        services.AddSingleton<IAccessTokens>(sp => new AccessTokens(secret, issuer, audience, sp.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IAccessTokens>(sp => new AccessTokens(secret, issuer, audience, sp.GetRequiredService<TimeProvider>(), accessTokenLifetime));
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
