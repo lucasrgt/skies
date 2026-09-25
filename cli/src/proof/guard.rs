@@ -173,8 +173,8 @@ pub fn check_patch(tests: &TestFiles, repo: &Repo, spec: &SpecDir, patch: &Path)
     if !refused.is_empty() {
         bail!(
             "{} touches {}. Red must differ from green in the feature alone: its cases come from the working tree \
-             byte for byte, and so do the files that run them. Make the patch remove the feature's code only, and \
-             keep {}/{RED_PATCH_FILE} out of it.",
+             byte for byte, and so do the files that run them. Make the patch remove the feature's code and nothing \
+             else (it is kept as {}/{RED_PATCH_FILE}).",
             patch.display(),
             refused.join(", "),
             spec.rel()
