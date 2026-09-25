@@ -425,6 +425,7 @@ forcing awkward code, that is a finding to report against the rule.
 | `SKY0027` | Warning. `ToListAsync`/`ToList` (or array twins) ending a `DbSet`-rooted chain, directly or through a queryable local, with no `Take`/`ToPageAsync` is flagged, and so is a `Take` whose bound is a bare number instead of a named const. Parent-scoped queries are exempt (a `Where` equating or `Contains`-matching a `*Id`: the steps of one job); `OrgId`/`TenantId` equality is the tenant scope and stays flagged. Fix per the ladder above | unbounded lists degrade with data |
 | `SKY0028` | Warning. The ordering chain feeding `ToPageAsync` must contain the entity's primary key (`Id`, or `{Entity}Id` on the queried entity; a foreign `*Id` does not count), else the final key is flagged. An unreadable pre-ordered local stays silent | ties repeat and drop rows across pages |
 | `SKY0029` | A method with a test attribute (xUnit `[Fact]`/`[Theory]`, NUnit `[Test]`/`[TestCase]`/`[TestCaseSource]`/`[Theory]`, MSTest `[TestMethod]`/`[DataTestMethod]`, and derived ones such as `[SkippableFact]`) in a file with no `.specs` path segment is flagged; unresolved frameworks fall back to the written name (`Fact`, `*Fact`, `*Theory`, …). It asks where a test lives, never that one exists. It fires in the tests project, which references the doctor | tests written as coverage prove nothing |
+| `SKY0030` | `IgnoreQueryFilters` in module code (a namespace with a `Modules` segment, or a `[Slice]`/`[Module]` class) is flagged whenever it may lift the tenant filter: no argument, `"tenant"`, or a filter name that is not a literal. Lifting only an app's own named filter (`["soft-delete"]`) stays legal; specs and `*.Tests.cs` are exempt. A deliberate crossing (sign-in by email) takes `#pragma warning disable SKY0030 // <reason>`, and a SKY0030 pragma with no reason is itself flagged | a cross-org read compiles and looks harmless |
 
 **Security floor.** Beside the SKY rules the doctor raises a curated CA* set to error
 (`buildTransitive/skies.globalconfig`): dropped `CancellationToken` (CA2016), SQL built from non-constant strings on
@@ -445,6 +446,9 @@ ViewModel), never for making the doctor quiet; a rule that keeps needing it is a
 | .NET (`SKY*`, CA*) | `#pragma warning disable SKY0024 // <reason>` … `#pragma warning restore SKY0024`, or `[SuppressMessage("Skies.Framework.Convention", "SKY0024", Justification = "<reason>")]` | the lines between, or the member |
 | React (`SKYFE*`, jsx-a11y) | `// eslint-disable-next-line skies/<rule> -- <reason>` | the next line |
 | Flutter (`SKYFL*`) | `// skies-ignore: SKYFL029 <reason>` on the finding's line or the line above; `// skies-ignore-file: SKYFL001 <reason>` for a file-wide finding (no line) | that line, or that rule in that file |
+
+`SKY0030` (a cross-org read) requires its reason on .NET too: a `#pragma warning disable SKY0030` with no comment
+after the code is reported on the pragma itself.
 
 The Flutter hatch takes one rule per directive and requires the reason: a directive without one suppresses nothing,
 and the finding says so. `skies doctor` lists every Flutter suppression under its leg with the reason
