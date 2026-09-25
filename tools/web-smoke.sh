@@ -135,9 +135,9 @@ echo "==> g client, g feature Products (list), CreateProduct, UpdateProduct, Del
 grep -q "use$LIST" "$WEB/src/products/Products.viewModel.ts" || fail "the list screen does not read use$LIST"
 grep -q 'name: z.string()' "$WEB/src/create-product/CreateProduct.viewModel.ts" \
   || fail "the form did not read CreateProduct's name field from the contract"
-grep -q "version: target.version" "$WEB/src/update-product/UpdateProduct.viewModel.ts" \
+grep -q "version: record?.version ?? target.version" "$WEB/src/update-product/UpdateProduct.viewModel.ts" \
   && grep -q "params: { version: target.version }" "$WEB/src/delete-product/DeleteProduct.viewModel.ts" \
-  || fail "the update and delete forms do not send the version they were given"
+  || fail "the update form does not send the loaded record's version, or delete the version it was given"
 grep -q "npm ci --prefix clients/web" "$APP/.github/workflows/ci.yml" || fail "g web-app did not add clients/web to the CI"
 
 ROUTER="$WEB/src/routes/router.ts"
