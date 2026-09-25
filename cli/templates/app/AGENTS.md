@@ -50,12 +50,12 @@ starts red, which is where a spec starts.
 ```
 skies doctor                 # the build with the doctor on, plus the root allowlist
 dotnet test                  # every spec case
-skies proof run <id>         # one spec's E2E, once, per failure mode; writes nothing
+skies proof run <id>         # one spec's E2E, once, per failure mode; only writes evidence/raw/
 skies proof impact <paths>   # the specs a change reaches, before you make it
 skies proof record <id>      # prove red and green, write the receipt
 ```
 
-Nothing runs automatically. If the doctor is red, fix the code; never suppress a rule. Write comments for the
+Nothing runs automatically. If the doctor is red, fix the code; suppress a rule only with a written reason (see "Suppression" in the conventions). Write comments for the
 reader in domain terms, never to cite or appease a rule.
 
 ## Boundaries
