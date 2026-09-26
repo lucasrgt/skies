@@ -5,15 +5,15 @@ namespace Skies.Framework.AspNetCore;
 
 /// <summary>
 /// The closed vocabulary of an endpoint's <em>nature</em> — what kind of caller it is for. The default,
-/// <see cref="App"/>, is the dominant case (a Skies app is UI-first): app-facing, so it must be wired by a
-/// frontend (the <c>SKYFE008</c> coverage warning). The others are the legitimate exceptions that have no app
-/// wiring and so leave the generated client: an <see cref="Asset"/> (a browser-loaded file URL), a
+/// <see cref="App"/>, is the dominant case (a Skies app is UI-first): app-facing, so it stays in the generated
+/// client a frontend calls. The others are the legitimate exceptions that have no app wiring and so leave the
+/// generated client: an <see cref="Asset"/> (a browser-loaded file URL), a
 /// <see cref="Webhook"/> (third-party callback), and an <see cref="Internal"/> (server-to-server / dev-only).
 /// Classification, not suppression — the marker says what the endpoint <em>is</em>; the handler says what it does.
 /// </summary>
 public enum EndpointKind
 {
-    /// <summary>App-facing — must be wired by a frontend (the default).</summary>
+    /// <summary>App-facing, called by a frontend through the generated client (the default).</summary>
     App,
 
     /// <summary>A file or image fetched through a URL carried by another contract; never a generated data operation.</summary>
@@ -29,11 +29,9 @@ public enum EndpointKind
 /// <summary>
 /// Tags an endpoint with its <see cref="EndpointKind"/> so the contract carries the nature into OpenAPI, where
 /// the client generator filters it: an <see cref="EndpointKind.Asset"/>, <see cref="EndpointKind.Webhook"/>, or
-/// <see cref="EndpointKind.Internal"/>
-/// endpoint is tagged and excluded from the app's generated client, so it never produces a hook and never trips
-/// the loose-endpoint coverage warning. This is the .NET spelling of the <c>[Endpoint(...)]</c> vocabulary —
-/// a builder convention, because a minimal-API handler is a lambda that cannot carry a class attribute to the
-/// endpoint. App-facing is the default and needs no call (opt-out: only the exceptions are marked).
+/// <see cref="EndpointKind.Internal"/> endpoint is tagged and excluded from the app's generated client, so it never
+/// produces a hook. The marker is a builder call, <c>WithEndpointKind(EndpointKind.X)</c>, not a class attribute,
+/// because a minimal-API handler is a lambda that cannot carry a class attribute to the endpoint. App-facing is the default and needs no call (opt-out: only the exceptions are marked).
 /// </summary>
 public static class EndpointKindExtensions
 {

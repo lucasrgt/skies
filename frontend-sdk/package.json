@@ -1,8 +1,9 @@
 {
   "name": "@skiesjs/frontend-sdk",
-  "version": "4.1.17",
+  "version": "5.0.0-rc.4",
+  "private": true,
   "type": "module",
-  "description": "Canonical Skies frontend doctor and scaffolding tools.",
+  "description": "Skies frontend workspace: @skiesjs/react and @skiesjs/eslint-plugin, checked against the canonical sample.",
   "license": "MIT",
   "author": "Lucas Tinoco",
   "repository": {
@@ -12,115 +13,33 @@
   },
   "homepage": "https://skies.build",
   "bugs": "https://github.com/lucasrgt/skies/issues",
-  "keywords": [
-    "skies",
-    "frontend",
-    "doctor",
-    "eslint",
-    "scaffolding"
-  ],
-  "files": [
-    "tools/*.mjs",
-    "tools/*.d.mts",
-    "tools/README.md"
-  ],
-  "exports": {
-    "./doctor": "./tools/doctor.mjs",
-    "./e2e-doctor": "./tools/e2e-doctor.mjs",
-    "./endpoint-coverage": "./tools/endpoint-coverage.mjs",
-    "./error-code-coverage": "./tools/error-code-coverage.mjs",
-    "./feature-e2e-coverage": "./tools/feature-e2e-coverage.mjs",
-    "./framework-sync": "./tools/framework-sync.mjs",
-    "./i18n-parity": "./tools/i18n-parity.mjs",
-    "./journey-parity": "./tools/journey-parity.mjs",
-    "./package-versions": "./tools/package-versions.mjs",
-    "./playwright-backend": {
-      "types": "./tools/playwright-backend.d.mts",
-      "import": "./tools/playwright-backend.mjs",
-      "require": "./tools/playwright-backend.mjs",
-      "default": "./tools/playwright-backend.mjs"
-    },
-    "./playwright": {
-      "types": "./tools/playwright.d.mts",
-      "import": "./tools/playwright.mjs",
-      "default": "./tools/playwright.mjs"
-    },
-    "./product-verification": {
-      "types": "./tools/product-verification.d.mts",
-      "import": "./tools/product-verification.mjs",
-      "default": "./tools/product-verification.mjs"
-    }
-  },
-  "bin": {
-    "skyfe-contract-freshness": "tools/contract-freshness.mjs",
-    "skyfe-e2e-doctor": "tools/e2e-doctor.mjs",
-    "skyfe-endpoint-coverage": "tools/endpoint-coverage.mjs",
-    "skyfe-error-code-coverage": "tools/error-code-coverage.mjs",
-    "skyfe-eslint-gate": "tools/eslint-gate.mjs",
-    "skyfe-feature-e2e": "tools/feature-e2e-coverage.mjs",
-    "skyfe-framework-sync": "tools/framework-sync.mjs",
-    "skyfe-i18n-parity": "tools/i18n-parity.mjs",
-    "skyfe-journey-parity": "tools/journey-parity.mjs"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "typecheck": "npm run typecheck:spine && npm run typecheck:sample",
     "typecheck:spine": "tsc --noEmit -p packages/skies-react/tsconfig.json",
-    "typecheck:sample": "tsc --noEmit -p ../examples/sample-app/frontend/tsconfig.json",
+    "typecheck:sample": "tsc --noEmit -p ../examples/sample-app/frontend/web/tsconfig.json && tsc --noEmit -p ../examples/sample-app/.specs/tsconfig.json",
     "lint": "npm run lint:source && npm run lint:rules",
-    "lint:source": "cd .. && node frontend-sdk/node_modules/eslint/bin/eslint.js examples/sample-app/frontend",
+    "lint:source": "cd .. && node frontend-sdk/node_modules/eslint/bin/eslint.js examples/sample-app/frontend/web examples/sample-app/.specs",
     "lint:rules": "node packages/eslint-plugin/index.test.cjs",
-    "scaffold": "node tools/scaffold-feature.mjs",
-    "scaffold:design": "node tools/design-scaffold.mjs",
-    "assemble-i18n": "node tools/assemble-i18n.mjs",
-    "test": "vitest run --exclude **/*.assay.test.ts --exclude **/*.assay.test.tsx",
-    "test:avp": "assay verify",
-    "design:doctor": "assay-design doctor --contract ../.design/contract.toml",
-    "design:recall": "assay-design recall --contract ../.design/contract.toml",
-    "design:audit": "assay-design audit --contract ../.design/contract.toml",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run design:doctor && npm run test:avp"
-  },
-  "peerDependencies": {
-    "@playwright/test": ">=1.50.0",
-    "assay-design": ">=0.2.0",
-    "avp-assay": "^0.4.0",
-    "eslint": ">=9",
-    "@skiesjs/eslint-plugin": "^4.0.4"
-  },
-  "peerDependenciesMeta": {
-    "assay-design": {
-      "optional": true
-    },
-    "avp-assay": {
-      "optional": true
-    },
-    "@playwright/test": {
-      "optional": true
-    }
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm run test"
   },
   "devDependencies": {
     "@hookform/resolvers": "^5.4.0",
-    "@playwright/test": "1.61.1",
+    "@skiesjs/eslint-plugin": "5.0.0-rc.4",
     "@tanstack/eslint-plugin-query": "^5.62.16",
     "@tanstack/react-query": "^5.62.7",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.1.0",
-    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
     "@vitest/eslint-plugin": "^1.1.43",
-    "assay-design": "https://github.com/lucasrgt/assay-design/releases/download/v0.7.3/assay-design-0.7.3.tgz",
-    "avp-assay": "^0.4.0",
     "esbuild": "^0.28.1",
     "eslint": "^9.17.0",
-    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-no-secrets": "^1.1.2",
     "eslint-plugin-sonarjs": "^4.2.0",
     "i18next": "^24.2.0",
@@ -132,8 +51,7 @@
     "react-i18next": "^15.4.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.10",
-    "zod": "^4.4.3",
-    "@skiesjs/eslint-plugin": "^4.0.5"
+    "zod": "^4.4.3"
   },
   "overrides": {
     "brace-expansion@<1.1.18": "1.1.18",

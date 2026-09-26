@@ -1,0 +1,58 @@
+{
+  "spec": "0003-wallet-reads",
+  "runner": "api",
+  "commands": {
+    "build": "dotnet build backend/Sample.Tests",
+    "command": "dotnet test backend/Sample.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\"",
+    "hash": "blake3:b4e9f2688d43e752d4c430cc96edcd3e7d6208d4dad356efa6de2a0f027848e8"
+  },
+  "red": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f",
+    "patch": "red.patch"
+  },
+  "green": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-1: the balance read returns the stored balance"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 42\nActual:   0"
+    },
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-2: a balance read for a missing wallet answers 404"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: NotFound\nActual:   OK"
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-3: a page carries its items and the count of the whole set"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 2\nActual:   0"
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-4: hostile paging input is clamped server-side"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 1\nActual:   -2"
+    },
+    "FM-5": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-5: consecutive pages neither overlap nor skip"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 7\nActual:   0"
+    }
+  }
+}

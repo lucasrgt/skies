@@ -1,0 +1,75 @@
+{
+  "spec": "0005-openapi-contract",
+  "runner": "api",
+  "commands": {
+    "build": "dotnet build backend/Sample.Tests",
+    "command": "dotnet test backend/Sample.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\"",
+    "hash": "blake3:b4e9f2688d43e752d4c430cc96edcd3e7d6208d4dad356efa6de2a0f027848e8"
+  },
+  "red": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f",
+    "patch": "red.patch"
+  },
+  "green": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-1: ErrorBody.code enumerates the app's registry codes"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    },
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-2: a dependency loaded in the process does not widen the contract",
+        "FM-2: an explicitly registered assembly is enumerated once, beside the app's own codes"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-3: a numeric body property is a plain number"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-4: a scalar value object reached only through a nullable property mirrors its primitive"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    },
+    "FM-5": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-5: a numeric query parameter accepts no strings"
+      ],
+      "message": "Assert.DoesNotContain() Failure: Item found in collection\n↓ (pos 1)\nCollection: [\"integer\", \"string\"]\nFound:      \"string\""
+    },
+    "FM-6": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-6: the page's four members are required, plain array and integers"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    },
+    "FM-7": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-7: a slice's output references its own slice-qualified page"
+      ],
+      "message": "System.Collections.Generic.KeyNotFoundException : The given key was not present in the dictionary."
+    }
+  }
+}

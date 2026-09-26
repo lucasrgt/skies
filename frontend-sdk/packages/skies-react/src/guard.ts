@@ -1,7 +1,7 @@
 // The route-guard decision, as PURE data. The read-side twin of the session seam: `toSessionState` projects "who
 // is signed in"; this answers "may this route render for them, and if not, where to". It is router-agnostic by the
 // same trick as the rest of the spine (cf. BackRouter/QueryLike) — it NEVER navigates, it returns a {@link
-// GuardOutcome} the app's thin `<AuthRoute>`/`<GuestRoute>` turns into its router's `<Redirect>`/`<Navigate>` +
+// GuardOutcome} the app's thin `<AuthRoute>`/`<GuestRoute>` turns into its router's `<Navigate>` +
 // splash. The point of the symmetry: an auth-guard and a guest-guard are the SAME primitive with `allow` flipped,
 // so guarding a PUBLIC route (the login/signup screen a signed-in user must be bounced OFF — the pauta bug where a
 // logged-in user reaching /login was let through) stops being something each app re-derives by hand.
@@ -53,7 +53,7 @@ export interface GuardOptions<U = unknown, Href = string> {
  * function Guard({ allow, redirectTo, children }: GuardOptions & { children: ReactNode }) {
  *   const outcome = guardSession(useSessionState(), { allow, redirectTo });
  *   if (outcome.action === "wait") return <Splash />;
- *   if (outcome.action === "redirect") return <Redirect href={outcome.to} />; // <Navigate to> on TanStack
+ *   if (outcome.action === "redirect") return <Navigate to={outcome.to} />;
  *   return <>{children}</>;
  * }
  * const AuthRoute = (p) => <Guard allow="authenticated" redirectTo="/login" {...p} />;

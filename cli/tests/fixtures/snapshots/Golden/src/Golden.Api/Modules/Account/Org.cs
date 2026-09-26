@@ -1,0 +1,34 @@
+namespace Golden.Api.Modules.Account;
+
+/// <summary>An org: the tenant every <c>ITenantScoped</c> row belongs to. Registration opens one for each new
+/// account, so every sign-up starts in an org of its own and no two sign-ups ever share rows by accident. Bringing a
+/// second user into an existing org is an invitation flow the app adds when it needs one. An org is not
+/// tenant-scoped itself: it is the tenant.</summary>
+[Entity]
+public class Org
+{
+    /// <summary>The org's identity: the <c>org</c> claim of its members' access tokens.</summary>
+    public Guid Id { get; private set; }
+
+    /// <summary>The display name. Registration names the org after its founder's email; a settings slice may rename it.</summary>
+    public string Name { get; private set; } = "";
+
+    /// <summary>When the org was opened.</summary>
+    public DateTime CreatedAt { get; private set; }
+
+    private Org() { }
+
+    /// <summary>Open a new org with a fresh identity.</summary>
+    public static Result<Org> Open(string name, DateTime now) =>
+        new Org { Id = Guid.NewGuid(), Name = name, CreatedAt = now }.EnsureValid();
+
+    private Result<Org> EnsureValid()
+    {
+        var validation = new Validation()
+            .Require(Id, "id", AccountErrorCodes.InvalidState)
+            .NotBlank(Name, "name", AccountErrorCodes.InvalidState);
+        if (validation.Failed)
+            return validation.ToError();
+        return this;
+    }
+}

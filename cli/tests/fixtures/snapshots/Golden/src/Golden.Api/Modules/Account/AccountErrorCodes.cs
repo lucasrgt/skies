@@ -1,0 +1,67 @@
+namespace Golden.Api.Modules.Account;
+
+/// <summary>The Account module's error codes — stable, namespaced i18n keys the frontend localizes from. Every
+/// Error/Check references a const here, so the full set stays discoverable: AddSkiesOpenApi enumerates
+/// it into the OpenAPI ErrorBody.code schema for the typed client. Auth sub-flows (otp/oauth/email) append their
+/// own codes here when added.</summary>
+public static class AccountErrorCodes
+{
+    /// <summary>The email/password pair did not match an account.</summary>
+    public const string InvalidCredentials = "auth.invalid_credentials";
+
+    /// <summary>No user exists for the resolved id.</summary>
+    public const string UserNotFound = "account.user_not_found";
+
+    /// <summary>The refresh session is missing, expired, or malformed.</summary>
+    public const string InvalidSession = "auth.invalid_session";
+
+    /// <summary>The refresh session was revoked.</summary>
+    public const string SessionRevoked = "auth.session_revoked";
+
+    /// <summary>A refresh lost the optimistic-concurrency race while the same live token was being rotated.
+    /// Transient: the winning request already delivered the replacement token, so the client retries with it.</summary>
+    public const string SessionRetry = "auth.session_retry";
+
+    /// <summary>No session exists for the given id.</summary>
+    public const string SessionNotFound = "account.session_not_found";
+
+    /// <summary>The password is shorter than the minimum length.</summary>
+    public const string PasswordTooShort = "password.too_short";
+
+    /// <summary>The password is longer than the maximum length the hasher accepts.</summary>
+    public const string PasswordTooLong = "password.too_long";
+
+    /// <summary>A registration arrived with a valid access token. Registering opens a new account (and, with tenancy,
+    /// a new org), which a caller signed in to another account must not do in that account's name: they sign out
+    /// first.</summary>
+    public const string AlreadySignedIn = "account.already_signed_in";
+
+    /// <summary>An entity's invariant funnel (EnsureValid) rejected the state — a present id, a non-blank
+    /// name, and so on. Construction and mutation both return through that funnel, so a broken instance can
+    /// never be observed or persisted.</summary>
+    public const string InvalidState = "account.invalid_state";
+
+    /// <summary>The phone has no active OTP code.</summary>
+    public const string NoActiveCode = "auth.no_active_code";
+
+    /// <summary>The submitted OTP code is wrong or missing.</summary>
+    public const string InvalidCode = "auth.invalid_code";
+
+    /// <summary>The OTP code was guessed wrong too many times and is now locked.</summary>
+    public const string TooManyAttempts = "auth.too_many_attempts";
+
+    /// <summary>No phone number was given to send the code to.</summary>
+    public const string PhoneRequired = "account.phone_required";
+
+    /// <summary>The external identity token is invalid.</summary>
+    public const string InvalidToken = "auth.invalid_token";
+
+    /// <summary>An account already exists for the external identity's email.</summary>
+    public const string EmailTaken = "account.email_taken";
+
+    /// <summary>No account exists for this external identity.</summary>
+    public const string NoAccount = "auth.no_account";
+
+    /// <summary>The password-reset token is invalid or expired.</summary>
+    public const string ResetTokenInvalid = "auth.invalid_reset_token";
+}

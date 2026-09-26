@@ -13,25 +13,30 @@ namespace Skies.Framework.Doctor;
 
 /// <summary>
 /// SKY0005 — a module's <c>.ctx.md</c> stays fresh by <em>citation resolution</em>: a backticked code
-/// identifier it names must still exist somewhere the doctor can see — this module's source, a referenced
-/// assembly, or a co-located <c>*.Tests.cs</c> the project feeds the doctor as an <c>AdditionalFile</c>. A
-/// ctx that names <c>`AttachCtx`</c> after that construct was renamed or removed is rot, and the doctor
+/// identifier it names must still exist in this module's source or a referenced assembly. A ctx that names <c>`AttachCtx`</c> after that construct was renamed or removed is rot, and the doctor
 /// catches it; this is the .NET analog of the <c>attach_ctx</c> documentation drift that the Rust codebase's
 /// docs-hygiene gate was built to prevent.
 ///
-/// The third source matters because a journey is a <c>[Journey]</c> class living in a <c>*.Tests.cs</c> that
-/// is <c>&lt;Compile Remove&gt;</c>'d from the api compilation (the sibling test project compiles it), so the
-/// api compilation — where the ctx is an AdditionalFile — cannot see it as a <em>symbol</em>, even though a
-/// module ctx may legitimately name the journey that covers it. A citation that resolves to a type declared
-/// in those AdditionalFiles is fresh, resolved the same textual way the ctx itself is read — no
-/// cross-compilation symbol walk, no name-pattern special-case.
+/// A ctx documents the module, so it cites production code. Test classes are not part of the api compilation and
+/// do not count: the module's behavior is proven by its specs under <c>.specs/</c>, which the ctx does not index.
 ///
 /// Freshness is deliberately <b>not</b> mtime. Because the ctx does not duplicate the code (see the
 /// schema in CONVENTIONS), adding a field must not force a ctx edit — only a *dangling* reference is
-/// stale. A citation is a single PascalCase identifier inside backticks (<c>`Refresh`</c>); prose,
-/// lowercase tokens (claim names, paths), and qualified or punctuated spans are ignored. The expensive
-/// walk of referenced assemblies runs only when a suspect appears — an identifier absent from this
-/// source — so a fresh ctx costs nothing.
+/// stale. A code citation is a backtick span that is exactly one identifier written the way C# names a type or a
+/// member: it starts with an uppercase letter and holds a lowercase one (<c>`Refresh`</c>, <c>`WalletErrorCodes`</c>,
+/// <c>`ToPageAsync`</c>). Everything else in backticks is prose to the rule: an acronym or a constant-looking span
+/// with no lowercase letter (<c>`POST`</c>, <c>`JWT`</c>, <c>`UTC`</c>, <c>`SKY0005`</c>), a lowercase token (a
+/// claim, a header, a path), a literal written with its quotes (<c>`"Bearer"`</c>), and a qualified or punctuated
+/// span (<c>`a.b`</c>, <c>`f(x)`</c>, <c>`X-Client`</c>). A single capitalized word stays a citation on purpose: the
+/// ctx files of two real apps cite slices, entities, and enum members that way (<c>`Deposit`</c>,
+/// <c>`Pending`</c>), and a renamed one is exactly the rot the rule exists for. The expensive walk of referenced
+/// assemblies runs only when a suspect appears — an identifier absent from this source — so a fresh ctx costs
+/// nothing.
+///
+/// A ctx also cites the specs that prove its invariants, as <c>`0002-withdraw`</c> or
+/// <c>`0002-withdraw#FM-n`</c> (see <see cref="SpecCitations"/>): the spec must exist and, when a failure mode is
+/// named, its spec.md must list it. The specs are read as AdditionalFiles (<c>.specs/*/spec.md</c>); a spec
+/// citation starts with digits, so the two kinds of citation never overlap.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
@@ -51,12 +56,27 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
                    + "reference is documentation rot.",
         customTags: WellKnownDiagnosticTags.CompilationEnd);
 
-    // A citation: a single PascalCase identifier whose entire backtick span is that identifier. Prose,
-    // lowercase (claim/header names), and punctuated spans (`a.b`, `f(x)`, `X-Client`) never match.
-    private static readonly Regex CitationPattern = new(@"`([A-Z][A-Za-z0-9_]*)`", RegexOptions.Compiled);
+    private static readonly DiagnosticDescriptor SpecRule = new(
+        id: DiagnosticId,
+        title: "ctx.md must not cite a spec or failure mode that does not exist",
+        messageFormat: "{0} cites `{1}`, {2}; update or remove the citation",
+        category: "Skies.Framework.Convention",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A module .ctx.md cites the spec that proves an invariant as `<id>-<slug>` or "
+                   + "`<id>-<slug>#FM-<n>`. The spec folder must exist under .specs/ and, when a failure mode is "
+                   + "cited, its spec.md must declare it on a `- FM-<n> …` line. A dangling spec citation is "
+                   + "documentation rot, and a look-alike (`#fm-2`, `#FM2`, a `* FM-2` line) is reported, not skipped.",
+        customTags: WellKnownDiagnosticTags.CompilationEnd);
+
+    // A citation: a single identifier whose entire backtick span is that identifier, starting uppercase and holding a
+    // lowercase letter. Acronyms and constants (`POST`, `JWT`, `SKY0005`), lowercase tokens (claim/header names), and
+    // punctuated spans (`a.b`, `f(x)`, `X-Client`, `"Bearer"`) never match.
+    private static readonly Regex CitationPattern = new(
+        @"`((?=[A-Z][A-Za-z0-9_]*[a-z])[A-Z][A-Za-z0-9_]*)`", RegexOptions.Compiled);
 
     /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule, SpecRule);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -81,6 +101,8 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
             .Select(x => (x.file, x.text!, citations: Citations(x.text!)))
             .ToArray();
 
+        ReportSpecCitations(context, perFile.Select(x => (x.file, x.Item2)));
+
         var allNames = perFile.SelectMany(x => x.citations.Select(c => c.Name)).ToImmutableHashSet();
         if (allNames.IsEmpty)
             return;
@@ -89,8 +111,6 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
         var suspects = new HashSet<string>(allNames.Where(n => !source.Contains(n)), StringComparer.Ordinal);
         if (suspects.Count > 0)
             suspects.ExceptWith(ReferencedNames(context.Compilation, suspects, context.CancellationToken));
-        if (suspects.Count > 0)
-            suspects.ExceptWith(CoLocatedTestTypeNames(context.Options.AdditionalFiles, suspects, context.CancellationToken));
         if (suspects.Count == 0)
             return;   // everything resolves — fresh
 
@@ -103,35 +123,19 @@ public sealed class ContextFreshnessAnalyzer : DiagnosticAnalyzer
                 }
     }
 
-    // A type declaration in a co-located *.Tests.cs: the keyword then its PascalCase name. Textual on
-    // purpose — these files are AdditionalFiles, not part of this compilation, so there is no symbol to ask.
-    private static readonly Regex TestTypeDeclaration =
-        new(@"\b(?:class|record|struct|interface|enum)\s+([A-Z][A-Za-z0-9_]*)", RegexOptions.Compiled);
-
-    // Which suspects are types declared in a co-located *.Tests.cs the project feeds as an AdditionalFile
-    // (a journey a module ctx names). Scans those files only, and stops once every suspect is accounted for.
-    private static HashSet<string> CoLocatedTestTypeNames(
-        ImmutableArray<AdditionalText> files, HashSet<string> wanted, CancellationToken ct)
+    // A spec citation that names a missing spec folder, or a failure mode its spec.md does not list, is stale.
+    private static void ReportSpecCitations(CompilationAnalysisContext context, IEnumerable<(AdditionalText File, SourceText Text)> ctxs)
     {
-        var found = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var file in files)
-        {
-            if (found.Count == wanted.Count)
-                break;
-            if (!file.Path.EndsWith(".Tests.cs", StringComparison.OrdinalIgnoreCase))
-                continue;
-            var text = file.GetText(ct)?.ToString();
-            if (text is null)
-                continue;
-            foreach (Match match in TestTypeDeclaration.Matches(text))
+        Dictionary<string, SpecCitations.Spec>? specs = null;
+        foreach (var (file, text) in ctxs)
+            foreach (var citation in SpecCitations.In(text))
             {
-                var name = match.Groups[1].Value;
-                if (wanted.Contains(name))
-                    found.Add(name);
+                specs ??= SpecCitations.Index(context.Options.AdditionalFiles, context.CancellationToken);
+                if (SpecCitations.Problem(citation, specs) is not { } problem)
+                    continue;
+                var location = Location.Create(file.Path, citation.Span, text.Lines.GetLinePositionSpan(citation.Span));
+                context.ReportDiagnostic(Diagnostic.Create(SpecRule, location, Path.GetFileName(file.Path), citation.Text, problem));
             }
-        }
-
-        return found;
     }
 
     private static List<(string Name, TextSpan Span)> Citations(SourceText text)

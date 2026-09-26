@@ -1,6 +1,0 @@
-packages/*/dist/
-*.tgz
-
-# The CLI entrypoint is source, not a .NET build bin directory.
-!packages/cli/bin/
-!packages/cli/bin/skies-node.mjs

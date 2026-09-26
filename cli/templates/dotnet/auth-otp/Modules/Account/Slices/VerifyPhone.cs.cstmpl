@@ -1,0 +1,47 @@
+using Skies.Framework.Auth;
+using Microsoft.EntityFrameworkCore;
+
+namespace MyApp.Api.Modules.Account;
+
+/// <summary>Verify the caller's phone with the code from their latest active code. On success the phone is marked
+/// verified and registration completes. The attempt cap is the framework's: every wrong code is counted, and the fifth
+/// locks the code for good.</summary>
+/// <remarks>Security contract: the sad path is the verification-bypass guard — a wrong code must be rejected and
+/// leave the phone unverified. If it passed silently, anyone could mark a phone verified without the code.
+/// Its spec under `.specs/` proves both the happy verification and the wrong-code rejection end-to-end.</remarks>
+[Slice]
+public static class VerifyPhone
+{
+    public record Input(string Code);
+
+    public record Output();
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, VerificationTokens verification, ICurrentUser current, CancellationToken ct)
+    {
+        // A missing code is a malformed request, not a guess: it must not spend one of the code's attempts.
+        if (string.IsNullOrWhiteSpace(input.Code))
+            return Error.Validation(AccountErrorCodes.InvalidCode, "code is required");
+        var check = await verification.VerifyCodeAsync(current.UserId, VerificationPurpose.Phone, input.Code, ct);
+        if (!check.Verified)
+            return check.Outcome switch
+            {
+                VerificationOutcome.Locked => Error.Unauthorized(AccountErrorCodes.TooManyAttempts, "too many attempts"),
+                VerificationOutcome.WrongCode => Error.Unauthorized(AccountErrorCodes.InvalidCode, "invalid code"),
+                _ => Error.Unauthorized(AccountErrorCodes.NoActiveCode, "no active code"),
+            };
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == current.UserId, ct);
+        if (user is null)
+            return Error.NotFound(AccountErrorCodes.UserNotFound, "user not found");
+
+        user.CompletePhoneVerification(check.Target!);   // a phone code always carries the phone it was sent to
+        await db.SaveChangesAsync(ct);
+        return new Output();
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/verify-phone", async (Input input, AppDb db, VerificationTokens verification, ICurrentUser current, CancellationToken ct) =>
+            (await Handle(input, db, verification, current, ct)).ToHttp())
+            .WithName(nameof(VerifyPhone))
+            .RequireAuthorization();
+}

@@ -30,8 +30,7 @@ public sealed class UnboundedMaterializationAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new(
         id: DiagnosticId,
         title: "A slice must not materialize an unbounded set",
-        messageFormat: "'{0}' materializes a DbSet-rooted query with no bound — page it with ToPageAsync or "
-                     + "write the bound down with Take",
+        messageFormat: "{0}",
         category: "Skies.Framework.Convention",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -79,7 +78,17 @@ public sealed class UnboundedMaterializationAnalyzer : DiagnosticAnalyzer
             if (expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax inner } step)
             {
                 if (Bounds.Contains(inner.Name.Identifier.Text))
+                {
+                    if (inner.Name.Identifier.Text == "Take"
+                        && step.ArgumentList.Arguments.FirstOrDefault()?.Expression is LiteralExpressionSyntax literal
+                        && literal.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.NumericLiteralExpression))
+                        // A bare number is how a guess ("500 is surely enough") passes for a decision and later
+                        // truncates silently; the ladder asks for a named bound.
+                        context.ReportDiagnostic(Diagnostic.Create(Rule, literal.GetLocation(),
+                            $"'Take({literal.Token.ValueText})' bounds the query with a bare number — name the bound (a const "
+                            + "such as MaxQueue, with a comment saying why the set is that small) or page it with ToPageAsync"));
                     return;
+                }
                 if (inner.Name.Identifier.Text == "Where" && step.ArgumentList.Arguments.Any(a => ParentScopes(a.Expression)))
                     return;
                 expression = inner.Expression;
@@ -103,7 +112,9 @@ public sealed class UnboundedMaterializationAnalyzer : DiagnosticAnalyzer
                 return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, member.Name.GetLocation(), member.Name.Identifier.Text));
+        context.ReportDiagnostic(Diagnostic.Create(Rule, member.Name.GetLocation(),
+            $"'{member.Name.Identifier.Text}' materializes a DbSet-rooted query with no bound — page it with ToPageAsync "
+            + "or write the bound down with a named Take"));
     }
 
     private static bool InsideSlice(SyntaxNode node) =>

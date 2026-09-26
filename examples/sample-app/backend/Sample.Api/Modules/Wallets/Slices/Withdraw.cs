@@ -9,8 +9,7 @@ namespace Sample.Api.Modules.Wallets;
 /// balance cannot cover the amount — so no slice can bypass it and the balance stays authoritative
 /// server-side. The slice only orchestrates: validate input, load, delegate, persist. It is idempotent: a
 /// request carrying an Idempotency-Key is applied at most once — a retry replays the recorded outcome instead
-/// of debiting again; its module's Wallets.spec.toml declares the
-/// "idempotency-key-honored" criterion for it, proven by the [AVP] test beside it.
+/// of debiting again (spec 0002, FM-5).
 /// </remarks>
 [Slice]
 public static class Withdraw
@@ -30,7 +29,7 @@ public static class Withdraw
             return validation.ToError();
 
         // Idempotency: a retried request carrying the same key replays the recorded outcome instead of
-        // debiting again. This seam is what makes idempotency-key-honored provable (AVP).
+        // debiting again.
         if (!string.IsNullOrEmpty(idempotencyKey) && idem.TryGet(idempotencyKey, out var prior))
             return new Output(input.WalletId, prior);
 

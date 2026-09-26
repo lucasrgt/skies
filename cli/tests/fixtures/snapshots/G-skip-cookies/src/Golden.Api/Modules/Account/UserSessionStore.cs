@@ -1,0 +1,62 @@
+using Skies.Framework.Auth;
+using Microsoft.EntityFrameworkCore;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>The Account module's side of refresh sessions: the <see cref="UserSession"/> table behind the framework's
+/// <see cref="RefreshSessions"/>. Plain data access with no decisions in it; rotation, reuse detection, the family burn,
+/// and the age ceiling are the package's, so a fix to them arrives with a version bump. Registered by the
+/// <c>AddSkiesAuth</c> call in <see cref="AccountModule"/>.</summary>
+public sealed class UserSessionStore(AppDb db) : IRefreshSessionStore
+{
+    public async Task<RefreshSlot?> FindAsync(string tokenHash, CancellationToken ct) =>
+        await db.UserSessions.FirstOrDefaultAsync(s => s.TokenHash == tokenHash, ct) is { } session ? Slot(session) : null;
+
+    public Task<DateTime> FamilyStartedAtAsync(Guid familyId, CancellationToken ct) =>
+        db.UserSessions.Where(s => s.FamilyId == familyId).MinAsync(s => s.CreatedAt, ct);
+
+    public async Task AddAsync(RefreshSlot slot, CancellationToken ct)
+    {
+        db.UserSessions.Add(Start(slot));
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<bool> TryRotateAsync(RefreshSlot spent, DateTime usedAt, RefreshSlot next, CancellationToken ct)
+    {
+        var session = await db.UserSessions.FindAsync([spent.Id], ct);
+        if (session is null)
+            return false;
+        session.MarkUsed(usedAt);
+        db.UserSessions.Add(Start(next));
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // A concurrent refresh of the same live token won the RowVersion check (a cookie shared across tabs).
+            // Only a relational provider raises this; the in-memory store never does.
+            return false;
+        }
+    }
+
+    public async Task RemoveFamilyAsync(Guid familyId, CancellationToken ct)
+    {
+        db.UserSessions.RemoveRange(await db.UserSessions.Where(s => s.FamilyId == familyId).ToListAsync(ct));
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task RemoveUserSessionsAsync(Guid userId, Guid? keepFamilyId, CancellationToken ct)
+    {
+        var sessions = await db.UserSessions.Where(s => s.UserId == userId).ToListAsync(ct);
+        db.UserSessions.RemoveRange(sessions.Where(s => s.FamilyId != keepFamilyId));
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static UserSession Start(RefreshSlot slot) =>
+        UserSession.Start(slot.UserId, slot.FamilyId, slot.TokenHash, slot.CreatedAt, slot.ExpiresAt).Value;
+
+    private static RefreshSlot Slot(UserSession s) =>
+        new(s.Id, s.UserId, s.FamilyId, s.TokenHash, s.CreatedAt, s.ExpiresAt, s.UsedAt);
+}

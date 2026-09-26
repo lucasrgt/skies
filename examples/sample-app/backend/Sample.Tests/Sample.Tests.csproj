@@ -8,14 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <!-- AVP verifiers for failure modes tagged [avp: ...] in spec.md; the spec E2E save their verdicts as evidence. -->
+    <PackageReference Include="Assay.Net" Version="0.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
-    <!-- The published AVP backend adapter runs the [AVP] runtime proofs that Doctor 2 requires.
-         The framework depends on AVP, never the reverse. -->
-    <PackageReference Include="Assay.Net" Version="0.4.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,11 +26,15 @@
     <ProjectReference Include="..\Sample.Api\Sample.Api.csproj" />
     <ProjectReference Include="..\..\..\..\src\Skies.Framework.Testing\Skies.Framework.Testing.csproj" />
     <ProjectReference Include="..\..\..\..\src\Skies.Framework.Testing.InMemory\Skies.Framework.Testing.InMemory.csproj" />
+    <!-- The doctor runs here too: every test lives in a spec, and SKY0029 flags one compiled from anywhere else.
+         Remove this line and the tests still build and run (Law 2). -->
+    <ProjectReference Include="..\..\..\..\analyzers\Skies.Framework.Doctor\Skies.Framework.Doctor.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Co-located tests: the files live next to the slice in src/, compiled here. -->
-    <Compile Include="..\Sample.Api\**\*.Tests.cs" />
+    <!-- Every test lives in a spec: each .specs/<id>/e2e/ folder is compiled here and run by `skies proof`, and
+         nothing else is. An isolated system (Money) gets its own spec, not a co-located *.Tests.cs. -->
+    <Compile Include="..\..\.specs\*\e2e\**\*.cs" />
   </ItemGroup>
 
 </Project>

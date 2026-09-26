@@ -1,0 +1,87 @@
+using Skies.Framework.Auth;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+
+namespace Golden.Api.Modules.Billing.Realtime;
+
+/// <summary>PaymentsHub — the live layer for Billing. Keep it wire, not logic: a hub method persists nothing
+/// itself; a durable write goes through the matching slice (the one source of the write and its rules) and the hub
+/// fans the result out to the room. Ephemeral signals (typing, presence) ride the hub and never touch the database. The
+/// connection is JWT-authenticated, so the caller comes from <c>Context.User</c> via
+/// <see cref="ClaimsCurrentUser"/> — the request-scoped <c>ICurrentUser</c> reads the HTTP context, which
+/// a hub method does not have.</summary>
+/// <remarks>Rooms are scoped to the caller's org: the group a room key names is derived from the org claim of the
+/// caller's access token plus the key, so two orgs using the same key ("general") never share a room, and no client
+/// can name another org's group. A connection broadcasts only to a room it has joined, and joining asks
+/// <see cref="MayEnter"/>, the place for the module's own participation rule.</remarks>
+[Authorize]
+public sealed class PaymentsHub : Hub
+{
+    private const int MaxRoomKeyLength = 128;
+
+    private ICurrentUser Caller => new ClaimsCurrentUser(Context.User);
+
+    /// <summary>The groups this connection joined, kept per connection so a broadcast can check membership.</summary>
+    private HashSet<string> Joined =>
+        (HashSet<string>)(Context.Items.TryGetValue(nameof(Joined), out var joined)
+            ? joined!
+            : Context.Items[nameof(Joined)] = new HashSet<string>(StringComparer.Ordinal));
+
+    /// <summary>Subscribe this connection to a room of the caller's org.</summary>
+    public async Task JoinRoom(string room)
+    {
+        var group = GroupOf(room);
+        if (!MayEnter(Caller, room))
+            throw new HubException("You may not join this room.");
+        await Groups.AddToGroupAsync(Context.ConnectionId, group);
+        Joined.Add(group);
+    }
+
+    /// <summary>Unsubscribe this connection from a room of the caller's org.</summary>
+    public async Task LeaveRoom(string room)
+    {
+        var group = GroupOf(room);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, group);
+        Joined.Remove(group);
+    }
+
+    /// <summary>Broadcast to the rest of a room this connection joined. For a durable message, call the matching slice
+    /// first to persist it (passing <c>Caller</c> as the ICurrentUser), then broadcast the saved result here. The
+    /// message is a typed, bounded record: the hub relays only what the room's clients are written to read.</summary>
+    public Task Broadcast(string room, PaymentsMessage message)
+    {
+        var group = GroupOf(room);
+        if (!Joined.Contains(group))
+            throw new HubException("Join the room before broadcasting to it.");
+        if (message is null || !message.IsWithinBounds)
+            throw new HubException(
+                $"A message needs a kind of at most {PaymentsMessage.MaxKindLength} characters and a text of at most {PaymentsMessage.MaxTextLength}.");
+        return Clients.OthersInGroup(group).SendAsync("Receive", message);
+    }
+
+    /// <summary>The participation rule: whether <paramref name="caller"/> may enter <paramref name="room"/> of their
+    /// own org. Every signed-in member of the org may, by default; narrow it to the module's rule (the caller is in
+    /// the conversation, owns the order) before shipping a room that is not org-wide.</summary>
+    private static bool MayEnter(ICurrentUser caller, string room) => caller.IsAuthenticated;
+
+    /// <summary>The SignalR group for a room key, derived from the caller's org claim, never from the client alone.</summary>
+    private string GroupOf(string room)
+    {
+        if (string.IsNullOrWhiteSpace(room) || room.Length > MaxRoomKeyLength)
+            throw new HubException("A room key is required, at most 128 characters.");
+        return $"org:{Caller.OrgId:N}/room:{room}";
+    }
+}
+
+/// <summary>What a room's clients send and receive: a kind the clients switch on ("typing", "paid") and its text.
+/// Bounded, so one connection cannot fan an arbitrarily large payload out to a whole room; widen the shape (not to
+/// <c>object</c>) when the module's messages need more.</summary>
+public sealed record PaymentsMessage(string Kind, string Text)
+{
+    public const int MaxKindLength = 64;
+
+    public const int MaxTextLength = 4000;
+
+    public bool IsWithinBounds =>
+        !string.IsNullOrWhiteSpace(Kind) && Kind.Length <= MaxKindLength && Text is not null && Text.Length <= MaxTextLength;
+}

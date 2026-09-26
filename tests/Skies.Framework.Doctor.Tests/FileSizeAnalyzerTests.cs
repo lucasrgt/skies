@@ -24,7 +24,7 @@ public class FileSizeAnalyzerTests
             TestBehaviors = TestBehaviors.SkipSuppressionCheck,
         };
         test.TestState.ExpectedDiagnostics.Add(
-            new DiagnosticResult(FileSizeAnalyzer.DiagnosticId, DiagnosticSeverity.Error)
+            new DiagnosticResult(FileSizeAnalyzer.DiagnosticId, DiagnosticSeverity.Warning)
                 .WithSpan(1, 1, 1, 1));
         return test.RunAsync();
     }

@@ -8,30 +8,24 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Skies.Framework.Doctor;
 
 /// <summary>
-/// SKY0013 — a type marked <c>[ValueObject]</c> must be <em>always-valid by construction</em>: immutable,
-/// with no public constructor and no public setter, built only through a static smart constructor that
-/// returns a <c>Result&lt;T&gt;</c> (the <c>Money.From</c> shape). The payoff is that an invalid instance can
-/// never exist, so there is no "validate afterwards" step a caller can forget — the type itself is the rule.
-///
-/// The rule matches the <c>[ValueObject]</c> attribute by simple name, so a project does not need to
-/// reference Skies.Framework.Abstractions for the doctor to enforce the shape.
+/// Keeps value objects immutable and routes explicit construction through a Result-returning factory.
+/// Factories own validation. Structs still admit default(T); choose a class when the zero state is invalid.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ValueObjectAnalyzer : DiagnosticAnalyzer
 {
-    /// <summary>The identifier reported for a value object that is not always-valid by construction.</summary>
+    /// <summary>The identifier reported for a value object that is not encapsulated.</summary>
     public const string DiagnosticId = "SKY0013";
 
     private static readonly DiagnosticDescriptor Rule = new(
         id: DiagnosticId,
-        title: "Value object must be always-valid by construction",
+        title: "Value object must encapsulate construction and state",
         messageFormat: "Value object '{0}' {1}",
         category: "Skies.Framework.Convention",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description: "A [ValueObject] is immutable and built only through a static smart constructor "
-                   + "returning Result<T> — no public constructor, no public setter — so an invalid "
-                   + "instance can never exist (the Money.From shape).");
+                   + "returning Result<T> — no public constructor, no public setter (the Money.From shape).");
 
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
@@ -56,7 +50,7 @@ public sealed class ValueObjectAnalyzer : DiagnosticAnalyzer
         var at = type.Identifier.GetLocation();
 
         // A primary/positional constructor (record positional params or a C# 12 primary ctor) is a public
-        // way in that skips the smart constructor — so it defeats the always-valid guarantee.
+        // way in that skips the smart constructor — so construction no longer goes through that factory.
         if (type.ParameterList is not null)
             Report(context, at, name, "must not expose a primary/positional constructor — build it through a "
                                     + "static smart constructor returning Result<" + name + "> (e.g. From)");
@@ -66,14 +60,20 @@ public sealed class ValueObjectAnalyzer : DiagnosticAnalyzer
                 "must not expose a public constructor — build it through a static smart constructor "
                 + "returning Result<" + name + "> (e.g. From)");
 
+        if (type is ClassDeclarationSyntax || type.IsKind(SyntaxKind.RecordDeclaration))
+        {
+            if (type.ParameterList is null && !type.Members.OfType<ConstructorDeclarationSyntax>().Any(c => !c.Modifiers.Any(SyntaxKind.StaticKeyword)))
+                Report(context, at, name, "must declare a private constructor; the implicit constructor is public");
+        }
+
         if (!HasSmartConstructor(type, name))
             Report(context, at, name, "must declare a public static smart constructor returning Result<" + name
                                     + "> (e.g. From) — the only way to build a valid instance");
 
         foreach (var prop in type.Members.OfType<PropertyDeclarationSyntax>().Where(HasPublicSetter))
             Report(context, prop.Identifier.GetLocation(), name,
-                "must be immutable — property '" + prop.Identifier.Text + "' has a public setter; use "
-                + "'{ get; }' or '{ get; init; }'");
+                "must be immutable — property '" + prop.Identifier.Text + "' has a public setter or init accessor; use "
+                + "'{ get; }' or a private init accessor");
     }
 
     // A public/internal static method whose return type is Result<Name> — the smart constructor.
@@ -87,7 +87,7 @@ public sealed class ValueObjectAnalyzer : DiagnosticAnalyzer
     {
         if (!IsAccessible(prop.Modifiers))
             return false;
-        var setter = prop.AccessorList?.Accessors.FirstOrDefault(a => a.IsKind(SyntaxKind.SetAccessorDeclaration));
+        var setter = prop.AccessorList?.Accessors.FirstOrDefault(a => a.IsKind(SyntaxKind.SetAccessorDeclaration) || a.IsKind(SyntaxKind.InitAccessorDeclaration));
         return setter is not null && !RestrictsAccess(setter.Modifiers);
     }
 
@@ -96,8 +96,7 @@ public sealed class ValueObjectAnalyzer : DiagnosticAnalyzer
         || modifiers.Any(SyntaxKind.ProtectedKeyword);
 
     private static bool RestrictsAccess(SyntaxTokenList modifiers) =>
-        modifiers.Any(SyntaxKind.PrivateKeyword) || modifiers.Any(SyntaxKind.ProtectedKeyword)
-        || modifiers.Any(SyntaxKind.InternalKeyword);
+        modifiers.Any(SyntaxKind.PrivateKeyword) && !modifiers.Any(SyntaxKind.ProtectedKeyword);
 
     private static bool IsValueObject(TypeDeclarationSyntax type) =>
         type.AttributeLists.SelectMany(list => list.Attributes).Select(attr => attr.Name.ToString())

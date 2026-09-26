@@ -1,0 +1,53 @@
+import type { ReactNode } from "react";
+import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { DepositView } from "../../../frontend/web/src/deposit/Deposit.view";
+
+// The Deposit screen through its View and ViewModel, against the real generated client (the HTTP layer is an MSW
+// stand-in, .specs/web.setup.ts). Success replaces the form; a routed app would <Navigate> (SKYFE015).
+function wrapper({ children }: { children: ReactNode }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+afterEach(cleanup);
+
+// RFC 4122-valid v4 UUIDs (zod's z.uuid() checks version/variant bits, not just the shape).
+const VALID_WALLET = "11111111-1111-4111-8111-111111111111";
+const MISSING_WALLET = "99999999-9999-4999-8999-999999999999";
+
+function fill(wallet: string, amount: string) {
+  fireEvent.change(screen.getByLabelText("Wallet"), { target: { value: wallet } });
+  fireEvent.change(screen.getByLabelText("Amount"), { target: { value: amount } });
+}
+
+describe("Deposit screen", () => {
+  it("FM-1: an invalid submit is blocked with field errors inside the Field anatomy", async () => {
+    render(<DepositView />, { wrapper });
+    fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts).toHaveLength(2);
+    // Still the form: an invalid submit never reaches the wire.
+    expect(screen.getByRole("heading", { name: "Deposit" })).toBeTruthy();
+  });
+
+  it("FM-2: a valid submit announces while pending, then reaches the success surface", async () => {
+    render(<DepositView />, { wrapper });
+    fill(VALID_WALLET, "50");
+    fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
+    await waitFor(() => expect(screen.getByRole("button").getAttribute("aria-busy")).toBe("true"));
+    expect(await screen.findByText("Deposit complete")).toBeTruthy();
+  });
+
+  it("FM-3: a command failure surfaces as a role=alert block and keeps the form", async () => {
+    render(<DepositView />, { wrapper });
+    fill(MISSING_WALLET, "50");
+    fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
+    const alert = await screen.findByText("We couldn't complete the deposit. Try again.");
+    expect(alert.getAttribute("role")).toBe("alert");
+    expect(screen.getByLabelText("Wallet")).toBeTruthy();
+  });
+});

@@ -1,0 +1,41 @@
+# Skies workspace manifest: this app's topology and the runners that execute spec E2E. One Skies.toml per
+# repo, at the root.
+
+[workspace]
+name = "Skies.Framework.Starter"
+# Everything allowed at the repository root; `skies doctor` flags anything else (SKYWS001). A trailing / names a
+# folder, no slash a file, and globs work (*.slnx). A new file belongs under an existing folder; add a line here only
+# for a new top-level concern (`skies g web-app --path clients/web` adds "clients/"). The usual root files join the
+# list when you create them, not before: the doctor also warns on a line that matches nothing (SKYWS002). Add them as
+# they arrive: "LICENSE", ".env.example", "docker-compose.yml", "global.json", "nuget.config". Skies.toml and .git are
+# always allowed.
+root = [
+  ".claude/",
+  ".github/",
+  ".specs/",
+  "src/",
+  "tests/",
+  ".editorconfig",
+  ".gitignore",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "Directory.Build.props",
+  "README.md",
+  "*.slnx",
+]
+
+[products.app]
+backend = "src/Skies.Framework.Starter.Api"   # .NET vertical slices; the SKY* analyzers run in its build
+tests = "tests/Skies.Framework.Starter.Tests" # compiles every spec's e2e/; `skies doctor` builds it (and the backend)
+# frontend = "clients/web"                     # a React or Flutter package (`skies g web-app` declares its own)
+
+# Every test lives in a spec: .specs/<id>-<slug>/e2e/ holds its cases, titled "FM-<n>: ...". There is no other
+# place for a test, unit or not (SKY0029, SKYFE036, SKYFL036); an isolated system gets its own spec.
+# A runner executes one spec's e2e/ folder and writes a JUnit or TRX report that `skies proof` reads back.
+# Placeholders: {id} (0001), {dir} (.specs/0001-auth/e2e), {spec} (0001-auth), {report} (the report path), and
+# {evidence} (where a case saves artifacts to commit, also $SKIES_EVIDENCE). Specs name their runner in spec.md
+# (`runner: api`). Optional keys: `setup` (once per checkout, e.g. start a database) and `build` (compile once, so
+# `command` can pass --no-build). Commands run through `sh -c`: keep the TRX logger quoted, or its `;` ends the
+# command and no report is written.
+[runners.api]
+command = "dotnet test tests/Skies.Framework.Starter.Tests --filter FullyQualifiedName~Specs.S{id}. --logger 'trx;LogFileName={report}'"

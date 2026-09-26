@@ -1,193 +1,103 @@
-# Skies — Operating manual for AI agents
+# Skies — operating manual for AI agents
 
-Skies is the **opinionated convention bundle for .NET, Node.js, React, and Flutter**: standardized vertical-slice
-architecture + removable build-time doctors + an ai-context discipline, so an LLM has less to decide
-and what it writes is enforced. It is the **Rails mindset** — the mentality (convention over configuration,
-quality control, semantic density), **not** the mechanism (no runtime metaprogramming, no language).
-Reference codebase: `rails/rails`.
+Skies is the **opinionated convention bundle for .NET, React, and Flutter**: a standard vertical-slice and MVVM
+architecture, architecture-only doctors, scaffolders, and spec receipts, so an LLM has less to decide and what it
+writes is checked. It is the Rails mindset (convention over configuration, semantic density), not the Rails
+mechanism: no runtime metaprogramming, no language. Reference codebase: `rails/rails`.
 
-> This is **not** the Skies language (the Rust project — parked). Same name, same soul
-> (semantic density for the AI + CoC), different bodies: plain, idiomatic C#, TypeScript, and Dart. The detailed
-> guidance below describes the established .NET engine; `node-sdk/AGENTS.md` specializes it for Node.js.
+## The three laws
 
-Mirrored verbatim at `AGENTS.md` for tooling that loads it (Codex, Aider, etc.).
+1. **Stranger-maintainable.** Output is plain, idiomatic C#, TypeScript, or Dart that a developer who never heard of
+   Skies can read and maintain.
+2. **Doctor-removable.** Remove the Roslyn analyzer, the ESLint plugin, or the Flutter rules and the app still
+   compiles and runs; only enforcement is lost.
+3. **Evidence over apparatus.** A feature is accepted by a reproducible receipt in its spec folder. The framework
+   ships no gate, no hook, no check that audits the agent, and no doctor rule that demands a test, tag, or manifest. Within an authored spec, the proof engine requires
+   explicit AVP applicability decisions and reviewed exemptions.
 
----
-
-## The two laws (never violate)
-
-1. **Stranger-maintainable.** The output is always plain, idiomatic code that a platform developer who
-   has never heard of Skies can read and maintain: C# for .NET, TypeScript for Node.js.
-2. **Doctor-removable.** Remove the Roslyn analyzer or ESLint plugin and the project still **compiles and
-   runs** — you only lose enforcement. The harness is wire, not apparatus.
-
-Any feature that fails both — hidden source-gen of behavior, a DSL, a runtime you inherit
-from, magic discovery — is **out, by construction**.
-
-The goal is **not "less code"**. It is **semantic density**: more meaning per token for the
-AI (rich types, standardized shapes, co-located context). Token savings follow; they are not
-the target.
-
----
+A proposal that breaks one of these — hidden source generation of behavior, a DSL, a base class, magic discovery,
+a new gate — is out. Reject it in line.
 
 ## Repository layout
 
 ```
-src/Skies.Framework.Abstractions/      The thin wire: Result<T>, Error, Validation, [Slice], [ValueObject], [Entity]. A normal dependency.
-src/Skies.Framework.AspNetCore/        The HTTP boundary: ToHttp, ErrorBody, AddSkies/UseSkies, slice-aware OpenAPI.
-src/Skies.Framework.Auth/ + others     The optional component standards (auth, mail, sms, storage, testing) — each a small package.
-src/Skies.Framework.Cli/               `skies` — scaffolders (module/slice/entity/vo/…) that emit doctor-conformant code.
-analyzers/Skies.Framework.Doctor/      SHIPPED harness. SKY* rules + the CA* security-floor globalconfig — run on the USER's code.
-analyzers/Skies.Framework.SelfHarness/ FRAMEWORK-DEV ONLY. SKYSELF* rules — run on OUR code. Never shipped.
-frontend-sdk/                 The front half: @skiesjs/react (the spine), @skiesjs/eslint-plugin (SKYFE* rules), tools/ (doctors).
-flutter-sdk/                  The Flutter body: skies_flutter spine, pinned dart-dio wrapper, MVVM scaffolder, and SKYFL doctor.
-node-sdk/                     The Node.js backend: @skiesjs/core, Express adapter, SKYN doctor, CLI, and sample API.
-examples/sample-app/          The reference .NET app + canonical slice (backend/Sample.Api, Sample.Tests, frontend/).
-templates/skies-app/         The `skies new` starter the CLI scaffolds from.
-build/Skies.Framework.Library.props    The library standard, declared once.
-docs/CONVENTIONS.md           The backend constitution + slice shape + full SKY* rule catalog.
-docs/FRONTEND-CONVENTIONS.md  The frontend constitution + MVVM shape + full SKYFE* rule catalog.
-docs/FLUTTER-CONVENTIONS.md   The Flutter specialization + dart-dio wire + SKYFL structural band.
-docs/DESIGN-CONVENTIONS.md    The design constitution: token taxonomy + closed kit shape + the SKYFE design band.
+cli/                               The `skies` binary (Rust): scaffolders, doctor, spec/proof engine, migrate.
+  templates/                       Embedded templates: app (skies new), dotnet generators, react, flutter.
+src/Skies.Framework.*/             .NET runtime packages: Abstractions, AspNetCore, Auth, EF Core, ports, Testing.
+analyzers/Skies.Framework.Doctor/  SHIPPED SKY#### Roslyn rules (architecture only) + the CA* security floor.
+analyzers/Skies.Framework.SelfHarness/  FRAMEWORK-DEV ONLY SKYSELF#### rules on our own .NET code. Never shipped.
+frontend-sdk/packages/             @skiesjs/react (spine) and @skiesjs/eslint-plugin (SKYFE### rules): React for the web.
+flutter-sdk/packages/skies_flutter/  The Flutter spine: Flutter for mobile, and for the web too.
+examples/sample-app/               The reference app: Wallets backend, React web package, and .specs/ with receipts.
+docs/                              Conventions (backend, frontend, Flutter), monorepo, migration, decisions.
+skies-plugin/                      The agent plugin: the skies-sdd skill, context, and docs/ synced from docs/.
+.specs/                            This repository's own specs (the Skies 5 plan lives in 0008).
 ```
 
-Ground every convention fact in `docs/CONVENTIONS.md` / `docs/NODE-CONVENTIONS.md` /
-`docs/FRONTEND-CONVENTIONS.md` / `docs/DESIGN-CONVENTIONS.md`, never memory.
-Include `docs/FLUTTER-CONVENTIONS.md` for Flutter work.
-
----
+Ground every convention fact in `docs/CONVENTIONS.md`, `docs/FRONTEND-CONVENTIONS.md`, and
+`docs/FLUTTER-CONVENTIONS.md`, never memory.
 
 ## The bar for code you write here
 
-Every `Skies.Framework.*` library file is held to the self-harness. Write to it from the start:
+- **Files at or under 500 lines.** Past it, extract a concern (`SKYSELF001` on .NET; the same rule by review for
+  Rust, TypeScript, and Dart).
+- **Documentation that explains why.** Every public .NET member carries XML docs (`CS1591` is an error); Rust items
+  carry doc comments. Lead with why, not what.
+- **No junk comments.** No TODO/FIXME/HACK/XXX, no tracking codes, no materialized agent thoughts (`SKYSELF002`).
+- **Tests prove behavior.** Framework library tests under `tests/` prove each package's public API. Anything an
+  application sees (the sample, generated apps) is proven by specs: every such test lives in a `.specs/` folder
+  (`SKY0029`, `SKYFE036`, `SKYFL036`).
 
-- **File at or under 500 lines.** Past it, extract a concern — do not pack (`SKYSELF001`).
-- **Gold-standard XML docs on every public member.** Missing docs are a build error
-  (`CS1591`). Lead with *why*, not *what*; use `<inheritdoc/>` on overrides.
-- **No junk comments.** No `TODO`/`FIXME`/`HACK`/`XXX`, no tracking codes (`WAR-001`,
-  `SPEC-001`), no materialized AI thoughts (`SKYSELF002`). Only documentation worth reading.
-- **Tests with intent**, not `1 + 1 == 2`. A test states a behavior the code must keep.
+If a build fails on `SKYSELF*` or `CS1591`, fix the code; never suppress the rule.
 
-If the build fails on `SKYSELF*`/`CS1591`, **fix the code — never suppress the rule.** The
-target is source a Microsoft .NET MVP would read and be proud of.
-
----
-
-## Build & verify — green before you are done
+## Build and test
 
 ```
-dotnet build Skies.Framework.slnx     # the .NET doctor + self-harness
-dotnet test  Skies.Framework.slnx     # the .NET slice tests
-npm --prefix node-sdk run check       # the Node.js doctor, typecheck, and tests
-npm --prefix flutter-sdk run check    # dart-dio smoke, Flutter analyze, and tests
+cargo test && cargo clippy -- -D warnings                 # the skies binary
+dotnet build Skies.Framework.slnx && dotnet test Skies.Framework.slnx
+npm --prefix frontend-sdk run check                       # typecheck, lint, tests
+(cd flutter-sdk/packages/skies_flutter && flutter analyze && flutter test)
+tools/auth-smoke.sh                                       # generated apps on the packed packages: doctor-clean, specs green
+tools/web-smoke.sh && tools/flutter-smoke.sh              # the React and Flutter paths end to end (Node; Flutter + Java)
+tools/proof-smoke.sh                                      # proof run + record through the binary (CI runs it on Windows)
+tools/release-check.sh target/debug/skies                 # npm pack, the launcher, and set-version on a copy
+tools/sync-plugin-docs.sh                                 # after editing docs/*CONVENTIONS.md, docs/AUTH.md, or the CLI help
 ```
 
-Green platform gates mean the conventions are held. Never leave an affected workspace red.
+Run what your change touches. Leave every affected workspace green.
 
-Cross-runtime capability work is also governed by `parity/skies.parity.json`. Run `npm run test:parity` and
-`npm run check:parity -- --base <revision>` when a .NET or Node runtime contract changes. A change under a declared
-implementation scope must include its peer-runtime scope or an owned, justified, expiring deferment for the missing
-side. Add new behavior to the manifest rather than annotating TypeScript: parity metadata stays external and
-removable, never in decorators, JSDoc, reflection, or runtime code.
+- A template change moves the generator snapshots: re-bless with `SKIES_BLESS=1 cargo test --test generators` and
+  review the fixture diff. `cli/templates/app/.claude/skills/skies-sdd/SKILL.md` is a verbatim copy of
+  `skies-plugin/skills/skies-sdd.md`; edit both.
+- The sample is an app like any other: its web specs' stand-in backend is `examples/sample-app/.specs/web.setup.ts`,
+  not a `frontend-sdk` file. After an edit to the sample's code or specs, run the specs it reaches (`skies proof
+  impact <paths>`, then `skies proof run <id>` from `examples/sample-app/`); re-record a receipt only when its failure
+  modes change.
 
----
+## The doctor vs the self-harness
 
-## The doctor vs the self-harness — keep them separate
+- **`SKY*` (`Skies.Framework.Doctor`)** runs on the user's code and ships. **`SKYSELF*`** runs on ours, is
+  `IsPackable=false`, and never enters a published artifact.
+- A new doctor rule must enforce architecture and be born from observed drift in a real application. A rule that
+  would require a test, a tag, or a manifest to exist is out by the third law.
 
-- **`SKY*` (`Skies.Framework.Doctor`)** — rules on the **user's** code. Shipped. Enforces the slice
-  convention (e.g. `SKY0001`: a `[Slice]` is a static class with a nested `Input` and `Output`, a
-  `Handle` returning `Task<Result<T>>`, and a `Map`).
-- **`SKYSELF*` (`Skies.Framework.SelfHarness`)** — rules on **our own** code. `IsPackable=false`,
-  referenced with `ReferenceOutputAssembly="false"`. **Never packaged, never in the
-  production CLI or the published `Skies.Framework.Doctor`.** This is the `skies` vs `skies-dev`
-  split: framework-dev tooling stays out of the published surface, always.
+## Scope discipline
 
-New framework-dev tooling never lands on the published surface.
+The cautionary tales are concrete. **The predecessor language** died owning a compiler. **Aerocoding** died from
+scope explosion. **Skies 4** grew a verification gate larger than the framework it verified. So:
 
----
+- No source generation of behavior. No vendor adapters in core. No runtime framework to inherit from.
+- `[Slice]` stays a pure marker; `.ctx.md` stays prose.
+- New tooling goes into the Rust binary, is invoked on purpose, and never blocks by default.
 
-## Scope discipline — the anti-drift guardrails
+## Package-first releases
 
-The two cautionary tales are concrete. **The predecessor language** died from owning a compiler
-(gargantuan apparatus, generated non-code, zero adoption). **Aerocoding** died from scope
-explosion (a generator that metastasized into a full-SaaS meta-framework + frontend sprawl +
-28K LOC of specs for unbuilt features). Do not repeat either:
-
-- **No source-gen of behavior.** Plumbing only, if ever — and not yet. A source generator is
-  a mini-compiler: the source-gen vector. Behavior always stays visible in the slice.
-- **No vendor adapters in core.** Ship the *standard* a component follows, not the plugins.
-- **No source-gen of UI behavior, no realtime *on by default*, no multi-app sprawl.** The
-  aerocoding failure modes — designed out. *Nuance (so this never reads as a ban):* the frontend
-  is written once, owned by the app, and enforced, never re-generated; real-time is **opt-in**
-  via `skies g hub` (CONVENTIONS.md §"Real-time — hubs"). The failure mode is the sprawl/source-gen,
-  not the capability.
-- **No runtime framework you inherit from.** Conventions + analyzers, not base classes.
-- **`[Slice]` stays a pure marker; `.ctx.md` stays prose.** Reject fattening either into a
-  mini-language.
-
-When a proposal smells like *capability* instead of *convention + enforcement*, it is a scope
-violation. Reject in line — do not defer it to a checklist.
-
----
-
-## The package-first law — how a change reaches the pilots
-
-The pilots consume this framework **only as versioned NuGet/npm packages — never as source copies, and never
-the other way around**. Framework-shaped code
-(a rule, a primitive, a converter, a harness mechanism) lands HERE first; a pilot prototyping one inline
-is the failure mode that buried half this framework inside hostpoint for months. The release loop:
-
-1. Implement + test here. Bump `<Version>` in `build/Skies.Framework.Library.props` when the wave is meaningful.
-2. `dotnet pack Skies.Framework.slnx -c Release -o local-feed` — the pilots' `nuget.config` fronts nuget.org with
-   this feed. **Re-packing the same version requires purging the consumer cache**
-   (`rm -rf ~/.nuget/packages/<package>/<version>`) or the pilot keeps restoring the stale bits.
-3. In each pilot: bump the `Skies*`, `@skiesjs/eslint-plugin`, and `@skiesjs/react` package
-   versions, refresh the lockfiles, and fix what the new doctors reveal. The fallout IS the feature.
-
-Enforcement, not memory: `skies doctor` carries a **framework-sync leg** (`src/Skies.Framework.Cli/FrameworkSync.cs`)
-that fails a pilot on stale backend/frontend package versions or a retired in-repo frontend copy when the checkout
-declared in its `Skies.toml` `[framework] repo` is reachable; lint chains may delegate the same package check
-to `frontend-sdk/tools/framework-sync.mjs`. When a pilot legitimately discovers
-a framework gap mid-feature, the order is: fix it here, repack, re-restore — the same loop, just inner.
-`docs/PORTBACK-CHECKLIST.md` tracks anything that historically leaked the wrong way.
-
----
+Applications consume Skies only as versioned packages, never source copies. Framework-shaped code lands here first.
+Every package (NuGet, npm, pub, the binary) shares the version in `build/Skies.Framework.Library.props` and
+`Cargo.toml`, and they are released together.
 
 ## Git discipline
 
-- Stage specific files (`git add <path>`), never `-A`/`.`.
+- Stage specific files (`git add <path>`), never `-A` or `.`.
 - One commit per concern; lowercase, present-tense imperative messages.
-- Workspace green every commit (`dotnet build` + `dotnet test`).
-- No `--force`, no history rewrites to escape a failing hook — fix forward.
-
-<!-- skies:foundations:start -->
-## Skies foundation workflow
-
-The primary coding agent owns the complete foundation lifecycle. Never create or
-delegate one agent per foundation.
-
-1. At task start, run `dotnet tool run skies context --task "<goal>" --path <expected-path>`.
-   Treat every returned decision, invariant, way, scar, and due deferment as governing context.
-2. Rerun `dotnet tool run skies context` after scope changes, context compaction, or movement into
-   an unfamiliar area. Keep retrieval bounded with accurate task text and paths.
-3. Use the repository-local foundation skills only when a real lifecycle event occurs: accepted
-   decisions for WTW, proven patterns for RTW, corrected failures for NYA, or evidence-backed
-   conditional deferments for NWC. Never record hypothetical guidance.
-4. Run focused repository tests and linters during implementation.
-5. Before commit, stage the exact intended paths. The checked pre-commit hook runs
-   `dotnet tool run skies check --task "<completed work>" --staged`; invoke it manually only when validating
-   without committing. Staged checks remain bounded while every directly mapped proof runs.
-6. Follow the repository's single checked authority boundary. With CI authority, pre-push is
-   `--base <target-revision> --fast` and pull-request CI runs affected verification without `--fast`.
-   With local authority, the pre-push hook itself runs `--base <target-revision>` without `--fast`, and no
-   pull-request workflow is required. Never configure both as authoritative.
-7. Run the repository's explicit `--full` release command at its release boundary, locally or in release
-   automation. Bare `skies check --task ...` is intentionally invalid so an ambiguous scope cannot start a
-   surprise exhaustive run. Do not report delivery complete until its selected checked boundary is green.
-8. Allow one automatic authoritative/full attempt. After failure or interruption, stop and check whether you are in a loop.
-   Diagnose the first failure, correct its cause and run focused verification before one retry with `--retry-review <json-file>`.
-   Include PreviousAttemptId, Diagnosis, Correction and FocusedVerification. Never overlap broad checks. Exit 1 means findings;
-   exit 2 or greater means incomplete validation. Neither is a pass; focused checks do not replace the required gate.
-
-Tests, linters, review, and individual foundation commands do not replace `skies check`.
-<!-- skies:foundations:end -->
+- No `--force`, no history rewrites.

@@ -1,0 +1,22 @@
+diff --git a/frontend/web/src/items/Items.viewModel.ts b/frontend/web/src/items/Items.viewModel.ts
+index ba365eb..eb1b223 100644
+--- a/frontend/web/src/items/Items.viewModel.ts
++++ b/frontend/web/src/items/Items.viewModel.ts
+@@ -23,13 +23,14 @@ export function useItemsModel(): ItemsModel {
+   // Project the query into the spine. `errorMessage` is localized here (the spine never hardcodes copy);
+   // `isEmpty` opts an empty list into the dedicated empty state.
+   const items = toAsyncState<Item[]>(
++    // Red: the list is read as if it were already there, and an empty one is just a success.
+     {
+-      isPending: query.isPending,
++      isPending: false,
+       isError: query.isError,
+-      data: query.data?.items,
++      data: query.data?.items ?? [],
+       refetch: query.refetch,
+     },
+-    { errorMessage: i18n.t("items:error"), isEmpty: (list) => list.length === 0 },
++    { errorMessage: i18n.t("items:error") },
+   );
+ 
+   return { state: { items } };

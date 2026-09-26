@@ -1,0 +1,9 @@
+namespace __NAMESPACE__.Modules.__MODULE__;
+
+/// <summary>The __MODULE__ module's error codes: stable keys the frontend localizes from. They live here, as
+/// constants, so the full set is enumerable into the OpenAPI contract and the typed client.</summary>
+public static class __MODULE__ErrorCodes
+{
+    /// <summary>__SUMMARY__</summary>
+    public const string __CONST__ = "__VALUE__";
+}

@@ -2,6 +2,8 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Skies.Framework.Auth;
@@ -21,18 +23,34 @@ public static class JwtAccessTokenExtensions
     /// </code>
     /// Then the usual <c>app.UseAuthentication(); app.UseAuthorization();</c> in the pipeline.
     /// </example>
-    public static IServiceCollection AddJwtAccessTokens(this IServiceCollection services, string secret, string issuer, string audience)
+    /// <remarks>The host refuses to start when <paramref name="secret"/> is missing, and, outside Development, when it
+    /// is shorter than <see cref="SkiesAuthOptions.MinSecretBytes"/> bytes or a development key
+    /// (<see cref="SkiesAuthOptions.DevelopmentSecret"/>). The check runs at host start, and its message names what to
+    /// configure.</remarks>
+    /// <param name="services">The service collection.</param>
+    /// <param name="secret">The HMAC signing key, shared by the minter and the validator.</param>
+    /// <param name="issuer">The issuer minted and required.</param>
+    /// <param name="audience">The audience minted and required.</param>
+    /// <param name="accessTokenLifetime">How long a minted token lives; <see cref="AccessTokens.DefaultLifetime"/>
+    /// when omitted.</param>
+    public static IServiceCollection AddJwtAccessTokens(this IServiceCollection services, string secret, string issuer, string audience,
+        TimeSpan? accessTokenLifetime = null)
     {
+        services.AddSingleton<IValidateOptions<JwtBearerOptions>>(sp =>
+            new JwtSecretPolicy(secret, sp.GetService<IHostEnvironment>()));
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme).ValidateOnStart();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, HttpCurrentUser>();
-        services.AddSingleton<IAccessTokens>(sp => new AccessTokens(secret, issuer, audience, sp.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IAccessTokens>(sp => new AccessTokens(secret, issuer, audience, sp.GetRequiredService<TimeProvider>(), accessTokenLifetime));
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;   // else "sub" is remapped to NameIdentifier and the claims break
-                options.TokenValidationParameters = BuildValidationParameters(secret, issuer, audience);
+                // A missing secret has no key to build; JwtSecretPolicy then refuses the start with what to configure.
+                if (!string.IsNullOrEmpty(secret))
+                    options.TokenValidationParameters = BuildValidationParameters(secret, issuer, audience);
             });
 
         return services;

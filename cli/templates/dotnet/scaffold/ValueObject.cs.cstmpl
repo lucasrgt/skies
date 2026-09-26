@@ -1,0 +1,22 @@
+namespace __NAMESPACE__.BuildingBlocks;
+
+public static class __NAME__ErrorCodes
+{
+    public const string Required = "__NAME_LOWER__.required";
+}
+
+/// <summary>A non-empty value. Replace the predicate with the domain's validation.</summary>
+[ValueObject]
+public sealed record __NAME__
+{
+    public string Value { get; }
+
+    private __NAME__(string value) => Value = value;
+
+    public static Result<__NAME__> From(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+            ? Result<__NAME__>.Ok(new __NAME__(value))
+            : Error.Validation(__NAME__ErrorCodes.Required, "__NAME_LOWER__ is required");
+
+    public override string ToString() => Value;
+}

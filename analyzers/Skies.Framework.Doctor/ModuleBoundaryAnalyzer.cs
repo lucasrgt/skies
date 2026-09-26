@@ -137,7 +137,7 @@ public sealed class ModuleBoundaryAnalyzer : DiagnosticAnalyzer
         return dot < 0 ? rest : rest.Substring(0, dot);
     }
 
-    // A test file under the framework's <Concern>.Tests.cs convention (the same signal SKY0003 keys on).
+    // A test file under the framework's <Concern>.Tests.cs convention.
     private static bool IsTestFile(string? path) =>
         path is not null && path.EndsWith(".Tests.cs", System.StringComparison.Ordinal);
 

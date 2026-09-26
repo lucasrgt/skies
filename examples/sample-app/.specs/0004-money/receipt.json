@@ -1,0 +1,50 @@
+{
+  "spec": "0004-money",
+  "runner": "api",
+  "commands": {
+    "build": "dotnet build backend/Sample.Tests",
+    "command": "dotnet test backend/Sample.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\"",
+    "hash": "blake3:b4e9f2688d43e752d4c430cc96edcd3e7d6208d4dad356efa6de2a0f027848e8"
+  },
+  "red": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f",
+    "patch": "red.patch"
+  },
+  "green": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-1: zero is valid money"
+      ],
+      "message": "Assert.True() Failure\nExpected: True\nActual:   False"
+    },
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-2: a positive amount is valid and keeps its value"
+      ],
+      "message": "Assert.True() Failure\nExpected: True\nActual:   False"
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-3: a negative amount is rejected as a validation error"
+      ],
+      "message": "Assert.True() Failure\nExpected: True\nActual:   False"
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-4: adding two amounts produces their sum"
+      ],
+      "message": "System.InvalidOperationException : Result is a failure; no value to read."
+    }
+  }
+}

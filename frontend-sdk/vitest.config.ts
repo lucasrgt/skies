@@ -1,10 +1,10 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig, configDefaults } from "vitest/config";
+import { defineConfig } from "vitest/config";
 
-// Verifies the framework's spine/tools AND the canonical example (examples/sample-app) — wired, not mocked. The
-// example's agnostic core (the ViewModel + the design-system-driven View) renders against the WEB `@/ui` impl in
-// jsdom; the spine + the generated client + i18n resolve to source. Root is the repo so the example (a sibling of
-// frontend/) is in scope; the include globs keep the run to the real test files.
+// Runs the spine (@skiesjs/react) tests AND the canonical example's specs (examples/sample-app/.specs/*/e2e). The
+// example keeps every test in a spec, so its cases live there, not beside the code: the web package's ViewModels and
+// Views render against its `@/ui` kit in jsdom; the spine + the generated client + i18n resolve to source. Root is the repo so the example (a sibling of frontend/) is in scope; the include globs keep the run to the
+// real test files. The sample's `[runners.web]` runs this same config with a spec folder as the filter.
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
@@ -13,28 +13,18 @@ export default defineConfig({
     maxWorkers: 2,
     root: r(".."),
     environment: "jsdom",
-    setupFiles: [r("./vitest.setup.ts")],
-    // __fixtures__ holds textual ESLint RuleTester fixtures (including SKYFE033's fake Assay calls),
-    // not runnable suites — keep them out of the run (+ Vitest's own defaults).
-    exclude: [...configDefaults.exclude, "**/__fixtures__/**"],
+    // The framework's jsdom setup, then the sample specs' own stand-in backend (MSW), which the sample owns.
+    setupFiles: [r("./vitest.setup.ts"), r("../examples/sample-app/.specs/web.setup.ts")],
     include: [
       "frontend-sdk/packages/**/*.test.{ts,tsx}",
-      "frontend-sdk/tools/**/*.test.{ts,tsx}",
-      "frontend-sdk/tests/**/*.test.{ts,tsx}",
-      "examples/sample-app/frontend/core/**/*.test.{ts,tsx}",
-      "examples/sample-app/frontend/web/**/*.test.{ts,tsx}",
+      "examples/sample-app/.specs/*/e2e/**/*.test.{ts,tsx}",
     ],
   },
   resolve: {
     alias: {
       "@skiesjs/react": r("./packages/skies-react/src/index.ts"),
-      "assay-design": r("./node_modules/assay-design/dist/index.js"),
-      "avp-assay/react/vitest": r("./node_modules/avp-assay/dist/react/vitest.js"),
-      "avp-assay/react": r("./node_modules/avp-assay/dist/react.js"),
-      "avp-assay": r("./node_modules/avp-assay/dist/index.js"),
-      "@/client.gen/sample": r("../examples/sample-app/frontend/core/src/client.gen/sample.ts"),
-      "@/i18n": r("../examples/sample-app/frontend/core/src/i18n.ts"),
-      "@/design/tokens": r("../examples/sample-app/frontend/core/src/design/tokens.ts"),
+      "@/client.gen/sample": r("../examples/sample-app/frontend/web/src/client.gen/sample.ts"),
+      "@/i18n": r("../examples/sample-app/frontend/web/src/i18n.ts"),
       "@/ui": r("../examples/sample-app/frontend/web/src/ui/index.ts"),
       // The example lives at examples/ (a sibling of frontend/), so its direct bare imports can't reach
       // frontend/node_modules by node resolution — alias them to the framework's installed copies (their transitive
@@ -47,6 +37,7 @@ export default defineConfig({
       "react-hook-form": r("./node_modules/react-hook-form"),
       zod: r("./node_modules/zod"),
       "@hookform/resolvers": r("./node_modules/@hookform/resolvers"),
+      msw: r("./node_modules/msw"),
     },
   },
 });

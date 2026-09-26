@@ -1,0 +1,63 @@
+{
+  "spec": "0002-withdraw",
+  "runner": "api",
+  "commands": {
+    "build": "dotnet build backend/Sample.Tests",
+    "command": "dotnet test backend/Sample.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\"",
+    "hash": "blake3:b4e9f2688d43e752d4c430cc96edcd3e7d6208d4dad356efa6de2a0f027848e8"
+  },
+  "red": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f",
+    "patch": "red.patch"
+  },
+  "green": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-1: a withdrawal is reflected by the next balance read"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: 30\nActual:   0"
+    },
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-2: overdrawing answers 422 and leaves the balance untouched"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: UnprocessableEntity\nActual:   OK"
+    },
+    "FM-3": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-3: a negative amount answers 400 with an amount field error"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: BadRequest\nActual:   OK"
+    },
+    "FM-4": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-4: a missing wallet answers 404"
+      ],
+      "message": "Assert.Equal() Failure: Values differ\nExpected: NotFound\nActual:   OK"
+    },
+    "FM-5": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "FM-5: a retry with the same Idempotency-Key debits once"
+      ],
+      "message": "two different idempotency keys collapsed to one 'balance' value ('0') — a distinct key must apply again, not dedup regardless of the key.",
+      "avp": [
+        "idempotency-key-honored"
+      ],
+      "verdict": "evidence/avp-FM-5.json",
+      "red_verdict": "evidence/red.avp-FM-5.json"
+    }
+  }
+}

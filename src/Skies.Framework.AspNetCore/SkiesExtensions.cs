@@ -15,20 +15,24 @@ namespace Skies.Framework.AspNetCore;
 /// </summary>
 public static class SkiesExtensions
 {
-    /// <summary>Register Skies's universal conventions: the slice-aware OpenAPI document and enum-as-name JSON.</summary>
+    /// <summary>Register Skies's universal conventions: the slice-aware OpenAPI document, enum-as-name JSON, and the
+    /// CORS services <see cref="CorsExtensions.UseSkiesCors"/> applies when origins are configured.</summary>
     public static IServiceCollection AddSkies(this IServiceCollection services)
     {
         services.AddSkiesOpenApi();
+        services.AddCors();
         // Enums cross the wire as their names ("host", not 0) — readable, and stable against reordering.
         services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         return services;
     }
 
-    /// <summary>Serve Skies's framework endpoints — the OpenAPI document at <c>/openapi/v1.json</c>, the typed
-    /// contract a client generates from.</summary>
+    /// <summary>Allow the configured cross-origin web clients (<see cref="CorsExtensions.UseSkiesCors"/>), then serve
+    /// Skies's framework endpoints — the OpenAPI document at <c>/openapi/v1.json</c>, the typed contract a client
+    /// generates from.</summary>
     public static WebApplication UseSkies(this WebApplication app)
     {
+        app.UseSkiesCors();
         app.MapOpenApi();
         return app;
     }

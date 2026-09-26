@@ -1,0 +1,95 @@
+root = true
+
+[*.cs]
+# Test names read as sentences (Deposit_rejects_a_negative_amount); IDE1006 only requires the first
+# letter capitalized, which they satisfy. Gate it.
+dotnet_diagnostic.IDE1006.severity = warning
+
+# An unnecessary using fails the build — clean imports are part of the gate.
+dotnet_diagnostic.IDE0005.severity = warning
+
+# A slice's namespace is its MODULE; the Slices/ folder is organization, not namespace
+# (Account.Deposit, never Account.Slices.Deposit). So "namespace must match folder" does not apply.
+dotnet_diagnostic.IDE0130.severity = none
+
+# A slice Handle has a uniform signature (Input, deps…, CancellationToken ct); simple slices leave
+# some parameters unused by design. Surface as a hint, never gate.
+dotnet_diagnostic.IDE0060.severity = suggestion
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Roslyn code-analysis (CA) gate — curated, each rule elevated individually (never
+# a blanket AnalysisMode). So the gate fires only on a real mistake and can't break
+# the build on a structural false-positive (interface/abstract/static). Companion to
+# the Skies doctor (SKY*): CA = generic .NET correctness/perf/security, SKY = Skies
+# architecture.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Correctness / latent bugs
+dotnet_diagnostic.CA2200.severity = error   # rethrow with `throw;`, not `throw ex;` (preserve the stack)
+dotnet_diagnostic.CA2201.severity = error   # don't raise reserved exception types
+dotnet_diagnostic.CA2208.severity = error   # ArgumentException carries the parameter name
+dotnet_diagnostic.CA2211.severity = error   # non-constant fields shouldn't be visible (static mutable)
+dotnet_diagnostic.CA2219.severity = error   # don't raise exceptions in a finally
+dotnet_diagnostic.CA2241.severity = error   # string.Format argument count matches the format
+dotnet_diagnostic.CA2242.severity = error   # don't compare with NaN (always false)
+dotnet_diagnostic.CA2245.severity = error   # don't assign a property to itself
+dotnet_diagnostic.CA2247.severity = error   # TaskCompletionSource built with the right enum
+dotnet_diagnostic.CA2248.severity = error   # correct enum type passed to Enum.HasFlag
+dotnet_diagnostic.CA2264.severity = error   # don't pass a non-nullable to ArgumentNullException.ThrowIfNull
+dotnet_diagnostic.CA2011.severity = error   # no accidental infinite recursion (property setter)
+dotnet_diagnostic.CA2012.severity = error   # use ValueTask correctly (consume once)
+dotnet_diagnostic.CA2013.severity = error   # don't ReferenceEquals value types
+dotnet_diagnostic.CA2021.severity = error   # Cast/OfType with incompatible types is always empty
+dotnet_diagnostic.CA1065.severity = error   # don't throw from getters / Equals / GetHashCode
+dotnet_diagnostic.CA1067.severity = error   # override GetHashCode when overriding Equals
+dotnet_diagnostic.CA1069.severity = error   # no duplicate enum values
+dotnet_diagnostic.CA1001.severity = error   # a type owning disposable fields implements IDisposable
+
+# Async / EF / performance (low false-positive)
+dotnet_diagnostic.CA1849.severity = error   # don't block on async (.Result/.Wait) inside an async method
+dotnet_diagnostic.CA2016.severity = error   # forward CancellationToken to overloads that take one
+dotnet_diagnostic.CA2250.severity = error   # use ThrowIfCancellationRequested
+dotnet_diagnostic.CA1828.severity = error   # AnyAsync over CountAsync() > 0 (EF)
+dotnet_diagnostic.CA1827.severity = error   # Any() over Count() > 0
+dotnet_diagnostic.CA1829.severity = error   # .Count / .Length over Count()
+dotnet_diagnostic.CA1854.severity = error   # TryGetValue over ContainsKey + indexer
+dotnet_diagnostic.CA1853.severity = error   # no unnecessary ContainsKey before the indexer
+dotnet_diagnostic.CA1864.severity = error   # TryAdd over ContainsKey + Add
+dotnet_diagnostic.CA1868.severity = error   # no unnecessary Contains before Add/Remove on a set
+dotnet_diagnostic.CA1841.severity = error   # use Dictionary.Contains{Key,Value}
+dotnet_diagnostic.CA1862.severity = error   # StringComparison over ToLower()/ToUpper() compares
+dotnet_diagnostic.CA1310.severity = error   # specify StringComparison for correctness
+dotnet_diagnostic.CA1847.severity = error   # string.Contains(char) over Contains("x")
+dotnet_diagnostic.CA1865.severity = error   # string.StartsWith(char)
+dotnet_diagnostic.CA1866.severity = error   # string.EndsWith(char)
+dotnet_diagnostic.CA1867.severity = error   # use the char overload
+dotnet_diagnostic.CA1834.severity = error   # StringBuilder.Append(char) over Append("x")
+dotnet_diagnostic.CA1835.severity = error   # stream ReadAsync/WriteAsync memory overloads
+dotnet_diagnostic.CA1842.severity = error   # don't use WhenAll with a single task
+dotnet_diagnostic.CA1843.severity = error   # don't use WaitAll with a single task
+dotnet_diagnostic.CA1825.severity = error   # Array.Empty over a zero-length array allocation
+dotnet_diagnostic.CA1823.severity = error   # remove unused private fields
+dotnet_diagnostic.CA1869.severity = error   # cache JsonSerializerOptions, don't build one per call
+dotnet_diagnostic.CA2253.severity = error   # logging template placeholders numbered, not interpolated
+
+# Security (deterministic — no heavy taint/dataflow)
+dotnet_diagnostic.CA2100.severity = error   # review SQL for injection
+dotnet_diagnostic.CA5350.severity = error   # no weak crypto (DES, RC2, …)
+dotnet_diagnostic.CA5351.severity = error   # no broken crypto (MD5, SHA1, DES)
+dotnet_diagnostic.CA5358.severity = error   # no unsafe cipher modes (ECB, …)
+dotnet_diagnostic.CA5359.severity = error   # don't disable certificate validation
+dotnet_diagnostic.CA5360.severity = error   # no dangerous deserialization
+dotnet_diagnostic.CA5364.severity = error   # no deprecated security protocols
+dotnet_diagnostic.CA5397.severity = error   # no deprecated SslProtocols values
+dotnet_diagnostic.CA5394.severity = error   # no insecure randomness for security-sensitive values
+
+# Deliberately OFF — these false-positive on the conventions / stack
+dotnet_diagnostic.CA1707.severity = none    # underscores are SEMANTIC in test names (Foo_does_bar)
+dotnet_diagnostic.CA1822.severity = none    # false-positive on interface implementations (e.g. ICurrentUser)
+dotnet_diagnostic.CA2007.severity = none    # ConfigureAwait is unnecessary in ASP.NET Core (no sync context)
+
+# Modern C# the IDE should nudge toward — hints, never a gate
+dotnet_diagnostic.IDE0290.severity = suggestion   # use a primary constructor
+dotnet_diagnostic.IDE0300.severity = suggestion   # collection expression ([])
+dotnet_diagnostic.IDE0090.severity = suggestion   # target-typed new()
+dotnet_diagnostic.IDE0066.severity = suggestion   # switch expression

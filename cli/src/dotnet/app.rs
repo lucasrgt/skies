@@ -1,0 +1,188 @@
+//! `skies new <Name>`: render the embedded solution template into `./<Name>`.
+//!
+//! The template is still a valid `dotnet new` template (`.template.config/template.json`), and this renderer
+//! keeps its one substitution rule: the `sourceName` is replaced by the app name in every path and every text
+//! file. Rendering it here instead of shelling out to `dotnet new install` means no template package to install,
+//! no machine-wide template registry to pollute, and the same result offline.
+
+use std::path::Path;
+
+use anyhow::{Context, Result};
+
+use super::{embedded, names, text};
+
+const CONFIG_DIR: &str = ".template.config/";
+
+pub fn new_app(cwd: &Path, name: &str) -> Result<u8> {
+    if let Some(problem) = names::namespace_problem(name) {
+        eprintln!("skies: {problem}");
+        return Ok(1);
+    }
+    let target = cwd.join(name);
+    if target.exists() && std::fs::read_dir(&target)?.next().is_some() {
+        eprintln!("skies: {} already exists and is not empty.", target.display());
+        return Ok(1);
+    }
+
+    let files = embedded::app_files();
+    let source_name = source_name(&files)?;
+    let mut written = 0;
+    for (path, contents) in &files {
+        if path.starts_with(CONFIG_DIR) {
+            continue;
+        }
+        let destination = target.join(path.replace(&source_name, name));
+        match std::str::from_utf8(contents) {
+            Ok(body) => text::write(&destination, body.replace(&source_name, name))?,
+            Err(_) => text::write(&destination, contents)?,
+        }
+        written += 1;
+    }
+
+    println!("created {} ({written} files)", target.display());
+    start_repository(&target, name);
+    println!(
+        "next: `cd {name} && dotnet build`, then describe your first feature with `skies spec new <slug>` \
+         and scaffold it with `skies g module|slice|entity` from src/{name}.Api."
+    );
+    Ok(0)
+}
+
+/// Makes the new app a git repository with the scaffold as its first commit, on `main`: `skies proof record` finds
+/// red by its git history, so the first feature's branch has a revision to fork from. Skipped inside an existing
+/// repository (a monorepo adding an app) and when git is missing; a commit git refuses (no `user.email` yet) leaves
+/// the repository initialized with the files staged, and says what to run.
+fn start_repository(target: &Path, name: &str) {
+    let git = |args: &[&str]| {
+        std::process::Command::new("git")
+            .args(args)
+            .current_dir(target)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .is_ok_and(|status| status.success())
+    };
+    if git(&["rev-parse", "--is-inside-work-tree"]) {
+        println!(
+            "note: {} is inside a git repository already; commit the new app there.",
+            target.display()
+        );
+        return;
+    }
+    if !git(&["init", "--quiet", "--initial-branch=main"]) {
+        println!("note: git is not available; run `git init` in {name} before `skies proof record`.");
+        return;
+    }
+    if git(&["add", "--all"]) && git(&["commit", "--quiet", "-m", &format!("skies new {name}")]) {
+        println!("initialized a git repository with the scaffold as its first commit (branch main)");
+    } else {
+        println!(
+            "initialized a git repository with the scaffold staged; git refused the first commit (set user.name and \
+             user.email), so run `git commit -m \"skies new {name}\"` in {name}."
+        );
+    }
+}
+
+/// The template's `sourceName`: the placeholder `dotnet new` replaces, read from the template's own config so
+/// the two renderers cannot disagree.
+fn source_name(files: &[(String, &[u8])]) -> Result<String> {
+    let (_, config) = files
+        .iter()
+        .find(|(path, _)| path == ".template.config/template.json")
+        .context("the embedded app template has no .template.config/template.json")?;
+    let json: serde_json::Value = serde_json::from_slice(config).context("parsing template.json")?;
+    json["sourceName"]
+        .as_str()
+        .map(str::to_string)
+        .context("template.json has no sourceName")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn renders_the_solution_under_the_app_name() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(new_app(dir.path(), "Acme").unwrap(), 0);
+
+        let root = dir.path().join("Acme");
+        assert!(root.join("Acme.slnx").exists());
+        assert!(root.join(".specs/README.md").exists());
+        assert!(!root.join(".template.config").exists());
+        let csproj = std::fs::read_to_string(root.join("tests/Acme.Tests/Acme.Tests.csproj")).unwrap();
+        assert!(csproj.contains(r#"<Compile Include="..\..\.specs\*\e2e\**\*.cs" />"#));
+        assert!(csproj.contains(r"..\..\src\Acme.Api\Acme.Api.csproj"));
+        let manifest = crate::manifest::load(&root.join("Skies.toml")).unwrap();
+        assert_eq!(manifest.workspace.name, "Acme");
+        assert_eq!(manifest.products["app"].backend.as_deref(), Some("src/Acme.Api"));
+        // Every test lives in a spec: the tests project compiles nothing beside the spec cases, runs the doctor, and
+        // is what `skies doctor` builds.
+        assert!(!csproj.contains("*.Tests.cs"));
+        assert!(csproj.contains(r#"<PackageReference Include="Skies.Framework.Doctor""#));
+        assert_eq!(manifest.products["app"].tests.as_deref(), Some("tests/Acme.Tests"));
+
+        assert_eq!(
+            new_app(dir.path(), "Acme").unwrap(),
+            1,
+            "never renders over an existing app"
+        );
+    }
+
+    #[test]
+    fn the_template_references_the_packages_this_binary_ships_with() {
+        let dir = tempfile::tempdir().unwrap();
+        new_app(dir.path(), "Acme").unwrap();
+        let mut checked = 0;
+        for project in [
+            "Acme/src/Acme.Api/Acme.Api.csproj",
+            "Acme/tests/Acme.Tests/Acme.Tests.csproj",
+        ] {
+            let text = std::fs::read_to_string(dir.path().join(project)).unwrap();
+            for line in text
+                .lines()
+                .filter(|line| line.contains("<PackageReference Include=\"Skies"))
+            {
+                assert!(
+                    line.contains(&format!("Version=\"{}\"", super::super::FRAMEWORK_VERSION)),
+                    "{project}: {line} (run tools/set-version.sh)"
+                );
+                checked += 1;
+            }
+        }
+        assert!(checked >= 3);
+    }
+
+    #[test]
+    fn a_new_app_declares_the_api_runner_and_ignores_build_output() {
+        let dir = tempfile::tempdir().unwrap();
+        new_app(dir.path(), "Acme").unwrap();
+        let manifest = std::fs::read_to_string(dir.path().join("Acme/Skies.toml")).unwrap();
+        let parsed: crate::manifest::Manifest = toml::from_str(&manifest).unwrap();
+        assert!(parsed.runners["api"].command.contains("Specs.S{id}."));
+        let ignored = std::fs::read_to_string(dir.path().join("Acme/.gitignore")).unwrap();
+        assert!(ignored.lines().any(|line| line == "bin/") && ignored.lines().any(|line| line == "obj/"));
+    }
+
+    #[test]
+    fn a_new_app_declares_exactly_its_root() {
+        let dir = tempfile::tempdir().unwrap();
+        new_app(dir.path(), "Acme").unwrap();
+        let root = dir.path().join("Acme");
+        let manifest = crate::manifest::load(&root.join("Skies.toml")).unwrap();
+        let declared = manifest.workspace.root.expect("the template declares its root");
+
+        let (status, findings) = crate::doctor::workspace::check(&root, Some(&declared));
+
+        assert_eq!(status, crate::doctor::Status::Ran);
+        assert!(findings.is_empty(), "{findings:#?}");
+    }
+
+    #[test]
+    fn rejects_names_that_are_not_namespaces() {
+        let dir = tempfile::tempdir().unwrap();
+        for bad in ["", "my-app", "1app", "a..b", "a/b", "class", "Acme.namespace"] {
+            assert_eq!(new_app(dir.path(), bad).unwrap(), 1, "{bad}");
+        }
+    }
+}

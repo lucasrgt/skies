@@ -1,4 +1,0 @@
-schema = 1
-
-[check]
-timeout_seconds = 120

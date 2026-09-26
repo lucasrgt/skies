@@ -1,0 +1,34 @@
+{
+  "spec": "0007-items-screen",
+  "runner": "web",
+  "commands": {
+    "setup": "test -d ../../frontend-sdk/node_modules || npm --prefix ../../frontend-sdk ci --no-audit --no-fund --prefer-offline",
+    "command": "node ../../frontend-sdk/node_modules/vitest/vitest.mjs run --config ../../frontend-sdk/vitest.config.ts --reporter=junit --outputFile={report} {dir}",
+    "hash": "blake3:b7dac0f4c66ec64c41a0a072cf05d8a99bbdfb79b1ad5472c841e77b603923ea"
+  },
+  "red": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f",
+    "patch": "red.patch"
+  },
+  "green": {
+    "commit": "53e956801deb9fa83d41431a20a7a82c1e4b5a6f"
+  },
+  "failure_modes": {
+    "FM-1": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Items screen > FM-1: the list resource starts in loading while it is fetched"
+      ],
+      "message": "AssertionError: expected 'ready' to be 'loading' // Object.is equality\nExpected: \"loading\"\nReceived: \"ready\""
+    },
+    "FM-2": {
+      "red": "fail",
+      "green": "pass",
+      "cases": [
+        "Items screen > FM-2: a list that settles empty renders the kit's empty state"
+      ],
+      "message": "TestingLibraryElementError: Unable to find an element with the text: Nothing here yet. This could be because the text is broken up by multiple elements. In this case, you can provide a function for y…\nIgnored nodes: comments, script, style\n<body>\n<div>"
+    }
+  }
+}

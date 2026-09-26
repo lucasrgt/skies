@@ -1,0 +1,23 @@
+namespace __NAMESPACE__.Modules.__MODULE__;
+
+[Entity]
+public class __NAME__
+{
+    public Guid Id { get; private set; }
+
+    private __NAME__() { }
+
+    /// <summary>Open a new __NAME__ with the given identity.</summary>
+    public static Result<__NAME__> Open(Guid id) =>
+        new __NAME__ { Id = id }.EnsureValid();
+
+    // The one invariant check every factory and change returns through; keep it free of side effects.
+    private Result<__NAME__> EnsureValid()
+    {
+        var validation = new Validation()
+            .Check(Id != Guid.Empty, "id", __MODULE__ErrorCodes.IdRequired, "is required");
+        if (validation.Failed)
+            return validation.ToError();
+        return this;
+    }
+}

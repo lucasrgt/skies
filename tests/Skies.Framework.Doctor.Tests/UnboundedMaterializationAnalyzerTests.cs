@@ -28,9 +28,28 @@ public class UnboundedMaterializationAnalyzerTests
             [Slice]
             static class ListSome
             {
+                private const int PageSize = 20;
+
                 static async System.Threading.Tasks.Task Handle(Db db, System.Threading.CancellationToken ct)
                 {
-                    var some = await db.Wallets.OrderBy(w => w.Id).Skip(20).Take(20).ToListAsync(ct);
+                    var some = await db.Wallets.OrderBy(w => w.Id).Skip(20).Take(PageSize).ToListAsync(ct);
+                }
+            }
+            """ + Stubs);
+
+    [Fact]
+    public Task A_bare_number_as_the_bound_asks_for_a_named_one() =>
+        Harness<UnboundedMaterializationAnalyzer>.Verify("""
+            using System.Linq;
+            using Skies.Framework.Abstractions;
+            using Microsoft.EntityFrameworkCore;
+
+            [Slice]
+            static class ListGuess
+            {
+                static async System.Threading.Tasks.Task Handle(Db db, System.Threading.CancellationToken ct)
+                {
+                    var some = await db.Wallets.OrderBy(w => w.Id).Take({|SKY0027:500|}).ToListAsync(ct);
                 }
             }
             """ + Stubs);

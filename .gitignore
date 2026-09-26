@@ -14,6 +14,9 @@ x86/
 # Publishable Node package executables are source, not build output.
 !node-sdk/packages/*/bin/
 !node-sdk/packages/*/bin/*.mjs
+# The npm wrapper's launcher is the package's executable: without it `npx skies` has nothing to run.
+!cli/npm/bin/
+!cli/npm/bin/skies.js
 
 ## .NET / IDE
 *.user
@@ -58,3 +61,9 @@ Thumbs.db
 
 # Taskfleet local orchestration state
 .taskfleet/
+
+# Rust
+/target/
+
+# Agent worktrees
+/.claude/worktrees/

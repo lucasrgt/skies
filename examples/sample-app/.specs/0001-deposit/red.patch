@@ -1,0 +1,47 @@
+diff --git a/backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs b/backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs
+index e3cf1f3..aa61a6e 100644
+--- a/backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs
++++ b/backend/Sample.Api/Modules/Wallets/Slices/Deposit.cs
+@@ -18,38 +18,10 @@ public static class Deposit
+ 
+     public record Output(Guid WalletId, decimal Balance);
+ 
+-    public static async Task<Result<Output>> Handle(
+-        Input input, AppDb db, IIdempotencyStore idem, string? idempotencyKey, CancellationToken ct)
+-    {
+-        // Accumulate every input error, then report them together. Money stays the single source
+-        // of the amount rule — we only collect its failure, never restate "amount >= 0" here.
+-        var amount = Money.From(input.Amount);
+-        var validation = new Validation()
+-            .Require(input.WalletId, "walletId", WalletsErrorCodes.WalletIdRequired)
+-            .Collect("amount", amount);
+-        if (validation.Failed)
+-            return validation.ToError();
+-
+-        // Idempotency: a retried request carrying the same key replays the recorded outcome instead of
+-        // crediting again.
+-        if (!string.IsNullOrEmpty(idempotencyKey) && idem.TryGet(idempotencyKey, out var prior))
+-            return new Output(input.WalletId, prior);
+-
+-        var wallet = await db.Wallets.FindAsync([input.WalletId], ct);
+-        if (wallet is null)
+-            return Error.NotFound(WalletsErrorCodes.NotFound, $"wallet {input.WalletId} not found");
+-
+-        // The state transition lives on the entity; the slice only orchestrates. Deposit cannot fail
+-        // (Money already guarantees a non-negative amount), so there is no Result to unwrap here.
+-        wallet.Deposit(amount.Value);
+-        await db.SaveChangesAsync(ct);
+-
+-        // Record the outcome under the key so a retry replays it rather than crediting a second time.
+-        if (!string.IsNullOrEmpty(idempotencyKey))
+-            idem.Save(idempotencyKey, wallet.Balance.Amount);
+-
+-        return new Output(wallet.Id, wallet.Balance.Amount);
+-    }
++    public static Task<Result<Output>> Handle(
++        Input input, AppDb db, IIdempotencyStore idem, string? idempotencyKey, CancellationToken ct) =>
++        // Red: deposits are not implemented yet; every request answers the same wrong outcome.
++        Task.FromResult<Result<Output>>(new Output(input.WalletId, 0m));
+ 
+     public static void Map(IEndpointRouteBuilder app) =>
+         app.MapPost("/deposit",

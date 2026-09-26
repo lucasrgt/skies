@@ -1,0 +1,10 @@
+{
+  "name": "@skies-sample/web",
+  "private": true,
+  "type": "module",
+  "description": "The sample's React web package. Its dependencies resolve from frontend-sdk/node_modules, so it declares none; `lint` runs frontend-sdk's ESLint config (the SKYFE rules at error) from the repository root, where that config lives, and `typecheck` runs frontend-sdk's TypeScript over the package and its specs. `skies doctor` runs both.",
+  "scripts": {
+    "lint": "cd ../../../.. && node frontend-sdk/node_modules/eslint/bin/eslint.js examples/sample-app/frontend/web",
+    "typecheck": "cd ../../../.. && node frontend-sdk/node_modules/typescript/bin/tsc --noEmit -p examples/sample-app/frontend/web/tsconfig.json && node frontend-sdk/node_modules/typescript/bin/tsc --noEmit -p examples/sample-app/.specs/tsconfig.json"
+  }
+}

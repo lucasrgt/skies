@@ -1,0 +1,123 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using MyApp.Api;
+using MyApp.Api.Modules.Account;
+using MyApp.Tests;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Skies.Framework.Sms;
+
+namespace Specs.S__SPEC_ID__;
+
+/// <summary>Phone verification end to end. The code is hashed in storage and only leaves as an SMS, so a capturing
+/// <see cref="ISmsSender"/> is layered over the booted app (the last registration wins) to read the code the real
+/// slice sent. The rest of the stack is the real one.</summary>
+public class PhoneVerification
+{
+    private const string Phone = "+5511999999999";
+
+    private sealed record Tokens(string AccessToken, string RefreshToken);
+
+    /// <summary>Reads the code at the end of the SMS body ("Your MyApp code is 123456" becomes "123456").</summary>
+    private sealed class CapturingSmsSender : ISmsSender
+    {
+        public string? LastCode { get; private set; }
+
+        public Task SendAsync(string toPhone, string message, CancellationToken ct = default)
+        {
+            LastCode = message[(message.LastIndexOf(' ') + 1)..];
+            return Task.CompletedTask;
+        }
+    }
+
+    [Fact(DisplayName = "FM-[verify]: the code from the SMS verifies the phone and completes registration")]
+    public async Task The_code_from_the_sms_verifies_the_phone()
+    {
+        var sms = new CapturingSmsSender();
+        await using var app = new TestApp();
+        using var factory = WithSms(app, sms);
+        var client = factory.CreateClient();
+        await SignIn(client, "phone@example.com");
+        (await client.PostAsJsonAsync("/account/phone-code", new { phone = Phone })).EnsureSuccessStatusCode();
+
+        var verify = await client.PostAsJsonAsync("/account/verify-phone", new { code = sms.LastCode });
+
+        verify.EnsureSuccessStatusCode();
+        Assert.Equal(RegistrationStep.Complete, (await Profile(client)).Step);
+    }
+
+    [Fact(DisplayName = "FM-[wrong-code]: a wrong code is rejected, verifies nothing, and leaves the real code usable")]
+    public async Task A_wrong_code_is_rejected_and_the_real_code_still_verifies()
+    {
+        var sms = new CapturingSmsSender();
+        await using var app = new TestApp();
+        using var factory = WithSms(app, sms);
+        var client = factory.CreateClient();
+        await SignIn(client, "phone@example.com");
+        (await client.PostAsJsonAsync("/account/phone-code", new { phone = Phone })).EnsureSuccessStatusCode();
+
+        var rejected = await client.PostAsJsonAsync("/account/verify-phone", new { code = WrongCode(sms.LastCode) });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, rejected.StatusCode);
+        Assert.NotEqual(RegistrationStep.Complete, (await Profile(client)).Step);
+        (await client.PostAsJsonAsync("/account/verify-phone", new { code = sms.LastCode })).EnsureSuccessStatusCode();
+    }
+
+    // A 6-digit code spans only 10^6 values. The fifth wrong guess consumes the code, so even the right one fails.
+    [Fact(DisplayName = "FM-[brute-force]: after five wrong codes the real code no longer verifies")]
+    public async Task Five_wrong_codes_lock_the_code()
+    {
+        var sms = new CapturingSmsSender();
+        await using var app = new TestApp();
+        using var factory = WithSms(app, sms);
+        var client = factory.CreateClient();
+        await SignIn(client, "phone@example.com");
+        (await client.PostAsJsonAsync("/account/phone-code", new { phone = Phone })).EnsureSuccessStatusCode();
+
+        for (var attempt = 0; attempt < 5; attempt++)
+            await client.PostAsJsonAsync("/account/verify-phone", new { code = WrongCode(sms.LastCode) });
+        var verify = await client.PostAsJsonAsync("/account/verify-phone", new { code = sms.LastCode });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, verify.StatusCode);
+        Assert.NotEqual(RegistrationStep.Complete, (await Profile(client)).Step);
+    }
+
+    [Fact(DisplayName = "FM-[missing-fields]: a request missing its phone or code is a validation error and spends no attempt")]
+    public async Task Missing_fields_are_validation_errors()
+    {
+        var sms = new CapturingSmsSender();
+        await using var app = new TestApp();
+        using var factory = WithSms(app, sms);
+        var client = factory.CreateClient();
+        await SignIn(client, "phone@example.com");
+
+        var noPhone = await client.PostAsJsonAsync("/account/phone-code", new { });
+        (await client.PostAsJsonAsync("/account/phone-code", new { phone = Phone })).EnsureSuccessStatusCode();
+        var noCodes = new List<HttpResponseMessage>();
+        for (var attempt = 0; attempt < 5; attempt++)
+            noCodes.Add(await client.PostAsJsonAsync("/account/verify-phone", new { }));
+
+        Assert.Equal(HttpStatusCode.BadRequest, noPhone.StatusCode);
+        Assert.All(noCodes, response => Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode));
+        (await client.PostAsJsonAsync("/account/verify-phone", new { code = sms.LastCode })).EnsureSuccessStatusCode();
+    }
+
+    private static WebApplicationFactory<Program> WithSms(TestApp app, ISmsSender sms) =>
+        app.WithWebHostBuilder(builder => builder.ConfigureServices(services => services.AddSingleton(sms)));
+
+    private static string WrongCode(string? code) => code == "000000" ? "000001" : "000000";
+
+    private static async Task SignIn(HttpClient client, string email)
+    {
+        (await client.PostAsJsonAsync("/account/register", new { email, password = "password1" })).EnsureSuccessStatusCode();
+        var login = await client.PostAsJsonAsync("/account/login", new { email, password = "password1" });
+        login.EnsureSuccessStatusCode();
+        var tokens = await login.Content.ReadFromJsonAsync<Tokens>(AppJson.Options);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens!.AccessToken);
+    }
+
+    private static async Task<Me.Output> Profile(HttpClient client) =>
+        (await client.GetFromJsonAsync<Me.Output>("/account/me", AppJson.Options))!;
+}

@@ -1,0 +1,51 @@
+using Skies.Framework.Auth;
+//<lz:tenancy>
+using Skies.Framework.EntityFrameworkCore;
+using MyApp.Api.Tenancy;
+//</lz:tenancy>
+
+namespace MyApp.Api.Modules.Account;
+
+/// <summary>Registers account services and routes through the application's module registry.</summary>
+[Module]
+public static class AccountModule
+{
+    public static IServiceCollection AddServices(IServiceCollection services, IConfiguration configuration)
+    {
+        var jwtSecret = configuration["Jwt:Secret"]
+            ?? throw new InvalidOperationException("Configure Jwt:Secret before starting the application.");
+        services.AddSingleton(TimeProvider.System);
+        //<lz:tenancy>
+        services.AddScoped<ITenant, RequestTenant>();
+        //</lz:tenancy>
+        //<lz:cookies>
+        services.AddSkiesAuth<UserSessionStore>(new SkiesAuthOptions(jwtSecret, Issuer: "myapp", Audience: "myapp")
+        {
+            RefreshCookie = new RefreshCookieOptions("myapp_refresh", Path: "/account"),
+        });
+        //</lz:cookies>
+        //<lz:!cookies>
+        services.AddSkiesAuth<UserSessionStore>(new SkiesAuthOptions(jwtSecret, Issuer: "myapp", Audience: "myapp"));
+        //</lz:!cookies>
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AppPolicies.AppAdmin, policy => policy.RequireRole(nameof(Role.Admin)));
+        CredentialRateLimit.AddTo(services, configuration);
+        services.AddSingleton<IAccountNotices, NoAccountNotices>();
+        return services;
+    }
+
+    public static void Map(IEndpointRouteBuilder app)
+    {
+        var account = app.MapGroup("/account");
+        // Everything that takes a credential or sends a message is throttled per client (CredentialRateLimit).
+        var credentials = account.MapGroup("").RequireRateLimiting(CredentialRateLimit.Policy);
+        Register.Map(credentials);
+        Login.Map(credentials);
+        Refresh.Map(credentials);
+        Logout.Map(credentials);
+        Me.Map(account);
+        ListMySessions.Map(account);
+        RevokeSession.Map(account);
+        RevokeOtherSessions.Map(account);
+    }
+}

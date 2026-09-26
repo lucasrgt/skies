@@ -1,0 +1,28 @@
+__AUTH_USING__namespace MyApp.Api.Modules.__MODULE__;
+
+/// <summary>Create __A_ENTITY____WITHIN__.
+/// The slice never writes a column: the entity is born through <see cref="__ENTITY__.Open"/>, whose invariants
+/// decide whether it may exist.__STAMPED__</summary>
+[Slice]
+public static class Create__ENTITY__
+{
+    public record Input(__INPUT_FIELDS__);
+
+    public record Output(Guid Id, Guid Version);
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, __CREATE_PARAMS__CancellationToken ct)
+    {
+__REQUIRED_CHECKS__        var opened = __ENTITY__.Open(__OPEN_ARGS__);
+        if (opened.IsFailure)
+            return opened.Error;
+
+        db.__PLURAL__.Add(opened.Value);
+        await db.SaveChangesAsync(ct);
+        return new Output(opened.Value.Id, opened.Value.Version);
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/__ROUTE__", async (Input input, AppDb db, __CREATE_PARAMS__CancellationToken ct) =>
+                (await Handle(input, db, __CREATE_ARGS__ct)).ToHttp())
+            .WithName(nameof(Create__ENTITY__))__POSTURE__
+}

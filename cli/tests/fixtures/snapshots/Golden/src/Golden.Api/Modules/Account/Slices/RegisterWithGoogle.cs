@@ -1,0 +1,62 @@
+using Skies.Framework.Auth;
+using Skies.Framework.Identity;
+using Microsoft.EntityFrameworkCore;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Create an account, in an org of its own, from a Google identity. Google has already verified the email,
+/// so the new user is email-verified from the start and a session is issued immediately; phone is still pending.
+/// Fails with a conflict if the email is already taken: the caller has just proven it owns that address, so saying
+/// it has an account tells its owner, not a stranger.</summary>
+/// <remarks>Security contract: the sad path is the bypass guard — an unverifiable token must create no account.
+/// If it passed silently, a forged token mints an account for any identity (spoofing). Its spec under `.specs/` proves both
+/// the happy sign-up and the forged-token rejection end-to-end.</remarks>
+[Slice]
+public static class RegisterWithGoogle
+{
+    public record Input(string IdToken);
+
+    public record Output(string AccessToken, string RefreshToken, RegistrationStep Step, Role? Role);
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, IExternalIdentityVerifier google, RefreshSessions sessions, IAccessTokens tokens, TimeProvider clock, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(input.IdToken))   // missing from the body: nothing to verify, like a forged token
+            return Error.Unauthorized(AccountErrorCodes.InvalidToken, "invalid google token");
+        var identity = await google.VerifyAsync(input.IdToken, ct);
+        if (identity.IsFailure)
+            return identity.Error;
+
+        var email = Email.From(identity.Value.Email);
+        if (email.IsFailure)
+            return Error.Unauthorized(AccountErrorCodes.InvalidToken, "invalid google token");
+
+#pragma warning disable SKY0030 // uniqueness is global: a taken email is taken in every org
+        if (await db.Users.IgnoreQueryFilters().AnyAsync(u => u.Email == email.Value, ct))
+#pragma warning restore SKY0030
+            return Error.Conflict(AccountErrorCodes.EmailTaken, "an account with this email already exists");
+
+        var now = clock.GetUtcNow().UtcDateTime;
+        var org = Org.Open(email.Value.Value, now);
+        if (org.IsFailure)
+            return org.Error;
+        var created = User.RegisterViaGoogle(org.Value.Id, email.Value, now);
+        if (created.IsFailure)
+            return created.Error;
+        var user = created.Value;
+        db.Orgs.Add(org.Value);
+        db.Users.Add(user);
+        await db.SaveChangesAsync(ct);
+
+        var session = await sessions.StartAsync(user.Id, ct);
+        var access = tokens.Issue(user.Id, user.OrgId, user.Role?.ToString(), session.FamilyId, user.Name);
+        return new Output(access, session.Token, user.RegistrationStep, user.Role);
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/register/google", async (Input input, HttpContext http, AppDb db, IExternalIdentityVerifier google, RefreshSessions sessions, IAccessTokens tokens, TimeProvider clock, CancellationToken ct) =>
+            http.User.Identity?.IsAuthenticated == true
+                ? ((Result<Output>)Error.Conflict(AccountErrorCodes.AlreadySignedIn, "sign out before registering a new account")).ToHttp()
+                : (await Handle(input, db, google, sessions, tokens, clock, ct)).ToHttp())
+            .WithName(nameof(RegisterWithGoogle))
+            .AllowAnonymous();   // public: registering with Google is pre-identity
+}

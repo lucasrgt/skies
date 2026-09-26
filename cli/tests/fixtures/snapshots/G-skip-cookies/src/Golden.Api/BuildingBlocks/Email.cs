@@ -1,0 +1,37 @@
+namespace Golden.Api.BuildingBlocks;
+
+/// <summary>Error codes for the <see cref="Email"/> value object — stable i18n keys, declared as constants so
+/// the set stays enumerable into the OpenAPI contract.</summary>
+public static class EmailErrorCodes
+{
+    /// <summary>The value is not a valid email address.</summary>
+    public const string Invalid = "email.invalid";
+}
+
+/// <summary>A normalized email address. The type is the rule: you cannot hold an invalid or
+/// non-normalized <see cref="Email"/>, so anything downstream (uniqueness, storage) is already
+/// clean. Validation is deliberately light — presence of a local@domain shape, lowercased and
+/// trimmed — not an RFC novel; the app owns stricter rules if it needs them.</summary>
+[ValueObject]
+public readonly record struct Email
+{
+    /// <summary>The normalized address (lowercased, trimmed).</summary>
+    public string Value { get; }
+
+    private Email(string value) => Value = value;
+
+    /// <summary>Build an <see cref="Email"/> from untrusted input, normalizing and rejecting bad shapes.</summary>
+    public static Result<Email> From(string raw)
+    {
+        var normalized = (raw ?? string.Empty).Trim().ToLowerInvariant();
+        var at = normalized.IndexOf('@');
+        var valid = at > 0 && at < normalized.Length - 1 && !normalized.Contains(' ');
+        return valid ? new Email(normalized) : Error.Validation(EmailErrorCodes.Invalid, "email is not a valid address");
+    }
+
+    /// <summary>Rehydrate from a value already stored (trusted) — used by the EF value converter.</summary>
+    public static Email FromStored(string value) => new(value);
+
+    /// <inheritdoc />
+    public override string ToString() => Value;
+}

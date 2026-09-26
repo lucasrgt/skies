@@ -1,0 +1,28 @@
+# The sample as a self-contained Skies application. `skies` discovers the nearest Skies.toml, so commands run
+# anywhere under examples/sample-app/ treat this folder as the app root and its .specs/ as the app's specs.
+
+[workspace]
+name = "Sample"
+# Everything allowed at the sample's root (`skies doctor`: SKYWS001). A trailing / names a folder, no slash a file.
+root = [".specs/", "backend/", "frontend/", "README.md", "nuget.config"]
+
+[products.app]
+backend = "backend/Sample.Api"
+tests = "backend/Sample.Tests"   # `skies doctor` builds it, so the SKY rules (SKY0029 included) see the spec cases
+frontend = "frontend/web"        # its `lint` runs frontend-sdk's ESLint config, so `skies doctor` runs the SKYFE rules
+
+# Every .specs/<id>/e2e/ folder is compiled into Sample.Tests (see its csproj); the filter runs one spec's namespace
+# and the TRX logger (quoted: `sh -c` would end the command at its `;`) writes the report `skies proof` reads back.
+# `build` compiles once per checkout (red's worktree, then the working tree), so `command` skips it; a red whose own
+# e2e does not compile counts as did-not-build, and any other build failure stops `record`.
+[runners.api]
+build = "dotnet build backend/Sample.Tests"
+command = "dotnet test backend/Sample.Tests --no-build --filter FullyQualifiedName~Specs.S{id}. --logger \"trx;LogFileName={report}\""
+
+# The web specs (.specs/*/e2e/*.test.tsx) cover the React package in frontend/web. They run with frontend-sdk's vitest
+# config, which resolves the package's aliases and stubs its HTTP layer; the spec folder is the filter and vitest's
+# JUnit reporter writes the report. A red checkout is a fresh git worktree without node_modules, so setup installs
+# them there (a no-op where they exist).
+[runners.web]
+setup = "test -d ../../frontend-sdk/node_modules || npm --prefix ../../frontend-sdk ci --no-audit --no-fund --prefer-offline"
+command = "node ../../frontend-sdk/node_modules/vitest/vitest.mjs run --config ../../frontend-sdk/vitest.config.ts --reporter=junit --outputFile={report} {dir}"

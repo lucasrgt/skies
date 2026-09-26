@@ -1,0 +1,178 @@
+//! .NET scaffolders: `skies new` and the backend `skies g` generators.
+//!
+//! Every generator emits plain C# that is doctor-clean by construction and edits the owner's files only at known
+//! anchors, printing a precise manual step when an anchor is missing instead of failing. They are ports of the
+//! 4.x C# CLI with the proof ceremony removed: no generated unit tests, `[AVP]` proofs, or
+//! `*.spec.toml`. The one exception is the auth family, whose blueprint ships its tests as a spec
+//! (`.specs/<id>-auth*/`), because auth is the feature most worth proving and least worth rewriting per app.
+//!
+//! Generators write into the API project (the directory holding `<App>.Api.csproj`): the current directory when
+//! it is one, else the backend `Skies.toml` declares, or `--project` (see [`locate`]). A user error prints
+//! `skies: ...` and exits 1, like the 4.x CLI; `Err` is reserved for I/O failures.
+
+mod app;
+mod app_db;
+mod auth;
+mod blueprint;
+mod crud;
+mod embedded;
+mod error_codes;
+mod flow_specs;
+mod flows;
+mod locate;
+mod names;
+mod scaffold;
+mod specs;
+mod text;
+
+use std::path::{Path, PathBuf};
+
+use anyhow::{Result, bail};
+
+use crate::Generate;
+
+/// The Skies.Framework.* package version that generators stamp into csproj files. It moves with the lockstep
+/// release; the `skies new` template carries the same literal.
+pub const FRAMEWORK_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+pub fn new_app(name: &str) -> Result<u8> {
+    app::new_app(&std::env::current_dir()?, name)
+}
+
+pub fn generate(command: Generate) -> Result<u8> {
+    let cwd = std::env::current_dir()?;
+    let (project, module) = match &command {
+        Generate::Slice { module, backend, .. }
+        | Generate::Entity { module, backend, .. }
+        | Generate::Crud { module, backend, .. }
+        | Generate::Hub { module, backend, .. } => (backend.project.as_deref(), Some(module.as_str())),
+        Generate::Module { backend, .. }
+        | Generate::Vo { backend, .. }
+        | Generate::Auth { backend, .. }
+        | Generate::AuthOtp { backend }
+        | Generate::AuthOauth { backend }
+        | Generate::AuthEmail { backend } => (backend.project.as_deref(), None),
+        Generate::Feature { .. } | Generate::Client { .. } | Generate::WebApp { .. } | Generate::FlutterApp { .. } => {
+            bail!("not a .NET generator")
+        }
+    };
+    if let Some(problem) = name_problem(&command) {
+        eprintln!("skies: {problem}");
+        return Ok(1);
+    }
+    let root = match locate::project_dir(&cwd, project, module) {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("skies: {message}");
+            return Ok(1);
+        }
+    };
+    if root != cwd {
+        println!("project {}", root.strip_prefix(&cwd).unwrap_or(&root).display());
+    }
+    match command {
+        Generate::Module { name, .. } => scaffold::module(&root, &name),
+        Generate::Slice { module, name, .. } => scaffold::slice(&root, &module, &name),
+        Generate::Entity { module, name, .. } => scaffold::entity(&root, &module, &name),
+        Generate::Vo { name, .. } => scaffold::value_object(&root, &name),
+        Generate::Crud { module, entity, .. } => crud::generate(&root, &module, &entity),
+        Generate::Hub { module, name, .. } => scaffold::hub(&root, &module, &name),
+        Generate::Auth {
+            skip_tenancy,
+            skip_cookies,
+            ..
+        } => auth::generate(&root, !skip_tenancy, !skip_cookies),
+        Generate::AuthOtp { .. } => flows::generate(&root, flow_specs::Flow::Otp),
+        Generate::AuthOauth { .. } => flows::generate(&root, flow_specs::Flow::OAuth),
+        Generate::AuthEmail { .. } => flows::generate(&root, flow_specs::Flow::Email),
+        Generate::Feature { .. } | Generate::Client { .. } | Generate::WebApp { .. } | Generate::FlutterApp { .. } => {
+            bail!("not a .NET generator")
+        }
+    }
+}
+
+/// The first name a generator was given that C# cannot spell as an identifier: each becomes a namespace segment or a
+/// type, so a keyword (`class`) or a malformed name (`2fa`) is refused before any file is written.
+fn name_problem(command: &Generate) -> Option<String> {
+    let checks: Vec<(&str, &str)> = match command {
+        Generate::Module { name, .. } => vec![("module", name)],
+        Generate::Slice { module, name, .. } => vec![("module", module), ("slice", name)],
+        Generate::Entity { module, name, .. } => vec![("module", module), ("entity", name)],
+        Generate::Crud { module, entity, .. } => vec![("module", module), ("entity", entity)],
+        Generate::Hub { module, name, .. } => vec![("module", module), ("hub", name)],
+        Generate::Vo { name, .. } => vec![("value object", name)],
+        _ => vec![],
+    };
+    checks
+        .into_iter()
+        .find_map(|(kind, name)| names::identifier_problem(kind, name))
+}
+
+/// The application project a generator runs in: the directory, its csproj, and the root namespace.
+pub(crate) struct ApiProject {
+    pub root: PathBuf,
+    pub csproj: PathBuf,
+    /// The csproj file name without extension, e.g. `Acme.Api`: the root namespace by .NET convention.
+    pub namespace: String,
+}
+
+impl ApiProject {
+    /// Finds the csproj in `root`, or prints the 4.x guidance and returns `None`.
+    pub fn open(root: &Path) -> Result<Option<ApiProject>> {
+        let mut projects: Vec<PathBuf> = std::fs::read_dir(root)?
+            .filter_map(|entry| entry.ok().map(|e| e.path()))
+            .filter(|path| path.is_file() && path.extension().is_some_and(|ext| ext == "csproj"))
+            .collect();
+        projects.sort();
+        let Some(csproj) = projects.into_iter().next() else {
+            eprintln!("skies: no .csproj here — run this from the application project directory.");
+            return Ok(None);
+        };
+        let namespace = csproj.file_stem().unwrap_or_default().to_string_lossy().into_owned();
+        Ok(Some(ApiProject {
+            root: root.to_path_buf(),
+            csproj,
+            namespace,
+        }))
+    }
+
+    /// The app name: the namespace without its `.Api` suffix (`Acme.Api` becomes `Acme`).
+    pub fn app_name(&self) -> &str {
+        self.namespace.strip_suffix(".Api").unwrap_or(&self.namespace)
+    }
+
+    /// The lowercase app name, used for cookie names, JWT issuer/audience, and database names.
+    pub fn app_lower(&self) -> String {
+        self.app_name().to_lowercase()
+    }
+
+    /// The solution root by the Skies layout: the API project sits at `src/<App>.Api`.
+    pub fn solution_root(&self) -> PathBuf {
+        match self.root.parent().and_then(Path::parent) {
+            Some(root) => root.to_path_buf(),
+            None => self.root.join("..").join(".."),
+        }
+    }
+
+    /// `tests/<App>.Tests` under the solution root, where the test project lives by convention.
+    pub fn test_dir(&self) -> PathBuf {
+        self.solution_root()
+            .join("tests")
+            .join(format!("{}.Tests", self.app_name()))
+    }
+
+    pub fn module_dir(&self, module: &str) -> PathBuf {
+        self.root.join("Modules").join(module)
+    }
+}
+
+/// The first `*.csproj` in `dir`, if the directory exists.
+pub(crate) fn first_csproj(dir: &Path) -> Option<PathBuf> {
+    let mut projects: Vec<PathBuf> = std::fs::read_dir(dir)
+        .ok()?
+        .filter_map(|entry| entry.ok().map(|e| e.path()))
+        .filter(|path| path.extension().is_some_and(|ext| ext == "csproj"))
+        .collect();
+    projects.sort();
+    projects.into_iter().next()
+}

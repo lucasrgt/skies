@@ -10,8 +10,10 @@ global_level = 50
 dotnet_diagnostic.CA2016.severity = error
 
 # SQL built from non-constant strings on the ADO surface (IDbCommand/IDataAdapter). The EF Core
-# surface is SKY0024's concern; this covers the layer beneath it.
-dotnet_diagnostic.CA2100.severity = warning
+# surface is SKY0024's concern; this covers the layer beneath it. Injection is a security defect, so it
+# sits on the floor at error like the rest; a reviewed constant-by-construction query says why in a
+# #pragma warning disable CA2100 beside it.
+dotnet_diagnostic.CA2100.severity = error
 
 # Insecure deserializers — running BinaryFormatter (or friends) on attacker-reachable bytes is
 # remote code execution, not a style concern.

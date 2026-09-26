@@ -1,0 +1,38 @@
+diff --git a/backend/Sample.Api/Platform.cs b/backend/Sample.Api/Platform.cs
+index 627d8b0..012aff2 100644
+--- a/backend/Sample.Api/Platform.cs
++++ b/backend/Sample.Api/Platform.cs
+@@ -15,6 +15,8 @@ public static partial class Platform
+     {
+         services.AddDbContext<AppDb>(o => o.UseInMemoryDatabase("sample"));
+         services.AddIdempotency();
++        // Red: the bare ASP.NET Core document, without the Skies conventions the typed clients rely on.
++        services.AddOpenApi();
+         return services;
+     }
+ }
+diff --git a/backend/Sample.Api/Program.cs b/backend/Sample.Api/Program.cs
+index f255937..2723039 100644
+--- a/backend/Sample.Api/Program.cs
++++ b/backend/Sample.Api/Program.cs
+@@ -4,7 +4,6 @@ using Sample.Api.Modules;
+ using Sample.Api.Modules.Wallets;
+ 
+ var builder = WebApplication.CreateBuilder(args);
+-builder.Services.AddSkies();                        // framework conventions: slice-aware OpenAPI + enum-as-name JSON
+ builder.Services.AddPlatform(builder.Configuration); // the app's cross-cutting infra (here: the demo store)
+ builder.Services.AddModules(builder.Configuration);  // each module's own services (the explicit registry)
+ 
+diff --git a/backend/Sample.Api/Sample.Api.csproj b/backend/Sample.Api/Sample.Api.csproj
+index 97ef7af..7e57170 100644
+--- a/backend/Sample.Api/Sample.Api.csproj
++++ b/backend/Sample.Api/Sample.Api.csproj
+@@ -28,6 +28,8 @@
+     <ImplicitUsings>enable</ImplicitUsings>
+     <!-- The sample app is not shipped. -->
+     <IsPackable>false</IsPackable>
++    <!-- Red: a bare AddOpenApi() in the app runs the XML-comment interceptor, which needs this opt-in. -->
++    <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces>
+     <!-- Build-time OpenAPI: `dotnet build` emits the contract here via the GetDocument tool (brought transitively by
+          Skies.Framework.AspNetCore). DB-free — Program.cs guards seeding with OnStartup, so the build needs no database. This
+          is what the typed client generates from, and what CI diffs to catch a stale contract. -->

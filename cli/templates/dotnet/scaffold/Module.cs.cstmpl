@@ -1,0 +1,14 @@
+namespace __NAMESPACE__.Modules.__NAME__;
+
+/// <summary>The __NAME__ module's wiring: its own services and its routes under /__NAME_LOWER__, both called from
+/// the module registry (Modules/Modules.cs).</summary>
+[Module]
+public static class __NAME__Module
+{
+    public static IServiceCollection AddServices(IServiceCollection services, IConfiguration configuration) =>
+        services;
+
+    public static void Map(IEndpointRouteBuilder app)
+    {
+    }
+}

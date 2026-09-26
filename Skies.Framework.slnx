@@ -7,7 +7,6 @@
     <Project Path="src/Skies/Skies.Framework.csproj" />
     <Project Path="src/Skies.Framework.Abstractions/Skies.Framework.Abstractions.csproj" />
     <Project Path="src/Skies.Framework.Auth/Skies.Framework.Auth.csproj" />
-    <Project Path="src/Skies.Framework.Cli/Skies.Framework.Cli.csproj" />
     <Project Path="src/Skies.Framework.AspNetCore/Skies.Framework.AspNetCore.csproj" />
     <Project Path="src/Skies.Framework.EntityFrameworkCore/Skies.Framework.EntityFrameworkCore.csproj" />
     <Project Path="src/Skies.Framework.Mail/Skies.Framework.Mail.csproj" />
@@ -20,7 +19,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Skies.Framework.Abstractions.Tests/Skies.Framework.Abstractions.Tests.csproj" />
-    <Project Path="tests/Skies.Framework.Cli.Tests/Skies.Framework.Cli.Tests.csproj" />
     <Project Path="tests/Skies.Framework.Doctor.Tests/Skies.Framework.Doctor.Tests.csproj" />
     <Project Path="tests/Skies.Framework.EntityFrameworkCore.Tests/Skies.Framework.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/Skies.Framework.SelfHarness.Tests/Skies.Framework.SelfHarness.Tests.csproj" />

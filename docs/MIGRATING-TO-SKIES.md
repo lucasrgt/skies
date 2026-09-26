@@ -1,73 +1,84 @@
-# Migrating to Skies 4.0
+# Migrating to Skies 5
 
-Skies 4.0 is a clean product rename and a breaking package migration. Runtime
-behavior and the convention model remain the same, but every public identity
-now belongs to Skies. The previous package line is frozen and receives no new
-features.
+Skies 5 keeps the runtime conventions (slices, modules, entities, value objects, MVVM, error codes, ctx.md) and
+removes the verification apparatus around them. Read [the decision](decisions/skies-5-evidence-over-apparatus.md)
+for the reasons.
 
-## Identity map
+## What changes
 
-| Before 4.0 | Skies 4.0 |
+| Skies 4 | Skies 5 |
 |---|---|
-| `lucasrgt/aerofortress-framework` | `lucasrgt/skies` |
-| `AeroFortress.Framework.*` | `Skies.Framework.*` |
-| `aerofortress-framework-cli` | `skies-framework-cli` |
-| `af` | `skies` |
-| `AeroFortress.toml` | `Skies.toml` |
-| `.aerofortress/` | `.skies/` |
-| `dotnet new aerofortress` | `dotnet new skies` |
-| `@aerofortress/frontend-sdk` | `@skiesjs/frontend-sdk` |
-| `@aerofortress/react` | `@skiesjs/react` |
-| `eslint-plugin-aerofortress` | `@skiesjs/eslint-plugin` |
-| `@aerofortress/assay` | `avp-assay` |
-| `AF####` | `SKY####` |
-| `AFFE###` | `SKYFE###` |
-| `AFSELF###` | `SKYSELF###` |
-
-Public namespaces, assembly names, project names, generated code, analyzer
-identifiers, and template identities follow the same mapping.
-
-## Application APIs
-
-| Before 4.0 | Skies 4.0 |
-|---|---|
-| `AddAeroFortress()` | `AddSkies()` |
-| `UseAeroFortress()` | `UseSkies()` |
-| `AeroFortressExtensions` | `SkiesExtensions` |
-| `AeroFortressManifest` | `SkiesManifest` |
+| `skies-framework-cli` dotnet tool | the `skies` binary (`npm install -g @skiesjs/cli` or `cargo install skies-cli`) |
+| `skies gate`, `skies check`, lefthook hooks | nothing runs automatically; `skies doctor` and `skies proof` on demand |
+| `<Module>.spec.toml`, `[AVP(...)]`, Assay.Net, avp-assay | `.specs/<id>/spec.md` with failure modes + `e2e/` + `receipt.json` |
+| `[Journey]`, `[Unit]`, `[Integration]`, `[E2E]` | plain `[Fact]`; spec E2E use `DisplayName = "FM-n: …"` |
+| `@verify`, `@avp`, `@e2e`, `flows.json`, backend ledger | removed |
+| SKY0003, 0008, 0010, 0011, 0020, 0030–0033 | removed |
+| SKYFE005, 006, 008, 012, 024–026, 033–035 and Flutter equivalents | removed |
+| design tokens, `.design/`, design scaffolds | removed; styling is the app's |
+| `skies context`, `skies nya/wtw/rtw/nwc` | removed from Skies; the tools remain available on their own, and `csm.toml` + `.skies/csm` stay in the repository |
+| `VERIFICATION.md`, `VERIFICATION.json` | removed |
+| `Skies.toml` `[framework]`, `core`, `library`, `website` keys | `[products.*] backend` + `frontend` (one path or a list), plus `[runners.*]` |
+| framework-sync, parity manifests | removed; all packages share one version |
+| Node.js SDK (`@skiesjs/core`, `express`, …) | discontinued; stay on the last 4.x release |
 
 ## Upgrade an existing repository
 
-1. Replace every `AeroFortress.Framework.*` package reference with the matching
-   `Skies.Framework.*` package at version `4.1.0`. Migrate straight to `4.1.0`
-   rather than an earlier 4.0.x: `Skies.Framework.Testing.Postgres` never
-   dropped the databases it cloned per test before `4.1.0`, and a large suite
-   leaves enough of them behind to exhaust the Docker VM's memory.
-2. Replace the tool package and command. The CLI carries its own version,
-   independent of the `Skies.Framework.*` library line:
+1. Install the binary and run the migration from the repository root:
 
    ```bash
-   dotnet tool uninstall -g aerofortress-framework-cli
-   dotnet tool install -g skies-framework-cli --version 4.1.1
+   npm install -g @skiesjs/cli
+   skies migrate 5 --dry-run   # review
+   skies migrate 5
    ```
 
-3. Rename `AeroFortress.toml` to `Skies.toml` and `.aerofortress/` to
-   `.skies/`.
-4. Replace namespaces and application APIs using the maps above.
-5. Replace frontend package names, refresh the npm lockfile, and update
-   `AFFE` suppressions or rule references to `SKYFE`.
-6. Update CI paths, cache dependency paths, hooks, and scripts to use the new
-   solution, projects, CLI, and manifest.
-7. Run the complete gate:
+   A second `skies migrate 5 --dry-run` reports zero changes. The migration never deletes a test; it edits only the
+   lines it must, keeps formatting and key order, and lists everything it could not decide under "Finish by hand".
 
-   ```bash
-   skies foundations init
-   skies gate --full
-   ```
+   | Area | What `skies migrate 5` does |
+   |---|---|
+   | Proof ceremony | removes `[AVP]`, `[Journey]`, `[Unit]`, `[Integration]`, `[E2E]` (other attributes on the line stay), the `@verify`/`@avp`/`@e2e` doc tags, `e2e/flows.json`, `*.spec.toml`, `VERIFICATION.*`; keeps `csm.toml` and `.skies/csm` (the team's records) and says so |
+   | Agent instructions and hooks | removes the `skies:foundations` block in `AGENTS.md`/`CLAUDE.md` and the hook commands in `lefthook.yml` that ran `skies check`/`gate`/`context`; reports prose that still tells agents to run the gate |
+   | `Skies.toml` | rewrites it to the 5.x schema (`core`/`library`/`website` fold into `frontend`; `[framework]` goes) |
+   | .NET | drops the `skies-framework-cli` dotnet tool (and the manifest when nothing else is in it); sets every `Skies`/`Skies.Framework*` `PackageReference`/`PackageVersion` to the binary's version; adds the `.specs/` compile include to the test project |
+   | `package.json` | removes `@skiesjs/frontend-sdk` (and any alias of it) and `skies-flutter`; renames `skies-react`/`eslint-plugin-skies` to `@skiesjs/react`/`@skiesjs/eslint-plugin` (imports too); sets both to the binary's version |
+   | npm scripts | in each `&&` chain, drops segments that run removed bins (`skyfe-*`, the `skies-flutter-*` checkers, `skies check`/`gate`/`context`, `dotnet tool run skies check`); rewrites `skies-flutter-doctor <dir>` to `skies doctor --package <dir>`, `skies-flutter-client …` to `skies g client --package . …` (same flags), and `skies-flutter-i18n` to `skies i18n`; deletes a script left empty along with its `pre`/`post` hooks and the `npm run` calls to it; lists every edited script per file |
+   | ESLint | removes settings for `skies/*` rules the 5.x plugin no longer ships (`test-colocated`, `view-integration-test`, `design-tokens`, `ui-door`, `scale-only`, `semantic-colors`, `verify-has-avp-proof`, `no-disabled-tests`, `feature-has-e2e-flow`, …) from `eslint.config.*` and `.eslintrc*` |
+   | Flutter | sets a hosted `skies_flutter` dependency to the binary's version (path and git dependencies stay) |
+   | Test helpers | copies the removed Playwright fixtures, backend ledger, and Assay adapter (`@skiesjs/frontend-sdk/playwright*`, `…/product-verification`) and the Dio ledger (`skies_flutter_testing.dart`) into the app and points the imports at the copies |
+   | Auth | never rewrites a generated Account module (the code is the app's, possibly changed); when a Skies 4 `Modules/Account/Slices/Refresh.cs` still carries its own rotation, notes that the mechanics now live in `Skies.Framework.Auth` (see CONVENTIONS.md, Auth): regenerate with `skies g auth` in a branch and compare |
+   | CI | removes workflow steps that run the gate (only the gate lines of a `run: \|` block), and `dotnet tool restore` when the tool manifest was deleted |
 
-`skies foundations init` adopts the complete AVP, NYA, WTW, RTW, and NWC
-foundation contract. Skies projects do not select a subset of that stack.
+2. Work through "Finish by hand". Typical items: run `npm install` and `flutter pub get` to refresh lockfiles, run
+   `dotnet format --diagnostics IDE0005` for usings only the removed attributes needed, review the rewritten scripts,
+   and decide about `Assay.Net` / `avp-assay` / `assay-design`, which are independent tools the app may keep.
+3. Declare a runner in `Skies.toml` for each E2E engine you use (see
+   [MONOREPO-ARCHITECTURE.md](MONOREPO-ARCHITECTURE.md)).
+4. Run `skies doctor`, `dotnet test`, and your frontend tests. A package's `lint` script can call
+   `skies doctor --package .` to run only its own leg.
 
-The GitHub repository rename preserves standard GitHub redirects, but package
-identities do not redirect. Consumers must move to the Skies package line
-explicitly.
+Existing tests keep running as ordinary tests. They are not converted into specs. New features start with
+`skies spec new`. For a critical area, write a spec after the fact and record it with a `red.patch` that removes the
+behavior, so the receipt still shows every failure mode failing before and passing after.
+
+## Explicit AVP decisions
+
+Every failure mode now needs `[avp: criterion-id]` or `[avp: none]`. A dispensation must be justified under
+`## AVP exemptions` as `- FM-n <specific reason> | reviewed-by: <actual reviewer>`, after the human reviews its
+applicability against the catalog. Existing specs and generated examples need this review before `proof run` or
+`proof record`; do not mechanically stamp them all `none` or rewrite historical receipts. A missing decision is
+reported before a runner starts. Review attribution is recorded, not authenticated by the CLI.
+
+## Runtime and generator changes
+
+- `IExternalIdentity` and its synchronous `Verify` are removed. Implement `IExternalIdentityVerifier.VerifyAsync`
+  instead; discovery/key retrieval is asynchronous. `ExternalUser` retains its shape.
+- New auth scaffolds use the standard module registry and put provider selection in `Platform.AddPlatform`.
+  Existing generated code remains app-owned: compare a fresh scaffold and merge the changes manually.
+  Development providers refuse to start outside Development. Before deployment, configure a persistent AppDb,
+  a private `Jwt:Secret`, and real email/SMS/OIDC providers in that platform setup.
+- Value-object and entity rules reject accessible `init` accessors. Use get-only or private-init properties.
+  Entities no longer need an unused `EnsureValid` method to satisfy the doctor; factories and mutations still
+  own validation. A failed mutation must leave the entity unchanged.
+- Session seams discard a refresh that predates sign-out or another sign-in. Flutter serializes secure-storage
+  writes as well, so sign-out cannot leave a refresh credential saved by an older request.

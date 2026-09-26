@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="Skies.Framework.Testing" Version="5.0.0-rc.4" />
+    <!-- The doctor runs here too: every test lives in a spec, and it flags one compiled from anywhere else.
+         Remove it and the tests still build and run (Law 2). -->
+    <PackageReference Include="Skies.Framework.Doctor" Version="5.0.0-rc.4" PrivateAssets="all" />
+    <PackageReference Include="Skies.Framework.Testing.InMemory" Version="5.0.0-rc.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Skies.Framework.Abstractions" />
+    <Using Include="Skies.Framework.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Golden.Api\Golden.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Every test lives in a spec: each .specs/<id>-<slug>/e2e folder holds the cases for one spec's failure
+         modes (namespace Specs.S<id>, display names "FM-n: ..."), and this project compiles nothing else.
+         An isolated system (a value object, a calculation) gets its own spec. `skies proof record` runs them. -->
+    <Compile Include="..\..\.specs\*\e2e\**\*.cs" />
+  </ItemGroup>
+
+</Project>

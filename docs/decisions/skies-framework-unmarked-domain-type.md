@@ -94,7 +94,7 @@ precise catch for an `Address`-on-`Agency` that had shipped unmarked.*
 Net-new, none exists today (honest per the rubric's Criterion 8.5):
 
 - `SKY0021` — a `DbSet<T>` whose `T` is unmarked (Detector A), or an `[Entity]` member of an unmarked complex
-  type (Detector B). Next free id; SKY0001–SKY0020 are taken (SKY0020 = `JourneyAssertionAnalyzer`).
+  type (Detector B). Next free id at the time; SKY0001–SKY0020 were taken.
 
 Existing, cited as-is: `SKY0013` (`ValueObjectAnalyzer.cs:23`), `SKY0014` (`EntityAnalyzer.cs:26`), `SKY0009`
 (`ModuleBoundaryAnalyzer` — the by-id, no-navigation rule Detector B leans on).

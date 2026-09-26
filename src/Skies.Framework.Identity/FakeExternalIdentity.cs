@@ -2,16 +2,17 @@ using Skies.Framework.Abstractions;
 
 namespace Skies.Framework.Identity;
 
-/// <summary>
-/// A dev/test <see cref="IExternalIdentity"/> that treats the token as the email — so OAuth flows run
-/// without a real provider — reporting the provider as "fake". An empty token is rejected. A real
-/// verifier, validating the id_token against a provider's JWKS, is an external plugin.
-/// </summary>
-public sealed class FakeExternalIdentity : IExternalIdentity
+/// <summary>A development/test verifier that treats a non-empty token as an email.
+/// Register only in development or tests; deployments use <see cref="OidcIdTokenVerifier"/>.</summary>
+public sealed class FakeExternalIdentity : IExternalIdentityVerifier
 {
     /// <inheritdoc />
-    public Result<ExternalUser> Verify(string idToken) =>
-        string.IsNullOrWhiteSpace(idToken)
+    public Task<Result<ExternalUser>> VerifyAsync(string idToken, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        Result<ExternalUser> result = string.IsNullOrWhiteSpace(idToken)
             ? Error.Unauthorized("identity.invalid_token", "invalid identity token")
             : new ExternalUser("fake", idToken, idToken);
+        return Task.FromResult(result);
+    }
 }

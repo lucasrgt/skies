@@ -1,13 +1,13 @@
 # @skiesjs/react
 
 The frontend **spine** of [Skies](https://github.com/lucasrgt/skies) —
-platform- and design-system-agnostic React primitives the app composes into MVVM screens. It ships the shapes
+router- and design-system-agnostic React primitives the app composes into MVVM screens. It ships the shapes
 the framework's frontend conventions (`SKYFE*`) steer toward, so the rules have something to steer *to*:
 
 - **`AsyncState` / `<Resource>`** — the one async-state shape (loading / error / data), never raw `isPending`/`isError`.
 - **Session** — `SessionState` / `toSessionState` (the tri-state `loading | authenticated | anonymous`) + the
   `lib/session` seam that pairs the bearer write with a cache reset.
-- **Navigation** — `safeBack` and guarded redirect helpers (router-agnostic: expo-router ↔ TanStack).
+- **Navigation** — `safeBack` and guarded redirect helpers (router-agnostic: TanStack Router ↔ React Router).
 - **Paging** — `usePager` / `useAccumulatedPages` over a stable, tiebroken order.
 - **Submit** — a typed submit helper for form → command flows.
 

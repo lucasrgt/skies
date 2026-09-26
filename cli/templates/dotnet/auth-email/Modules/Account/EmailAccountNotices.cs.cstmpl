@@ -1,0 +1,15 @@
+using Skies.Framework.Mail;
+
+namespace MyApp.Api.Modules.Account;
+
+/// <summary>The Account notices of an app with an email channel. A registration of a taken address answers like any
+/// other, so its owner learns of the attempt by mail, with the way back in when it was them.</summary>
+public sealed class EmailAccountNotices(IEmailSender email) : IAccountNotices
+{
+    public Task AlreadyRegisteredAsync(Email address, CancellationToken ct) =>
+        email.SendAsync(new EmailMessage(
+            address.Value,
+            "You already have an account",
+            "Someone tried to create an account with this email, which already has one. If it was you, sign in, or " +
+            "reset your password if you have forgotten it. If it was not, you can ignore this message."), ct);
+}

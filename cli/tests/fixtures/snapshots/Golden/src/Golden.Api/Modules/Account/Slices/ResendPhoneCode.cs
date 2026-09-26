@@ -1,0 +1,32 @@
+using Skies.Framework.Auth;
+using Skies.Framework.Sms;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>Send a fresh 6-digit verification code to the caller's phone. The framework's
+/// <see cref="VerificationTokens"/> mints it and stores it slow-hashed (low-entropy, so verified, never looked up); this
+/// slice owns how long it lives and the message that carries it.</summary>
+[Slice]
+public static class ResendPhoneCode
+{
+    public record Input(string Phone);
+
+    public record Output();
+
+    private static readonly TimeSpan CodeLifetime = TimeSpan.FromMinutes(10);
+
+    public static async Task<Result<Output>> Handle(Input input, VerificationTokens verification, ISmsSender sms, ICurrentUser current, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(input.Phone))   // missing from the body: no number to send the code to
+            return Error.Validation(AccountErrorCodes.PhoneRequired, "phone is required");
+        var code = await verification.IssueCodeAsync(current.UserId, VerificationPurpose.Phone, input.Phone, CodeLifetime, ct);
+        await sms.SendAsync(input.Phone, $"Your Golden code is {code}", ct);
+        return new Output();
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/phone-code", async (Input input, VerificationTokens verification, ISmsSender sms, ICurrentUser current, CancellationToken ct) =>
+            (await Handle(input, verification, sms, current, ct)).ToHttp())
+            .WithName(nameof(ResendPhoneCode))
+            .RequireAuthorization();
+}

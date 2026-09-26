@@ -1,53 +1,186 @@
 name: publish
 
-# Publishes the Skies framework — all engines off ONE version tag (e.g. `v1.0.0`): the .NET backend to
-# nuget.org, the React/Flutter tooling plus Node.js backend packages to npm, and the Flutter runtime to pub.dev.
-# Bump each changed package version first, then tag.
-# Auth: NuGet prefers Trusted Publishing and falls back to the repository's scoped NUGET_API_KEY when an
-# external trust policy is unavailable; npm uses NPM_TOKEN. The ecosystem jobs are independent — one
-# failing does not block the others. The nuget set below is
-# the public framework surface: SelfHarness (framework-dev only), Geocoding (not yet on the library standard),
-# and the sample/tests are deliberately excluded.
+# Publishes every Skies package from one version tag (e.g. `v5.0.0`): NuGet, npm (the React packages and the
+# `skies` binary wrappers), pub.dev, crates.io, and the binaries as GitHub release assets. All packages share one
+# version; the `versions` job fails the release if any manifest or template pin disagrees with the tag
+# (tools/check-versions.sh).
+#
+# Nothing is published until everything could be: `preflight` fails the release when a registry credential is
+# missing and dry-runs every package (npm, crates.io, pub.dev, the NuGet packs), and the binaries build for every
+# target. Then the registries publish one after another (NuGet, npm React, pub.dev, crates.io, the npm binary
+# wrappers) and the GitHub release comes last, so a failure stops the chain instead of leaving it half done in
+# parallel. Every step skips a version its registry already has, so recovering from a failure mid-chain is: fix the
+# cause, then re-run the failed jobs of this workflow run (or push the same tag again).
+#
+# Auth: NuGet prefers Trusted Publishing and falls back to NUGET_API_KEY; npm uses NPM_TOKEN; crates.io uses
+# CARGO_REGISTRY_TOKEN; pub.dev uses automated publishing (GitHub OIDC, enabled on the package's admin page).
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:
 
 jobs:
-  quality:
-    name: exact CI quality gate
+  ci:
     uses: ./.github/workflows/ci.yml
-    with:
-      full: true
 
-  # Release guard: no publishable unit may ship new content under a version that is already out — fail the whole
-  # release so the fix is a version bump, not a silent skip (the "0.x published != 0.x canonical" drift). Both
-  # ecosystem jobs wait on it; they stay independent of each other.
-  guard:
-    name: release guard (versions bumped since last release)
-    needs: quality
+  versions:
+    name: every package carries the tag's version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: compare every version pin with the tag
+        run: tools/check-versions.sh "${GITHUB_REF_NAME#v}"
+
+  preflight:
+    name: every registry is reachable and every package would publish
+    needs: [ci, versions]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: nuget login (OIDC → temp key)
+        uses: NuGet/login@v1
+        id: login
+        continue-on-error: true
         with:
-          fetch-depth: 0 # full history + tags so the guard can diff HEAD against the previous release
+          user: lucasrgt
+      - name: the credentials every publish step needs
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY || secrets.NUGET_API_KEY }}
+        run: |
+          missing=
+          [ -n "$NPM_TOKEN" ] || missing="$missing NPM_TOKEN"
+          [ -n "$CARGO_REGISTRY_TOKEN" ] || missing="$missing CARGO_REGISTRY_TOKEN"
+          [ -n "$NUGET_API_KEY" ] || missing="$missing NuGet(Trusted Publishing or NUGET_API_KEY)"
+          if [ -n "$missing" ]; then echo "missing:$missing — nothing was published"; exit 1; fi
+      - uses: dtolnay/rust-toolchain@stable
+      - name: crates.io dry run
+        run: cargo publish -p skies-cli --locked --dry-run
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
-          cache: npm
-          cache-dependency-path: frontend-sdk/package-lock.json
-      - name: install release-guard dependencies
-        working-directory: frontend-sdk
-        run: npm ci
-      - run: node frontend-sdk/tools/release-guard.mjs
+          registry-url: "https://registry.npmjs.org"
+      - name: npm dry run (React packages and the binary wrapper)
+        run: |
+          (cd frontend-sdk && npm ci --no-audit --no-fund && npm publish --workspaces --dry-run --access public --tag next)
+          npm publish ./cli/npm --dry-run --access public --tag next
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: NuGet packs
+        run: for proj in src/*/*.csproj analyzers/Skies.Framework.Doctor/Skies.Framework.Doctor.csproj; do dotnet pack "$proj" -c Release -o nupkgs; done
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: pub.dev dry run
+        working-directory: flutter-sdk/packages/skies_flutter
+        run: flutter pub publish --dry-run
+
+  binaries:
+    name: build skies (${{ matrix.target }})
+    needs: [ci, versions]
+    strategy:
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest, npm: linux-x64, exe: skies }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-24.04-arm, npm: linux-arm64, exe: skies }
+          - { target: x86_64-apple-darwin, os: macos-15-intel, npm: darwin-x64, exe: skies }
+          - { target: aarch64-apple-darwin, os: macos-latest, npm: darwin-arm64, exe: skies }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, npm: win32-x64, exe: skies.exe }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: skies-${{ matrix.npm }}
+          path: target/${{ matrix.target }}/release/${{ matrix.exe }}
+
+  github-release:
+    name: attach binaries to the GitHub release
+    needs: npm-cli
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+      - name: archive and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          # upload-artifact stores files without their mode, so the executable bit is restored before archiving.
+          chmod +x skies-*/*
+          for dir in skies-*; do tar -czf "$dir.tar.gz" -C "$dir" .; done
+          pre=; case "$GITHUB_REF_NAME" in *-*) pre=--prerelease ;; esac
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes $pre *.tar.gz || \
+            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber *.tar.gz
+
+  npm-cli:
+    name: publish the skies binary to npm
+    needs: [crates, binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+      - name: publish platform packages, then the wrapper
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          publish() { name=$(node -p "require('./$1/package.json').name"); ver=$(node -p "require('./$1/package.json').version")
+            # npm refuses a prerelease on the default dist-tag; release candidates go to `next`.
+            tag=latest; case "$ver" in *-*) tag=next ;; esac
+            if npm view "$name@$ver" version >/dev/null 2>&1; then echo "$name@$ver already published"; else npm publish "./$1" --access public --provenance --tag "$tag"; fi; }
+          for dir in dist/skies-*; do
+            platform=${dir#dist/skies-}
+            exe=$(ls "$dir")
+            node cli/npm/pack-platform.mjs "${platform%-*}" "${platform##*-}" "$dir/$exe" "out/$platform"
+            publish "out/$platform"   # a bare "out/x" would read as a GitHub repository, hence ./ inside publish
+          done
+          publish cli/npm
+
+  crates:
+    name: publish skies-cli to crates.io
+    needs: pub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if curl --fail --silent -A "skies-release (github.com/lucasrgt/skies)" \
+            "https://crates.io/api/v1/crates/skies-cli/$version" >/dev/null; then
+            echo "skies-cli@$version already on crates.io"; exit 0
+          fi
+          cargo publish -p skies-cli --locked
 
   nuget:
     name: pack + push to nuget.org
-    needs: guard
+    needs: [preflight, binaries]
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # OIDC token for nuget.org Trusted Publishing
-      contents: read # checkout
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -68,12 +201,9 @@ jobs:
             src/Skies.Framework.Testing/Skies.Framework.Testing.csproj \
             src/Skies.Framework.Testing.InMemory/Skies.Framework.Testing.InMemory.csproj \
             src/Skies.Framework.Testing.Postgres/Skies.Framework.Testing.Postgres.csproj \
-            src/Skies.Framework.Cli/Skies.Framework.Cli.csproj \
             analyzers/Skies.Framework.Doctor/Skies.Framework.Doctor.csproj ; do
             dotnet pack "$proj" -c Release -o nupkgs
           done
-      # Prefer a short-lived NuGet key obtained through OIDC. A repository rename can temporarily invalidate
-      # the external trust policy, so the push step falls back to the existing scoped repository secret.
       - name: nuget login (OIDC → temp key)
         uses: NuGet/login@v1
         id: login
@@ -84,15 +214,12 @@ jobs:
         env:
           NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY || secrets.NUGET_API_KEY }}
         run: |
-          if [ -z "$NUGET_API_KEY" ]; then
-            echo "Neither NuGet Trusted Publishing nor NUGET_API_KEY is available."
-            exit 1
-          fi
+          if [ -z "$NUGET_API_KEY" ]; then echo "Neither NuGet Trusted Publishing nor NUGET_API_KEY is available."; exit 1; fi
           dotnet nuget push "nupkgs/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
 
-  npm:
-    name: publish frontend packages to npm
-    needs: guard
+  npm-react:
+    name: publish React packages to npm
+    needs: nuget
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -102,234 +229,39 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: npm
           cache-dependency-path: frontend-sdk/package-lock.json
-      - name: install
-        working-directory: frontend-sdk
+      - working-directory: frontend-sdk
         run: npm ci
-      # Auto-discover the publishable workspace packages: skip the private root members and any version already
-      # on npm (the npm equivalent of nuget's --skip-duplicate). Flipping a package's `private` off enrolls it
-      # here automatically — one tag stays the single release lever as the surface grows (eslint-plugin, assay…).
-      - name: publish public packages (skip versions already on npm)
+      - name: publish (skip versions already on npm)
         working-directory: frontend-sdk
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN not set — skipping npm publish (the nuget leg is independent and still ran)."
-            exit 0
-          fi
-          for dir in . packages/*/; do
-            name=$(node -p "try{require('./$dir/package.json').name||''}catch(e){''}")
-            [ -z "$name" ] && continue
-            private=$(node -p "try{!!require('./$dir/package.json').private}catch(e){true}")
-            [ "$private" = "true" ] && { echo "skip $name (private)"; continue; }
+          for dir in packages/*/; do
+            name=$(node -p "require('./$dir/package.json').name")
             ver=$(node -p "require('./$dir/package.json').version")
-            if npm view "$name@$ver" version >/dev/null 2>&1; then
-              echo "$name@$ver already on npm — skip"
-            else
-              echo "publishing $name@$ver"
-              ( cd "$dir" && npm publish )
-            fi
+            if npm view "$name@$ver" version >/dev/null 2>&1; then echo "$name@$ver already on npm"; else (cd "$dir" && tag=latest; case "$ver" in *-*) tag=next ;; esac; npm publish --access public --tag "$tag"); fi
           done
-      # The 4.1.6 release moved the Skies packages into the @skiesjs scope; the old unscoped names stay
-      # published (npm has no rename) and are deprecated so consumers find the new location.
-      - name: deprecate moved package names
-        working-directory: frontend-sdk
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        continue-on-error: true
-        run: |
-          npm deprecate skies-frontend-sdk@4.1.4 "Moved to @skiesjs/frontend-sdk" || true
-          npm deprecate skies-react@4.0.4 "Moved to @skiesjs/react" || true
-          npm deprecate eslint-plugin-skies@4.0.4 "Moved to @skiesjs/eslint-plugin" || true
-          npm deprecate eslint-plugin-skies-node@0.1.0 "Moved to @skiesjs/eslint-plugin-node" || true
 
-  flutter-npm:
-    name: publish Flutter tooling to npm
-    needs: guard
+  pub:
+    name: publish skies_flutter to pub.dev
+    needs: npm-react
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # npm provenance attestations
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-          cache: npm
-          cache-dependency-path: flutter-sdk/package-lock.json
-      - name: install
-        working-directory: flutter-sdk
-        run: npm ci
-      - name: publish public package (skip version already on npm)
-        working-directory: flutter-sdk
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN not set — Flutter tooling cannot be published."
-            exit 1
-          fi
-          name=$(node -p "require('./package.json').name")
-          ver=$(node -p "require('./package.json').version")
-          if npm view "$name@$ver" version >/dev/null 2>&1; then
-            echo "$name@$ver already on npm — skip"
-          else
-            npm publish --access public --provenance
-          fi
-      - name: verify exact package from npm
-        working-directory: flutter-sdk
-        run: |
-          name=$(node -p "require('./package.json').name")
-          ver=$(node -p "require('./package.json').version")
-          for poll in $(seq 1 45); do
-            npm view "$name@$ver" version >/dev/null 2>&1 && break
-            echo "waiting for $name@$ver registry visibility (poll $poll/45)"
-            sleep 20
-          done
-          npm view "$name@$ver" version >/dev/null 2>&1
-          receipt="$RUNNER_TEMP/skies-flutter-npm-receipt"
-          mkdir -p "$receipt"
-          cd "$receipt"
-          npm init -y >/dev/null
-          npm install --ignore-scripts --no-audit --no-fund --save-exact "$name@$ver"
-          node --input-type=module -e "await import('$name/package-versions')"
-
-  flutter-pub:
-    name: publish Flutter runtime to pub.dev
-    needs: guard
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write # pub.dev automated publishing
+      id-token: write
     defaults:
       run:
         working-directory: flutter-sdk/packages/skies_flutter
     steps:
       - uses: actions/checkout@v7
-      # setup-dart provisions the short-lived pub.dev OIDC token. Flutter is installed afterward because
-      # this package depends on the Flutter SDK and must be published through `flutter pub`.
       - uses: dart-lang/setup-dart@v1
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: publish matching release version
-        run: |
+      - run: |
           version=$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "skies_flutter@$version does not match release tag $GITHUB_REF_NAME — skip"
-            exit 0
+          if curl --fail --silent "https://pub.dev/api/packages/skies_flutter/versions/$version" >/dev/null; then
+            echo "skies_flutter@$version already on pub.dev"; exit 0
           fi
-          if curl --fail --silent --show-error "https://pub.dev/api/packages/skies_flutter/versions/$version" >/dev/null; then
-            echo "skies_flutter@$version already on pub.dev — skip"
-            exit 0
-          fi
-          flutter pub publish --dry-run
           flutter pub publish --force
-      - name: verify exact package on pub.dev
-        run: |
-          version=$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)
-          [ "v$version" = "$GITHUB_REF_NAME" ] || exit 0
-          for poll in $(seq 1 45); do
-            curl --fail --silent --show-error "https://pub.dev/api/packages/skies_flutter/versions/$version" >/dev/null && exit 0
-            echo "waiting for skies_flutter@$version registry visibility (poll $poll/45)"
-            sleep 20
-          done
-          echo "skies_flutter@$version did not become visible on pub.dev"
-          exit 1
-
-  node-npm:
-    name: publish Node.js packages to npm
-    needs: guard
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write # npm provenance attestations
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-          cache: npm
-          cache-dependency-path: node-sdk/package-lock.json
-      - name: install and build
-        working-directory: node-sdk
-        run: |
-          npm ci --ignore-scripts
-          npm audit --audit-level=moderate
-          npm run build
-      - name: exhaustive Node release gate
-        working-directory: node-sdk
-        run: npm run gate:full --workspace @skiesjs/pilot-api
-      - name: publish public packages in dependency order
-        working-directory: node-sdk
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN not set — Node.js packages cannot be published."
-            exit 1
-          fi
-          for dir in packages/core packages/openapi packages/express packages/auth packages/auth-express packages/socketio packages/identity packages/mail packages/sms packages/storage packages/storage-express packages/rate-limit-express packages/drizzle-postgres packages/testing packages/testing-postgres packages/doctor packages/eslint-plugin-skies-node packages/foundation packages/framework packages/cli; do
-            name=$(node -p "require('./$dir/package.json').name")
-            ver=$(node -p "require('./$dir/package.json').version")
-            if npm view "$name@$ver" version >/dev/null 2>&1; then
-              echo "$name@$ver already on npm — skip"
-            else
-              echo "publishing $name@$ver"
-              ( cd "$dir" && npm publish --access public --provenance )
-            fi
-          done
-      - name: verify exact published packages from the registry
-        working-directory: node-sdk
-        run: |
-          receipt="$RUNNER_TEMP/skies-node-publish-receipt"
-          rm -rf "$receipt"
-          mkdir -p "$receipt"
-          cd "$receipt"
-          npm init -y >/dev/null
-          specs=""
-          for dir in $GITHUB_WORKSPACE/node-sdk/packages/{core,openapi,express,auth,auth-express,socketio,identity,mail,sms,storage,storage-express,rate-limit-express,drizzle-postgres,testing,testing-postgres,doctor,eslint-plugin-skies-node,foundation,framework,cli}; do
-            name=$(node -p "require('$dir/package.json').name")
-            ver=$(node -p "require('$dir/package.json').version")
-            specs="$specs $name@$ver"
-          done
-          # The registry can lag new scoped packages by minutes, so poll for visibility before installing.
-          for poll in $(seq 1 45); do
-            missing=""
-            for name in $specs; do
-              npm view "$name" version >/dev/null 2>&1 || missing="$missing $name"
-            done
-            [ -z "$missing" ] && break
-            echo "waiting for registry visibility:$missing (poll $poll/45)"
-            sleep 20
-          done
-          [ -z "$missing" ] || { echo "registry packages never became visible:$missing"; exit 1; }
-          installed=false
-          for attempt in 1 2 3 4 5 6; do
-            if npm install --ignore-scripts --no-audit --no-fund --save-exact $specs; then
-              installed=true
-              break
-            fi
-            rm -rf node_modules package-lock.json
-            sleep 10
-          done
-          [ "$installed" = "true" ] || { echo "registry packages did not become consumable"; exit 1; }
-          node --input-type=module -e 'await Promise.all([
-            "@skiesjs/core", "@skiesjs/openapi", "@skiesjs/express", "@skiesjs/auth",
-            "@skiesjs/auth-express", "@skiesjs/socketio", "@skiesjs/identity", "@skiesjs/mail", "@skiesjs/sms",
-            "@skiesjs/storage", "@skiesjs/storage-express", "@skiesjs/rate-limit-express",
-            "@skiesjs/drizzle-postgres", "@skiesjs/testing", "@skiesjs/testing-postgres",
-            "@skiesjs/doctor", "@skiesjs/foundation", "@skiesjs/eslint-plugin-node", "@skiesjs/cli",
-          ].map((name) => import(name)))'
-          npx --no-install skies-node --help
-          npx --no-install skies-node-doctor --help
-          npm ls --all --json > npm-receipt.json
-      - uses: actions/upload-artifact@v6
-        with:
-          name: skies-node-publish-receipt
-          path: ${{ runner.temp }}/skies-node-publish-receipt/npm-receipt.json
-          if-no-files-found: error

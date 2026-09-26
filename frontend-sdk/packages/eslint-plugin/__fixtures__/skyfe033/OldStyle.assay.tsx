@@ -1,2 +1,0 @@
-/** @avp old-file */
-defineVerification({}, {}, {});

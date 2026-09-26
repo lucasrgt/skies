@@ -1,8 +1,42 @@
-# Framework-development topology. The sample backend is the runnable product exercised by the root release gate;
-# frontend-sdk owns and verifies the framework's TypeScript packages and sample fixtures in its dedicated CI job.
+# Framework-development topology: the sample backend is the runnable product the framework builds and doctors.
+# The sample is also a self-contained Skies app with its own Skies.toml (runners, .specs/, receipts) under
+# examples/sample-app/, which `skies proof` picks up when run from there.
 
 [workspace]
 name = "skies"
+# Everything allowed at the framework's root (`skies doctor`: SKYWS001). A trailing / names a folder, no slash a file.
+# New work goes under an existing folder; a new root entry is a decision, made here.
+root = [
+  ".github/",
+  ".specs/",
+  "analyzers/",
+  "assets/",
+  "build/",
+  "cli/",
+  "docs/",
+  "examples/",
+  "flutter-sdk/",
+  "frontend-sdk/",
+  "skies-plugin/",
+  "src/",
+  "tests/",
+  "tools/",
+  ".gitattributes",
+  ".gitignore",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "Cargo.lock",
+  "Cargo.toml",
+  "Directory.Build.props",
+  "LICENSE",
+  "README.md",
+  "Skies.Framework.slnx",
+  "eslint.config.mjs",
+  "package-lock.json",
+  "package.json",
+  "rustfmt.toml",
+]
 
 [products.sample]
 backend = "examples/sample-app/backend/Sample.Api"
+tests = "examples/sample-app/backend/Sample.Tests"

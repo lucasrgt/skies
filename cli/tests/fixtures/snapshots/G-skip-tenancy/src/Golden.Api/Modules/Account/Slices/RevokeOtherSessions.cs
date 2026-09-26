@@ -1,0 +1,25 @@
+using Skies.Framework.Auth;
+
+namespace Golden.Api.Modules.Account;
+
+/// <summary>"Sign out everywhere else" — revoke every session except the current one. The caller's own
+/// session (its sid) is kept; all the user's other families are dropped.</summary>
+[Slice]
+public static class RevokeOtherSessions
+{
+    public record Input();
+
+    public record Output();
+
+    public static async Task<Result<Output>> Handle(Input input, RefreshSessions sessions, ICurrentUser current, CancellationToken ct)
+    {
+        await sessions.RevokeOthersAsync(current.UserId, current.SessionId, ct);
+        return new Output();
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/sessions/revoke-others", async (RefreshSessions sessions, ICurrentUser current, CancellationToken ct) =>
+            (await Handle(new Input(), sessions, current, ct)).ToHttp())
+            .WithName(nameof(RevokeOtherSessions))
+            .RequireAuthorization();
+}

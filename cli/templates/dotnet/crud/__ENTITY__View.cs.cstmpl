@@ -1,0 +1,9 @@
+namespace MyApp.Api.Modules.__MODULE__;
+
+/// <summary>__A_ENTITY_CAP__ as the API returns it: the slices answer with this record, never the entity, so the
+/// contract moves only when this record does. <c>Version</c> is the concurrency token a client sends back to
+/// update or delete the row.__HIDDEN__</summary>
+public record __ENTITY__View(__VIEW_FIELDS__)
+{
+    public static __ENTITY__View From(__ENTITY__ e) => new(__VIEW_ARGS__);
+}

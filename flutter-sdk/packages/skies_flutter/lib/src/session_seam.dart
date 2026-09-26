@@ -40,7 +40,7 @@ final class SessionSeam {
        _onIdentityChanged = onIdentityChanged,
        _onSessionChanged = onSessionChanged,
        _store = store ?? const _EmptyRefreshTokenStore() {
-    _bootstrap = SingleFlight<bool>(_bootstrapOnce);
+    _bootstrap = _refreshForIdentity();
   }
 
   final void Function(String? token) _setAccessToken;
@@ -48,46 +48,92 @@ final class SessionSeam {
   final FutureOr<void> Function() _onIdentityChanged;
   final FutureOr<void> Function()? _onSessionChanged;
   final RefreshTokenStore _store;
-  late final SingleFlight<bool> _bootstrap;
+  late SingleFlight<bool> _bootstrap;
+  int _identity = 0;
+  Future<void> _writes = Future<void>.value();
 
-  /// Persists an explicit sign-in and totally clears prior-identity caches.
-  Future<void> signIn(AuthTokens tokens) async {
-    await _persist(tokens);
-    await _onIdentityChanged();
+  /// Persists an explicit sign-in and clears prior-identity caches.
+  Future<void> signIn(AuthTokens tokens) {
+    final revision = _changeIdentity();
+    return _write(() async {
+      if (revision != _identity) return;
+      try {
+        await _store.clear();
+        await _persist(tokens, revision);
+      } finally {
+        if (revision == _identity) await _onIdentityChanged();
+      }
+    });
   }
 
-  /// Performs one single-flight refresh rotation and lightly resets session caches.
+  /// Shares one refresh per identity. Replies from an earlier identity are ignored.
   Future<bool> bootstrapSession() => _bootstrap();
 
-  /// Clears local credentials and totally clears prior-identity caches.
-  Future<void> clearSession() async {
+  /// Clears credentials after any pending storage write, preventing a late save from restoring them.
+  Future<void> clearSession() {
+    final revision = _changeIdentity();
+    return _write(() async {
+      if (revision != _identity) return;
+      try {
+        await _store.clear();
+      } finally {
+        if (revision == _identity) await _onIdentityChanged();
+      }
+    });
+  }
+
+  int _changeIdentity() {
+    _identity++;
     _setAccessToken(null);
-    await _store.clear();
-    await _onIdentityChanged();
+    _bootstrap = _refreshForIdentity();
+    return _identity;
   }
 
-  Future<bool> _bootstrapOnce() async {
-    try {
-      final tokens = await _refresh(await _store.load());
-      if (tokens == null) return false;
-      await _persist(tokens);
-      final changed = _onSessionChanged;
-      if (changed != null) await changed();
-      return true;
-    } on Object {
-      return false;
-    }
+  SingleFlight<bool> _refreshForIdentity() {
+    final revision = _identity;
+    return SingleFlight<bool>(() async {
+      try {
+        await _writes;
+        if (revision != _identity) return false;
+        final credential = await _store.load();
+        if (revision != _identity) return false;
+        final tokens = await _refresh(credential);
+        if (tokens?.accessToken == null || tokens!.accessToken!.isEmpty) {
+          return false;
+        }
+        var restored = false;
+        await _write(() async {
+          if (revision != _identity) return;
+          await _persist(tokens, revision);
+          if (revision != _identity) return;
+          final changed = _onSessionChanged;
+          if (changed != null) await changed();
+          restored = revision == _identity;
+        });
+        return restored;
+      } on Object {
+        return false;
+      }
+    });
   }
 
-  Future<void> _persist(AuthTokens tokens) async {
-    final accessToken = tokens.accessToken;
-    if (accessToken != null && accessToken.isNotEmpty) {
-      _setAccessToken(accessToken);
-    }
+  // Secure storage is asynchronous; serialize writes so sign-out or a newer sign-in always lands last.
+  Future<void> _write(Future<void> Function() action) {
+    final next = _writes.then((_) => action());
+    _writes = next.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    return next;
+  }
+
+  Future<void> _persist(AuthTokens tokens, int revision) async {
     final refreshToken = tokens.refreshToken;
     if (refreshToken != null && refreshToken.isNotEmpty) {
       await _store.save(refreshToken);
     }
+    if (revision != _identity) return;
+    final accessToken = tokens.accessToken;
+    _setAccessToken(
+      accessToken == null || accessToken.isEmpty ? null : accessToken,
+    );
   }
 }
 

@@ -28,7 +28,7 @@
     package id defaults to the assembly name (Skies.Framework.*); per-package Description can override the default below.
   -->
   <PropertyGroup>
-    <Version>4.1.4</Version>
+    <Version>5.0.0-rc.4</Version>
     <Authors>Lucas Tinoco</Authors>
     <Company>Skies</Company>
     <Product>Skies</Product>

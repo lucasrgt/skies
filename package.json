@@ -4,15 +4,9 @@
   "engines": {
     "node": ">=24"
   },
-  "description": "Repository-level tooling for the Skies .NET, Node.js, React, and Flutter SDK workspaces.",
+  "description": "Repository-level scripts for the Skies .NET, React, and Flutter workspaces.",
   "scripts": {
-    "prepare": "lefthook install",
-    "check:node": "npm --prefix node-sdk run check",
-    "check:flutter": "npm --prefix flutter-sdk run check",
-    "check:parity": "node tools/parity-guard.mjs check",
-    "test:parity": "node --test tools/parity-guard.test.mjs"
-  },
-  "devDependencies": {
-    "lefthook": "^1.10.10"
+    "check:frontend": "npm --prefix frontend-sdk run check",
+    "check:flutter": "cd flutter-sdk/packages/skies_flutter && flutter pub get && flutter analyze && flutter test"
   }
 }

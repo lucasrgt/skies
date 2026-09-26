@@ -54,7 +54,7 @@ public sealed class WriteConcurrencyAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeClass(SyntaxNodeAnalysisContext context)
     {
         var cls = (ClassDeclarationSyntax)context.Node;
-        if (!VerificationDepthPolicy.IsSlice(cls))
+        if (!SliceBehavior.IsSlice(cls))
             return;
 
         var handle = cls.Members.OfType<MethodDeclarationSyntax>()

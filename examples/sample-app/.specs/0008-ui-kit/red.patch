@@ -1,0 +1,130 @@
+diff --git i/frontend/web/src/ui/Button.tsx w/frontend/web/src/ui/Button.tsx
+index d917822..4c0f4f4 100644
+--- i/frontend/web/src/ui/Button.tsx
++++ w/frontend/web/src/ui/Button.tsx
+@@ -40,9 +40,9 @@ export function Button({
+   return (
+     <button
+       type="button"
+-      disabled={blocked}
+-      aria-busy={loading || undefined}
+-      onClick={onClick}
++      // Red: loading neither blocks nor announces, and the press is never wired.
++      disabled={disabled}
++      onClick={loading ? onClick : undefined}
+       onMouseEnter={() => setHover(true)}
+       onMouseLeave={() => {
+         setHover(false);
+@@ -68,7 +68,8 @@ export function Button({
+         cursor: blocked ? "not-allowed" : "pointer",
+         transition: "background-color " + motionMs.fast + "ms ease",
+         outline: "none",
+-        boxShadow: focused ? "0 0 0 2px " + color.focusRing : "none",
++        // Red: the outline is suppressed with no focus ring in its place.
++        boxShadow: "none",
+       }}
+     >
+       {label}
+diff --git i/frontend/web/src/ui/Field.tsx w/frontend/web/src/ui/Field.tsx
+index 797996b..52cd0a2 100644
+--- i/frontend/web/src/ui/Field.tsx
++++ w/frontend/web/src/ui/Field.tsx
+@@ -40,7 +40,7 @@ export function Field({
+   return (
+     <div style={{ display: "flex", flexDirection: "column", gap: space.xs }}>
+       <label
+-        htmlFor={fieldId}
++        /* Red: the label is not associated with its control. */
+         style={{
+           fontSize: text.label.fontSize,
+           lineHeight: text.label.lineHeight + "px",
+@@ -54,7 +54,7 @@ export function Field({
+         {children}
+       </FieldContext.Provider>
+       {error ? (
+-        <span id={fieldId + "-error"} role="alert" style={{ ...message, color: color.danger }}>
++        <span id={fieldId + "-error"} style={{ ...message, color: color.danger }}>
+           {error}
+         </span>
+       ) : hint ? (
+diff --git i/frontend/web/src/ui/Input.tsx w/frontend/web/src/ui/Input.tsx
+index e722b1d..4d7b186 100644
+--- i/frontend/web/src/ui/Input.tsx
++++ w/frontend/web/src/ui/Input.tsx
+@@ -37,14 +37,15 @@ export function Input({
+       type={kind === "number" ? "text" : kind}
+       inputMode={kind === "number" ? "numeric" : kind === "email" ? "email" : undefined}
+       value={value}
+-      onChange={onChange}
++      // Red: the View gets the value, not the change event, and never hears the blur.
++      onChange={(event) => onChange(event.currentTarget.value as never)}
+       placeholder={placeholder}
+       aria-invalid={isInvalid || undefined}
+       aria-describedby={wiring.describedBy}
+       onFocus={() => setFocused(true)}
+       onBlur={() => {
+         setFocused(false);
+-        onBlur?.();
++
+       }}
+       style={{
+         minHeight: 44,
+diff --git i/frontend/web/src/ui/Stack.tsx w/frontend/web/src/ui/Stack.tsx
+index 359ac75..16d37d5 100644
+--- i/frontend/web/src/ui/Stack.tsx
++++ w/frontend/web/src/ui/Stack.tsx
+@@ -23,7 +23,8 @@ export function Stack({
+       style={{
+         display: "flex",
+         flexDirection: direction === "vertical" ? "column" : "row",
+-        gap: space[gap],
++        // Red: the gap scale is ignored.
++        gap: undefined,
+         alignItems: align ? ALIGN[align] : undefined,
+         padding: padding ? space[padding] : undefined,
+       }}
+diff --git i/frontend/web/src/ui/Text.tsx w/frontend/web/src/ui/Text.tsx
+index 9449305..3d729c3 100644
+--- i/frontend/web/src/ui/Text.tsx
++++ w/frontend/web/src/ui/Text.tsx
+@@ -25,12 +25,14 @@ export function Text({
+   // above its submit.
+   alert?: boolean;
+ }) {
+-  const Tag = TAG[role];
++  // Red: a title renders as an inline span, outside the document outline.
++  const Tag = TAG[role] === "h1" ? "span" : TAG[role];
+   const t = text[role];
+   const TONE = { default: color.text, muted: color.textMuted, danger: color.danger, inverse: color.textInverse };
+   return (
+     <Tag
+-      role={alert ? "alert" : undefined}
++      // Red: the alert flag is ignored.
++      role={undefined}
+       style={{
+         // Margins belong to the container (Stack gap), so the element defaults are zeroed.
+         margin: 0,
+diff --git i/frontend/web/src/ui/states.tsx w/frontend/web/src/ui/states.tsx
+index 7add488..72a8dcb 100644
+--- i/frontend/web/src/ui/states.tsx
++++ w/frontend/web/src/ui/states.tsx
+@@ -8,7 +8,8 @@ export function EmptyState({ title, description }: { title: string; description?
+   return (
+     <Stack gap="xs" align="center" padding="xl">
+       <Text role="heading">{title}</Text>
+-      {description ? <Text tone="muted">{description}</Text> : null}
++      {/* Red: the description is dropped. */}
++      {description ? null : null}
+     </Stack>
+   );
+ }
+@@ -27,7 +28,8 @@ export function ErrorState({
+       <Text role="heading" tone="danger">
+         {title}
+       </Text>
+-      {onRetry && retryLabel ? <Button label={retryLabel} onClick={onRetry} variant="secondary" /> : null}
++      {/* Red: the retry action is dropped. */}
++      {onRetry && retryLabel ? null : null}
+     </Stack>
+   );
+ }

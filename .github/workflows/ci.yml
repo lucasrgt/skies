@@ -1,63 +1,103 @@
 name: CI
 
+# One job per body: the Rust CLI, the .NET libraries and analyzers, the React packages, and the Flutter spine.
+# Each runs its ordinary build and tests; there is no affected selection and no verification gate.
 on:
   workflow_call:
-    inputs:
-      full:
-        description: run the exhaustive release gate
-        required: false
-        default: false
-        type: boolean
   push:
-    branches: [main]
+    branches: [main, v5]
   pull_request:
   workflow_dispatch:
-    inputs:
-      full:
-        description: run the exhaustive release gate
-        required: false
-        default: false
-        type: boolean
 
-# Four native engines, one front door: .NET, Node.js, React/TS, and Flutter each get a gate.
-# Pull requests and pushes run the affected closure; release callers explicitly request full.
 jobs:
-  parity:
-    name: cross-runtime parity manifest
+  cli:
+    name: skies CLI (Rust)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          fetch-depth: 0
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
-      - name: verify parity guard behavior
-        run: npm run test:parity
-      - name: reject unmapped or unilateral runtime drift
-        run: npm run check:parity -- --ci
+      # The npm wrapper's tarball carries bin/skies.js, the launcher runs a platform package's binary, and
+      # tools/set-version.sh moves every version pin (on a copy of the checkout).
+      - name: release plumbing (npm pack, launcher, set-version)
+        run: cargo build --locked && tools/release-check.sh target/debug/skies
 
-  dotnet:
-    name: backend (skies gate)
-    runs-on: ubuntu-latest
-    env:
-      SKY_CI_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD^' }}
+  proof-windows:
+    name: proof engine on Windows (runner through Git's sh)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: tools/proof-smoke.sh
+
+  dotnet:
+    name: .NET libraries, doctor, and sample
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
-      - name: affected verification
-        if: ${{ !inputs.full }}
-        run: dotnet run --project src/Skies.Framework.Cli/Skies.Framework.Cli.csproj -c Release -- gate --affected --base "$SKY_CI_BASE" Skies.Framework.slnx -c Release
-      - name: exhaustive release verification
-        if: ${{ inputs.full }}
-        run: dotnet run --project src/Skies.Framework.Cli/Skies.Framework.Cli.csproj -c Release -- gate --full Skies.Framework.slnx -c Release
+      - run: dotnet build Skies.Framework.slnx -c Release
+      - run: dotnet test Skies.Framework.slnx -c Release --no-build
+
+  auth-smoke:
+    name: generated apps on the packed packages (doctor-clean, specs pass)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - run: tools/auth-smoke.sh
+
+  web-smoke:
+    name: generated React app (build, typecheck, lint, spec, doctor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - run: tools/web-smoke.sh
+
+  flutter-smoke:
+    name: generated Flutter app (pinned spine, analyze, spec, doctor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: tools/flutter-smoke.sh
 
   frontend:
-    name: frontend-sdk (typecheck + lint + test)
+    name: React packages (typecheck, lint, test)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -73,70 +113,17 @@ jobs:
       - run: npm run check
 
   flutter:
-    name: flutter-sdk (generator + analyze + test)
+    name: Flutter spine (analyze, test)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: flutter-sdk
+        working-directory: flutter-sdk/packages/skies_flutter
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: flutter-sdk/package-lock.json
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - run: npm ci
-      - run: npm run check
-
-  node:
-    name: node-sdk (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: node-sdk
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: node-sdk/package-lock.json
-      - run: npm ci --ignore-scripts
-      - run: npm audit --audit-level=moderate
-      - run: npm run check
-      - name: PostgreSQL Testcontainers integration proof
-        if: runner.os == 'Linux'
-        run: npm run test:integration
-      - name: pilot affected proof gate
-        if: ${{ runner.os == 'Linux' && !inputs.full }}
-        run: npm run gate:affected --workspace @skiesjs/pilot-api
-      - name: pilot exhaustive release gate
-        if: ${{ runner.os == 'Linux' && inputs.full }}
-        run: npm run gate:full --workspace @skiesjs/pilot-api
-      - name: upload pilot proof receipts
-        if: ${{ runner.os == 'Linux' && always() }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: node-pilot-proof-receipts
-          path: |
-            node-sdk/examples/pilot-api/.skies/foundation/*.json
-            node-sdk/examples/pilot-api/VERIFICATION.*
-          if-no-files-found: warn
-      - run: npm run package-smoke
-      - name: pilot mutation calibration
-        if: runner.os == 'Linux'
-        run: npm run mutate --workspace @skiesjs/pilot-api
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

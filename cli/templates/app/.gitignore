@@ -1,0 +1,20 @@
+# Build output
+bin/
+obj/
+TestResults/
+*.trx
+
+# IDE state
+.vs/
+.idea/
+*.user
+
+# Spec evidence: reports and logs stay local in each spec's evidence/raw/ (.specs/.gitignore keeps it out), and
+# what a case saves to $SKIES_EVIDENCE is committed. Large runner artifacts (traces, videos) stay out of git.
+.specs/**/evidence/*.zip
+.specs/**/evidence/*.webm
+.specs/**/evidence/*.mp4
+.specs/**/evidence/trace*
+
+# A web package's dependencies (each package ignores its own build output too).
+node_modules/

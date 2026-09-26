@@ -9,14 +9,14 @@ export type RequiredParam =
 
 /**
  * Project a raw route/search param into a {@link RequiredParam}. Routers hand params over loosely —
- * `string | string[] | undefined` on expo-router (a repeated query key arrives as an array) — and this
+ * `string | undefined` from React Router's `useParams()`, an array when a repeated search key is parsed — and this
  * normalizes all of it: absent, empty, or an empty array is `missing`; an array yields its first entry.
  *
  * The route branches declaratively on the result, the same shape SKYFE018 enforces:
  *
  * ```tsx
  * const id = requiredParam(params.chatId);
- * if (id.status === "missing") return <Redirect href="/messaging" />;
+ * if (id.status === "missing") return <Navigate to="/messaging" />;
  * return <Chat chatId={id.value} />;
  * ```
  */

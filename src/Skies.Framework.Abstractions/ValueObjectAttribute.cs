@@ -1,17 +1,10 @@
 namespace Skies.Framework.Abstractions;
 
 /// <summary>
-/// Marks a type as a value object — an immutable, identity-less domain value whose type
-/// <em>is</em> its rule (<c>Money</c>, <c>Cpf</c>, <c>Email</c>). The point is that an instance
-/// cannot exist in an invalid state: there is no public constructor, so the only way in is a
-/// static smart constructor returning a <see cref="Result{T}"/> (the <c>Money.From</c> shape),
-/// and the value is read-only once built. A <c>Validate</c> step "afterwards" is then impossible
-/// to forget — there is nothing to validate, because an invalid value never came to be.
-///
-/// Like <see cref="SliceAttribute"/> it is a <strong>pure marker</strong>: no base class, no
-/// behaviour, nothing to inherit. Delete the <c>Skies.Framework.Doctor</c> analyzer and this attribute
-/// becomes inert decoration — the type still compiles and runs (Law 2). Its only job is to give
-/// the doctor (<c>SKY0013</c>) a reliable anchor for the always-valid contract above.
+/// Marks an immutable domain value constructed through a factory returning <see cref="Result{T}"/>.
+/// The doctor checks constructors, property accessors, and the factory signature; the factory owns validation.
+/// Structs still admit <c>default(T)</c>, so use a class when the zero state cannot represent a valid value.
+/// This marker has no runtime behavior. Removing the analyzer leaves the code unchanged.
 /// </summary>
 [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public sealed class ValueObjectAttribute : Attribute;

@@ -1,0 +1,28 @@
+using Skies.Framework.EntityFrameworkCore;
+
+namespace MyApp.Api.Modules.__MODULE__;
+
+/// <summary>List __PLURAL____WITHIN__, one page at a time.
+/// The order ends on the unique Id, so page boundaries are deterministic, and the page is projected to
+/// <see cref="__ENTITY__View"/> after paging, so the entity itself never reaches the wire.</summary>
+[Slice]
+public static class List__PLURAL__
+{
+    public record Input(int Page = 1, int PageSize = 20);
+
+    public record Output(Page<__ENTITY__View> __PLURAL__);
+
+    private const int MaxPageSize = 100;
+
+    public static async Task<Result<Output>> Handle(Input input, AppDb db, CancellationToken ct)
+    {
+        var page = await db.__PLURAL__.__ORDER__
+            .ToPageAsync(input.Page, input.PageSize, MaxPageSize, ct);
+        return new Output(page.Select(__ENTITY__View.From));
+    }
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapGet("/__ROUTE__", async (int? page, int? pageSize, AppDb db, CancellationToken ct) =>
+                (await Handle(new Input(page ?? 1, pageSize ?? 20), db, ct)).ToHttp())
+            .WithName(nameof(List__PLURAL__))__POSTURE__
+}

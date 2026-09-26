@@ -1,0 +1,9 @@
+# Committed evidence stays small: Assay verdicts and terminal-state screenshots. Traces, videos, and archives
+# are regenerable with `skies proof record`.
+*.zip
+*.webm
+*.mp4
+trace*
+
+# Written by `skies`: full reports and logs are regenerable and stay local.
+/*/evidence/raw/

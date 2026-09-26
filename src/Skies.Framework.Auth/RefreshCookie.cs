@@ -18,7 +18,13 @@ public sealed record RefreshCookieOptions(
     string Name,
     string Path = "/",
     string? Domain = null,
-    SameSiteMode SameSite = SameSiteMode.Strict);
+    SameSiteMode SameSite = SameSiteMode.Strict)
+{
+    /// <summary>How long a planted cookie lives, used by <see cref="RefreshCookie.Deliver{TBody, TWebBody}"/>.
+    /// <see cref="SkiesAuthExtensions.AddSkiesAuth{TSessionStore}"/> sets it from
+    /// <see cref="RefreshSessionOptions.Lifetime"/>, so the cookie and the session row expire together.</summary>
+    public TimeSpan Lifetime { get; init; } = RefreshSessionOptions.Default.Lifetime;
+}
 
 /// <summary>How the refresh token reaches each client. Web stores it in an httpOnly, Secure cookie
 /// (<see cref="SameSiteMode.Strict"/> and host-only by default) — invisible to JS, so an XSS payload cannot
@@ -29,7 +35,7 @@ public sealed record RefreshCookieOptions(
 /// app-tunable for the multi-subdomain case; httpOnly and Secure are not. Secure is omitted only for an
 /// HTTP request whose host is loopback, so the same cookie flow remains testable under a local Vite proxy;
 /// every non-loopback host stays Secure even when TLS terminates upstream.</summary>
-public sealed class RefreshCookie(RefreshCookieOptions options)
+public sealed class RefreshCookie(RefreshCookieOptions options, TimeProvider? clock = null)
 {
     // The header a web client sends to opt into cookie delivery. A framework convention, not app config.
     private const string ClientHeader = "X-Client";
@@ -56,6 +62,19 @@ public sealed class RefreshCookie(RefreshCookieOptions options)
             Expires = expires,
             Path = options.Path,
         });
+
+    /// <summary>Answer a successful sign-in or refresh. A web caller gets <paramref name="refreshToken"/> planted as the
+    /// cookie (living <see cref="RefreshCookieOptions.Lifetime"/>) and <paramref name="webBody"/>, which must not carry
+    /// the refresh token; any other caller gets <paramref name="body"/>, refresh token included, for its secure
+    /// storage. The slice keeps the failure path (<c>ToHttp</c>) and chooses both bodies; this owns which one leaves
+    /// and how the cookie is set.</summary>
+    public IResult Deliver<TBody, TWebBody>(HttpContext http, string refreshToken, TBody body, TWebBody webBody)
+    {
+        if (!IsWeb(http.Request))
+            return Results.Ok(body);
+        SetRefresh(http.Response, refreshToken, (clock ?? TimeProvider.System).GetUtcNow().Add(options.Lifetime));
+        return Results.Ok(webBody);
+    }
 
     private static bool ShouldSecure(HttpRequest request)
     {

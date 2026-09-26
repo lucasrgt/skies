@@ -1,0 +1,15 @@
+using Skies.Framework.Starter.Api.Modules;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSkies();                        // framework conventions: slice-aware OpenAPI + enum-as-name JSON
+builder.Services.AddModules(builder.Configuration);  // each module's own services (the explicit registry)
+
+var app = builder.Build();
+
+app.UseSkies();    // allow the web origins in Cors:Origins, serve the OpenAPI contract at /openapi/v1.json
+app.MapModules();   // each module's routes (the explicit registry)
+
+app.Run();
+
+// Exposed so WebApplicationFactory<Program> can boot the real app in the spec E2E.
+public partial class Program { }

@@ -1,0 +1,18 @@
+namespace __NAMESPACE__.Modules.__MODULE__;
+
+[Slice]
+public static class __NAME__
+{
+    public record Input(Guid Id);
+
+    public record Output();
+
+    public static Task<Result<Output>> Handle(Input input, CancellationToken ct) =>
+        Task.FromResult<Result<Output>>(
+            Error.BusinessRule(__MODULE__ErrorCodes.__NAME__NotImplemented, "__NAME__ is not implemented yet."));
+
+    public static void Map(IEndpointRouteBuilder app) =>
+        app.MapPost("/__NAME_LOWER__", async (Input input, CancellationToken ct) =>
+                (await Handle(input, ct)).ToHttp())
+            .WithName(nameof(__NAME__))__POSTURE__
+}
