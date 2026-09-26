@@ -13,6 +13,9 @@ layered over the real one, because the code is stored hashed and only ever leave
 - `POST /account/verify-phone` (authenticated) checks the code against the caller's latest active code. The right
   code marks the phone verified and completes registration; five wrong guesses lock the code.
 
+Before `skies proof run` or `record`, review each mode against the AVP catalog and add criteria or a reviewed
+exemption. Generated code cannot make that applicability decision on behalf of the consuming app.
+
 ## Failure modes
 
 - FM-[verify] The code sent by SMS does not verify the caller's phone or complete their registration

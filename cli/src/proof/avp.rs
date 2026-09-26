@@ -2,8 +2,8 @@
 //!
 //! A failure mode tagged `[avp: criterion]` in spec.md is decided by a verifier from the AVP catalog as well as by
 //! its E2E case. The case saves the verdict to `$SKIES_EVIDENCE/avp-FM-<n>.json`; the engine only reads that file.
-//! It does not run Assay, link it, or know its archetypes, so a spec without tags never touches any of this, and a
-//! team that drops Assay drops nothing from the framework.
+//! It does not run Assay, link it, or know its archetypes, so an explicitly reviewed exemption needs no verifier dependency.
+//! Applicability is validated before a runner starts; this module only checks the declared criteria.
 //!
 //! Both Assay implementations are accepted as they serialize themselves: Assay.Net's `Verdict` through
 //! System.Text.Json (PascalCase or camelCase, `status` as a string or as the enum number where 0 is Pass) and the

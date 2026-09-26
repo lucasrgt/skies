@@ -153,11 +153,27 @@ pub fn text(output: &Output) -> String {
 
 /// A spec.md for spec `id` on the fake runner with the given failure-mode lines (without the leading dash).
 pub fn spec_md(id: &str, fms: &[&str]) -> String {
-    let lines: Vec<String> = fms.iter().map(|fm| format!("- {fm}")).collect();
+    // These synthetic toggle cases exercise the engine itself, not an AVP domain protocol.
+    let lines: Vec<String> = fms
+        .iter()
+        .map(|fm| {
+            if fm.contains("[avp:") {
+                format!("- {fm}")
+            } else {
+                format!("- {fm} [avp: none]")
+            }
+        })
+        .collect();
+    let exemptions: Vec<String> = fms.iter().filter(|fm| !fm.contains("[avp:")).map(|fm| {
+        let id = fm.split_whitespace().next().unwrap();
+        format!("- {id} Synthetic engine fixture: the toggle assertion directly decides this mode. | reviewed-by: fixture-reviewer")
+    }).collect();
     format!(
         "---\nid: \"{id}\"\nrunner: fake\n---\n# Toggle\n\n## Failure modes\n\n{}\n",
         lines.join("\n")
-    )
+    ) + "\n## AVP exemptions\n"
+        + &exemptions.join("\n")
+        + "\n"
 }
 
 pub fn spec_with(fms: &[&str]) -> String {

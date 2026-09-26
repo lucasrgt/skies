@@ -74,8 +74,23 @@ Walk this checklist and keep only what applies:
 
 When a failure mode matches an archetype in the AVP catalog (request idempotency, authorization, money integrity,
 pagination…), decide it with that Assay verifier instead of a hand-rolled check, and tag the line with the criterion
-id: `- FM-5 A retry with the same key credits twice [avp: idempotency-key-honored]`. The tag is optional; use it
-only when an archetype fits.
+id: `- FM-5 A retry with the same key credits twice [avp: idempotency-key-honored]`.
+Every mode MUST explicitly decide AVP applicability. If no catalog criterion fits, write `[avp: none]` and explain
+why the direct assertions suffice under `## AVP exemptions`:
+
+```markdown
+- FM-3 The greeting text is absent. [avp: none]
+
+## AVP exemptions
+- FM-3 A static greeting has no protocol invariant; asserting its visible text decides this mode. | reviewed-by: <actual reviewer>
+```
+
+The reviewer must compare the exemption with the AVP catalog and the actual assertions. Show every proposed
+exemption to the human with the failure modes; record their identity only after they approve it. Never invent a
+reviewer, self-approve on the human's behalf, or default every mode to `none`. If an applicable criterion is missing
+from the catalog, describe that gap explicitly for review. `proof run` and `proof record` refuse omissions,
+unjustified exemptions and unnamed reviews before executing a runner. The receipt preserves the exemption and
+review attribution. This is an auditable assertion of review, not authentication of the reviewer's identity.
 
 A spec for a screen or shared file outside `Modules/` can claim it with `touches:` in the frontmatter, so
 `skies proof impact` finds the spec from that path (that is all `touches` does; a glob matching no file is warned

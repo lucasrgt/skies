@@ -29,6 +29,9 @@ the module, and add a failure mode here before changing behavior.
 - Outside Development the app refuses to start unless `Jwt:Secret` is configured with at least 32 bytes that are
   not the development key.
 
+Before `skies proof run` or `record`, review each mode against the AVP catalog and add criteria or a reviewed
+exemption. Generated code cannot make that applicability decision on behalf of the consuming app.
+
 ## Failure modes
 
 - FM-1 Registration does not produce a usable account: the email is stored un-normalized or the password does not verify

@@ -61,6 +61,14 @@ Existing tests keep running as ordinary tests. They are not converted into specs
 `skies spec new`. For a critical area, write a spec after the fact and record it with a `red.patch` that removes the
 behavior, so the receipt still shows every failure mode failing before and passing after.
 
+## Explicit AVP decisions
+
+Every failure mode now needs `[avp: criterion-id]` or `[avp: none]`. A dispensation must be justified under
+`## AVP exemptions` as `- FM-n <specific reason> | reviewed-by: <actual reviewer>`, after the human reviews its
+applicability against the catalog. Existing specs and generated examples need this review before `proof run` or
+`proof record`; do not mechanically stamp them all `none` or rewrite historical receipts. A missing decision is
+reported before a runner starts. Review attribution is recorded, not authenticated by the CLI.
+
 ## Runtime and generator changes
 
 - `IExternalIdentity` and its synchronous `Verify` are removed. Implement `IExternalIdentityVerifier.VerifyAsync`

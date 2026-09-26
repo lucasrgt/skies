@@ -6,6 +6,7 @@
 //! reruns. Red is the evidence nothing else produces. Nothing here runs in a hook or blocks anything by default.
 
 mod avp;
+mod avp_decision;
 mod base;
 mod evidence;
 mod git;

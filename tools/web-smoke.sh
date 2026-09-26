@@ -161,7 +161,10 @@ runner: web
 
 ## Failure modes
 
-- FM-1 The start screen does not greet the visitor.
+- FM-1 The start screen does not greet the visitor. [avp: none]
+
+## AVP exemptions
+- FM-1 The smoke fixture only checks static greeting text, directly asserted in the rendered DOM. | reviewed-by: smoke-fixture
 EOF
 cat > "$APP/.specs/$HOME_SPEC/e2e/Home.test.tsx" <<'EOF'
 import { describe, expect, it } from "vitest";

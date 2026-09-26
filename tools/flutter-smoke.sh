@@ -110,7 +110,10 @@ runner: flutter
 
 ## Failure modes
 
-- FM-1 The app does not start.
+- FM-1 The app does not start. [avp: none]
+
+## AVP exemptions
+- FM-1 This startup fixture asserts mounting without exceptions; it exercises no domain interaction. | reviewed-by: smoke-fixture
 EOF
 cat > "$APP/.specs/0001-app/e2e/app_test.dart" <<'EOF'
 import 'package:flutter_test/flutter_test.dart';

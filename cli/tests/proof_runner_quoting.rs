@@ -31,7 +31,7 @@ fn run_with_fake_dotnet(manifest: &str) -> (bool, String) {
     std::fs::create_dir_all(spec.join("e2e")).unwrap();
     std::fs::write(
         spec.join("spec.md"),
-        "---\nid: \"0001\"\nrunner: api\n---\n# Quoting\n\n## Failure modes\n\n- FM-1 the report path is cut at `;`\n",
+        "---\nid: \"0001\"\nrunner: api\n---\n# Quoting\n\n## Failure modes\n\n- FM-1 the report path is cut at `;` [avp: none]\n## AVP exemptions\n- FM-1 This shell fixture asserts argument boundaries directly; it exercises no domain protocol. | reviewed-by: fixture-reviewer\n",
     )
     .unwrap();
     let bin = root.join("bin");
@@ -115,7 +115,7 @@ fn paths_with_spaces_reach_the_runner_whole() {
     .unwrap();
     std::fs::write(
         spec.join("spec.md"),
-        "---\nid: \"0001\"\nrunner: fake\n---\n# Toggle\n\n## Failure modes\n\n- FM-1 a path with a space breaks\n",
+        "---\nid: \"0001\"\nrunner: fake\n---\n# Toggle\n\n## Failure modes\n\n- FM-1 a path with a space breaks [avp: none]\n## AVP exemptions\n- FM-1 This shell fixture asserts argument boundaries directly; it exercises no domain protocol. | reviewed-by: fixture-reviewer\n",
     )
     .unwrap();
     std::fs::write(spec.join("e2e/case.txt"), "FM-1: spaces survive").unwrap();
