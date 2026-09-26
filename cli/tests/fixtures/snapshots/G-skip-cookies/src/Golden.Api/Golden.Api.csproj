@@ -11,16 +11,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Skies.Framework.Abstractions" Version="5.0.0-rc.3" />
-    <PackageReference Include="Skies.Framework.AspNetCore" Version="5.0.0-rc.3" />
+    <PackageReference Include="Skies.Framework.Abstractions" Version="5.0.0-rc.4" />
+    <PackageReference Include="Skies.Framework.AspNetCore" Version="5.0.0-rc.4" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.0" PrivateAssets="all" />
     <!-- The doctor rides along as a build analyzer. Remove it and the app still compiles and runs
          (Law 2) — you only lose the enforcement. -->
-    <PackageReference Include="Skies.Framework.Doctor" Version="5.0.0-rc.3" PrivateAssets="all" />
+    <PackageReference Include="Skies.Framework.Doctor" Version="5.0.0-rc.4" PrivateAssets="all" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.8" />
-    <PackageReference Include="Skies.Framework.Auth" Version="5.0.0-rc.3" />
-    <PackageReference Include="Skies.Framework.EntityFrameworkCore" Version="5.0.0-rc.3" />
+    <PackageReference Include="Skies.Framework.Auth" Version="5.0.0-rc.4" />
+    <PackageReference Include="Skies.Framework.EntityFrameworkCore" Version="5.0.0-rc.4" />
   </ItemGroup>
 
   <ItemGroup>

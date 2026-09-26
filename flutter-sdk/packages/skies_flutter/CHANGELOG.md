@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.0.0-rc.4
+
+- Align the Flutter spine with the Skies release requiring explicit AVP applicability decisions and reviewed exemptions in evidence specs.
+- No Flutter runtime API changes from rc.3.
+
 ## 5.0.0-rc.3
 
 - Publish the Skies 5 Flutter spine alongside the corrected CLI, generated apps, and architecture doctors.
