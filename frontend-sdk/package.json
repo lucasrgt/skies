@@ -1,6 +1,6 @@
 {
   "name": "@skiesjs/frontend-sdk",
-  "version": "5.0.0-rc.1",
+  "version": "5.0.0-rc.2",
   "private": true,
   "type": "module",
   "description": "Skies frontend workspace: @skiesjs/react and @skiesjs/eslint-plugin, checked against the canonical sample.",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@hookform/resolvers": "^5.4.0",
-    "@skiesjs/eslint-plugin": "5.0.0-rc.1",
+    "@skiesjs/eslint-plugin": "5.0.0-rc.2",
     "@tanstack/eslint-plugin-query": "^5.62.16",
     "@tanstack/react-query": "^5.62.7",
     "@testing-library/dom": "^10.4.0",

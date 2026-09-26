@@ -1,6 +1,6 @@
 name: skies_flutter
 description: Plain Flutter primitives for Skies MVVM applications and dart-dio clients.
-version: 5.0.0-rc.1
+version: 5.0.0-rc.2
 homepage: https://skies.build
 repository: https://github.com/lucasrgt/skies/tree/main/flutter-sdk/packages/skies_flutter
 
