@@ -1,6 +1,6 @@
 {
   "name": "skies",
-  "version": "5.0.0-rc.1",
+  "version": "5.0.0-rc.2",
   "description": "The Skies kit: vertical-slice and MVVM conventions, architecture doctors, scaffolders, and spec-driven delivery with reproducible receipts.",
   "knowledgeHome": "skies"
 }
