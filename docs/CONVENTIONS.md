@@ -362,7 +362,13 @@ CI cannot produce, so that is all the receipt records.
 - **A failure mode may name an Assay verifier**: `- FM-5 a retry with the same key credits twice
   [avp: idempotency-key-honored]` (several ids comma-separated). The case saves the verdict to
   `$SKIES_EVIDENCE/avp-FM-5.json`, and the mode passes only when its cases pass and every tagged criterion passes.
-  Optional: an untagged mode is decided by its cases alone.
+  Every mode must declare criteria or `[avp: none]`. A `none` decision needs an entry under `## AVP exemptions`:
+  `- FM-n <specific reason direct assertions suffice> | reviewed-by: <actual reviewer>`. A reviewer compares the
+  reason and assertions with the AVP catalog; agents must obtain that review, never manufacture it. Both `run`
+  and `record` refuse missing decisions, missing reasons and unnamed reviews before running cases. The receipt
+  preserves `avp_exemption.reason` and `avp_exemption.reviewed_by`. The CLI checks the record's structure, not the
+  reviewer's identity or the quality of their judgment. Existing receipts remain historical evidence; to run or
+  record an old spec again, review and declare every mode's applicability first.
 - **Impact comes from the ctx citations.** `skies proof impact <paths>` (without paths: the files changed since the
   base `record` would choose) maps each path under `**/Modules/<M>/` to `<M>.ctx.md` and prints the specs its design
   notes cite, all their failure modes for `` `0002-withdraw` `` and just the one for `` `0002-withdraw#FM-2` ``, plus

@@ -14,6 +14,9 @@ same bypass guard a real verifier sits behind.
   password, registration at PhonePending), then opens a session.
 - `POST /account/login/google` verifies the token, finds the account by its email across orgs, and opens a session.
 
+Before `skies proof run` or `record`, review each mode against the AVP catalog and add criteria or a reviewed
+exemption. Generated code cannot make that applicability decision on behalf of the consuming app.
+
 ## Failure modes
 
 - FM-1 A verified Google identity does not create an email-verified account with a live session

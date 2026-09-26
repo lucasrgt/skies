@@ -59,7 +59,7 @@ fn a_tagged_failure_mode_passes_only_with_a_passing_verdict() {
     assert_eq!(
         receipt["failure_modes"],
         json!({
-            "FM-1": {"red": "fail", "green": "pass", "cases": ["FM-1: toggles"]},
+            "FM-1": {"red": "fail", "green": "pass", "cases": ["FM-1: toggles"], "avp_exemption": {"reason": "Synthetic engine fixture: the toggle assertion directly decides this mode.", "reviewed_by": "fixture-reviewer"}},
             "FM-2": {
                 "red": "fail", "green": "pass", "cases": ["FM-2: retries once"], "avp": ["key-honored"],
                 "verdict": "evidence/avp-FM-2.json", "red_verdict": "evidence/red.avp-FM-2.json"

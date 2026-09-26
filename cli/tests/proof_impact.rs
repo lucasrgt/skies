@@ -71,7 +71,7 @@ fn a_touches_glob_that_matches_nothing_is_a_warning() {
     let repo = cited_repo();
     repo.write(
         ".specs/0004-moved/spec.md",
-        "---\nid: \"0004\"\nrunner: fake\ntouches: [web/src/moved/**]\n---\n## Failure modes\n\n- FM-1 a\n",
+        "---\nid: \"0004\"\nrunner: fake\ntouches: [web/src/moved/**]\n---\n## Failure modes\n\n- FM-1 a [avp: none]\n## AVP exemptions\n- FM-1 Synthetic impact fixture: its state assertion directly decides the mode. | reviewed-by: fixture-reviewer\n",
     );
     let impact = repo.skies(&["proof", "impact", "src/unrelated.txt"]);
     assert!(impact.status.success(), "a warning never fails: {}", text(&impact));

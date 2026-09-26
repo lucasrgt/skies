@@ -116,7 +116,7 @@ fn a_spec_without_failure_modes_says_how_to_write_one() {
     assert!(message.contains("lists no failure mode"), "{message}");
     assert!(message.contains("`- FM-1 <what goes wrong>`"), "{message}");
     assert!(
-        parse("## Failure modes\n- FM-1 a\n")
+        parse("## Failure modes\n- FM-1 a [avp: criterion]\n")
             .unwrap()
             .unprovable(&spec)
             .is_none()

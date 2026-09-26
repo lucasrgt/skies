@@ -111,6 +111,9 @@ pub struct Mode {
     /// The Assay criteria tagged on the mode in spec.md.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub avp: Vec<String>,
+    /// An explicit waiver remains visible in the proof, including its review attribution.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avp_exemption: Option<super::avp_decision::Exemption>,
     /// The green verdict that decided a tagged mode, relative to the spec folder.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub verdict: Option<String>,

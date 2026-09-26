@@ -122,14 +122,17 @@ fn id_number(id: &str) -> u64 {
     id.parse().unwrap_or(u64::MAX)
 }
 
-/// One `- FM-n text [avp: criterion, …]` line. The tag is optional and never required by the framework: it says
-/// that a verifier from the AVP catalog decides this failure mode, so the receipt also demands its verdict.
+/// One failure mode with an explicit AVP decision: criteria, or a reviewed exemption.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct FailureMode {
     /// The line's text after the id, without the tag.
     pub text: String,
     /// AVP criterion ids from the tag, in the order written.
     pub avp: Vec<String>,
+    /// Distinguishes an explicit `none` from silently omitting AVP.
+    pub avp_declared: bool,
+    /// The rationale and reviewer recorded for an explicit `none` decision.
+    pub avp_exemption: Option<super::avp_decision::Exemption>,
 }
 
 /// The parts of spec.md the engine acts on. Everything else in the file is for people.
@@ -184,14 +187,15 @@ impl SpecDoc {
             .filter(|(_, mode)| mode.text.starts_with(PLACEHOLDER))
             .map(|(id, _)| id.to_string())
             .collect();
-        (!placeholders.is_empty()).then(|| {
-            format!(
+        if !placeholders.is_empty() {
+            return Some(format!(
                 "{}/{SPEC_FILE}: {} still reads as the template's placeholder (`{PLACEHOLDER} …>`). Replace it with \
                  what goes wrong, observable from outside, e.g. `- FM-1 a second cancel refunds twice`.",
                 spec.rel(),
                 placeholders.join(", ")
-            )
-        })
+            ));
+        }
+        super::avp_decision::unprovable(self)
     }
 
     pub fn runner(&self, spec: &SpecDir) -> Result<&str> {
@@ -248,6 +252,7 @@ pub fn parse(text: &str) -> Result<SpecDoc> {
     if let Some((id, text)) = open.take() {
         close_mode(&mut doc, id, &text)?;
     }
+    super::avp_decision::read_exemptions(text, &mut doc)?;
     Ok(doc)
 }
 
@@ -256,9 +261,18 @@ fn close_mode(doc: &mut SpecDoc, id: FmId, text: &str) -> Result<()> {
     if doc.failure_modes.contains(&id) {
         bail!("{id} is listed twice under ## Failure modes");
     }
+    let avp_declared = text.to_ascii_lowercase().contains("[avp:");
     let (text, avp) = avp_tag(text).with_context(|| format!("{id}: malformed [avp: …] tag"))?;
     doc.failure_modes.push(id);
-    doc.modes.insert(id, FailureMode { text, avp });
+    doc.modes.insert(
+        id,
+        FailureMode {
+            text,
+            avp,
+            avp_declared,
+            avp_exemption: None,
+        },
+    );
     Ok(())
 }
 
@@ -272,16 +286,26 @@ fn avp_tag(rest: &str) -> Result<(String, Vec<String>)> {
         .find(']')
         .map(|offset| start + offset)
         .context("the tag has no closing ]")?;
-    let ids: Vec<String> = rest[start + "[avp:".len()..end]
+    if rest[end + 1..].to_ascii_lowercase().contains("[avp:") {
+        bail!("declare exactly one AVP decision per failure mode");
+    }
+    let mut ids: Vec<String> = rest[start + "[avp:".len()..end]
         .split(',')
         .map(|id| id.trim().to_string())
-        .filter(|id| !id.is_empty())
         .collect();
-    if ids.is_empty() {
+    if ids.iter().any(String::is_empty) {
         bail!("the tag names no criterion (expected e.g. [avp: idempotency-key-honored])");
     }
     if let Some(bad) = ids.iter().find(|id| validate_slug(id).is_err()) {
         bail!("'{bad}' is not an AVP criterion id (kebab-case, e.g. idempotency-key-honored)");
+    }
+    if ids.iter().any(|id| id == "none") {
+        if ids.len() != 1 {
+            bail!("[avp: none] cannot be mixed with criteria");
+        }
+        ids.clear();
+    } else if ids.iter().any(|id| id == "nothing") {
+        bail!("use [avp: none] with a reviewed AVP exemption, not nothing");
     }
     let text = format!("{} {}", rest[..start].trim_end(), rest[end + 1..].trim_start());
     Ok((text.trim().to_string(), ids))
@@ -416,6 +440,10 @@ pub fn template(id: &str, slug: &str, runner: &str) -> String {
          e2e cases titled \"FM-<n>: ...\" that fail before the implementation and pass after it. -->\n\
          \n\
          - FM-1 {PLACEHOLDER} what goes wrong, e.g. a second cancel refunds twice>\n\
+         \n\
+         <!-- Every FM needs [avp: criterion-id] or [avp: none]. For none, add an entry under\n\
+         ## AVP exemptions: `- FM-n <why direct assertions suffice> | reviewed-by: <actual reviewer>`.\n\
+         Review the AVP catalog with the human; never invent a review or use none as a default. -->\n\
          \n\
          ## Out of scope\n\
          \n\

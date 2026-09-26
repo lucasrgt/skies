@@ -61,8 +61,12 @@ runner: fake
 
 ## Failure modes
 
-- FM-1 The feature stays off.
-- FM-2 The feature does not survive a second read.
+- FM-1 The feature stays off. [avp: none]
+- FM-2 The feature does not survive a second read. [avp: none]
+
+## AVP exemptions
+- FM-1 Synthetic file-toggle fixture: assertions directly inspect both reads; no domain protocol is involved. | reviewed-by: smoke-fixture
+- FM-2 Synthetic file-toggle fixture: assertions directly inspect both reads; no domain protocol is involved. | reviewed-by: smoke-fixture
 EOF
 mkdir -p "$SPEC/e2e" && printf 'FM-1: turns on\nFM-2: stays on\n' > "$SPEC/e2e/cases.txt"
 echo on > src/feature.txt

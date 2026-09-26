@@ -124,6 +124,7 @@ pub fn record(key: &str, red_rev: Option<&str>, red_patch: Option<&Path>, allow_
                 cases: checked.names(*id),
                 message: red.messages.get(id).cloned(),
                 avp: doc.avp(*id).to_vec(),
+                avp_exemption: doc.modes[id].avp_exemption.clone(),
                 verdict: tagged.then(|| format!("{EVIDENCE_DIR}/{verdict}")),
                 red_verdict,
             },

@@ -12,7 +12,8 @@ mechanism: no runtime metaprogramming, no language. Reference codebase: `rails/r
 2. **Doctor-removable.** Remove the Roslyn analyzer, the ESLint plugin, or the Flutter rules and the app still
    compiles and runs; only enforcement is lost.
 3. **Evidence over apparatus.** A feature is accepted by a reproducible receipt in its spec folder. The framework
-   ships no gate, no hook, no check that audits the agent, and no rule that demands a test, tag, or manifest.
+   ships no gate, no hook, no check that audits the agent, and no doctor rule that demands a test, tag, or manifest. Within an authored spec, the proof engine requires
+   explicit AVP applicability decisions and reviewed exemptions.
 
 A proposal that breaks one of these — hidden source generation of behavior, a DSL, a base class, magic discovery,
 a new gate — is out. Reject it in line.

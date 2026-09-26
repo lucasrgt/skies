@@ -28,8 +28,8 @@
 #            (errors and warnings alike, for every app).
 #   SPECS  — build and run the tests project (analyzers off), which compiles .specs/*/e2e; every case must pass
 #            and the count of passed tests must equal the number of FM cases in the specs.
-#   PROOFS — `skies proof run` on every spec with the app's own runner: each passes, and the engine counts exactly the
-#            `- FM-<n>` lines its spec.md lists (a spec whose modes do not parse fails instead of passing on zero).
+#   PROOFS — generated specs must refuse proof acceptance until the app author reviews AVP applicability.
+#            The SPECS leg above still executes and counts every generated case.
 #
 # Headless and Docker-free: the in-memory provider backs the tests. Needs cargo and the .NET 10 SDK on PATH (e.g.
 # `mise exec rust@latest dotnet@10 -- tools/auth-smoke.sh`). Set SKIES to reuse a prebuilt binary, and
@@ -180,25 +180,19 @@ specs() {
   echo "ok: [$app] $passed/$expected spec cases passed ($(ls -d "$WORK/$app"/.specs/*/ | xargs -n1 basename | tr '\n' ' '))"
 }
 
-# proofs <App> — run every spec through the engine (`skies proof run`, the app's own runner): each must pass, and
-# the engine must see every `- FM-<n>` line of its spec.md, so a spec whose failure modes do not parse (zero FMs, or
-# fewer than written) fails here instead of passing vacuously.
+# Generated auth cases are executed by specs() above. A generator cannot review AVP applicability for the
+# consuming app: proof acceptance must stop before running until the author makes those decisions.
 proofs() {
-  local app="$1" spec name modes out
-  echo "==> [$app] PROOFS: skies proof run on every spec"
+  local app="$1" spec name out
   for spec in "$WORK/$app"/.specs/*/spec.md; do
     name="$(basename "$(dirname "$spec")")"
-    modes="$(awk '/^## /{s=(tolower($0) ~ /^## failure modes/)} s && /^[[:space:]]*[-*][[:space:]]+FM-[0-9]+([: ]|$)/{n++} END{print n+0}' "$spec")"
-    if [ "$modes" -eq 0 ]; then
-      echo "FAIL: [$app] $name/spec.md lists no \`- FM-<n>\` line"; exit 1
+    if out="$(cd "$WORK/$app" && "$SKIES" proof run "$name" 2>&1)"; then
+      echo "FAIL: [$app] $name accepted without an AVP applicability review"; exit 1
     fi
-    if ! out="$(cd "$WORK/$app" && "$SKIES" proof run "$name" 2>&1)" \
-      || ! echo "$out" | grep -q "^$modes/$modes FMs pass$"; then
-      echo "$out" | tail -40
-      echo "FAIL: [$app] skies proof run $name must pass all $modes failure modes spec.md lists"
-      exit 1
+    if ! echo "$out" | grep -q 'missing AVP decision'; then
+      echo "$out"; echo "FAIL: [$app] $name did not report the pending AVP decision"; exit 1
     fi
-    echo "ok: [$app] $name: $modes/$modes FMs pass through the engine"
+    echo "ok: [$app] $name refuses unreviewed AVP applicability (cases passed separately)"
   done
 }
 

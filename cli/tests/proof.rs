@@ -50,8 +50,8 @@ fn record_writes_a_receipt_of_red_and_green_per_failure_mode() {
     assert_eq!(
         receipt["failure_modes"],
         json!({
-            "FM-1": {"red": "fail", "green": "pass", "cases": ["FM-1: toggles"], "message": "expected on, got off"},
-            "FM-2": {"red": "fail", "green": "pass", "cases": ["FM-2: toggles twice"], "message": "expected on, got off"}
+            "FM-1": {"red": "fail", "green": "pass", "cases": ["FM-1: toggles"], "avp_exemption": {"reason": "Synthetic engine fixture: the toggle assertion directly decides this mode.", "reviewed_by": "fixture-reviewer"}, "message": "expected on, got off"},
+            "FM-2": {"red": "fail", "green": "pass", "cases": ["FM-2: toggles twice"], "avp_exemption": {"reason": "Synthetic engine fixture: the toggle assertion directly decides this mode.", "reviewed_by": "fixture-reviewer"}, "message": "expected on, got off"}
         })
     );
     assert!(repo.path(&format!("{SPEC}/evidence/raw/green.xml")).is_file());
